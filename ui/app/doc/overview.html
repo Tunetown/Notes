@@ -8,6 +8,8 @@
 <p>There are multiple ways of importing and exporting documents, for example Trello boards can be imported directly. The app is Open Source, so you can add your own importers/exporters if you are familiar with Javascript. See the technical documentation for more details on this.</p>
 <h2>Documentation</h2>
 <p>See <a href="#/doc">here</a>.</p>
+<h2>Source Code</h2>
+<p>The project is hosted on <a href="https://github.com/Tunetown/Notes" target="_blank" rel="noopener">Github</a>.</p>
 <h2>Technical Overview</h2>
 <p>The app is based on pure HTML/Javascript and a <a href="https://couchdb.apache.org/" target="_blank" rel="noopener">CouchDB</a> backend. This database is document based, so it is well suitable for this application, and also the <a href="https://pouchdb.com/" target="_blank" rel="noopener">PouchDB</a> library provides the synchronizing mechanisms to be able to fully use the app when there is no network connection to the CouchDB server.</p>
 <p>The data is stored in JSON format (native to CouchDB) internally. One notebook is represented by one database in CouchDB. A copy of the database containing the complete notebook can be held locally in the browser's app storage, so if you make changes to a document while being offline, the changes will be synchronized whenever there is a connection to the server again (this is what PouchDB does).</p>
