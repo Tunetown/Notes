@@ -1,0 +1,148 @@
+/**
+ * Styles for the Notes application frontend.
+ *
+ * (C) Thomas Weber 2021 tom-vibrant@gmx.de
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/** 
+ * Container for all grid items. This also holds the scrollbar.
+ */
+#treeContainer {
+	position: absolute;
+	height: 100%;
+	width: 100%;
+	overflow: auto;  
+	z-index: 1;
+}
+ 
+/** 
+ * Another container in between
+ */
+#treeGridContainer {
+	position: relative;
+} 
+
+/** 
+ * Container for the grid itself (Muuri grid)
+ */
+#treeview {
+	min-width: auto;
+	position: relative;
+}
+
+.treerootbuttons {
+}
+
+.treerootbutton {
+	float: right;
+	margin: 5px;
+} 
+.treerootbutton:hover {
+	background-color: lightgrey;
+}
+
+/**
+ * Mode switch
+ */ 
+#treeRootModeSwitchContainer {
+	position: absolute;
+	bottom: 10px;
+	left: 10px;
+	z-index: 9;
+}
+
+.treeModeSwitchbutton {
+	float: left;
+	margin: 5px;
+	transition: 0.1s;
+}
+
+.treeModeSwitchbutton:hover {
+	background-color: lightgrey;
+}
+
+#treeRootTopSwitchContainer {
+	position: absolute;
+	top: 0px;
+	right: 0px;
+	z-index: 100;
+	float: right;
+}
+
+/** 
+ * Button to call options, shown on the item 
+ */
+.treeoptionsbutton {
+	flex: 1 1 auto;
+	margin-top: 2px;
+	cursor: pointer;
+	float: right;
+	opacity: 0.6;
+	margin-right: 6px;
+} 
+
+.treeoptionsbutton:hover {
+	opacity: 1.0;
+}
+
+/**
+ * Item options 
+ */
+.treebuttons {
+    position: absolute;
+    display: none;
+    z-index: 10000;
+}
+
+.treebutton {
+	margin: 5px;
+	transition: 0.1s;
+} 
+.treebutton-alert {
+	color: red;
+}
+.treebutton:hover {
+	background-color: lightgrey;
+} 
+
+/** 
+ * Line to divide tree 
+ */
+.treeline {
+	background-color: #eee;
+	height: 1px;
+}
+
+.conflictIcon {
+	margin-left: 10px;
+	margin-top: 1px;
+}
+
+/**
+ * Block screen for waiting to changes
+ */
+ #treeblock {
+ 	width: 100%;
+ 	height: 100%;
+ 	background-color: grey;
+ 	opacity: 0.8;	
+ 	z-index: 1000;
+ 	position: absolute;
+ }
+ 
+ .searchBarTree {
+ 	padding: 5px;
+ }

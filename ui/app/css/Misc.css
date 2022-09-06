@@ -1,0 +1,395 @@
+/**
+ * Styles for the Notes application frontend.
+ *
+ * (C) Thomas Weber 2021 tom-vibrant@gmx.de
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+.doc-label {
+	text-align: center;	
+	border-radius: 100px;
+}
+
+.doc-label-menuoption {
+	width: 16px;
+	height: 16px;
+	float: right;
+	margin-left: 2px;
+}
+
+.doc-label-labellist {
+	width: 18px;
+	height: 18px;
+}
+
+#uploadDialog {
+	z-index: 99999;
+}
+
+/**
+ * Editor
+ */
+div.tox-tinymce {
+	border: 0px;
+}
+
+/**
+ * Versions
+ */
+.versionButton {
+	opacity: 0.6;
+	margin: 5px;
+	cursor: pointer;
+	float: left;
+}
+
+.versionButton:hover {
+	opacity: 1.0;
+} 
+
+#versiondata {
+	padding: 10px 0px 0 20px;
+	background-color: white;
+	overflow: auto;
+	width: 100%;
+}
+
+#conflictData {
+	padding: 10px 0px 0 20px;
+	background-color: white;
+	overflow: auto;
+	width: 100%;
+}
+
+.trashitemicon {
+	padding-right: 5px;
+}
+
+/**
+ * Settings
+ */
+.settingsForm {
+	padding: 10px 0px 0 20px;
+	font-size: 16px;
+}
+
+.settingsLabel {
+
+}
+
+.colorinput {
+	font-size: 16px;
+}
+
+.settings-button {
+	margin: 5px;
+}
+
+.settings-explanation {
+	margin: 5px;
+	padding-left: 5px;
+	color: grey;
+}
+
+.settingsHdCol {
+	min-width: 180px;	
+}
+	
+/**
+ * Preview for attachments
+ */
+
+.preview {
+	width: 100%;
+	height: 99%;
+	
+	border: 0;
+	padding: 0;
+	margin: 0;
+	
+	object-fit: scale-down;
+}
+
+.textpreview {
+	padding: 10px;
+	font-family: Courier;
+}
+
+#previewteaser {
+	padding: 10px;
+}
+
+/**
+ * Console view
+ */
+#console {
+	background-color: black;
+	font-family: Courier;
+	padding: 10px;
+	color: lightblue;
+	overflow: auto;
+	white-space: pre-wrap;
+	max-width: 100%;
+	padding-bottom: 80px;
+} 
+
+.console-emptyline {
+	color: black;
+}
+
+.console-type-I {
+}
+.console-type-S {
+	color: #8cff66;
+}
+.console-type-W {
+	color: orange;
+}
+.console-type-E {
+	color: red;
+}
+.console-type-J {
+	color: grey;
+}
+.console-type-B {
+	color: #00000000;
+}
+
+/**
+ * Login
+ */
+#login {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100vw;
+	height: 100vh;
+	z-index: 99999;
+}
+
+#loginContainer {
+	position: absolute; 
+	left: 50%;
+	top: 50%;
+}
+
+#loginForm {
+	position: relative; 
+	top: -50%;
+	left: -50%;
+	min-width: 300px; 
+	font-size: 16px;
+	box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+	
+	padding: 12px;
+	border-radius: 5px;
+	background-color: lightgrey;
+	text-align: center;
+}
+
+.userLoginTable {
+	width: 100%;
+	text-align: left;
+}
+
+.loginInput {
+	width: 100%;
+}
+
+#loginText {
+	margin-bottom: 10px;
+}
+
+.loginButton {
+	margin-top: 10px;
+	margin-right: 10px;
+}
+
+#cdbEndpointSelect {
+	width: 200px;
+}
+
+#dbLink {
+	width: 100%;
+	margin-top: 10px;
+}
+
+/**
+ * Profile select screen
+ */
+#profileSelection {
+	width: 100%;	
+ 	text-align: center;
+ 	display: block;
+}
+
+ .profileSelectBtn {
+ 	display: block;
+ 	margin: 10px;
+ 	padding: 10px;
+ 	max-width: 400px;
+ }
+ 
+/**
+ * Conflicts
+ */
+.conflictChangeContent {
+}
+ 
+.conflictAddedIcon {
+	color: darkgreen;
+}
+
+.conflictRemovedIcon {
+	color: red;
+}
+
+.iconGrey {
+	color: lightgrey;
+}
+
+.iconRed {
+	color: red;
+}
+
+.iconOrange {
+	color: orange;
+}
+
+.iconBlue {
+	color: lightblue;
+}
+
+.iconGreen {
+	color: lightgreen;
+}
+
+.tableAlignMiddle {
+	vertical-align: middle !important;
+}
+
+
+.mce-window {
+	max-width: 100%;
+}
+
+/**
+ * Search
+ */
+.searchBar {
+	font-size: 16px;
+}
+
+.searchBar input[type="text"] {
+    border: 1px solid #d1d1d1;
+    color: black;
+    width: 100%;
+    padding: 6px 15px 6px 15px;
+  
+    -webkit-border-radius: 20px;
+    -moz-border-radius: 20px;
+    border-radius: 20px;
+  
+    -webkit-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) inset;
+    -moz-box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) inset;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15) inset;
+}
+
+.searchBar input[type="text"]:focus {
+}
+
+.searchCancelButton {
+	position: absolute;
+	right: 20px;
+	top: 17px;
+	color: lightgrey;
+	cursor: pointer;
+}
+
+
+.contentHeadline {
+	padding-left: 8px;	
+	padding-right: 8px;
+	display: flex;	
+}
+
+.contentHeadlineText {
+	flex: 1 1 auto;
+}
+
+.contentHeadlineButton {
+	flex: 0 0 auto;
+	cursor: pointer;
+}
+
+.listLink {
+	cursor: pointer;
+}
+
+.listInactive {
+	color: grey;
+}
+
+.pre {
+	white-space: pre;
+}
+
+#checkList {
+	position: absolute;
+	top: 0;
+	left: 0;
+	width: 100%;
+	height: 100%;
+	display: none;
+	background-color: white;
+}
+
+.checkMsgListHeader {
+	float: left;
+	padding-right: 20px;
+	cursor: pointer;
+}
+
+.checkOutput {
+	cursor: pointer;
+}
+
+.userbuttonselect {
+	width: 100%;
+}
+
+
+.CodeMirror {
+	width: 100%;
+	height: 100%;
+}
+
+.settingsSelect {
+	margin-right: 10px;
+}
+
+.prettyPageBody {
+	font-family: -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,Cantarell,'Open Sans','Helvetica Neue',sans-serif;
+    line-height: 1.4;
+    margin: 1rem;
+}
+
+.helpPageHeader {
+    border-bottom: 2px solid grey;
+}
+
+.profileDocContent {
+    border-top: 2px solid grey;
+}

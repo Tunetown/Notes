@@ -1,0 +1,211 @@
+/**
+ * Styles for the Notes application frontend.
+ *
+ * (C) Thomas Weber 2021 tom-vibrant@gmx.de
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#progressBar {
+	position: absolute;
+	top: 0;
+	left: 0;
+	height: 5px;
+	width: 0;
+	background-color: grey;
+	
+	z-index: 1;
+}
+
+#headerLeft {
+	position: absolute;
+	left: 0px;
+	z-index: 10;
+
+	height: 100%;
+	
+	text-align: left;
+	font-size: 16px;
+	
+	white-space: nowrap;
+	overflow: hidden;
+	
+	/*text-overflow: ellipsis;*/
+}
+
+#headerRight {
+	position: absolute;
+	right: 0px;
+	z-index: 11;
+
+	height: 100%;
+	
+	white-space: nowrap;
+	overflow: hidden;
+}
+
+#headerText {
+	display: inline-block;
+	vertical-align:top;
+}
+
+#loadedNote {
+	padding-left: 5px;
+}
+
+#changedMarker {
+	font-style: italic;
+}
+
+.headerButtonLeft {
+	cursor: pointer;
+}
+
+.headerElementLeft {
+	font-size: 20px;
+	text-align: center;
+	transition: 0.1s;
+}
+
+.headerElementLeft:hover {
+	background-color: rgba(0, 0, 0, 0.12);
+}
+
+.headerButton {
+	font-size: 35px;
+	cursor: pointer;
+	transition: 0.1s;
+}
+
+.headerButton:hover {
+	background-color: rgba(0, 0, 0, 0.12);
+}
+
+.userbuttons {
+    min-width: 120px;
+    box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
+    position: absolute;
+	right: 0px;
+	top: 55px;
+    background-color: white;
+    z-index: 10000;
+}
+
+.userbutton {
+	cursor: pointer;
+	padding: 8px 16px 8px 16px;
+} 
+
+.userbutton:hover {
+	background-color: #eeeeee;
+}
+
+.userbuttonPassive {
+	padding: 8px 16px 8px 16px;
+	opacity: 0.6;
+}
+
+.userbuttonLine {
+	height: 1px;
+	background-color: #eeeeee;
+}
+
+.userbuttonIcon {
+	min-width: 30px;
+}
+
+#msgContainer {
+	position: absolute;
+	top: 10px;
+	left: 50%;
+	z-index: 9999;
+}
+
+#messages {
+	position: relative; 
+	left: -50%;
+	text-align: center;
+	padding: 6px 6p;
+	white-space: pre-wrap;
+}
+
+/**
+ * Conflict alerting
+ */
+.conflictMarker {
+	display: none;
+}
+
+.alertHeaderNotification {
+	position: absolute;
+	vertical-align: top;
+}
+
+/*.alertUserMenuNotification {
+	padding-left: 5px;
+	vertical-align: top;
+}*/
+
+.alertNotification {
+	color: red;
+	background-color: white;
+	border-radius: 100px;
+	cursor: pointer;
+	text-align: center;	
+	
+	text-shadow: 0 3px 3px rgba(255, 255, 255, 0.3);
+}
+
+#headerMoveSelectorContainer {
+	display: inline-block;
+	vertical-align:top;
+	
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+   -webkit-user-select: none; /* Safari */
+   -khtml-user-select: none; /* Konqueror HTML */
+   -moz-user-select: none; /* Firefox */
+   -ms-user-select: none; /* Internet Explorer/Edge */
+   -webkit-touch-callout: none; 
+}
+
+.headerMoveSelector {
+	max-width: 100%;
+
+    overflow:hidden; 
+    white-space:nowrap; 
+    text-overflow:ellipsis;
+    /*direction:rtl;*/
+    
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    
+    cursor: pointer;
+    
+    border:0px;
+    outline:0px;
+
+	padding-left: 5px;
+}
+
+.headerMoveSelector option {
+	max-width: 100%;
+	
+	text-overflow:ellipsis;
+    white-space:nowrap; 
+    overflow:hidden;
+    direction:ltr;
+}
+

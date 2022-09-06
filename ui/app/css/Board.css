@@ -1,0 +1,278 @@
+/**
+ * Styles for the Notes application frontend.
+ *
+ * (C) Thomas Weber 2021 tom-vibrant@gmx.de
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+#boardBackground {
+	object-fit: cover;
+	width: 100%;
+	height: 100%;
+}
+
+.board-drag-container {
+	position: fixed;
+	left: 0;
+	top: 0;
+	z-index: 1000;
+}
+
+#board-scroll-container {
+	width: 100%;
+	height: 100%;
+	overflow: auto;
+	
+	position: absolute;
+	top: 0;
+	left: 0;
+}
+
+.board-container {
+	height: 100%;
+	overflow: hidden;
+	
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+   -webkit-user-select: none; /* Safari */
+   -khtml-user-select: none; /* Konqueror HTML */
+   -moz-user-select: none; /* Firefox */
+   -ms-user-select: none; /* Internet Explorer/Edge */
+   -webkit-touch-callout: none; 
+}
+
+.board {
+	position: relative;
+	margin-top: 10px;
+	max-height: 100%;
+}
+.board-column {
+	position: absolute;
+	left: 0;
+	top: 0;
+	margin: 0 0 0 10px;
+	
+	width: 250px;
+	z-index: 1;
+	
+	overflow: auto;
+	
+	box-shadow: 0px 2px 4px 0 rgba(0,0,0,0.2);
+	border-radius: 5px;
+}
+.board-column-scrollcontainer {
+	
+}
+.board-column.bmuuri-item-releasing {
+	z-index: 2;
+}
+.board-column.bmuuri-item-dragging {
+	z-index: 3;
+	cursor: move;
+	box-shadow: 0px 4px 6px 0 rgba(0,0,0,0.4);
+}
+.board-column-container {
+	position: relative;
+	width: 100%;
+	height: 100%;
+	overflow: hidden;
+}
+.board-column-header {
+	position: relative;
+	height: 50px;
+	line-height: 50px;
+	overflow: hidden;
+	padding: 0 20px;
+	text-align: center;
+	background: #333;
+	color: #fff;
+	border-radius: 5px 5px 0 0;
+	font-weight: bold;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+  
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	-webkit-touch-callout: none; 
+}
+
+.board-column-header-content {
+	width: 100%;	
+	height: 100%;	
+	position: relative;
+}
+
+.board-column-header-minimize-icon {
+	position: absolute;
+	left: -10px;
+	top: 17px;
+	vertical-align: middle;
+	cursor: pointer;
+}
+
+.board-column-collapsed {
+	position: relative;
+	overflow: hidden;
+	padding: 18px 0;
+	text-align: center;
+	background: #333;
+	color: #fff;
+	border-radius: 5px;
+	font-weight: bold;
+	letter-spacing: 0.5px;
+	text-transform: uppercase;
+}
+
+.board-column-header-collapsed-content {
+	width: 100%;	
+	position: relative;
+}
+
+.board-column-header-minimize-collapsed-icon {
+	cursor: pointer;
+}
+
+.board-column-header-minimize-collapsed-headline {
+	writing-mode:vertical-rl;
+	padding: 10px 15px 10px 10px;
+	width: 100%;
+	white-space: nowrap;
+    overflow: hidden;
+	text-overflow: ellipsis;
+	max-height: 85%;
+}
+
+.board-column-header-minimize-collapsed-headline-meta {
+	writing-mode:vertical-rl;
+	padding: 0 15px 10px 10px;
+	color: grey;
+	width: 100%;
+	text-transform: none;
+}
+
+.board-column-content-wrapper {
+	position: relative;
+	padding: 8px;
+}
+
+.board-content-wrapper {
+	background-color: darkgrey;
+	border-radius: 0 0 5px 5px;
+	padding-bottom: 4px; 
+	padding-top: 4px; 
+	
+	height: 100%;
+    overflow-y: auto;
+}
+
+.board-column-content {
+	position: relative;
+	min-height: 70px;
+	max-height: 100%;
+	border-radius: 0 0 5px 5px;
+}
+
+.board-item {
+	position: absolute;
+	width: calc(100% - 16px);
+	margin: 4px 8px 4px 8px;
+	height: 70px;
+	
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	-webkit-touch-callout: none; 
+}
+.board-item.cmuuri-item-releasing {
+	z-index: 9998;
+}
+.board-item.cmuuri-item-dragging {
+	z-index: 9999;
+	cursor: move;
+	box-shadow: 0px 4px 6px 0 rgba(0,0,0,0.4);
+}
+.board-item.cmuuri-item-hidden {
+	z-index: 0;
+}
+.board-item-content {
+	position: relative;
+	background: #fff;
+	border-radius: 4px;
+	padding: 4px 8px 4px 8px;
+	cursor: pointer;
+	-webkit-box-shadow: 0px 1px 3px 0 rgba(0,0,0,0.2);
+	box-shadow: 0px 1px 3px 0 rgba(0,0,0,0.2);
+	height: 100%;
+	overflow: hidden;
+}
+.board-item-content-header {
+	font-size: 16px;
+	width: 100%;
+	display: flex;
+	
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	-webkit-touch-callout: none; 
+}
+
+.board-item-content-header-icon {
+	position: relative;
+	top: 3px;
+	margin-right: 10px;
+}
+
+.board-item-content-header-text {
+	width: 100%;
+	
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+   -webkit-user-select: none; /* Safari */
+   -khtml-user-select: none; /* Konqueror HTML */
+   -moz-user-select: none; /* Firefox */
+   -ms-user-select: none; /* Internet Explorer/Edge */
+   -webkit-touch-callout: none; 
+}
+
+.board-item-content-preview {
+	font-size: 12px;
+	width: 100%;
+	color: grey;
+	overflow: hidden;
+	
+	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
+	user-select: none; /* supported by Chrome and Opera */
+	-webkit-user-select: none; /* Safari */
+	-khtml-user-select: none; /* Konqueror HTML */
+	-moz-user-select: none; /* Firefox */
+	-ms-user-select: none; /* Internet Explorer/Edge */
+	-webkit-touch-callout: none; 
+}
+
+.doc-label-board {
+	margin-top: 2px;
+	margin-left: 2px;
+}
+

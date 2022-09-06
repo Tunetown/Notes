@@ -1,0 +1,173 @@
+/**
+ * Styles for the Notes application frontend.
+ *
+ * (C) Thomas Weber 2021 tom-vibrant@gmx.de
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+/**
+ * Detail Layout ///////////////////////////////////////////////////////////////////
+ */
+
+.muuri-detail-item {
+	position: absolute;
+	width: 100%;
+	z-index: 1;
+	background-color: white;
+}
+
+.muuri-detail-item-content {
+	position: relative;
+	width: 100%;
+	padding-left: 10px;
+	padding-right: 10px;
+	padding-top: 2px;
+	padding-bottom: 2px;
+	height: 100px;
+	cursor: pointer;
+	overflow: hidden;
+	
+	border-bottom: 1px solid lightgrey;
+}
+
+.muuri-detail-item.muuri-item-hidden {
+	z-index: 0;
+}
+.muuri-detail-item.muuri-item-releasing {
+	z-index: 2;
+}
+.muuri-detail-item.muuri-item-dragging {
+	opacity: 0.5;
+	z-index: 3;
+}
+.muuri-detail-item.muuri-item-dragging .muuri-detail-item-content {
+	background: lightblue;
+	box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.2), 0 6px 12px 0 rgba(0, 0, 0, 0.19);
+}
+.muuri-detail-item.muuri-item-releasing .muuri-detail-item-content {
+	background: lightblue;
+	box-shadow: 0 4px 6px 0 rgba(0, 0, 0, 0.2), 0 6px 12px 0 rgba(0, 0, 0, 0.19);
+}
+
+.treeitemcontainer-detail {
+    white-space: nowrap;
+    overflow: hidden;
+	height: 100%;
+}
+
+.treeitemheadline-detail {
+	display: -webkit-flex;
+	display: flex;
+	display: -moz-flex;
+	
+    white-space: nowrap;
+    overflow: hidden;
+}
+
+.treeitemmeta-detail {
+	width: 100%;
+	color: grey;
+	margin: 5px;
+}
+
+.treeitemmeta-content-detail {
+}
+
+.treeitempreview-detail {
+	width: 100%;
+	color: grey;
+	margin: 5px;
+	overflow: hidden;
+}
+
+.treeitempreview-content-detail {
+}
+
+.treeicon-detail {
+	display: block;
+	vertical-align: middle;
+	cursor: pointer;
+	text-align: center;
+	height: 100%;
+	padding-top: 3px;
+
+	min-width: 20px;
+	padding-right: 10px;
+}
+
+.treeicon-detail-folder-closed {
+	color: grey;
+}
+
+.treeitemtext-detail {
+    flex: 1 1 auto;
+    display: flex;
+    width: 100%;
+}
+
+.treeitemtext-detail-text {
+	white-space: nowrap;
+    overflow: hidden;
+	text-overflow: ellipsis;
+	flex: 1 1 auto;
+	margin-right: 5px;
+}
+
+.gridSelected-detail {
+	background-color: lightblue;
+	box-shadow: 0 1px 6px 0 rgba(0, 0, 0, 0.2), 0 2px 12px 0 rgba(0, 0, 0, 0.19);
+}
+
+.gridParentSelected-detail {
+	z-index: 10;
+}
+
+.moveInto-detail {
+	border: 2px solid grey;
+}
+
+.detailDragHandle {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	z-index: 20;
+	
+	display: none;
+
+	width: 100%;
+	height: 100%;
+	
+	background-color: red;
+	opacity: 0.3;
+}
+
+.treeDetailTopSwitchbutton {
+	margin: 5px;
+	padding-left: 3px;
+	color: grey;
+	
+	cursor: pointer;
+}
+
+.doc-label-detail {
+	margin-top: 2px;
+	margin-left: 2px;
+	flex: 0 0 auto;
+}
+
+.detail-behaviour-selector {
+	padding: 0px;
+	margin-right: 10px;
+}

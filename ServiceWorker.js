@@ -1,0 +1,260 @@
+/**
+ * Service Worker for the Note taking app, if using the Proxy to CouchDB.
+ * Caches all static GET content while directly fetching the API uncached.
+ * 
+ * (C) Thomas Weber 2021 tom-vibrant@gmx.de
+ * 
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
+
+// Names of the two caches used in this version of the service worker.
+// Change to v2, etc. when you update any of the local resources, which will
+// in turn trigger the install event again.
+const PRECACHE = 'notes_precache-v0.74.0.a';
+
+// A list of local resources we always want to be cached.
+const PRECACHE_URLS = [
+  './',
+  './index.html',
+  './manifest.json',
+
+  './ui/lib/selectize/selectize.bootstrap3.min.css',
+  './ui/lib/selectize/selectize.min.js',
+
+  './ui/lib/luckysheet/pluginsCss.css',
+  './ui/lib/luckysheet/plugins.css',
+  './ui/lib/luckysheet/luckysheet.css',
+  './ui/lib/luckysheet/iconfont.css',
+  './ui/lib/luckysheet/loading.gif',
+  './ui/lib/luckysheet/waffle_sprite.png',
+  './ui/lib/luckysheet/EwaAntH.gif',
+  './ui/lib/luckysheet/EwaAntV.gif',
+  
+  './ui/lib/bootstrap/bootstrap.min.css',
+  './ui/lib/fa/css/all.min.css',
+
+  './ui/lib/switch/switch.css',
+  './ui/lib/switch/switch.js',
+  './ui/lib/codemirror/lib/codemirror.css',
+  
+  './ui/app/css/Notes.css',
+  './ui/app/css/Header.css',
+  './ui/app/css/NoteTree.css',
+  './ui/app/css/TreeBehaviour.css',
+  './ui/app/css/TileBehaviour.css',
+  './ui/app/css/DetailBehaviour.css',
+  './ui/app/css/Misc.css',
+  './ui/app/css/Board.css',
+
+  './ui/lib/jquery-min.js',
+  './ui/lib/luckysheet/luckysheet.umd.js',
+  './ui/lib/luckysheet/plugin.js',
+  './ui/lib/bootstrap/bootstrap.min.js',     
+  './ui/lib/tinymce/tinymce.min.js',
+  './ui/lib/muuri/muuri.min.js',
+  './ui/lib/pouchdb/pouchdb.min.js',
+  './ui/lib/pouchdb/pouchdb.find.min.js',
+  './ui/lib/pouchdb/pouchdb.authentication.min.js',
+  './ui/lib/FileSaver/FileSaver.min.js',
+  './ui/lib/showdown/showdown.min.js',
+  './ui/lib/jsdiff.min.js',
+  './ui/lib/sammy-latest.min.js',
+  
+  './ui/lib/codemirror/lib/codemirror.js',
+  './ui/lib/codemirror/mode/markdown/markdown.js',
+  './ui/lib/codemirror/mode/javascript/javascript.js',
+  './ui/lib/codemirror/mode/clike/clike.js',
+  './ui/lib/codemirror/mode/css/css.js',
+  './ui/lib/codemirror/mode/xml/xml.js',
+  './ui/lib/codemirror/mode/php/php.js',
+  './ui/lib/codemirror/mode/python/python.js',
+  './ui/lib/codemirror/mode/ruby/ruby.js',
+  './ui/lib/codemirror/mode/shell/shell.js',
+  './ui/lib/codemirror/mode/sql/sql.js',
+
+  './ui/app/doc/index.html',
+  './ui/app/doc/overview.html',
+  './ui/app/doc/technical.html',
+  './ui/app/doc/usage.html',
+
+  './ui/app/src/database/Database.js',
+  './ui/app/src/database/DatabaseSync.js',
+  './ui/app/src/database/ProfileHandler.js',
+  './ui/app/src/data/Data.js',
+  './ui/app/src/data/Document.js',
+  './ui/app/src/navigation/behaviours/TreeBehaviour.js',
+  './ui/app/src/navigation/behaviours/DetailBehaviour.js',
+  './ui/app/src/navigation/behaviours/TileBehaviour.js',
+  './ui/app/src/navigation/NoteTree.js',
+  './ui/app/src/navigation/Behaviours.js',
+  './ui/app/src/navigation/MuuriGrid.js',
+  './ui/app/src/navigation/ExpandedState.js',
+  './ui/app/src/navigation/ScrollState.js',
+  './ui/app/src/pages/editors/Editor.js',
+  './ui/app/src/pages/editors/Sheet.js',
+  './ui/app/src/pages/editors/Board.js',
+  './ui/app/src/pages/editors/Code.js',
+  './ui/app/src/pages/Profiles.js',
+  './ui/app/src/pages/Conflict.js',
+  './ui/app/src/pages/Conflicts.js',
+  './ui/app/src/pages/LabelDefinitions.js',
+  './ui/app/src/pages/Versions.js',
+  './ui/app/src/pages/VersionView.js',
+  './ui/app/src/pages/AttachmentPreview.js',
+  './ui/app/src/pages/Console.js',
+  './ui/app/src/pages/Trash.js',
+  './ui/app/src/pages/RawView.js',
+  './ui/app/src/pages/Settings.js',
+  './ui/app/src/pages/Check.js',
+  './ui/app/src/pages/CheckList.js',
+  './ui/app/src/pages/Refs.js',
+  './ui/app/src/pages/Help.js',
+  './ui/app/src/import/Import.js',
+  './ui/app/src/import/NotesImporter.js',
+  './ui/app/src/import/TrelloImporter.js',
+  './ui/app/src/tools/Tools.js',
+  './ui/app/src/tools/TouchClickHandler.js',
+  './ui/app/src/tools/ClientState.js',
+  './ui/app/src/tools/OnlineSensor.js',
+  './ui/app/src/Config.js',
+  './ui/app/src/Routing.js',
+  './ui/app/src/Actions.js',
+  './ui/app/src/Notes.js',
+
+  './ui/lib/fa/webfonts/fa-solid-900.woff2',
+  './ui/lib/fa/webfonts/fa-regular-400.woff2',
+  
+  './ui/lib/tinymce/themes/silver/theme.min.js',
+  './ui/lib/tinymce/icons/default/icons.min.js',
+  './ui/lib/tinymce/plugins/code/plugin.min.js',
+  './ui/lib/tinymce/plugins/table/plugin.min.js',
+  './ui/lib/tinymce/plugins/image/plugin.min.js',
+  './ui/lib/tinymce/plugins/lists/plugin.min.js',
+  './ui/lib/tinymce/plugins/advlist/plugin.min.js',
+  './ui/lib/tinymce/plugins/charmap/plugin.min.js',
+  './ui/lib/tinymce/plugins/codesample/plugin.min.js',
+  './ui/lib/tinymce/plugins/emoticons/plugin.min.js',
+  './ui/lib/tinymce/plugins/emoticons/js/emojis.min.js',
+  './ui/lib/tinymce/plugins/fullscreen/plugin.min.js',
+  './ui/lib/tinymce/plugins/hr/plugin.min.js',
+  './ui/lib/tinymce/plugins/imagetools/plugin.min.js',
+  './ui/lib/tinymce/plugins/link/plugin.min.js',
+  './ui/lib/tinymce/plugins/media/plugin.min.js',
+  './ui/lib/tinymce/plugins/print/plugin.min.js',
+  './ui/lib/tinymce/plugins/searchreplace/plugin.min.js',
+  './ui/lib/tinymce/plugins/textpattern/plugin.min.js',
+  './ui/lib/tinymce/plugins/toc/plugin.min.js',
+  './ui/lib/tinymce/skins/ui/oxide/skin.min.css',
+  './ui/lib/tinymce/skins/ui/oxide/content.min.css',
+  './ui/lib/tinymce/skins/content/default/content.min.css',
+
+  './ui/app/images/NotesLogo_180.png',
+  './ui/app/images/NotesLogo_192.png',
+  './ui/app/images/NotesLogo_48.png',
+  './ui/app/images/NotesLogo_512.png',
+  './ui/app/images/NotesLogo_96.png',
+  './ui/app/images/favicon.ico',
+];
+
+/**
+ * The install handler takes care of precaching the resources we always need.
+ */
+self.addEventListener('install', event => {
+	event.waitUntil(
+		caches.open(PRECACHE)
+		.then(cache => cache.addAll(PRECACHE_URLS))
+		.then(self.skipWaiting())
+	);
+});
+
+/**
+ * The activate handler takes care of cleaning up old caches.
+ */
+self.addEventListener('activate', event => {
+	// After we've taken over the first time, refresh all current clients.
+	self.clients.matchAll({type: 'window'})
+	.then(tabs => {
+		tabs.forEach((tab) => {
+			tab.navigate(tab.url)
+		});
+	})
+});
+
+/**
+ * The fetch handler serves responses for same-origin resources from a cache.
+ * If no response is found, it populates the runtime cache with the response
+ * from the network before returning it to the page.
+ */
+self.addEventListener('fetch', function (event) {
+	// Always bypass for range requests, due to browser bugs
+	if (event.request.headers.has('range')) return;
+	
+	event.respondWith(
+		caches.open(PRECACHE)
+		.then(function (cache) {
+			// API Access of any other request methods than GET: Only a direct fetch is possible
+			if (event.request.url.startsWith(self.location.origin + '/api') ||
+				event.request.method.toLowerCase() != 'get') 
+			{
+				return fetch(event.request)
+				.then(function (response) {
+					return response;
+				});
+			}
+			
+			// Other assets: Check cache, and fill it if not found
+			return cache.match(event.request, {
+				ignoreSearch: true,
+				ignoreVary: true
+
+			}).then(function (response) {
+				if (response) {
+					return Promise.resolve(response);
+				} else {
+					console.log("SW: Cache miss: " + event.request.url);
+					return fetch(event.request);
+				}
+				
+			}).then(function (response) {
+				if (response) {
+					//cache.put(event.request, response.clone());
+					return Promise.resolve(response);
+				} else {
+					return Promise.reject();
+				}
+				
+			}).catch(function (response) {
+				if (event.request.mode === 'navigate') {
+					console.log("SW: Fetch failed: Delivering index page");
+					return caches.match('./index.html')
+					.then(function(response) {
+						if (response) {
+							return Promise.resolve(response);
+						} else {
+							console.log("SW: Fetch failed: Cannot deliver index page");
+							return Promise.reject({ 
+								message: "SW: Fetch failed: Cannot deliver index page"
+							});
+						}
+					});
+				} else {
+					console.log("SW: Fetch failed: Cannot deliver " + event.request.url);
+					return Promise.reject({ 
+						message: "SW: Fetch failed: Cannot deliver " + event.request.url
+					});
+				}
+			});
+		})
+	);
+});
