@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() {
-		this.appVersion = '0.75.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.76.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 		
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 	}
