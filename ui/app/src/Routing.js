@@ -414,7 +414,7 @@ class Routing {
 	 * Calls the docs page
 	 */
 	callDocumentation() {
-		location.href = '#/doc';
+		location.href = '#/doc/overview';
 	}
 	
 	/**
