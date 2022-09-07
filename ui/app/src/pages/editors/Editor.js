@@ -254,12 +254,12 @@ class Editor {
 			this.stopDelayedSave();
 			
 			var n = Notes.getInstance();
-			n.showAlert("Saving " + this.current.name + "...", "I");
+			n.showAlert("Saving " + this.current.name + "...", "I", "EditorMessages");
 			
 			return Actions.getInstance().save(this.current._id, this.getContent()).then(function(data) {
-        		if (data.message) n.showAlert(data.message, "S");
+        		if (data.message) n.showAlert(data.message, "S", "EditorMessages");
         	}).catch(function(err) {
-        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
         	});
 		}
 	}
@@ -360,7 +360,7 @@ class Editor {
 			if (!tinymce.get(e.editorId).isDirty()) return;
 			
 			a.save(e.getCurrentId(), e.getContent()).catch(function(err) {
-        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
         	});
 		}, secs * 1000);
 	}

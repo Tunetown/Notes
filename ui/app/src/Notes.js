@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.79.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.80.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -93,12 +93,12 @@ class Notes {
 		            if (e && e.isDirty()) {
 		            	e.stopDelayedSave();
 		            	 
-		            	that.showAlert("Saving " + e.current.name + "...", "I"); 
+		            	that.showAlert("Saving " + e.current.name + "...", "I", "EditorMessages"); 
 		            
 		            	Actions.getInstance().save(e.getCurrentId(), e.getContent()).then(function(data) {
-		            		if (data.message) that.showAlert(data.message, "S");
+		            		if (data.message) that.showAlert(data.message, "S", "EditorMessages");
 		            	}).catch(function(err) {
-		            		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+		            		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
 		            	});
 		            }
 		            break;		        
@@ -1300,32 +1300,38 @@ class Notes {
 	}
 	
 	/**
-	 * Alerting.
+	 * Alerting. If you pass a thread ID, all older messages with the same ID will be removed first.
+	 * Default type is "E".
 	 */
-	showAlert(msg, type = 'E') {
+	showAlert(msg, type, threadID) {
+		if (!type) type = 'E';
+		
 		Console.log('Message type ' + type + ': ' + msg, type);
 		
 		var msgEl = $('<div class="singleMessageContainer">' + msg + '</div>');
 		var msgCont = $('<tr></tr>').append($('<td class="singleMessageContainerTd"></td>').append(msgEl));
-		var fade = false;
+		var fadeTime = 0;
 		
 		switch (type) {
 		case 'E':
 			msgEl.addClass("btn btn-danger");
+			fadeTime = Config.MESSAGE_ERROR_FADEOUT_AFTER_MS;
 			break;
 		case 'W':
 			msgEl.addClass("btn btn-warning");
+			fadeTime = Config.MESSAGE_WARNING_FADEOUT_AFTER_MS;
 			break;
 		case 'S':
-			fade = true;
 			msgEl.addClass("btn btn-success");
+			fadeTime = Config.MESSAGE_SUCCESS_FADEOUT_AFTER_MS;			
 			break;
 		case 'I':
-			fade = true;
 			msgEl.addClass("btn btn-info");
+			fadeTime = Config.MESSAGE_INFO_FADEOUT_AFTER_MS;
 			break;
 		default:
 			msgEl.addClass("btn btn-danger");
+			fadeTime = Config.MESSAGE_OTHERS_FADEOUT_AFTER_MS;
 			break;
 		}
 
@@ -1337,40 +1343,22 @@ class Notes {
 
 		$('#messages').append(msgCont);
 
-		msgCont.msgTimeoutHandle = setTimeout(function() {
-			if (msgCont && msgCont.fadeOut) msgCont.fadeOut();
-		}, fade ? 3000 : 10000);
-		
-		/*$('#messages').removeClass();
-
-		var fade = false;
-		switch (type) {
-		case 'E':
-			$('#messages').addClass("btn btn-danger");
-			break;
-		case 'W':
-			$('#messages').addClass("btn btn-warning");
-			break;
-		case 'S':
-			fade = true;
-			$('#messages').addClass("btn btn-success");
-			break;
-		case 'I':
-			fade = true;
-			$('#messages').addClass("btn btn-info");
-			break;
+		if (fadeTime > 0) {
+			msgCont.msgTimeoutHandle = setTimeout(function() {
+				if (msgCont && msgCont.fadeOut) msgCont.fadeOut();
+			}, fadeTime);
 		}
 		
-		$('#messages').html(msg);
-		$('#messages').show();
-
-		Console.log('Message type ' + type + ': ' + msg, type);
-		
-		if (this.msgTimeoutHandle) clearTimeout(this.msgTimeoutHandle);
-		this.msgTimeoutHandle = setTimeout(function() {
-			if ($('#messages') && $('#messages').fadeOut) $('#messages').fadeOut();
-		}, fade ? 3000 : 10000);
-		*/
+		if (threadID) {
+			$('#messages').children().each(function(el) {
+				var tid = $(this).data("threadID");
+				if (tid == threadID) {
+					$(this).remove();
+				}
+			});
+			
+			msgCont.data("threadID", threadID);
+		}
 	}
 	
 	/**

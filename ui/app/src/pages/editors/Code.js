@@ -67,8 +67,8 @@ class Code {
 			// Build buttons
 			n.setButtons([ 
 				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Code.getInstance().saveCode();"></div>'), 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="undoButton" class="fa fa-undo" onclick="event.stopPropagation();Code.getInstance().undo();"></div>'), 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="redoButton" class="fa fa-redo" onclick="event.stopPropagation();Code.getInstance().redo();"></div>'), 
+				$('<div type="button" data-toggle="tooltip" title="Undo" id="undoButton" class="fa fa-undo" onclick="event.stopPropagation();Code.getInstance().undo();"></div>'), 
+				$('<div type="button" data-toggle="tooltip" title="Redo" id="redoButton" class="fa fa-redo" onclick="event.stopPropagation();Code.getInstance().redo();"></div>'), 
 				$('<div type="button" data-toggle="tooltip" title="Note options..." id="codeOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();Code.getInstance().callOptions(event);"></div>'), 
 			]);			
 
@@ -240,14 +240,14 @@ class Code {
 			this.stopDelayedSave();
 			
 			var n = Notes.getInstance();
-			n.showAlert("Saving " + this.current.name + "...", "I");
+			n.showAlert("Saving " + this.current.name + "...", "I", "EditorMessages");
 			
 			Actions.getInstance().save(this.getCurrentId(), this.getContent())
 			.then(function(data) {
-        		if (data.message) n.showAlert(data.message, "S");
+        		if (data.message) n.showAlert(data.message, "S", "EditorMessages");
         	})
         	.catch(function(err) {
-        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
         	});
 		}
 	}
@@ -322,7 +322,7 @@ class Code {
 			
 			a.save(that.getCurrentId(), that.getContent())
 			.catch(function(err) {
-        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
         	});
 		}, secs * 1000);
 	}
