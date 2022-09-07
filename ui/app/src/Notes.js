@@ -286,7 +286,7 @@ class Notes {
 	 * Install updates.
 	 */
 	installUpdates() {
-		this.showAlert("Installing updates, please wait...", "I", "UpdateMessage");  
+		this.showAlert("Installing, please wait...", "I", "UpdateMessage");  
 
 		if (!navigator.serviceWorker) {
 			this.showAlert("No service worker active, try again or just reload the page.", "W", "UpdateMessage"); 
@@ -341,7 +341,7 @@ class Notes {
 					case 'unregisterServiceWorker': {
 						console.log("Service Worker triggers unregistering...");
 
-						if (!confirm("Install updates now?")) {
+						if (!confirm("Reinstall now? No notebook data will get lost.")) {
 							Notes.getInstance().showAlert("Action cancelled", 'I', "UpdateMessage");
 							return;
 						}
@@ -351,7 +351,7 @@ class Notes {
 							return registration.unregister();
 						})
 						.then(function(success) {
-							Notes.getInstance().showAlert("Wait for the update to complete...", 'I', "UpdateMessage");
+							Notes.getInstance().showAlert("Wait for the installation to complete...", 'I', "UpdateMessage");
 							setTimeout(function() {
 								console.log("Reload page for the new SW to be installed");
 								location.reload();

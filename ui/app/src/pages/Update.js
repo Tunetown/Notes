@@ -34,12 +34,12 @@ class Update {
 		
 		n.setStatusText("About");
 		
-		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>');
+		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>'); 
 		this.contentContainer = $('<div class="prettyPageBody"></div>');
 		$('#contentContainer').empty(); 
 		$('#contentContainer').append(
 			headerContainer,
-			this.contentContainer
+			this.contentContainer 
 		);
 		
 		headerContainer.append( 
@@ -49,7 +49,12 @@ class Update {
 		var files = n.outOfDateFiles;
 		if (files.length == 0) {
 			headerContainer.append( 
-				$('<div>No Updates available from the app host (' + location.host + ').</div><br><br>')
+				$('<div>No Updates available from the app host (' + location.host + '). If you want to re-load the whole app sources anyway, click here:</div><br>'),
+				$('<div class="btn btn-primary updateInstallBtn">Reload App Sources...</div><br><br>')
+				.on('click', function(event) {
+					Notes.getInstance().installUpdates();
+				}),
+				$('<div><em>Technical Info: This forces the service worker to be reinstalled, and loads all sources from the host again. The PWA installation is not touched!</em></div><br>'),
 			);
 		} else {
 			headerContainer.append(
