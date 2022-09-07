@@ -1,5 +1,5 @@
 /**
- * Note taking app - Main application controller class. 
+ * Note taking app - Main application controller class.  
  * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
  * 
@@ -14,7 +14,7 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>. 
  */
 class Notes { 
 	
@@ -107,7 +107,7 @@ class Notes {
 		});
 
 		// Messages/Alerts box setup
-		this.showAlert("Welcome!", "I");
+		this.showAlert("Welcome!", "I", false, true);
 		$('#messages').click(function() { 
 			$('#messages').empty();
 		});	
@@ -286,10 +286,10 @@ class Notes {
 	 * Install updates.
 	 */
 	installUpdates() {
-		this.showAlert("Installing updates...", "I");  
+		this.showAlert("Installing updates, please wait...", "I", "UpdateMessage");  
 
 		if (!navigator.serviceWorker) {
-			this.showAlert("No service worker active, try again or just reload the page.", "W"); 
+			this.showAlert("No service worker active, try again or just reload the page.", "W", "UpdateMessage"); 
 			return;			
 		}
 		
@@ -300,7 +300,7 @@ class Notes {
 					requestId: 'update'
 				});
 			} else {
-				this.showAlert("No service worker active, try again or just reload the page.", "W");
+				this.showAlert("No service worker active, try again or just reload the page.", "W", "UpdateMessage");
 			}
 			/*if (registration.waiting) {
 				registration.waiting.postMessage(42);
@@ -315,12 +315,12 @@ class Notes {
 		navigator.serviceWorker.addEventListener('message', (event) => {
 			// Out of date files
 			if (event.data.outOfDate) {
-				if (Notes.getInstance().outOfDateFiles.length == 0) {
+				if (Notes.getInstance().outOfDateFiles.length == 0) { 
 					setTimeout(function() {
-						Notes.getInstance().showAlert("An update is available for this App. Please see the About page in the user menu to install it.", "W");
+						Notes.getInstance().showAlert("An update is available for this App. Please see the About page in the user menu to install it.", "W", "UpdateMessage");
 					}, 100); 
 				}
-
+ 
 				Notes.getInstance().outOfDateFiles.push(event.data.url);
 				
 				return;
@@ -342,7 +342,7 @@ class Notes {
 						console.log("Service Worker triggers unregistering...");
 
 						if (!confirm("Install updates now?")) {
-							Notes.getInstance().showAlert("Action cancelled", 'I');
+							Notes.getInstance().showAlert("Action cancelled", 'I', "UpdateMessage");
 							return;
 						}
 
@@ -351,7 +351,7 @@ class Notes {
 							return registration.unregister();
 						})
 						.then(function(success) {
-							Notes.getInstance().showAlert("Wait for the update to complete...", 'I');
+							Notes.getInstance().showAlert("Wait for the update to complete...", 'I', "UpdateMessage");
 							setTimeout(function() {
 								console.log("Reload page for the new SW to be installed");
 								location.reload();
@@ -1301,9 +1301,9 @@ class Notes {
 	
 	/**
 	 * Alerting. If you pass a thread ID, all older messages with the same ID will be removed first.
-	 * Default type is "E".
+	 * Default type is "E". alwaysHideAtNewMessage can be used if you like to have the message disappearing whenever a new one comes in.
 	 */
-	showAlert(msg, type, threadID) {
+	showAlert(msg, type, threadID, alwaysHideAtNewMessage) {
 		if (!type) type = 'E';
 		
 		Console.log('Message type ' + type + ': ' + msg, type);
@@ -1335,20 +1335,23 @@ class Notes {
 			break;
 		}
 
+		// Click to remove
 		msgEl.click(function(event) {
-			event.stopPropagation();
-			 
+			event.stopPropagation(); 
 			msgCont.remove();
 		});	
 
+		// Add message
 		$('#messages').append(msgCont);
 
-		if (fadeTime > 0) {
+		// Fade out after a certain time
+		if (fadeTime > 0) { 
 			msgCont.msgTimeoutHandle = setTimeout(function() {
 				if (msgCont && msgCont.fadeOut) msgCont.fadeOut();
 			}, fadeTime);
 		}
 		
+		// Hide messages of the same thread
 		if (threadID) {
 			$('#messages').children().each(function(el) {
 				var tid = $(this).data("threadID");
@@ -1358,6 +1361,17 @@ class Notes {
 			});
 			
 			msgCont.data("threadID", threadID);
+		}
+		
+		// Hide messages which are not important
+		$('#messages').children().each(function(el) {
+			var flag = $(this).data("alwaysHideAtNewMessage");
+			if (flag) {
+				$(this).remove();
+			}
+		});
+		if (alwaysHideAtNewMessage) {
+			msgCont.data("alwaysHideAtNewMessage", true);
 		}
 	}
 	

@@ -35,13 +35,46 @@ class Update {
 		n.setStatusText("About");
 		
 		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>');
-		var contentContainer = $('<div class="prettyPageBody"></div>');
+		this.contentContainer = $('<div class="prettyPageBody"></div>');
 		$('#contentContainer').empty(); 
 		$('#contentContainer').append(
 			headerContainer,
-			contentContainer
+			this.contentContainer
 		);
 		
+		headerContainer.append( 
+			$('<div><h3>Notes App</h3><p>Version ' + n.appVersion + '</p><p>(C) 2021-2022 Thomas Weber (tom-vibrant[at]gmx.de)</p><p>License: GPL v3</p></div><br>'),
+		);
+		 
+		var files = n.outOfDateFiles;
+		if (files.length == 0) {
+			headerContainer.append( 
+				$('<div>No Updates available from the app host (' + location.host + ').</div><br><br>')
+			);
+		} else {
+			headerContainer.append(
+				$('<div>Updates are available from ' + location.host + '. Click here to install them:</div><br>'),
+				$('<div class="btn btn-primary updateInstallBtn">Install Updates...</div><br><br>')
+				.on('click', function(event) {
+					Notes.getInstance().installUpdates();
+				})
+			);
+			
+			var that = this;
+			this.contentContainer.append(
+				$('<a onclick="Update.getInstance().showDiff()" href="javascript:void(0);">Show files to be updated...</a>')
+			);
+		}
+		
+		n.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Refresh" class="fa fa-redo" onclick="event.stopPropagation();Update.getInstance().load();"></div>'),
+		]);
+	}
+	
+	showDiff() {
+		if (!this.contentContainer) return;
+		
+		var n = Notes.getInstance();
 		var files = n.outOfDateFiles;
 		var chgRows = new Array();
 		for(var i=0; i<files.length; ++i) {
@@ -54,24 +87,8 @@ class Update {
 			);
 		}
 		
-		headerContainer.append(
-			$('<div>Notes App Version ' + n.appVersion + '<br><br>(C) 2021-2022 Thomas Weber (tom-vibrant[at]gmx.de)<br><br>License: GPL v3</div><br>'),
-		);
-		
-		if (files.length == 0) {
-			headerContainer.append(
-				$('<div>No Updates available.</div><br><br>')
-			);
-		} else {
-			headerContainer.append(
-				$('<div>Updates are available.</div><br>'),
-				$('<div class="btn btn-primary updateInstallBtn">Install Updates...</div><br><br>')
-				.on('click', function(event) {
-					Notes.getInstance().installUpdates();
-				})
-			);
-			
-			contentContainer.append(
+		this.contentContainer.empty();
+		this.contentContainer.append(
 			$('<table class="table table-striped table-hover" />').append(
 				[
 					$('<thead class="bg-primary"/>').append(
@@ -85,10 +102,5 @@ class Update {
 				]
 			)
 		);
-		}
-		
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Refresh" class="fa fa-redo" onclick="event.stopPropagation();Update.getInstance().load();"></div>'),
-		]);
 	}
 }
