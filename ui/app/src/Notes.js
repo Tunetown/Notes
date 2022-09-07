@@ -1,5 +1,5 @@
 /**
- * Note taking app - Main application controller class.
+ * Note taking app - Main application controller class. 
  * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
  * 
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Notes {
+class Notes { 
 	
 	/**
 	 * Singleton factory
@@ -26,10 +26,11 @@ class Notes {
 		return Notes.instance;
 	}
 	
-	constructor() {
-		this.appVersion = '0.76.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
-		
+	constructor() { 
+		this.appVersion = '0.79.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
+		this.outOfDateFiles = [];
 	}
 	
 	/**
@@ -50,7 +51,7 @@ class Notes {
 				Console.log(msg, 'E');
 				Console.log('  at:    ' + url, 'E');
 				Console.log('  line:  ' + line, 'E');
-			}
+			} 
 			
 			// Just let the default handler run.
 			return false;
@@ -91,8 +92,8 @@ class Notes {
 		            var e = that.getCurrentEditor();
 		            if (e && e.isDirty()) {
 		            	e.stopDelayedSave();
-		            	
-		            	that.showAlert("Saving " + e.current.name + "...", "I");
+		            	 
+		            	that.showAlert("Saving " + e.current.name + "...", "I"); 
 		            
 		            	Actions.getInstance().save(e.getCurrentId(), e.getContent()).then(function(data) {
 		            		if (data.message) that.showAlert(data.message, "S");
@@ -108,7 +109,7 @@ class Notes {
 		// Messages/Alerts box setup
 		this.showAlert("Welcome!", "I");
 		$('#messages').click(function() { 
-			$('#messages').hide();
+			$('#messages').empty();
 		});	
 		
 		// Set up application routing
@@ -274,14 +275,101 @@ class Notes {
 		} else if (percent < 0) {
 			$('#progressBar').css('display', 'none');
 		} else {
-			var perc = (percent*100).toFixed(2);
+			var perc = (percent*100).toFixed(2);  
 			
 			$('#progressBar').css('display', 'block');
 			$('#progressBar').css('width', perc + '%');
 		}
 	}
+
+	/**
+	 * Install updates.
+	 */
+	installUpdates() {
+		this.showAlert("Installing updates...", "I");  
+
+		if (!navigator.serviceWorker) {
+			this.showAlert("No service worker active, try again or just reload the page.", "W"); 
+			return;			
+		}
+		
+		navigator.serviceWorker.ready
+  		.then( (registration) => {
+			if (registration.active) {
+				registration.active.postMessage({
+					requestId: 'update'
+				});
+			} else {
+				this.showAlert("No service worker active, try again or just reload the page.", "W");
+			}
+			/*if (registration.waiting) {
+				registration.waiting.postMessage(42);
+			}*/
+		});			
+	}
 	
 	/**
+	 * Handlers incoming messages from the service worker.
+	 */
+	setupServiceWorkerMessageReceiver() { 
+		navigator.serviceWorker.addEventListener('message', (event) => {
+			// Out of date files
+			if (event.data.outOfDate) {
+				if (Notes.getInstance().outOfDateFiles.length == 0) {
+					setTimeout(function() {
+						Notes.getInstance().showAlert("An update is available for this App. Please see the About page in the user menu to install it.", "W");
+					}, 100); 
+				}
+
+				Notes.getInstance().outOfDateFiles.push(event.data.url);
+				
+				return;
+			}		
+			
+			// User messages
+			if (event.data.requestId) {
+				switch(event.data.requestId) {  
+					case 'userMessage': {
+						var msg = event.data.message ? event.data.message : 'SW Message internal Error: No message transmitted';
+						var type = event.data.type ? event.data.type : 'I';
+						
+						console.log("User message from SW received: Type " + type + ", message: " + msg);
+						Notes.getInstance().showAlert(msg, type);
+						
+						return; 
+					}
+					case 'unregisterServiceWorker': {
+						console.log("Service Worker triggers unregistering...");
+
+						if (!confirm("Install updates now?")) {
+							Notes.getInstance().showAlert("Action cancelled", 'I');
+							return;
+						}
+
+						navigator.serviceWorker.ready 
+						.then(function(registration) {
+							return registration.unregister();
+						})
+						.then(function(success) {
+							Notes.getInstance().showAlert("Wait for the update to complete...", 'I');
+							setTimeout(function() {
+								console.log("Reload page for the new SW to be installed");
+								location.reload();
+							}, 1000); 
+						});
+						
+						return;
+					}
+				}
+			}					
+			
+			// Update requests
+			console.log("Unhandled message from service worker: "); 
+			console.log(event.data);	
+		});
+	}
+	
+	/**  
 	 * Registers the Service Worker.
 	 */	
 	registerServiceWorker() {
@@ -291,8 +379,11 @@ class Notes {
 				.then(function(registration) {
 					console.log('ServiceWorker registration successful with scope ' + registration.scope);
 					
-					// Update, if necessary
-					setTimeout(function() {
+					// Messages from the service worker
+					Notes.getInstance().setupServiceWorkerMessageReceiver();
+
+					// Update, if necessary (replaced by SW internal code)
+					/*setTimeout(function() {
 						console.log("Check for ServiceWorker updates....");
 						
 						registration.update()
@@ -301,10 +392,6 @@ class Notes {
 						    	console.log(' -> ServiceWorker updated successful with scope ' + registration.scope);
 								
 								Notes.getInstance().showAlert("Updating, please wait....", "I");
-			
-								/*if (registration.active) {
-									registration.active.skipWaiting();
-								}*/
 			
 								return registration.unregister()
 								.then(function() {
@@ -319,7 +406,7 @@ class Notes {
 						    	console.log(' -> ServiceWorker not updated');
 							}
 						});
-					}, 3000);
+					}, 3000);*/
 				}, function(err) {
 					console.log('ServiceWorker registration failed: ', err);
 					Notes.getInstance().showAlert('ServiceWorker registration failed: ' + err, "E");
@@ -826,9 +913,10 @@ class Notes {
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callConsole()"><div class="fa fa-terminal userbuttonIcon"></div>Console</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callTrash()"><div class="fa fa-trash userbuttonIcon"></div>Trash</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callDocumentation()},100)"><div class="fa fa-question userbuttonIcon"></div>Help</div>'),
+				//$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callUpdatePage()},100)"><div class="fa fa-heart userbuttonIcon"></div>Update</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callAbout()},100)"><div class="fa fa-info userbuttonIcon"></div>About...</div>'),
 			]);
-			
+			 
 			$('#syncMenuButton').css('display', Database.getInstance().profileHandler.getCurrentProfile().clone ? 'block' : 'none');
 		});
 	}
@@ -1215,7 +1303,45 @@ class Notes {
 	 * Alerting.
 	 */
 	showAlert(msg, type = 'E') {
-		$('#messages').removeClass();
+		Console.log('Message type ' + type + ': ' + msg, type);
+		
+		var msgEl = $('<div class="singleMessageContainer">' + msg + '</div>');
+		var msgCont = $('<tr></tr>').append($('<td class="singleMessageContainerTd"></td>').append(msgEl));
+		var fade = false;
+		
+		switch (type) {
+		case 'E':
+			msgEl.addClass("btn btn-danger");
+			break;
+		case 'W':
+			msgEl.addClass("btn btn-warning");
+			break;
+		case 'S':
+			fade = true;
+			msgEl.addClass("btn btn-success");
+			break;
+		case 'I':
+			fade = true;
+			msgEl.addClass("btn btn-info");
+			break;
+		default:
+			msgEl.addClass("btn btn-danger");
+			break;
+		}
+
+		msgEl.click(function(event) {
+			event.stopPropagation();
+			 
+			msgCont.remove();
+		});	
+
+		$('#messages').append(msgCont);
+
+		msgCont.msgTimeoutHandle = setTimeout(function() {
+			if (msgCont && msgCont.fadeOut) msgCont.fadeOut();
+		}, fade ? 3000 : 10000);
+		
+		/*$('#messages').removeClass();
 
 		var fade = false;
 		switch (type) {
@@ -1244,6 +1370,7 @@ class Notes {
 		this.msgTimeoutHandle = setTimeout(function() {
 			if ($('#messages') && $('#messages').fadeOut) $('#messages').fadeOut();
 		}, fade ? 3000 : 10000);
+		*/
 	}
 	
 	/**

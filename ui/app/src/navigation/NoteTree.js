@@ -138,17 +138,14 @@ class NoteTree {
 				});
         	});
 			
-			// Refresh tree on grid double click (for debugging)
+			// Back to root on grid double click
 			$('#' + this.treeContainerId).off('dblclick');
 			$('#' + this.treeContainerId).on('dblclick', function(event) {
 				event.stopPropagation();
 				
 				Notes.getInstance().hideOptions();
 				
-				Actions.getInstance().requestTree()
-				.then(function(data) {
-					Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S");
-				});
+				that.behaviour.onNavigationDoubleClick(event);
 			});
 			
 			// Deselect handler (triggered when the user clicks on the empty root options bar)

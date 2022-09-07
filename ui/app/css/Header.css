@@ -128,16 +128,22 @@
 #msgContainer {
 	position: absolute;
 	top: 10px;
-	left: 50%;
-	z-index: 9999;
+ 	left: 50%;
+  	transform: translateX(-50%);
+  	background: rgba(0, 0, 0, 0.2);
+  	border-radius: 4px;
 }
 
 #messages {
-	position: relative; 
-	left: -50%;
-	text-align: center;
 	padding: 6px 6p;
-	white-space: pre-wrap;
+}
+
+.singleMessageContainerTd {
+	text-align: center;	
+}
+	
+.singleMessageContainer {
+	width: fit-content;
 }
 
 /**

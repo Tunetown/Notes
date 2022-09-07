@@ -22,7 +22,7 @@ class Help {
 	 * Singleton factory
 	 */
 	static getInstance() {
-		if (!Help.instance) Help.instance = new Help();
+		if (!Help.instance) Help.instance = new Help(); 
 		return Help.instance;
 	}
 	
@@ -34,11 +34,10 @@ class Help {
 		
 		n.setStatusText("Help Pages");
 		
-		
-		var contentContainer = $('<div class="prettyPageBody"></div>');
 		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>');
+		var contentContainer = $('<div class="prettyPageBody"></div>');
 		$('#contentContainer').append(
-			headerContainer,
+			headerContainer, 
 			contentContainer
 		);
 		
@@ -59,7 +58,7 @@ class Help {
 			})
 			.fail(function(err) {
 				contentContainer.html(err.responseText);	
-			});
+			}); 
 		}
 		
 		/*n.setButtons([ 

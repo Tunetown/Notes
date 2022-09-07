@@ -1030,6 +1030,13 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Called when the user double clicks on the tree area
+	 */
+	onNavigationDoubleClick() {
+		this.selectParent("");
+	}
+	
+	/**
 	 * Reset instance
 	 */
 	reset() {

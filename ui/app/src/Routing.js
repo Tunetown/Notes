@@ -64,6 +64,18 @@ class Routing {
 					that.app.showAlert('Error loading help page: ' + err.message, 'E');
 				});
 			});
+			
+			// Update page
+			this.get('#/update', function(context) {
+				that.app.startApp()
+				.then(function(data) {
+					that.app.resetPage();
+					Update.getInstance().load();
+					
+				}).catch(function(err) {
+					that.app.showAlert('Error loading update page: ' + err.message, 'E');
+				});
+			});
 						
 			// Profile root: Show overview
 			this.get('#/:profile', function(context) {
@@ -418,6 +430,13 @@ class Routing {
 	}
 	
 	/**
+	 * Calls the update page
+	 */
+	callUpdatePage() {
+		location.href = '#/update';
+	}
+	
+	/**
 	 * Calls the raw JSON view
 	 */
 	callRawView(id) {
@@ -460,6 +479,7 @@ class Routing {
 	 * Calls the about dialog.
 	 */
 	callAbout() {
-		alert("Notes Version " + this.app.appVersion + "\n\n(C) 2021 Thomas Weber (tom-vibrant[at]gmx.de)\nLicense: GPL v3");
+		//alert("Notes Version " + this.app.appVersion + "\n\n(C) 2021 Thomas Weber (tom-vibrant[at]gmx.de)\nLicense: GPL v3");
+		this.callUpdatePage();
 	}
 }

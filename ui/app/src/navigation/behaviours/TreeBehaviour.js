@@ -536,4 +536,15 @@ class TreeBehaviour {
 			}
 		}
 	}
+	
+	/**
+	 * Called when the user double clicks on the tree area
+	 */
+	onNavigationDoubleClick() {
+		// Reload navigation (dor debugging)
+		Actions.getInstance().requestTree()
+		.then(function(data) {
+			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S");
+		});
+	}
 }

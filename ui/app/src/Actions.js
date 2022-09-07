@@ -808,7 +808,7 @@ class Actions {
 			}
 		}
 		
-		if (containedRefs.length) {
+		if (containedRefs.length) { 
 			var str = '';
 			for(var o in containedRefs) {
 				str += n.getData().getReadablePath(containedRefs[o]._id) + '\n';
