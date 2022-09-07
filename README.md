@@ -1,6 +1,6 @@
 # Notes
 
-## Waht is Notes?
+## What is Notes?
 This is a Notes Taking App based purely on CouchDB and JavaScript, licensed under the GPL v3. See <a href="https://notes.webertom.net" target="_blank">notes.webertom.net</a> to see it in action and check out more details.
 
 ## Version History
@@ -13,4 +13,6 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
 - 0.80.0
     - Message threads
     - Small bug fixes
+- 0.81.0
+    - Re-install button added to trigger reloading anytime from the Update page
     

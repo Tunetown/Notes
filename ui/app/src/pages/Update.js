@@ -49,7 +49,7 @@ class Update {
 		var files = n.outOfDateFiles;
 		if (files.length == 0) {
 			headerContainer.append( 
-				$('<div>No Updates available from the app host (' + location.host + '). If you want to re-load the whole app sources anyway, click here:</div><br>'),
+				$('<div>The app is up to date with the host (' + location.host + '). If you want to re-load the whole app sources anyway, click here:</div><br>'),
 				$('<div class="btn btn-primary updateInstallBtn">Reload App Sources...</div><br><br>')
 				.on('click', function(event) {
 					Notes.getInstance().installUpdates();
