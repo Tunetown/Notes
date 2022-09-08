@@ -30,6 +30,7 @@ class ClientState {
 		this.cidViewState = "vt";
 		this.cidBoardState = "bt";
 		this.cidMobileOverride = "mo";
+		this.cidLastOpenedUrl = "lo";
 	}
 	
 	/**
@@ -55,6 +56,46 @@ class ClientState {
 		this.setLocal(this.cidMobileOverride, {
 			override: mode
 		}, true);
+	}
+	
+	/**
+	 * Returns the URL of the last loaded page, or false if disabled.
+	 */
+	getLastOpenedUrl() {
+		var ret = this.getLocal(this.cidLastOpenedUrl, true);
+		return ret.enabled ? ret.url : false;
+	}
+	
+	/**
+	 * Is the redirect enabled for the landing page?
+	 */
+	isLastOpenedUrlRedirectEnabled() {
+		var state = this.getLocal(this.cidLastOpenedUrl, true);
+		return state.enabled;
+	}
+	
+	/**
+	 * Saves the passed URL as the address of the last loaded page
+	 */
+	setLastOpenedUrl(url) {
+		var state = this.getLocal(this.cidLastOpenedUrl, true);
+		
+		// If there is no data at all, we enable the function by default.
+		if (!state.url) {
+			state.enabled = true;
+		}
+		
+		state.url = url;
+		this.setLocal(this.cidLastOpenedUrl, state, true);
+	}
+	
+	/**
+	 * Enables redirect on landing page
+	 */
+	enableLastOpenedUrlRedirect(enabled) {
+		var state = this.getLocal(this.cidLastOpenedUrl, true);
+		state.enabled = enabled;
+		this.setLocal(this.cidLastOpenedUrl, state, true);
 	}
 	
 	/**

@@ -377,6 +377,14 @@ class NoteTree {
 						Notes.getInstance().hideOptions();
 						that.behaviour.backButtonPushed(event);
 					}),
+					
+				// Home Button
+				$('<div data-toggle="tooltip" title="Home" class="fa fa-home treeModeSwitchbutton roundedButton" id="treeHomeButton"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						Notes.getInstance().hideOptions();
+						that.behaviour.homeButtonPushed(event);
+					}),
 				
 				// Create note
 				$('<div data-toggle="tooltip" title="Create Document" class="fa fa-plus treeModeSwitchbutton roundedButton"></div>')
@@ -690,6 +698,16 @@ class NoteTree {
 		}
 	}
 
+	/**
+	 * Called when opening an editor in mobile mode, to have influence on the buttons at the bottom left.
+	 * In desktop mode no buttons are there so this does not have any influence.
+	 */
+	initEditorNavButtons() {
+		if (this.behaviour) {
+			this.behaviour.initEditorNavButtons();
+		}
+	}
+	
 	/**
 	 * Returns the tree text size
 	 */

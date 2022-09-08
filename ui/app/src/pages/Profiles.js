@@ -55,12 +55,15 @@ class Profiles {
 		// Build profiles page
 		$('#contentContainer').append(
 			$('<div id="#profileSelection"></div>').append(
-				$('<div class="prettyPageBody"><h3>Welcome to the Notes App!</h3>Please select a Notebook Profile, or create a new one. You can also choose the local profile for testing the app locally. See the <a href="#/doc/usage">usage documentation</a> for details.<br><br></div>'),
+				$('<div class="prettyPageBody"><h3>Welcome to the Notes App!</h3>Please select an already opened Notebook, or add a new one. You can also choose the local option for testing the app locally with no remote server connected. See the <a href="#/doc/usage">usage documentation</a> for details.<br><br></div>'),
 				
 				$('<div id="#profileList"></div>').append(
 					remoteList
 				),
-				$('<button class="btn btn-secondary profileSelectBtn">New Profile...</button>')
+				
+				$('<br>'),
+				
+				$('<button class="btn btn-secondary profileSelectBtn">Add Notebook from CouchDB URL...</button>')
 				.on('click', function() {
 					var url = prompt('CouchDB Address:');
 					if (!url) return;
@@ -72,7 +75,7 @@ class Profiles {
 					Notes.getInstance().routing.call('', url);
 				}),
 				
-				$('<button class="btn btn-secondary profileSelectBtn">Import Profile...</button>')
+				$('<button class="btn btn-secondary profileSelectBtn">Open Notebook...</button>')
 				.on('click', function() {
 					var setting = prompt('Import profile:');
 					if (!setting) return;
@@ -96,6 +99,8 @@ class Profiles {
 						n.showAlert('Error importing profile: ' + e);
 					}
 				}),
+				
+				$('<br>'),
 				
 				overview,
 			)

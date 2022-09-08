@@ -30,16 +30,26 @@ class Routing {
 		var that = this;
 		this.sammy = $.sammy(selector, function() {
 			// Select profile to use
-			this.get('#/', function(context) {
+			function landingPage(context) {
+				var lastLoaded = ClientState.getInstance().getLastOpenedUrl();
+
 				that.app.startApp()
 				.then(function(data) {
 					that.app.resetPage();
-					Profiles.getInstance().load();
+					
+					if (lastLoaded) {
+						console.log("Redirect to last loaded: " + lastLoaded);
+						location.href = lastLoaded;
+					} else {
+						Profiles.getInstance().load();
+					}
 				
 				}).catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E');
 				});
-			});
+			}
+			//this.get('#', landingPage);
+			this.get('#/', landingPage);
 
 			// Documentation
 			this.get('#/doc', function(context) {
@@ -372,6 +382,7 @@ class Routing {
 	 * Calls the profile selection screen
 	 */
 	callSelectProfile() {
+		ClientState.getInstance().setLastOpenedUrl();
 		location.href = '#/';
 	}
 	

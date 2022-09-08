@@ -15,4 +15,11 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Small bug fixes
 - 0.81.0
     - Re-install button added to trigger reloading anytime from the Update page
-    
+0.82.0
+    - Redirect to last loaded on landing page (switchable in Settings)
+    - Links in Messages
+    - Added home buttons for detail list navigation
+    - Check for updates on About page
+    - Renaming of "Profile" -> "Notebook"
+    - Rework of Documentation
+        

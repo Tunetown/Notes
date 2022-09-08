@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.81.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.82.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -279,7 +279,21 @@ class Notes {
 			
 			$('#progressBar').css('display', 'block');
 			$('#progressBar').css('width', perc + '%');
-		}
+		} 
+	} 
+
+	/**
+	 * Can be called to force the service worker to check for updates. 
+	 */
+	triggerUpdateCheck() {
+		navigator.serviceWorker.ready
+  		.then( (registration) => {
+			if (registration.active) {
+				registration.active.postMessage({
+					requestId: 'checkUpdates'  
+				});
+			}
+		});	
 	}
 
 	/**
@@ -303,10 +317,10 @@ class Notes {
 				this.showAlert("No service worker active, try again or just reload the page.", "W", "UpdateMessage");
 			}
 			/*if (registration.waiting) {
-				registration.waiting.postMessage(42);
+				registration.waiting.postMessage(42);  
 			}*/
 		});			
-	}
+	} 
 	
 	/**
 	 * Handlers incoming messages from the service worker.
@@ -317,7 +331,15 @@ class Notes {
 			if (event.data.outOfDate) {
 				if (Notes.getInstance().outOfDateFiles.length == 0) { 
 					setTimeout(function() {
-						Notes.getInstance().showAlert("An update is available for this App. Please see the About page in the user menu to install it.", "W", "UpdateMessage");
+						Notes.getInstance().showAlert(
+							"An update is available for this App. Please see the About page in the user menu to install it.", 
+							"W", 
+							"UpdateMessage", 
+							false, 
+							function(msgElement, event) {
+								Notes.getInstance().routing.callUpdatePage();
+							}
+						);
 					}, 100); 
 				}
  
@@ -474,6 +496,9 @@ class Notes {
 			that.serviceWorkerRegistered = true;
 		}
 				
+		// Store URL as last loaded address
+		ClientState.getInstance().setLastOpenedUrl(location.href);
+				
 		// Initialize database instance with the user ID. This is started asynchronously. After the database(s)
 		// is/are up, the settings, notes tree and the last loaded note are requested independently.
 		return Database.getInstance().init()
@@ -586,7 +611,7 @@ class Notes {
 		this.setButtons(null, true);
 		
 		$('#backButton').hide();
-		$('#backButton2').hide();
+		$('#editorNavButtons').hide();
 		$('#forwardButton').hide();
 
 		$('#editor').hide();
@@ -601,7 +626,9 @@ class Notes {
 			$('#contentContainer').show();
 			if (this.isMobile()) {
 				$('#treenav').hide();
-				$('#backButton2').show();
+				$('#editorNavButtons').show();
+				
+				NoteTree.getInstance().initEditorNavButtons();
 			}
 		}
 		
@@ -687,12 +714,23 @@ class Notes {
 					// Console
 					$('<div id="console" class="mainPanel"/>'),
 					
-					// Back button used to navigate back to the tree in mobile mode
-					$('<div id="backButton2" class="roundedButton fa fa-chevron-left"></div>')
-					.on('click', function(e) {
-						e.stopPropagation();
-						that.back();
-					})
+					// Buttons for mobile
+					$('<div id="editorNavButtons" class="editorNavButtons"/>')
+					.append(
+						// Back button used to navigate back to the tree in mobile mode
+						$('<div id="backButton2" class="editorNavButton roundedButton fa fa-chevron-left"></div>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.back();
+						}),
+						
+						// Home button used to navigate back to the tree root in mobile mode
+						$('<div id="homeButton2" class="editorNavButton roundedButton fa fa-home"></div>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.home();
+						})
+					)
 				])
 			])
 		]);
@@ -708,58 +746,18 @@ class Notes {
 	} 
 	
 	/**
-	 * Returns if back navigation is possible.
-	 *
-	isBackPossible() {
-		return !(document.referrer == "");
+	 * Go home to the navigation root
+	 */
+	home() {
+		NoteTree.getInstance().focus("");
+		this.routing.call();
 	}
-	
-	/**
-	 * Returns if forward navigation is possible.
-	 *
-	isForwardPossible() {
-		return (history.length > 0);
-	}
-	
+		
 	/**
 	 * Go back in browser history
 	 */
 	back() {
 		history.back();
-		/*
-		// If one of the parent documents is a kanban board, open it.
-		var id = this.getCurrentlyShownId();
-
-		if (id) {
-			var that = this;
-			function getParentBoard(pid) {
-				if (!pid) return null;
-				
-				var doc = that.getData().getById(pid);
-				if (!doc) return null;
-				
-				if (doc.parentDoc) {
-					if (doc.parentDoc.editor == 'board') {
-						return doc.parent;
-					} else {
-						return getParentBoard(doc.parent);
-					}
-				}
-				
-				return null;
-			}
-			
-			var kanbanId = getParentBoard(id);
-			
-			if (kanbanId) {
-				this.routing.call(kanbanId);
-				return;
-			}
-		}
-		
-		// If not, close the editor.
-		this.routing.call();
-		*/
 	}
 	
 	/**
@@ -903,7 +901,7 @@ class Notes {
 				$('<div class="userbuttonPassive"><div class="fa fa-user userbuttonIcon"></div>' + (Settings.getInstance().settings.dbAccountName ? Settings.getInstance().settings.dbAccountName : Database.getInstance().profileHandler.getCurrentProfile().url) + '</div>'),
 				$('<div class="userbuttonLine"></div>'),
 
-				$('<div class="userbutton" id="selProfileMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile()"><div class="fa fa-home userbuttonIcon"></div>Select Profile</div>'),
+				$('<div class="userbutton" id="selProfileMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile()"><div class="fa fa-home userbuttonIcon"></div>Select Notebook</div>'),
 				$('<div class="userbutton" id="conflictsMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callConflicts()"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>'),
 				$('<div class="userbuttonLine"></div>'),
 				
@@ -1255,7 +1253,7 @@ class Notes {
 		
 		// Align back button 2 (for content panel): Positioning with pure CSS seems not possible here.
 		var contentHeight = $('#article').height();
-		$('#backButton2').css('top', (contentHeight - 20 - $('#backButton2').outerHeight(true)) + "px");
+		$('#editorNavButtons').css('top', (contentHeight - 20 - $('#editorNavButtons').outerHeight(true)) + "px");
 		
 		// Conflict alert icons
 		$('.conflictMarker').css('display', (this.getData() && this.getData().hasConflicts()) ? 'inline-block' : 'none');
@@ -1302,8 +1300,9 @@ class Notes {
 	/**
 	 * Alerting. If you pass a thread ID, all older messages with the same ID will be removed first.
 	 * Default type is "E". alwaysHideAtNewMessage can be used if you like to have the message disappearing whenever a new one comes in.
+	 * callbackFunction is optional and executed on clicking the message.
 	 */
-	showAlert(msg, type, threadID, alwaysHideAtNewMessage) {
+	showAlert(msg, type, threadID, alwaysHideAtNewMessage, callbackFunction) {
 		if (!type) type = 'E';
 		
 		Console.log('Message type ' + type + ': ' + msg, type);
@@ -1339,6 +1338,10 @@ class Notes {
 		msgEl.click(function(event) {
 			event.stopPropagation(); 
 			msgCont.remove();
+			
+			if (callbackFunction) {
+				callbackFunction(msgCont, event);
+			}
 		});	
 
 		// Add message

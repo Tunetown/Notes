@@ -175,7 +175,7 @@ class Settings {
 		var remoteList = [];
 		var profiles = d.profileHandler.getProfiles();
 		var currentP = d.profileHandler.getCurrentProfile().url;
-		remoteList.push($('<option value="new">New Profile...</option>'));
+		remoteList.push($('<option value="new">Add Notebook from CouchDB URL...</option>'));
 		for(var p in profiles) {
 			remoteList.push($('<option value="' + profiles[p].url + '" ' + ((profiles[p].url == currentP) ? 'selected' : '') + '>' + Tools.getBasename(profiles[p].url) + '</option>'));
 		}
@@ -252,14 +252,14 @@ class Settings {
 						),	
 						
 						$('<tr/>').append(
-							$('<td>Remote Connection Profile</td>'),
+							$('<td>Notebook</td>'),
 							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
 
-								$('<button class="btn btn-secondary settings-button">Import Profile</button>')
+								$('<button class="btn btn-secondary settings-button">Open Notebook</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									
-									var setting = prompt('Import profile:');
+									var setting = prompt('URL to a notebook:');
 									if (!setting) return;
 									
 									var d = Database.getInstance();
@@ -275,18 +275,18 @@ class Settings {
 											n.routing.call('settings');
 										});
 						
-										n.setStatusText('Importing profile');
+										n.setStatusText('Opening Notebook');
 										
 									} catch (e) {
-										n.showAlert('Error importing profile: ' + e);
+										n.showAlert('Error opening notebook: ' + e);
 									}
 								}),
 								
-								(d.profileHandler.getCurrentProfile().url == "local") ? null : $('<button class="btn btn-secondary settings-button">Delete Profile...</button>')
+								(d.profileHandler.getCurrentProfile().url == "local") ? null : $('<button class="btn btn-secondary settings-button">Close Notebook...</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									
-									if (!confirm('Really delete profile ' + Database.getInstance().profileHandler.getCurrentProfile().url + '? This will only delete local data, the remote database is not being touched.')) {
+									if (!confirm('Really close the notebook at ' + Database.getInstance().profileHandler.getCurrentProfile().url + '? This will only delete local data, the remote database is not being touched.')) {
 										return;
 									}
 									Database.getInstance().profileHandler.deleteProfile();
@@ -886,6 +886,27 @@ class Settings {
 										ClientState.getInstance().setMobileOverride($(this).val())
 										location.reload();
 									});
+								})
+							),
+							$('<td/>')
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Landing Page: Redirect to last opened</td>'),
+							$('<td/>').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().isLastOpenedUrlRedirectEnabled() ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												ClientState.getInstance().enableLastOpenedUrlRedirect(!!this.getChecked());
+											}
+										});
+									}, 0);
 								})
 							),
 							$('<td/>')

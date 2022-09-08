@@ -66,6 +66,12 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Called when the home button of the tree has been pushed, if visible. 
+	 */
+	homeButtonPushed(event) {
+	}
+	
+	/**
 	 * Save state info to the passed (already filled) view state object
 	 */
 	saveState(state) {
@@ -95,10 +101,19 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Called when opening an editor in mobile mode, to have influence on the buttons at the bottom left.
+	 * In desktop mode no buttons are there so this does not have any influence.
+	 */
+	initEditorNavButtons() {
+		$('#homeButton2').hide();
+	}
+	
+	/**
 	 * Called before the grid is initialised
 	 */
 	beforeInit() {
 		$('#treeBackButton').hide();
+		$('#treeHomeButton').hide();
 	}
 	
 	/**
@@ -288,7 +303,7 @@ class TreeBehaviour {
 	 */
 	focus(id) {
 		var doc = Notes.getInstance().getData().getById(id);
-		this.expander.expandPathTo(doc.parentDoc);
+		this.expander.expandPathTo(doc ? doc.parentDoc : "");
 	}
 	
 	/**

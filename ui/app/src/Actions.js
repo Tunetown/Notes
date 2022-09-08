@@ -307,6 +307,8 @@ class Actions {
 	 * Opens an appropriate editor for the given document.
 	 */
 	requestEditor(doc) {
+		//Notes.getInstance().triggerUpdateCheck();
+		
 		var that = this;
 			
 		if (doc.type == "attachment") {
@@ -314,7 +316,7 @@ class Actions {
 			return this.loadDocuments([doc])
 			.then(function(resp) {
 				if (doc._conflicts && doc._conflicts.length) {
-					Notes.getInstance().showAlert('There are conflicts with this document, please check the conflicts list.', 'W');
+					Notes.getInstance().showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
 				
 				if (doc.deleted) {
@@ -343,7 +345,7 @@ class Actions {
 			return this.loadDocuments([doc])
 			.then(function(resp) {
 				if (doc._conflicts && doc._conflicts.length) {
-					Notes.getInstance().showAlert('There are conflicts with this document, please check the conflicts list.', 'W');
+					Notes.getInstance().showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
 				
 				if (doc.deleted) {
@@ -509,7 +511,7 @@ class Actions {
 				type = $('#createTypeInput').val();
 			    
 				if (!type) {
-					n.showAlert('Please specify a type for the new document.');
+					n.showAlert('Please specify a type for the new document.', 'E', 'CreateMessages');
 					return;
 				}
 				
@@ -517,7 +519,7 @@ class Actions {
 		    		files = $('#customFile')[0].files;
 		    		
 		    		if (!files || !files.length) {
-		    			n.showAlert('Please select a file to upload.');
+		    			n.showAlert('Please select a file to upload.', 'E', 'CreateMessages');
 						return;
 				    }
 		    		
@@ -525,7 +527,7 @@ class Actions {
 		    		if (maxMB) {
 			    		for(var f in files) {
 				    		if (files[f].size > (maxMB * 1024 * 1024)) {
-				    			n.showAlert('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.');
+				    			n.showAlert('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.', 'E', 'CreateMessages');
 								return;
 				    		}
 			    		}
@@ -539,19 +541,19 @@ class Actions {
 		    		
 		    	} else if (type == 'reference') {
 		    		if (!name) {
-		    			n.showAlert('Please specify a name for the new document.');
+		    			n.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
 						return;
 				    }
 		    		
 		    		refTarget = refSelector.val();
 		    		
 		    		if (!refTarget) {
-		    			n.showAlert('Please specify target for the reference document.');
+		    			n.showAlert('Please specify target for the reference document.', 'E', 'CreateMessages');
 						return;
 		    		}
 		    	} else {
 		    		if (!name) {
-		    			n.showAlert('Please specify a name for the new document.');
+		    			n.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
 						return;
 				    }
 		    	}
@@ -1144,7 +1146,7 @@ class Actions {
 	        	
 				var tdoc = Notes.getInstance().getData().getById(target);
 	        	if (!tdoc) {
-					Notes.getInstance().showAlert('Target not found: ' + target, 'E');
+					Notes.getInstance().showAlert('Target not found: ' + target, 'E', 'SetRefMessages');
 					return;
 				}
 				
@@ -1523,7 +1525,7 @@ class Actions {
 
 	        	tdoc = Notes.getInstance().getData().getById(target);
 	        	if (!tdoc) {
-	        		Notes.getInstance().showAlert('Please select a target document.');
+	        		Notes.getInstance().showAlert('Please select a target document.', 'E', 'MoveMessages');
 	        		return;
 	        	}
 	       
@@ -2014,13 +2016,13 @@ class Actions {
 	    		file = $('#uploadFile')[0].files[0];
 	    		
 	    		if (!file) {
-	    			n.showAlert('Please select a file to upload.');
+	    			n.showAlert('Please select a file to upload.', 'E', 'UplAttMessages');
 					return;
 			    }
 
 	    		var maxMB = parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
 	    		if (maxMB && (file.size > (maxMB * 1024 * 1024))) {
-	    			n.showAlert('The file is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.');
+	    			n.showAlert('The file is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.', 'E', 'UplAttMessages');
 					return;
 	    		}
 		    		
@@ -2152,7 +2154,7 @@ class Actions {
 				if (targetId != id) {
 					doc = n.getData().getById(targetId);
 					if (!doc && targetId.length) {
-						n.showAlert('Document ' + targetId + ' not found');
+						n.showAlert('Document ' + targetId + ' not found', 'E', 'UplAttMessages');
 						return;
 					}
 				}

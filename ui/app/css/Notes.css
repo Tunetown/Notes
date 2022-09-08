@@ -131,10 +131,13 @@ article {
 	cursor: default;
 }
 
-#backButton2 {
+.editorNavButtons {
 	position: absolute;
 	left: 10px;
-	z-index: 99999;
+	z-index: 99999;	
+}
+
+.editorNavButton {
 	margin: 5px;
 }
 

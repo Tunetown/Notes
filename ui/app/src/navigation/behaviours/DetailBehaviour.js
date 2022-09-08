@@ -70,6 +70,14 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Called when opening an editor in mobile mode, to have influence on the buttons at the bottom left.
+	 * In desktop mode no buttons are there so this does not have any influence.
+	 */
+	initEditorNavButtons() {
+		$('#homeButton2').show();
+	}
+	
+	/**
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	backButtonPushed(event) {
@@ -84,6 +92,18 @@ class DetailBehaviour {
 		if (!doc) return;
 		
 		this.selectParent(doc.parent);
+	}
+	
+	/**
+	 * Called when the home button of the tree has been pushed, if visible. 
+	 */
+	homeButtonPushed(event) {
+		if (this.grid.getSearchText()) {
+			this.grid.setSearchText('');
+			return;
+		}
+		
+		this.selectParent();
 	}
 	
 	/**
@@ -133,6 +153,7 @@ class DetailBehaviour {
 	 */
 	beforeInit() {
 		$('#treeBackButton').show();
+		$('#treeHomeButton').show();
 		
 		// Search buttons
 		var that = this;
@@ -691,7 +712,7 @@ class DetailBehaviour {
 	 */
 	focus(id) {
 		var doc = Notes.getInstance().getData().getById(id);
-		this.selectParent(doc.parent);
+		this.selectParent(doc ? doc.parent : "");
 	}
 	
 	/**

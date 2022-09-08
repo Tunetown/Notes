@@ -32,6 +32,8 @@ class Update {
 	load() {
 		var n = Notes.getInstance();
 		
+		n.triggerUpdateCheck();
+		
 		n.setStatusText("About");
 		
 		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>'); 

@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.81.0.a';
+const PRECACHE = 'notes_precache-v0.82.0.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -169,6 +169,11 @@ const PRECACHE_URLS = [
 ];
 
 /**
+ * This is used to check for updates on client request.
+ */
+const UPDATECHECK_SCRIPT = './ui/app/src/Notes.js';
+
+/**
  * The install handler takes care of precaching the resources we always need.
  */
 self.addEventListener('install', event => {
@@ -246,7 +251,33 @@ self.checkForUpdates = function(request, cache) {
 self.addEventListener("message", (event) => {
 	if (event.data.requestId) {
 		switch(event.data.requestId) {
+			case 'checkUpdates': {
+				// Checks one script for changes and sends an out of date message to the client if so.
+				var request = new Request(UPDATECHECK_SCRIPT);
+				request.method = 'GET';
+				
+				var self_ = self;
+				caches.open(PRECACHE) 
+				.then(function (cache) {
+					self_.checkForUpdates(request, cache)
+					.then(function (checkResponse) {
+						if (checkResponse.outOfDate) {
+							console.log("SW: File is out of date, prompting user for update: " + checkResponse.url);
+							event.source.postMessage(checkResponse);
+						} else {
+							//console.log("SW Version Check successful for " + checkResponse.url);
+						}
+					})
+					.catch(function (err) {
+						console.log("SW Version Check: Failed to check updates of  " + event.request.url + ", see following error:");
+						console.log(err);
+					});
+				});
+				
+				return;
+			}
 			case 'update': {
+				// Check if there is only one client connected, and if so, send a message to it to trigger the update.
 				if (!event.source) {
 					console.log("SW: Error: Message event did not contain a client instance, skipping this message.");
 					return; 
