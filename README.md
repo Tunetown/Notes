@@ -22,4 +22,8 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Check for updates on About page
     - Renaming of "Profile" -> "Notebook"
     - Rework of Documentation
+0.83.0
+	- Documentation updates
+	- PWA App Frame color now follows the notebook color
+	
         

@@ -1004,6 +1004,7 @@ class Settings {
 		}
 		
 		n.setRoundedButtonSize(n.isMobile() ? this.settings.optionTextSizeMobile : this.settings.optionTextSizeDesktop);
+		
 	}
 	
 	/**

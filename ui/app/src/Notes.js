@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.82.4';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.83.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -294,6 +294,14 @@ class Notes {
 				});
 			}
 		});	
+	}
+
+	/**
+	 * Sets the theme color of the PWA
+	 */
+	setPWAColor(color) {
+		//const colour = `rgb(${dayRgb.map((day, i) => ((nightRgb[i] - day) * smooth(night) + day))})`;
+		themeColor.content = color;
 	}
 
 	/**
@@ -1005,6 +1013,7 @@ class Notes {
 	 */
 	setMainColor(color) {
 		if (!color) return;
+		this.setPWAColor(color);
 		$('header').css('background-color', color);
 		$('.headerMoveSelector').css('background-color', color);
 	}
