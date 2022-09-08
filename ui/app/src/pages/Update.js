@@ -56,6 +56,7 @@ class Update {
 				.on('click', function(event) {
 					Notes.getInstance().installUpdates();
 				}),
+				$('<div><span style="color: red;">If you get errors after updating, please empty your browser cache and, if you installed it locally, re-install the app.</span></div><br>'),
 				$('<div><em>Technical Info: This forces the service worker to be reinstalled, and loads all sources from the host again. The PWA installation is not touched!</em></div><br>'),
 			);
 		} else {
