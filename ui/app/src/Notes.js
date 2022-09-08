@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.83.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.83.1';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -300,7 +300,10 @@ class Notes {
 	 * Sets the theme color of the PWA
 	 */
 	setPWAColor(color) {
-		//const colour = `rgb(${dayRgb.map((day, i) => ((nightRgb[i] - day) * smooth(night) + day))})`;
+		if (!themeColor) {
+			console.log("Error setting PWA theme color");			
+			return;
+		}
 		themeColor.content = color;
 	}
 
