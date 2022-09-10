@@ -29,9 +29,10 @@ class Routing {
 	setup(selector) {
 		var that = this;
 		this.sammy = $.sammy(selector, function() {
-			// Select profile to use
-			function landingPage(context) {
-				var lastLoaded = ClientState.getInstance().getLastOpenedUrl();
+			// Select notebook site (this redirects to the last loaded site if the landing page
+			// has been loaded)
+			function landingPage(context, regardLastLoaded) {
+				var lastLoaded = regardLastLoaded ? ClientState.getInstance().getLastOpenedUrl() : false;
 
 				that.app.startApp()
 				.then(function(data) {
@@ -48,8 +49,12 @@ class Routing {
 					that.app.showAlert('Error: ' + err.message, 'E');
 				});
 			}
-			//this.get('#', landingPage);
-			this.get('#/', landingPage);
+			this.get('#/', function(context) {
+				landingPage(context, true);
+			});
+			this.get('#/notebooks', function(context) {
+				landingPage(context, false);
+			});
 
 			// Documentation
 			this.get('#/doc', function(context) {
@@ -383,7 +388,8 @@ class Routing {
 	 */
 	callSelectProfile() {
 		ClientState.getInstance().setLastOpenedUrl();
-		location.href = '#/';
+		//location.href = '#/';
+		location.href = '#/notebooks';
 	}
 	
 	/**

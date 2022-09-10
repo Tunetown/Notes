@@ -34,19 +34,22 @@ class Profiles {
 		var d = Database.getInstance();
 		
 		// Set note name in the header
-		n.setStatusText("Choose profile"); 
+		n.setStatusText("Choose notebook"); 
 
 		// Build list of available remotes
 		var remoteList = [];
 		var profiles = d.profileHandler.getProfiles();
 		for(var p in profiles) {
 			remoteList.push(
-				$('<div class="btn btn-primary profileSelectBtn" data-url="' + profiles[p].url + '">' + Tools.getBasename(profiles[p].url) + '</div>')
-				.on('click', function(event) {
-					Database.getInstance().profileHandler.selectOrCreateProfile($(this).data().url);
-					Database.getInstance().reset();
-					Notes.getInstance().routing.call();
-				})
+				$('<div class="profileSelectElementContainer"></div>').append(
+					$('<div class="btn btn-primary profileSelectBtn" data-url="' + profiles[p].url + '">' + Tools.getBasename(profiles[p].url) + '</div>')
+					.on('click', function(event) {
+						Database.getInstance().profileHandler.selectOrCreateProfile($(this).data().url);
+						Database.getInstance().reset();
+						Notes.getInstance().routing.call();
+					}),
+					$('<div class="profileSelectInfo">' + profiles[p].url + '</div>')
+				)
 			);
 		}
 

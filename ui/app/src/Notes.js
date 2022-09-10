@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.84.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.85.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -686,13 +686,19 @@ class Notes {
 					])
 				]),
 				$('<span id="headerRight" />')
-			]),
+			])
+			.contextmenu(function(e) {
+				e.stopPropagation();
+				e.preventDefault();
+
+				// Show user menu
+				that.showUserMenu('user');
+			}),
 			/*.on('dblclick', function(e) {
 				e.stopPropagation();
 
 				// Refresh on header click
 				if (!confirm('Reload app?')) return;
-				
 				location.reload();
 			}),*/
 			
@@ -756,6 +762,7 @@ class Notes {
 	 * Go back in browser history
 	 */
 	back() {
+		ClientState.getInstance().setLastOpenedUrl();
 		history.back();
 	}
 	
@@ -763,6 +770,7 @@ class Notes {
 	 * Go forward in browser history
 	 */
 	forward() {
+		ClientState.getInstance().setLastOpenedUrl();
 		history.forward();
 	}
 	

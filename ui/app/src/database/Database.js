@@ -204,11 +204,6 @@ class Database {
 				.then(function(data) {
 					console.log('Showing login');
 					
-					// Check if the browser auto completed the fields and submit automatically in this case.
-					setTimeout(function() {
-						// TODO
-					}, 500);
-					
 					function submitLogin(event) {
 						$(document).off('keypress', loginKeyPressed);
 											
@@ -290,6 +285,16 @@ class Database {
 
 					$('#loginSubmitButton').focus();
 					
+					// Check if the browser auto completed the fields and submit automatically in this case.
+					setTimeout(function() {
+						var pwdPre = $('#pwdInput').val();
+						var usrPre = $('#username').val();
+						
+						if (pwdPre && usrPre && (pwdPre.length > 0) && (usrPre.length > 0)) {
+							submitLogin();
+						}
+					}, 500);
+					
 				}).catch(function(err) {
 					that.notifyOfflineState();
 					
@@ -319,6 +324,8 @@ class Database {
 		var that = this;
 		return new Promise(function(resolve, reject) {
 			that.dbRemote.logout(function (err, response) {
+				console.log(err);
+				console.log(response);
 				that.loggedInUser = false;
 				
 				resolve({
