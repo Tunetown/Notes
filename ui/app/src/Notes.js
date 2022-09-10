@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.85.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.85.1';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -316,7 +316,7 @@ class Notes {
 	triggerUnSyncedCheck() {
 		var d = Database.getInstance();
 		var p = d.profileHandler.getCurrentProfile(); 
-		if (p.url && !p.clone) {
+		if (p.url && (p.url != 'local') && !p.clone) {
 			this.showAlert('Warning: This notebook is not available offline. This may be slow with larger documents.', 'W', 'UnSyncedMessages');
 		}
 	}
