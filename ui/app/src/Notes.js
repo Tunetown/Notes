@@ -27,10 +27,12 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.83.1';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.84.0';     // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
+		
+		//this.redirectOnLandingPageDone = false;
 	}
 	
 	/**
@@ -300,11 +302,23 @@ class Notes {
 	 * Sets the theme color of the PWA
 	 */
 	setPWAColor(color) {
-		if (!themeColor) {
+		var tc = $('#themeColor');
+		if (!tc) {
 			console.log("Error setting PWA theme color");			
 			return;
 		}
-		themeColor.content = color;
+		tc.attr('content', color);
+	}
+
+	/**
+	 * Check if the loaded profile is available offline. If not, issue a warning message.	 
+	 */
+	triggerUnSyncedCheck() {
+		var d = Database.getInstance();
+		var p = d.profileHandler.getCurrentProfile(); 
+		if (p.url && !p.clone) {
+			this.showAlert('Warning: This notebook is not available offline. This may be slow with larger documents.', 'W', 'UnSyncedMessages');
+		}
 	}
 
 	/**
@@ -414,32 +428,6 @@ class Notes {
 					
 					// Messages from the service worker
 					Notes.getInstance().setupServiceWorkerMessageReceiver();
-
-					// Update, if necessary (replaced by SW internal code)
-					/*setTimeout(function() {
-						console.log("Check for ServiceWorker updates....");
-						
-						registration.update()
-						.then(function(registration) {
-							if (registration.installing) {
-						    	console.log(' -> ServiceWorker updated successful with scope ' + registration.scope);
-								
-								Notes.getInstance().showAlert("Updating, please wait....", "I");
-			
-								return registration.unregister()
-								.then(function() {
-									console.log(" -> Unregistered current service worker, refreshing....");
-									location.reload();
-								},
-								function(err) {
-									console.log('ServiceWorker deletion failed: ', err);
-									Notes.getInstance().showAlert('ServiceWorker deletion failed: ' + err, "E");
-							    });
-							} else {
-						    	console.log(' -> ServiceWorker not updated');
-							}
-						});
-					}, 3000);*/
 				}, function(err) {
 					console.log('ServiceWorker registration failed: ', err);
 					Notes.getInstance().showAlert('ServiceWorker registration failed: ' + err, "E");
@@ -1342,7 +1330,7 @@ class Notes {
 			break;
 		default:
 			msgEl.addClass("btn btn-danger");
-			fadeTime = Config.MESSAGE_OTHERS_FADEOUT_AFTER_MS;
+			fadeTime = Config.MESSAGE_OTHERS_FADEOUT_AFTER_MS; 
 			break;
 		}
 
@@ -1356,8 +1344,8 @@ class Notes {
 			}
 		});	
 
-		// Add message
-		$('#messages').append(msgCont);
+		// Add message at the top
+		$('#messages').prepend(msgCont);
 
 		// Fade out after a certain time
 		if (fadeTime > 0) { 

@@ -60,7 +60,9 @@ class Actions {
 		})
 		.then(function (data) {
 			// For debugging
-			console.log(' -> TOC Loader: ' + Tools.convertFilesize(JSON.stringify(data).length) + ' loaded in ' + data.rows.length + ' documents');
+			if (data.rows.length > 0) {
+				console.log(' -> TOC Loader: ' + Tools.convertFilesize(JSON.stringify(data).length) + ' loaded in ' + data.rows.length + ' documents');
+			}
 
 			// Set new data in a new data container
 			Notes.getInstance().setData(new Data(data.rows ? data.rows : [], 'value'));
@@ -307,7 +309,7 @@ class Actions {
 	 * Opens an appropriate editor for the given document.
 	 */
 	requestEditor(doc) {
-		//Notes.getInstance().triggerUpdateCheck();
+		Notes.getInstance().triggerUnSyncedCheck();
 		
 		var that = this;
 			

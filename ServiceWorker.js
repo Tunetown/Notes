@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.83.1.a';
+const PRECACHE = 'notes_precache-v0.84.0.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -328,7 +328,7 @@ self.addEventListener('fetch', function (event) {
 		caches.open(PRECACHE) 
 		.then(function (cache) {
 			// API Access of any other request methods than GET: Only a direct fetch is possible
-			if (event.request.url.startsWith(self.location.origin + '/api') ||
+			if (!event.request.url.startsWith(self.location.origin) ||
 				event.request.method.toLowerCase() != 'get') 
 			{
 				return fetch(event.request)
@@ -367,7 +367,7 @@ self.addEventListener('fetch', function (event) {
 					
 					return Promise.resolve(response);
 				} else {
-					console.log("SW: Cache miss: " + event.request.url);
+					//console.log("SW: Cache miss: " + event.request.url);
 					return fetch(event.request);
 				}
 				

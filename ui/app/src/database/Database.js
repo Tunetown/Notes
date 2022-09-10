@@ -204,6 +204,11 @@ class Database {
 				.then(function(data) {
 					console.log('Showing login');
 					
+					// Check if the browser auto completed the fields and submit automatically in this case.
+					setTimeout(function() {
+						// TODO
+					}, 500);
+					
 					function submitLogin(event) {
 						$(document).off('keypress', loginKeyPressed);
 											
@@ -619,7 +624,7 @@ class Database {
 			}
 			
 			if (!changed.length) {
-				console.log(' -> MapReduce: All ' + views.length + ' views are up to date.');
+				//console.log(' -> MapReduce: All ' + views.length + ' views are up to date.');
 				return Promise.resolve({
 					nothingDone: true,
 					ok: true
