@@ -658,12 +658,12 @@ class NoteTree {
 	showFavorites(show) {
 		if (show) {
 			$('#favBar').show();
-			$('#searchBarTree').css('padding-top', '2px');
-			$('#searchCancelButton').css('top', '14px');
+			//$('#searchBarTree').css('padding-top', '2px');
+			//$('#searchCancelButton').css('top', '14px');
 		} else {
 			$('#favBar').hide();
-			$('#searchBarTree').css('padding-top', '5px');
-			$('#searchCancelButton').css('top', '17px');
+			//$('#searchBarTree').css('padding-top', '5px');
+			//$('#searchCancelButton').css('top', '17px');
 		}
 	}
 	
