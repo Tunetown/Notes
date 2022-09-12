@@ -135,6 +135,8 @@ class Board {
 			// Build board
 			that.buildBoard(doc);
 			
+			NoteTree.getInstance().updateFavorites();
+			
 			that.restoreScrollPosition();
 		})
 		.catch(function(err) {
