@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.86.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.87.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1269,6 +1269,38 @@ class Notes {
 
 		// Update header size
 		this.updateHeaderSize();
+	}
+	
+	/**
+	 * Adds the document to the favorites list, or if already there, increases its call count.
+	 */
+	addFavorite(doc) {
+		if (!doc) return;
+		
+		var favorites = ClientState.getInstance().getFavorites();
+		var hash = Tools.hashCode(doc._id);
+		
+		if (!favorites["doc" + hash]) {
+			favorites["doc" + hash] = {
+				id: doc._id,
+				rank: 1
+			}
+		} else {
+			favorites["doc" + hash].rank ++;
+		}
+		
+		ClientState.getInstance().saveFavorites(favorites);
+		
+		NoteTree.getInstance().updateFavorites();
+	}
+	
+	/**
+	 * Clear local favorites.
+	 */
+	clearFavorites() {
+		ClientState.getInstance().saveFavorites({});
+		
+		NoteTree.getInstance().updateFavorites();
 	}
 	
 	/**

@@ -31,13 +31,17 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
 	- Documentation updates
 	- PWA App Frame color now follows the notebook color
 
-- 0.84.0:
+- 0.84.0
     - Removed some console messages which are not necessary
     - Fixed message order
     - Warning if the noteboo is accessed online only (this may be slow, users should only use this for temporary access)
  
-- 0.86.0:
+- 0.86.0
     - Bug fixes, documentation updates
     - Auto login when browser did auto complete
     - Landing page: Show notebook details and sync/clone status
+    
+- 0.87.0
+    - Added Favorites Bar
+    
     

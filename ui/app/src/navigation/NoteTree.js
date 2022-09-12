@@ -176,6 +176,8 @@ class NoteTree {
 		
 		Settings.getInstance().apply();
 		
+		this.updateFavorites();
+		
 		// Callbacks for color picking
 		Notes.getInstance().registerOptionsCallbacks({
 			id: 'tree',
@@ -194,6 +196,100 @@ class NoteTree {
 		
 		this.unblock();
 	};	
+	
+	/**
+	 * Updates the favorites bar
+	 */
+	updateFavorites() {
+		var c = ClientState.getInstance();
+		
+		var favBar = $('#favBar');
+		if (!favBar) return;
+		
+		// Clear content and hide at first
+		favBar.empty();
+		favBar.css('height', 'auto');
+		this.showFavorites(false);
+		
+		// No favorites: Dont show anything
+		var favorites = c.getFavorites();
+		if (!favorites) return;
+
+		// Get favorites as array and sort it
+		var favsSorted = [];
+		for (var prop in favorites) {
+		    if (favorites.hasOwnProperty(prop)) {
+		        var fav = favorites[prop];
+				favsSorted.push(fav);
+		    }
+		}
+		
+		favsSorted.sort(function(b, a){return (a.rank ? a.rank : 0) - (b.rank ? b.rank : 0); });
+		if (favsSorted.length == 0) return;
+
+		// We have favorites: Check if the user wants to see them
+		var showFavorites = !c.getViewSettings().dontShowFavorites;
+		if (!showFavorites) return;
+		
+		var favSize = c.getViewSettings().favoritesSize;
+		if (!favSize) favSize = 70;
+		favBar.css('height', (favSize+2*2) + 'px');
+		
+		var favoritesNum = c.getViewSettings().favoritesNum;
+		if (!favoritesNum) favoritesNum = 10;
+				
+		// Add the favorites to the bar
+		for(var i=0; i<favsSorted.length && i<favoritesNum; ++i) {
+			this.addFavoriteToBar(favsSorted[i]);
+		}
+		
+		// Show favorites		
+		this.showFavorites(true);
+	}
+	
+	/**
+	 * Add one favorite to the bar (internal usage only).
+	 */
+	addFavoriteToBar(favEntry) {
+		var favBar = $('#favBar');
+		
+		var data = Notes.getInstance().getData();
+		if (!data) return;
+		
+		var doc = data.getById(favEntry.id);
+		if (!doc) return;
+		
+		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
+		if (!favSize) favSize = 70;
+		
+		var that = this;
+		var el = $('<div class="favoriteItem"></div>')
+			.css('width', favSize + 'px')
+			.css('height', favSize + 'px')
+			.css('margin', '2px')
+			.data('id', favEntry.id)
+			.append(
+				$('<div class="favoriteItemText"></div>')
+				.css('font-size', (this.getTreeTextSize() * 0.7) + 'px')
+				.html(doc.name)
+			)
+			.on('click', function(event) {
+				event.stopPropagation();
+				
+				var data= $(this).data();
+				
+				//that.setSelected(data.id);
+				that.openNode(data.id);
+				that.focus(data.id);
+			});
+			
+		if (doc.backColor) el.css('background-color', doc.backColor);
+		if (doc.color) el.css('color', doc.color);
+		
+		favBar.append(
+			el
+		);
+	}
 	
 	/**
 	 * Updates the grid item DOM to match the currently visible 
@@ -261,8 +357,8 @@ class NoteTree {
 		li.attr('data-id', doc._id);
 
 		// Colors (inherited when no color is set)
-		if (doc.backColo) {
-			licont.css('background-color', doc.backColo);
+		if (doc.backColor) {
+			licont.css('background-color', doc.backColor);
 		}
 		if (doc.color) {
 			licont.css('color', doc.color);
@@ -357,6 +453,9 @@ class NoteTree {
 						that.setSearchText('');
 					})
 				),
+				
+				$('<div id="favBar" class="favBar favBarTree"></div>'),
+				
 				$('<div id="treeGridContainer" />').append(
 					// Grid 
 					$('<div id="' + this.treeGridElementId + '" class="treeview" />'),
@@ -551,6 +650,17 @@ class NoteTree {
 				that.init(true);
 			}
 		);
+	}
+	
+	/**
+	 * Set favorites visibility
+	 */
+	showFavorites(show) {
+		if (show) {
+			$('#favBar').show();
+		} else {
+			$('#favBar').hide();
+		}
 	}
 	
 	/**

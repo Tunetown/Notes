@@ -31,6 +31,7 @@ class ClientState {
 		this.cidBoardState = "bt";
 		this.cidMobileOverride = "mo";
 		this.cidLastOpenedUrl = "lo";
+		this.cidFavorites = "fa";
 	}
 	
 	/**
@@ -39,6 +40,21 @@ class ClientState {
 	static getInstance() {
 		if (!ClientState.instance) ClientState.instance = new ClientState();
 		return ClientState.instance;
+	}
+	
+	/**
+	 * Saves the passed favorites list.
+	 */
+	saveFavorites(f) {
+		this.setLocal(this.cidFavorites, f);
+	}
+	
+	/**
+	 * Returns the passed favorites list.
+	 */
+	getFavorites() {
+		var ret = this.getLocal(this.cidFavorites);
+		return ret;
 	}
 	
 	/**

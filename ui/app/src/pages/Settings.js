@@ -68,7 +68,8 @@ class Settings {
 			maxUploadSizeMB: 1,
 			reduceHistory: true,
 			maxSearchResults: 15,
-			navigationAnimationDuration: 60
+			navigationAnimationDuration: 60,
+			showFavorites: true
 		};
 	}
 	
@@ -805,7 +806,7 @@ class Settings {
 
 						n.isMobile() ? null : $('<tr/>').append(
 							$('<td class="w-auto">Navigation Width</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input type="text" value="' + NoteTree.getInstance().getContainerWidth() + '" />')
 								.on('change', function() {
 									if (!parseFloat(this.value)) this.value = "";
@@ -814,13 +815,12 @@ class Settings {
 									NoteTree.getInstance().setContainerWidth(parseInt(this.value));
 									ClientState.getInstance().saveTreeState();
 								})
-							),
-							$('<td/>')
+							)
 						),
 
 						$('<tr/>').append(
 							$('<td class="w-auto">Tile Mode: Max. item size</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().tileMaxSize ? ClientState.getInstance().getViewSettings().tileMaxSize : 220) + '" />')
 								.on('change', function() {
 									var val = parseFloat(this.value);
@@ -836,8 +836,7 @@ class Settings {
 									
 									Notes.getInstance().routing.call('settings');
 								})
-							),
-							$('<td/>')
+							)
 						),
 						
 						$('<tr/>').append(
@@ -871,7 +870,7 @@ class Settings {
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Override View Mode</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<select></select>').append([
 									$('<option value="off">Off</option>'),
 									$('<option value="desktop">Desktop</option>'),
@@ -887,13 +886,12 @@ class Settings {
 										location.reload();
 									});
 								})
-							),
-							$('<td/>')
+							)
 						),
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Landing Page: Redirect to last opened</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().isLastOpenedUrlRedirectEnabled() ? 'checked' : '') + ' />')
 								.each(function(i) {
 									var that = this;
@@ -908,8 +906,74 @@ class Settings {
 										});
 									}, 0);
 								})
-							),
-							$('<td/>')
+							)
+						),
+						$('<tr/>').append(
+							$('<td class="w-auto">Show Favorites</td>'),
+							$('<td colspan="2"/>').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (!ClientState.getInstance().getViewSettings().dontShowFavorites ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												var cs = ClientState.getInstance().getViewSettings();
+												cs.dontShowFavorites = !this.getChecked();
+												ClientState.getInstance().saveViewSettings(cs);
+												NoteTree.getInstance().refresh();
+											}
+										});
+									}, 0);
+								}),
+								
+								$('<span style="margin-left: 5px" ></span>').html('Uses ' + JSON.stringify(ClientState.getInstance().getFavorites()).length + " bytes of local memory, "),
+								
+								$('<a style="margin-left: 5px" href="javascript:void(0);">Clear...</a>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									
+									if (!confirm('Clear favorites for this notebook?')) {
+										Notes.getInstance().showAlert('Action cancelled.', 'I');
+										return;
+									}
+									
+									Notes.getInstance().clearFavorites();
+									
+								})
+							)
+						),
+						$('<tr/>').append(
+							$('<td class="w-auto">Favorites Size</td>'),
+							$('<td colspan="2" />').append(
+								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesSize ? ClientState.getInstance().getViewSettings().favoritesSize : "70") + '" />')
+								.on('change', function() {
+									if (!parseInt(this.value)) this.value = "70";
+									
+									var cs = ClientState.getInstance().getViewSettings();
+									cs.favoritesSize = parseInt(this.value);
+									ClientState.getInstance().saveViewSettings(cs);
+									
+									NoteTree.getInstance().refresh();
+								})
+							)
+						),
+						$('<tr/>').append(
+							$('<td class="w-auto">Number of Favorites</td>'),
+							$('<td colspan="2" />').append(
+								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum ? ClientState.getInstance().getViewSettings().favoritesNum : "10") + '" />')
+								.on('change', function() {
+									if (!parseInt(this.value)) this.value = "10";
+									
+									var cs = ClientState.getInstance().getViewSettings();
+									cs.favoritesNum = parseInt(this.value);
+									ClientState.getInstance().saveViewSettings(cs);
+									
+									NoteTree.getInstance().refresh();
+								})
+							)
 						),
 					]
 				)
@@ -1002,6 +1066,7 @@ class Settings {
 		} else {
 			t.setTreeTextSize(n.isMobile() ? this.settings.treeTextSizeMobile : this.settings.treeTextSizeDesktop);
 		}
+		t.updateFavorites();
 		
 		n.setRoundedButtonSize(n.isMobile() ? this.settings.optionTextSizeMobile : this.settings.optionTextSizeDesktop);
 		

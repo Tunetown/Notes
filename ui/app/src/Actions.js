@@ -138,8 +138,7 @@ class Actions {
 		ids = Tools.removeDuplicates(ids);
 		
 		if (ids.length == 0) {
-			// TODO debugging
-			console.log(" -> Late Loader: All " + docs.length + " required documents already loaded");
+			//console.log(" -> Late Loader: All " + docs.length + " required documents already loaded");
 			
 			return Promise.resolve({
 				ok: true,
@@ -195,7 +194,7 @@ class Actions {
 				Document.setLoaded(docInput);
 			}
 			
-			// TODO debugging
+			// For debugging
 			console.log(" -> Late Loader: Loaded " + Tools.convertFilesize(JSON.stringify(data).length) + " (" + ids.length + " documents)");
 			
 			return Promise.resolve({
@@ -309,7 +308,9 @@ class Actions {
 	 * Opens an appropriate editor for the given document.
 	 */
 	requestEditor(doc) {
-		Notes.getInstance().triggerUnSyncedCheck();
+		var n = Notes.getInstance();
+		n.triggerUnSyncedCheck();
+		n.addFavorite(doc);
 		
 		var that = this;
 			
@@ -318,11 +319,11 @@ class Actions {
 			return this.loadDocuments([doc])
 			.then(function(resp) {
 				if (doc._conflicts && doc._conflicts.length) {
-					Notes.getInstance().showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
+					n.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
 				
 				if (doc.deleted) {
-					Notes.getInstance().showAlert('This document is deleted.', 'W');
+					n.showAlert('This document is deleted.', 'W');
 				}
 				
 				return Database.getInstance().get();
@@ -347,11 +348,11 @@ class Actions {
 			return this.loadDocuments([doc])
 			.then(function(resp) {
 				if (doc._conflicts && doc._conflicts.length) {
-					Notes.getInstance().showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
+					n.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
 				
 				if (doc.deleted) {
-					Notes.getInstance().showAlert('This document is deleted.', 'W');
+					n.showAlert('This document is deleted.', 'W');
 				}
 				
 				var e = Document.getDocumentEditor(doc);
