@@ -426,7 +426,9 @@ class NoteTree {
 		
 		$('#' + this.treeNavContainerId).append(
 			$('<div id="' + this.treeContainerId + '"></div>').append(
-				$('<div class="searchBar searchBarTree"></div>').append(
+				$('<div id="favBar" class="favBar favBarTree"></div>'),
+
+				$('<div id="searchBarTree" class="searchBar searchBarTree"></div>').append(
 					$('<input type="text" id="treeSearch" placeholder="Type text to search..." />')
 					.on('focus', function(event) {
 						event.stopPropagation();
@@ -446,15 +448,13 @@ class NoteTree {
 					    }
 					}),
 					
-					$('<div class="searchCancelButton fa fa-times"></div>')
+					$('<div id="searchCancelButton" class="searchCancelButton fa fa-times"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						that.setSearchText('');
 					})
 				),
-				
-				$('<div id="favBar" class="favBar favBarTree"></div>'),
 				
 				$('<div id="treeGridContainer" />').append(
 					// Grid 
@@ -658,8 +658,12 @@ class NoteTree {
 	showFavorites(show) {
 		if (show) {
 			$('#favBar').show();
+			$('#searchBarTree').css('padding-top', '2px');
+			$('#searchCancelButton').css('top', '14px');
 		} else {
 			$('#favBar').hide();
+			$('#searchBarTree').css('padding-top', '5px');
+			$('#searchCancelButton').css('top', '17px');
 		}
 	}
 	

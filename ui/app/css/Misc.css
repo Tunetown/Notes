@@ -312,6 +312,7 @@ div.tox-tinymce {
  */
 .searchBar {
 	font-size: 16px;
+	position: relative;
 }
 
 .searchBar input[type="text"] {
@@ -339,7 +340,6 @@ div.tox-tinymce {
 	color: lightgrey;
 	cursor: pointer;
 }
-
 
 .contentHeadline {
 	padding-left: 8px;	
@@ -420,5 +420,45 @@ div.tox-tinymce {
 
 .updateRefreshBtn {
 }
- 
+
+/**
+ * Favorites
+ */
+.favBar {
+	height: 50px;
+	white-space: nowrap;
+    overflow: scroll;
+    padding-left: 5px;
+    padding-right: 5px;
+    margin-top: 6px;
+
+	/* Hide scrollbar for IE, Edge and Firefox */
+	-ms-overflow-style: none;  /* IE and Edge */
+	scrollbar-width: none;  /* Firefox */
+}
+
+.favBar::-webkit-scrollbar {
+	/* Hide scrollbar for Chrome, Safari and Opera */
+	display: none;
+}
+
+.favoriteItem {
+	position: relative;
+	border-radius: 5px;
+	display: inline-block;
+	background-color: white;
+	color: black;
+	cursor: pointer;
+}
+
+.favoriteItemText {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	max-width: 80%;
+	text-overflow: ellipsis;
+	transform: translate(-50%, -50%);
+	white-space: nowrap;
+    overflow: hidden;
+}
  
