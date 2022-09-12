@@ -51,8 +51,9 @@ class DetailBehaviour {
 	/**
 	 * Internally used to reset scroll position
 	 */
-	resetScrollPosition() {
-		this.scroll.resetPosition(this.selectedParent);
+	resetScrollPosition(parent) {
+		if (!parent) parent = this.selectedParent;
+		this.scroll.resetPosition(parent);
 	}
 	
 	/**
@@ -98,6 +99,8 @@ class DetailBehaviour {
 	 * Called when the home button of the tree has been pushed, if visible. 
 	 */
 	homeButtonPushed(event) {
+		this.resetScrollPosition('all');
+		
 		if (this.grid.getSearchText()) {
 			this.grid.setSearchText('');
 			return;

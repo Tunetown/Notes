@@ -59,8 +59,8 @@ class ScrollState {
 		if (!pos) return;
 
 		var c = this.getContainer();
-		if (pos.scrollX) c.scrollLeft(pos.scrollX);
-		if (pos.scrollY) c.scrollTop(pos.scrollY);
+		/*if (pos.scrollX)*/ c.scrollLeft(pos.scrollX);
+		/*if (pos.scrollY)*/ c.scrollTop(pos.scrollY);
 	}
 	
 	/**

@@ -388,7 +388,6 @@ class Routing {
 	 */
 	callSelectProfile() {
 		ClientState.getInstance().setLastOpenedUrl();
-		//location.href = '#/';
 		location.href = '#/notebooks';
 	}
 	

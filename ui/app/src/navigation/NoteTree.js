@@ -554,6 +554,13 @@ class NoteTree {
 	}
 	
 	/**
+	 * Reset scroll position memory for the given parent ID.
+	 */
+	resetScrollPosition(parent) {
+		if (this.behaviour) this.behaviour.resetScrollPosition(parent);
+	}
+	
+	/**
 	 * Sets focus on the given document.
 	 */
 	focus(id) {

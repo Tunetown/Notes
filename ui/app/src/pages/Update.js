@@ -52,9 +52,15 @@ class Update {
 		if (files.length == 0) {
 			headerContainer.append( 
 				$('<div>The app is up to date with the host (' + location.host + '). If you want to re-load the whole app sources anyway, click here:</div><br>'),
-				$('<div class="btn btn-primary updateInstallBtn">Reload App Sources...</div><br><br>')
+				$('<button class="btn btn-primary updateInstallBtn">Reload App Sources...</button><br><br>')
 				.on('click', function(event) {
+					event.stopPropagation();
 					Notes.getInstance().installUpdates();
+				}),
+				$('<button class="btn btn-secondary updateRefreshBtn">Re-Scan...</button><br><br>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					Update.getInstance().load();
 				}),
 				$('<div><span style="color: red;">If you get errors after updating, please empty your browser cache and, if you installed it locally, re-install the app.</span></div><br>'),
 				$('<div><em>Technical Info: This forces the service worker to be reinstalled, and loads all sources from the host again. The PWA installation is not touched!</em></div><br>'),
@@ -75,7 +81,7 @@ class Update {
 		}
 		
 		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Refresh" class="fa fa-redo" onclick="event.stopPropagation();Update.getInstance().load();"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Select notebook..." class="fa fa-home" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile();"></div>'),
 		]);
 	}
 	

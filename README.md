@@ -36,4 +36,8 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Fixed message order
     - Warning if the noteboo is accessed online only (this may be slow, users should only use this for temporary access)
  
-       
+- 0.86.0:
+    - Bug fixes, documentation updates
+    - Auto login when browser did auto complete
+    - Landing page: Show notebook details and sync/clone status
+    
