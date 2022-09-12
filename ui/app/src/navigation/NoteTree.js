@@ -66,8 +66,6 @@ class NoteTree {
 				moveIntoClass: this.behaviour.getMoveIntoClass(),
 				dragDelayMillis: 0,  // Not used: We use our own delayed click handler: see TouchClickHandler.js
 				scoreMatchingThreshold: this.behaviour.getScoreMatchingThreshold(),
-				//layoutDuration: 10000,
-				//layoutOnResize: 15000,
 				
 				autoScrollTargets: {
 					targets: (item) => {
@@ -227,6 +225,13 @@ class NoteTree {
 		        var fav = favorites[prop];
 				if (!fav) continue;
 				if (currentId && (currentId == fav.id)) continue;
+				if (!Notes.getInstance().getData()) continue;
+
+				var doc = Notes.getInstance().getData().getById(fav.id);
+				if (!doc) continue;
+				
+				if (doc.deleted) continue;
+				
 				favsSorted.push(fav);
 		    }
 		}
@@ -269,6 +274,13 @@ class NoteTree {
 		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
 		if (!favSize) favSize = 70;
 		
+		var nameSplit = doc.name.split(" ");
+		if (nameSplit.length == 0) return;
+		var nameHtml = nameSplit[0] + "<br>";
+		for(var i=1; i<nameSplit.length; ++i) {
+			nameHtml += nameSplit[i] + " ";
+		}
+		
 		var that = this;
 		var el = $('<div class="favoriteItem"></div>')
 			.css('width', favSize + 'px')
@@ -278,7 +290,7 @@ class NoteTree {
 			.append(
 				$('<div class="favoriteItemText"></div>')
 				.css('font-size', (this.getTreeTextSize() * 0.7) + 'px')
-				.html(doc.name),
+				.html(nameHtml),
 				
 				$('<div class="selectedFavorite"></div>')
 			)
