@@ -309,8 +309,8 @@ class Actions {
 	 */
 	requestEditor(doc) {
 		var n = Notes.getInstance();
-		n.triggerUnSyncedCheck();
-		n.addFavorite(doc);
+		//n.triggerUnSyncedCheck();
+		//n.addFavorite(doc);
 		
 		var that = this;
 			

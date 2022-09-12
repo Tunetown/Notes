@@ -215,11 +215,16 @@ class NoteTree {
 		var favorites = c.getFavorites();
 		if (!favorites) return;
 
+		var currentId = Notes.getInstance().getCurrentlyShownId(true);
+		var showCurrentInFavorites = !c.getViewSettings().showCurrentInFavorites;
+		if (!showCurrentInFavorites) currentId = false;
+
 		// Get favorites as array and sort it
 		var favsSorted = [];
 		for (var prop in favorites) {
 		    if (favorites.hasOwnProperty(prop)) {
 		        var fav = favorites[prop];
+				if (currentId && (currentId == fav.id)) continue;
 				favsSorted.push(fav);
 		    }
 		}
@@ -271,17 +276,48 @@ class NoteTree {
 			.append(
 				$('<div class="favoriteItemText"></div>')
 				.css('font-size', (this.getTreeTextSize() * 0.7) + 'px')
-				.html(doc.name)
+				.html(doc.name),
+				
+				$('<div class="selectedFavorite"></div>')
 			)
-			.on('click', function(event) {
+			
+		function handleFavContext(event) {
+			event.stopPropagation();
+			event.preventDefault();
+			
+			var data = $(event.currentTarget).data();
+			
+			Notes.getInstance().callOptions([data.id], Tools.extractX(event), Tools.extractY(event), {
+				showInNavigation: false,      // Show in Navigation (default: hidden)
+				noMove: true,                // Hide move option
+				noCopy: true,                // Hide copy option
+				noDelete: true,              // Hide delete option
+				noLabels: true,
+				noBgColor: true,
+				noColor: true,
+				noCreate: true,
+				showDeleteFavorite: true,
+				showClearFavorites: true
+			});
+			
+			$(event.currentTarget).find('.selectedFavorite').css('display', 'inherit');
+		}
+			
+		el.contextmenu(handleFavContext);
+		el.mainEvent = new TouchClickHandler(el, {
+			onGestureFinishCallback: function(event) {
 				event.stopPropagation();
-				
-				var data= $(this).data();
-				
-				//that.setSelected(data.id);
+
+				var data = $(event.currentTarget).data();
+
 				that.openNode(data.id);
 				that.focus(data.id);
-			});
+				
+			},
+			
+			delayedHoldCallback: handleFavContext,
+			delayHoldMillis: 600
+		});
 			
 		if (doc.backColor) el.css('background-color', doc.backColor);
 		if (doc.color) el.css('color', doc.color);
@@ -291,6 +327,13 @@ class NoteTree {
 		);
 	}
 	
+	/**
+	 * Removes selection mark from favorites.
+	 */
+	deselectFavorites() {
+		$('.selectedFavorite').css('display', 'none');
+	}
+
 	/**
 	 * Updates the grid item DOM to match the currently visible 
 	 * items before filter() is actually called on the grid.
@@ -559,6 +602,15 @@ class NoteTree {
 		);
 		Actions.getInstance().registerCallback(
 			'tree',
+			'openDocument',
+			function(doc) {
+				var n = Notes.getInstance();
+				n.triggerUnSyncedCheck();
+				n.addFavorite(doc);
+			}
+		);
+		Actions.getInstance().registerCallback(
+			'tree',
 			'create',
 			function(newIds) {
 				that.destroy();
@@ -658,12 +710,8 @@ class NoteTree {
 	showFavorites(show) {
 		if (show) {
 			$('#favBar').show();
-			//$('#searchBarTree').css('padding-top', '2px');
-			//$('#searchCancelButton').css('top', '14px');
 		} else {
 			$('#favBar').hide();
-			//$('#searchBarTree').css('padding-top', '5px');
-			//$('#searchCancelButton').css('top', '17px');
 		}
 	}
 	

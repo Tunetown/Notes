@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.87.3';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.87.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1295,9 +1295,32 @@ class Notes {
 	}
 	
 	/**
+	 * Remove favorites entry for given document ID.
+	 */
+	removeFavorite(id) {
+		if (!id) return;
+		
+		var favorites = ClientState.getInstance().getFavorites();
+		var hash = Tools.hashCode(id);
+		
+		if (!favorites["doc" + hash]) return;
+
+		favorites["doc" + hash] = false;
+		
+		ClientState.getInstance().saveFavorites(favorites);
+		
+		NoteTree.getInstance().updateFavorites();
+	}
+	
+	/**
 	 * Clear local favorites.
 	 */
 	clearFavorites() {
+		if (!confirm('Clear favorites for this notebook?')) {
+			this.showAlert('Action cancelled.', 'I');
+			return;
+		}
+		
 		ClientState.getInstance().saveFavorites({});
 		
 		NoteTree.getInstance().updateFavorites();
@@ -1441,11 +1464,16 @@ class Notes {
 		if (!options) {
 			options = {
 				showInNavigation: false,      // Show in Navigation (default: hidden)
+				noCreate: false,
+				noRename: false,
 				noMove: false,                // Hide move option
 				noCopy: false,                // Hide copy option
-				noDelete: false,                // Hide delete option
+				noDelete: false,              // Hide delete option
 				noBgColor: false,
 				noColor: false,
+				noLabels: false,
+				showDeleteFavorite: false,
+				showClearFavorites: false
 			};
 		}
 		
@@ -1468,23 +1496,27 @@ class Notes {
 		// Select the available options for single or multiple selection
 		$('.contextOptionSingle').css('display', (ids.length == 1) ? 'inline-block' : 'none');
 		
-		if (ids.length == 1) {
+		if (ids.length <= 1) {
 			// Options for a single document
 			var doc = this.getData().getById(ids[0]);
 	
 			// Options: Show in Navigation (default: hidden)
+			$('.contextOptionRename').css('display', options.noRename ? 'none' : 'inline-block');
 			$('.contextOptionShowInNavigation').css('display', options.showInNavigation ? 'inline-block' : 'none');
 			$('.contextOptionMove').css('display', options.noMove ? 'none' : 'inline-block');
 			$('.contextOptionCopy').css('display', options.noCopy ? 'none' : 'inline-block');
 			$('.contextOptionDelete').css('display', options.noDelete ? 'none' : 'inline-block');
+			$('.contextOptionLabels').css('display', options.noLabels ? 'none' : 'inline-block');
 			$('.contextOptionColor').css('display', options.noColor ? 'none' : 'inline-block');
 			$('.contextOptionBgColor').css('display', options.noBgColor ? 'none' : 'inline-block');
+			$('.contextOptionDeleteFavorite').css('display', options.showDeleteFavorite ? 'inline-block' : 'none');
+			$('.contextOptionClearFavorites').css('display', options.showClearFavorites ? 'inline-block' : 'none');
 	
 			// Show special options for references
 			var isref = (doc && (doc.type == 'reference'));
 				
 			$('.contextOptionReReference').css('display', isref ? 'inline-block' : 'none');
-			$('#contextOptionCreate').css('display', isref ? 'none' : 'inline-block');
+			$('#contextOptionCreate').css('display', (isref || options.noCreate) ? 'none' : 'inline-block');
 		} else {
 			// Options for multiple documents
 			$('.contextOptionReReference').css('display', 'none');
@@ -1518,6 +1550,7 @@ class Notes {
 		if (t.behaviour) {
 			t.showRootOptions(true);
 			t.behaviour.afterHideOptionMenus(visible);
+			t.deselectFavorites();
 		}
 		
 		return visible;
@@ -1748,7 +1781,27 @@ class Notes {
 					        	if (!that.optionsIds.length) return;
 					        	that.setColorPreview(that.optionsIds, this, true)
 					        })
-			        )
+			        ),
+
+				// Delete favorite entry
+				$('<label id="contextOptionDeleteFavorite" data-toggle="tooltip" title="Delete entry" class="fa fa-times treebutton roundedButton contextOptionDeleteFavorite"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						that.hideOptions();
+					
+						if (!that.optionsIds.length) return;
+						
+						that.removeFavorite(that.optionsIds[0]);
+					}),
+					
+				// Clear favorites history...
+				$('<label id="contextOptionClearFavorites" data-toggle="tooltip" title="Clear favorites..." class="fa fa-trash-alt treebutton roundedButton contextOptionClearFavorites"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						that.hideOptions();
+					
+						that.clearFavorites();
+					})
 			])
 		);
 	}

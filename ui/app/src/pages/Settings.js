@@ -935,11 +935,6 @@ class Settings {
 								.on('click', function(event) {
 									event.stopPropagation();
 									
-									if (!confirm('Clear favorites for this notebook?')) {
-										Notes.getInstance().showAlert('Action cancelled.', 'I');
-										return;
-									}
-									
 									Notes.getInstance().clearFavorites();
 									
 								})
@@ -972,6 +967,28 @@ class Settings {
 									ClientState.getInstance().saveViewSettings(cs);
 									
 									NoteTree.getInstance().refresh();
+								})
+							)
+						),
+						$('<tr/>').append(
+							$('<td class="w-auto">Show current Document in Favorites</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getViewSettings().showCurrentInFavorites ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												var cs = ClientState.getInstance().getViewSettings();
+												cs.showCurrentInFavorites = !!this.getChecked();
+												ClientState.getInstance().saveViewSettings(cs);
+												NoteTree.getInstance().refresh();
+											}
+										});
+									}, 0);
 								})
 							)
 						),
