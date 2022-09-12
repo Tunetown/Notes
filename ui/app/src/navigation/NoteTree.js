@@ -215,6 +215,7 @@ class NoteTree {
 		var favorites = c.getFavorites();
 		if (!favorites) return;
 
+		// Should the currently opened document be shown?
 		var currentId = Notes.getInstance().getCurrentlyShownId(true);
 		var showCurrentInFavorites = !c.getViewSettings().showCurrentInFavorites;
 		if (!showCurrentInFavorites) currentId = false;
@@ -224,6 +225,7 @@ class NoteTree {
 		for (var prop in favorites) {
 		    if (favorites.hasOwnProperty(prop)) {
 		        var fav = favorites[prop];
+				if (!fav) continue;
 				if (currentId && (currentId == fav.id)) continue;
 				favsSorted.push(fav);
 		    }
