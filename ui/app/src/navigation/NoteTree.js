@@ -260,6 +260,51 @@ class NoteTree {
 	}
 	
 	/**
+	 * Gets the text to show (including <br> breaks)
+	 */
+	getFavoriteText(doc) {
+		if (!doc || !doc.name) return "[MISSING TEXT]";
+		
+		var nameSplit = doc.name.split(" ");
+		if (nameSplit.length == 0) return "[MISSING TEXT]";
+		
+		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
+		if (!favSize) favSize = 70;
+		
+		var ret = "";
+		var i = 0;
+		var maxLen = favSize / (this.getTreeTextSize() * 0.7);
+		var maxLines = favSize / (this.getTreeTextSize() * 2);
+		var lines = 0;
+		
+		while (i < nameSplit.length) {
+			var line = "";
+			while (i < nameSplit.length) {
+				line += nameSplit[i++] + " ";
+				if (line.length > maxLen) break;			
+			}
+			if (line.length > 0) {
+				if (lines < maxLines) {
+					ret += line + "<br>";
+					lines++;
+				} else {
+					ret += line + " ";
+				}
+			}
+		}
+		
+		var data = Notes.getInstance().getData();
+		
+		while (doc.parent && (lines < maxLines)) {
+			var doc = data.getById(doc.parent);
+			ret = doc.name + " /<br>" + ret;
+			lines++;
+		}
+		
+		return ret;
+	}
+	
+	/**
 	 * Add one favorite to the bar (internal usage only).
 	 */
 	addFavoriteToBar(favEntry) {
@@ -274,12 +319,7 @@ class NoteTree {
 		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
 		if (!favSize) favSize = 70;
 		
-		var nameSplit = doc.name.split(" ");
-		if (nameSplit.length == 0) return;
-		var nameHtml = nameSplit[0] + "<br>";
-		for(var i=1; i<nameSplit.length; ++i) {
-			nameHtml += nameSplit[i] + " ";
-		}
+		var nameHtml = this.getFavoriteText(doc);
 		
 		var that = this;
 		var el = $('<div class="favoriteItem"></div>')
