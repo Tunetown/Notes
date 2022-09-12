@@ -555,6 +555,7 @@ class DetailBehaviour {
 
 		// Parent shall be small (like font size), the normal items should be larger.
 		itemContent.css('height', isSelectedParent ? '100%' : ((this.treeFontSize * 6) + 'px'));
+		itemContainer.css('width', isSelectedParent ? (this.grid.getContainerWidth() - 120) + 'px' : '100%');
 		
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
 		var iconEl = itemContent.find('.' + this.getIconClass());
@@ -818,7 +819,6 @@ class DetailBehaviour {
 	getItemTextClass() {
 		return "treeitemtext-detail";
 	}
-	
 	
 	/**
 	 * Get tree item container class, which is placed inside the content element (seen from Muuri), and holding the
