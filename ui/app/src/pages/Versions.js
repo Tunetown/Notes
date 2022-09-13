@@ -123,6 +123,7 @@ class Versions {
 		// Size strings
 		var histSizeStr = Tools.convertFilesize(JSON.stringify(hist).length);
 		var versionSizeStr = Tools.convertFilesize(versionsSize);
+		var bgImageSizeStr = doc.backImage ? Tools.convertFilesize(JSON.stringify(doc.backImage).length) : 'No image';
 		
 		// Table buildup
 		$('#contentContainer').append(
@@ -176,6 +177,12 @@ class Versions {
 				]
 			),
 				
+			$('<hr>'), ///////////////////////////////////////////////////////////////////////////////////////////////////////
+			
+			$('<div class="h4 contentHeadline"></div>').append(
+				$('<div class="contentHeadlineText">Background image size: ' + bgImageSizeStr + '</div>')
+			),
+			
 			$('<br>'),
 			$('<br>'),
 			$('<br>'),
