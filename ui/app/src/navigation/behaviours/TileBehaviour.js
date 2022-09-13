@@ -434,7 +434,7 @@ class TileBehaviour {
 		this.grid.destroy();
 		this.grid.init(true);
 		
-		return Promise.resolve({ ok: true }); //Actions.getInstance().requestTree();
+		return Promise.resolve({ ok: true }); 
 	}
 	
 	/**
@@ -758,7 +758,7 @@ class TileBehaviour {
 		// Reload navigation (dor debugging)
 		Actions.getInstance().requestTree()
 		.then(function(data) {
-			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S");
+			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S", data.messageThreadId);
 		});
 	}
 	

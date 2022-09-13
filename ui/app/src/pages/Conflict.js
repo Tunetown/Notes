@@ -118,10 +118,10 @@ class Conflict {
 		Actions.getInstance().deleteItemPermanently(this.current._id, this.current._rev)
 		.then(function(data) {
 			if (data.message) {
-				Notes.getInstance().showAlert(data.message, "S");
+				Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
 			}
 		}).catch(function(err) {
-			Notes.getInstance().showAlert(err.message, 'E');
+			Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
 		});
 	}
 }

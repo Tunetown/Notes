@@ -180,13 +180,15 @@ class Editor {
 			that.hideOptions();	
 			
 			// Rename
-			Actions.getInstance().renameItem(that.getCurrentId()).then(function(data) {
+			Actions.getInstance().renameItem(that.getCurrentId())
+			.then(function(data) {
 				if (data.message) {
-					n.showAlert(data.message, "S");
+					n.showAlert(data.message, "S", data.messageThreadId);
 				}
 				n.routing.call(that.getCurrentId());
-			}).catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E");
+			})
+			.catch(function(err) {
+				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
 		});
 	}
@@ -254,12 +256,14 @@ class Editor {
 			this.stopDelayedSave();
 			
 			var n = Notes.getInstance();
-			n.showAlert("Saving " + this.current.name + "...", "I", "EditorMessages");
+			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
-			return Actions.getInstance().save(this.current._id, this.getContent()).then(function(data) {
-        		if (data.message) n.showAlert(data.message, "S", "EditorMessages");
-        	}).catch(function(err) {
-        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
+			return Actions.getInstance().save(this.current._id, this.getContent())
+			.then(function(data) {
+        		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
+        	})
+			.catch(function(err) {
+        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}
 	}
@@ -359,8 +363,9 @@ class Editor {
 			var a = Actions.getInstance();
 			if (!tinymce.get(e.editorId).isDirty()) return;
 			
-			a.save(e.getCurrentId(), e.getContent()).catch(function(err) {
-        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
+			a.save(e.getCurrentId(), e.getContent())
+			.catch(function(err) {
+        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}, secs * 1000);
 	}

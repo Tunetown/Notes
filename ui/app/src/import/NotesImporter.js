@@ -30,12 +30,14 @@ class NotesImporter {
 	async process(jsonString, sourceName) {
 		if (!jsonString) {
 			return Promise.reject({
-				message: 'No data to import'
+				message: 'No data to import',
+				messageThreadId: 'ImportProcessMessages'
 			});
 		}
 		if (!sourceName) {
 			return Promise.reject({
-				message: 'No root item name to import to'
+				message: 'No root item name to import to',
+				messageThreadId: 'ImportProcessMessages'
 			});
 		}
 		
@@ -101,6 +103,7 @@ class NotesImporter {
 		if (!confirm('Do you want to import ' + data.length + ' documents holding ' + Tools.convertFilesize(jsonString.length) + ' of data?')) {
 			return Promise.reject({
 				message: 'Import cancelled',
+				messageThreadId: 'ImportProcessMessages',
 				abort: true
 			});
 		}
@@ -115,6 +118,7 @@ class NotesImporter {
 			Console.log('Finished import.', 'S');
 			return Promise.resolve({
 				message: 'Finished import.',
+				messageThreadId: 'ImportProcessMessages',
 				ok: true,
 				docNct: data.length,
 			});

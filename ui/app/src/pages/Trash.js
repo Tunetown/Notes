@@ -44,11 +44,11 @@ class Trash {
 						var id = $(this).attr('id').substring('vref_'.length);
 						Actions.getInstance().undeleteItem(id)
 						.then(function(data) {
-							if (data.message) Notes.getInstance().showAlert(data.message, 'S');
+							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
 							Notes.getInstance().routing.call('trash');
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}),
 					$('<div data-toggle="tooltip" title="Delete permanently" class="fa fa-trash versionButton" data-name="' + doc.name + '" id="vref_' + doc._id + '"/>')
@@ -58,10 +58,10 @@ class Trash {
 						Actions.getInstance().deleteItemPermanently(id)
 						.then(function(data) {
 							if (data.message) {
-								Notes.getInstance().showAlert(data.message, "S");
+								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
 							}
 						}).catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					})
 				]
@@ -166,12 +166,14 @@ class Trash {
 	}
 	
 	emptyTrash() {
-		Actions.getInstance().emptyTrash().then(function(data) {
+		Actions.getInstance().emptyTrash()
+		.then(function(data) {
 			if (data.message) {
-				Notes.getInstance().showAlert(data.message, "S");
+				Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
 			}
-		}).catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+		})
+		.catch(function(err) {
+			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 }

@@ -39,7 +39,8 @@ class Tools {
 				.fail(function(jqxhr, msg) {
 					reject({
 						jqxhr: jqxhr,
-						message: 'Error loading script (' + msg + '), status ' + jqxhr.status
+						message: 'Error loading script (' + msg + '), status ' + jqxhr.status,
+						messageThreadId: 'GetScriptMessages'
 					});
 				});
 			}));

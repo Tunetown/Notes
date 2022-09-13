@@ -26,6 +26,8 @@
 	width: 100%;
 	overflow: auto;  
 	z-index: 1;
+	
+	background-color: lightgrey;
 }
  
 /** 
@@ -144,6 +146,6 @@
  }
  
 .searchBarTree {
-	padding: 5px;
+	padding: 7px 5px 5px 5px;
 }
  

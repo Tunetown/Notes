@@ -70,7 +70,7 @@ class DatabaseSync {
 		});
 		
 		if (!this.observeHandler) {
-			this.options.alert('Error creating local observer', 'E');
+			this.options.alert('Error creating local observer', 'E', 'DBObserveChangeStateMessages');
 			return;
 		}
 		
@@ -83,7 +83,7 @@ class DatabaseSync {
 			console.log("Observation: error");
 			that.setSyncState("unknown");
 
-			that.options.alert('Sync error: ' + err.message, 'E');
+			that.options.alert('Sync error: ' + err.message, 'E', 'DBObserveChangeStateMessages');
 
 		}).on('complete', function (info) {
 			console.log("Observation: Stopped");
@@ -96,7 +96,7 @@ class DatabaseSync {
 			console.log("Observation: error");
 			that.setSyncState("unknown");
 
-			that.options.alert('Sync error: ' + err.message, 'E');
+			that.options.alert('Sync error: ' + err.message, 'E', 'DBObserveChangeStateMessages');
 		});
 	}
 	
@@ -108,7 +108,8 @@ class DatabaseSync {
 		var dbRemote = this.dbHandler.dbRemote;
 		
 		if (!dbRemote || !dbLocal) return Promise.reject({
-			message: "No databases set up to sync"
+			message: "No databases set up to sync",
+			messageThreadId: 'DBSyncMessages'
 		});
 		
 		console.log("Starting live sync for databases");
@@ -124,7 +125,8 @@ class DatabaseSync {
 				
 				console.log(dataLogin);
 				return Promise.reject({
-					message: 'Sync login error: ' + dataLogin.message
+					message: 'Sync login error: ' + dataLogin.message,
+					messageThreadId: 'DBSyncMessages'
 				});
 			};
 			
@@ -142,7 +144,8 @@ class DatabaseSync {
 				that.restartLiveSync(syncedUrl, "Restarting live sync after failed initialization");
 				
 				return Promise.reject({
-					message: "Error: Could not start live sync."
+					message: "Error: Could not start live sync.",
+					messageThreadId: 'DBSyncMessages'
 				});
 			}
 			
@@ -150,7 +153,7 @@ class DatabaseSync {
 				if (!change.change.ok) {
 					that.setSyncState("unknown");
 				
-					that.options.alert('Sync error(s): ' + change.change.errors, 'E');
+					that.options.alert('Sync error(s): ' + change.change.errors, 'E', 'DBSyncMessages');
 					console.log(change);
 					return;
 				}
@@ -172,7 +175,7 @@ class DatabaseSync {
 				console.log("Sync: Paused");
 
 				if (err) {
-					that.options.alert('Sync error: ' + err, 'E');
+					that.options.alert('Sync error: ' + err, 'E', 'DBSyncMessages');
 					console.log(err);
 
 					that.setSyncState("unknown");
@@ -198,7 +201,7 @@ class DatabaseSync {
 				}
 
 			}).on('error', function (err) {
-				that.options.alert('Sync error: ' + err.message, 'E');
+				that.options.alert('Sync error: ' + err.message, 'E', 'DBSyncMessages');
 				console.log(err);
 				that.dbHandler.notifyOfflineState();
 
@@ -207,7 +210,7 @@ class DatabaseSync {
 				// Show Login if the error is 401
 				if (err.status == 401) {
 					that.dbHandler.login().catch(function(err) {
-						that.options.alert('Error logging in: ' + err.message, 'E');
+						that.options.alert('Error logging in: ' + err.message, 'E', 'DBSyncMessages');
 						console.log(err);
 					});
 				}
@@ -241,7 +244,8 @@ class DatabaseSync {
 			that.restartLiveSync(syncedUrl, "Restarting live sync after exception");
 			
 			return Promise.reject({
-				message: err.message
+				message: err.message,
+				messageThreadId: err.messageThreadId
 			});
 		});
 	}
@@ -296,7 +300,7 @@ class DatabaseSync {
 		var dbRemote = this.dbHandler.dbRemote;
 		if (!dbLocal || !dbRemote) return;
 
-		this.options.alert('Starting synchronization...', 'I');
+		this.options.alert('Starting synchronization...', 'I', 'DBSyncMessages');
 		
 		this.blocked = true;
 		this.setSyncState( "syncing");
@@ -308,14 +312,14 @@ class DatabaseSync {
 			}).then(function(data) {
 				if (!data.pull || !data.pull.ok) {
 					that.dbHandler.notifyOfflineState();
-					that.options.alert('Pull error: ' + data.pull.message, 'E');
+					that.options.alert('Pull error: ' + data.pull.message, 'E', 'DBSyncMessages');
 					that.blocked = false;
 					console.log(data);
 					return;
 				}
 				if (!data.push || !data.push.ok) {
 					that.dbHandler.notifyOfflineState();
-					that.options.alert('Push error: ' + data.push.message, 'E');
+					that.options.alert('Push error: ' + data.push.message, 'E', 'DBSyncMessages');
 					that.blocked = false;
 					console.log(data);
 					return;
@@ -326,7 +330,7 @@ class DatabaseSync {
 				return that.options.onManualSyncFinishedCallback()
 				.then(function(dataResp) {
 					that.dbHandler.refresh();
-					that.options.alert('Successfully synchronized database.', 'S');
+					that.options.alert('Successfully synchronized database.', 'S', 'DBSyncMessages');
 					
 					that.blocked = false;
 
@@ -338,7 +342,7 @@ class DatabaseSync {
 					}
 					
 				}).catch(function(err) {
-					that.options.alert('Sync callback error: ' + err.message, 'E');
+					that.options.alert('Sync callback error: ' + err.message, 'E', 'DBSyncMessages');
 					that.dbHandler.notifyOfflineState();
 					that.setSyncState( "error");
 					
@@ -347,7 +351,7 @@ class DatabaseSync {
 				});
 
 			}).catch(function(err) {
-				that.options.alert('Sync error: ' + err.message, 'E');
+				that.options.alert('Sync error: ' + err.message, 'E', 'DBSyncMessages');
 				that.dbHandler.notifyOfflineState();
 				that.setSyncState( "error");
 
@@ -412,7 +416,8 @@ class DatabaseSync {
 		if (!dbLocal || !dbRemote) {
 			logCallback('This check is only possible in clone mode.', 'E');
 			return Promise.reject({
-				message: 'This check is only possible in clone mode.'
+				message: 'This check is only possible in clone mode.',
+				messageThreadId: 'CheckConsMessages'
 			});
 		}
 		
@@ -421,7 +426,8 @@ class DatabaseSync {
 		if (!ph.getCurrentProfile().clone || !dbLocal || !dbRemote) {
 			logCallback('This check is only possible in clone mode.', 'E');
 			return Promise.reject({
-				message: 'This check is only possible in clone mode.'
+				message: 'This check is only possible in clone mode.',
+				messageThreadId: 'CheckConsMessages'
 			});
 		}
 		
@@ -525,7 +531,7 @@ class DatabaseSync {
 			});
 		})
 		.catch(function(err) {
-			that.options.alert('Check throwed an error: ' + err.message, 'E');
+			that.options.alert('Check throwed an error: ' + err.message, 'E', 'CheckConsMessages');
 			that.dbHandler.notifyOfflineState();
 			
 			logCallback(err);

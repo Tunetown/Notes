@@ -259,7 +259,7 @@ class LabelDefinitions {
 				that.load(docl);
 			})
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error saving labels for ' + doc.name, err.abort ? 'I' : 'E');
+				Notes.getInstance().showAlert(err.message ? err.message : 'Error saving labels for ' + doc.name, err.abort ? 'I' : 'E', err.messageThreadId);
 			});
 		}, 1000);
 	}
@@ -300,7 +300,7 @@ class LabelDefinitions {
 			that.load(that.current);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -328,7 +328,7 @@ class LabelDefinitions {
 			that.load(that.current);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -348,6 +348,7 @@ class LabelDefinitions {
 			
 			if (!confirm('Really delete label ' + def.name + '?')) return Promise.reject({
 				message: 'Action canceled.',
+				messageThreadId: 'LoadDocumentMessages',
 				abort: true
 			});
 			
@@ -362,7 +363,7 @@ class LabelDefinitions {
 			if (!data || !data.noReload) that.load(that.current);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -383,7 +384,7 @@ class LabelDefinitions {
 			if (data.newOwner) Notes.getInstance().routing.callLabelDefinitions(data.newOwner);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -414,7 +415,7 @@ class LabelDefinitions {
 			that.load(that.current);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error creating new label', err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message ? err.message : 'Error creating new label', err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	

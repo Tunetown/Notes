@@ -97,10 +97,12 @@ class Versions {
 						}
 						
 						var v = Versions.getInstance();
-						Actions.getInstance().deleteVersion(v.currentId, name).then(function(data) {
-							if (data.message) Notes.getInstance().showAlert(data.message, 'S');
-						}).catch(function(err) {
-							Notes.getInstance().showAlert('Error deleting version: ' + err.message, 'E');
+						Actions.getInstance().deleteVersion(v.currentId, name)
+						.then(function(data) {
+							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
+						})
+						.catch(function(err) {
+							Notes.getInstance().showAlert('Error deleting version: ' + err.message, 'E', err.messageThreadId);
 						});
 					})
 				]
@@ -237,7 +239,7 @@ class Versions {
 			Actions.getInstance().showHistory(that.currentId);
 		})
 		.catch(function(err) {
-			n.showAlert('Error deleting history: ' + (err.message ? err.message : ''), 'E')
+			n.showAlert('Error deleting history: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
 		});
 	}
 	
@@ -262,7 +264,7 @@ class Versions {
 			Actions.getInstance().showHistory(that.currentId);
 		})
 		.catch(function(err) {
-			n.showAlert('Error deleting change log: ' + (err.message ? err.message : ''), 'E')
+			n.showAlert('Error deleting change log: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
 		});
 	}
 }

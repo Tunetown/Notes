@@ -140,7 +140,7 @@ class Board {
 			that.restoreScrollPosition();
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -192,7 +192,7 @@ class Board {
 				}
 			})
 			.catch(function(err) {
-				n.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground);
+				n.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
 			})
 		}
 		
@@ -447,7 +447,7 @@ class Board {
 						
 						Actions.getInstance().uploadAttachments(id, files)
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E');
+							Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}
 				}
@@ -619,7 +619,7 @@ class Board {
 			n.showAlert(data.message ? data.message : 'Saved list state', 'S');
 		})*/
 		.catch(function(err) {
-			n.showAlert(err.message ? err.message : 'Error saving list state');
+			n.showAlert(err.message ? err.message : 'Error saving list state', 'E', err.messageThreadId);
 		});
 	}
 
@@ -777,7 +777,7 @@ class Board {
 			Notes.getInstance().showAlert(data.message ? data.message : 'Successfully moved item(s)', 'S');
 		})*/
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I': "E");
+			Notes.getInstance().showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 		});
 	}
 	
@@ -839,12 +839,12 @@ class Board {
 			Actions.getInstance().renameItem(that.getCurrentId())
 			.then(function(data) {
 				if (data.message) {
-					n.showAlert(data.message, "S");
+					n.showAlert(data.message, "S", data.messageThreadId);
 				}
 				n.routing.call(that.getCurrentId());
 			})
 			.catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E");
+				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
 		});
 	}
@@ -881,7 +881,7 @@ class Board {
 						n.routing.call(that.getCurrentId());
 					})
 					.catch(function(err) {
-						Notes.getInstance().showAlert(err.message ? err.message : 'Error setting background image', err.abort ? 'I' : "E");
+						Notes.getInstance().showAlert(err.message ? err.message : 'Error setting background image', err.abort ? 'I' : "E", err.messageThreadId);
 					});
 				}),	
 			);

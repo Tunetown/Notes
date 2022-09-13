@@ -295,7 +295,7 @@ class TreeBehaviour {
 		this.grid.destroy();
 		this.grid.init(true);
 		
-		return Promise.resolve({ ok: true }); //return Actions.getInstance().requestTree();
+		return Promise.resolve({ ok: true }); 
 	}
 	
 	/**
@@ -559,7 +559,7 @@ class TreeBehaviour {
 		// Reload navigation (dor debugging)
 		Actions.getInstance().requestTree()
 		.then(function(data) {
-			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S");
+			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S", data.messageThreadId);
 		});
 	}
 }

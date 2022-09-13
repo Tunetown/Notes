@@ -75,7 +75,7 @@ class Code {
 			that.updateStatus();
 		})
 		.catch(function(err) {
-			n.showAlert(err.message);
+			n.showAlert(err.message, 'E', err.messageThreadId);
 			
 			// Build buttons
 			n.setButtons([ 
@@ -113,13 +113,15 @@ class Code {
 			that.hideOptions();	
 			
 			// Rename
-			Actions.getInstance().renameItem(that.getCurrentId()).then(function(data) {
+			Actions.getInstance().renameItem(that.getCurrentId())
+			.then(function(data) {
 				if (data.message) {
-					n.showAlert(data.message, "S");
+					n.showAlert(data.message, "S", data.messageThreadId);
 				}
 				n.routing.call(that.getCurrentId());
-			}).catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E");
+			})
+			.catch(function(err) {
+				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
 		});
 	}
@@ -189,7 +191,7 @@ class Code {
 							n.routing.call(that.getCurrentId());
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert('Error: '+ err.message, "E");
+							Notes.getInstance().showAlert('Error: '+ err.message, "E", err.messageThreadId);
 						});
 					})
 					.on('click', function(event) {
@@ -240,14 +242,14 @@ class Code {
 			this.stopDelayedSave();
 			
 			var n = Notes.getInstance();
-			n.showAlert("Saving " + this.current.name + "...", "I", "EditorMessages");
+			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
 			Actions.getInstance().save(this.getCurrentId(), this.getContent())
 			.then(function(data) {
-        		if (data.message) n.showAlert(data.message, "S", "EditorMessages");
+        		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
         	})
         	.catch(function(err) {
-        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
+        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}
 	}
@@ -322,7 +324,7 @@ class Code {
 			
 			a.save(that.getCurrentId(), that.getContent())
 			.catch(function(err) {
-        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
+        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}, secs * 1000);
 	}

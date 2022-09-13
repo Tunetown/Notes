@@ -74,12 +74,14 @@ class TrelloImporter {
 		
 		if (!jsonString) {
 			return Promise.reject({
-				message: 'No data to import'
+				message: 'No data to import',
+				messageThreadId: 'ImportProcessMessages'
 			});
 		}
 		if (!sourceName) {
 			return Promise.reject({
-				message: 'No root item name to import to'
+				message: 'No root item name to import to',
+				messageThreadId: 'ImportProcessMessages'
 			});
 		}
 		
@@ -231,6 +233,7 @@ class TrelloImporter {
 		if (!confirm('Do you want to import ' + cardCnt + ' cards holding ' + Tools.convertFilesize(JSON.stringify(docs).length + attachmentsSize) + ' of data?')) {
 			return Promise.reject({
 				message: 'Import cancelled',
+				messageThreadId: 'ImportProcessMessages',
 				abort: true
 			});
 		}
@@ -245,6 +248,7 @@ class TrelloImporter {
 			Console.log('Finished Trello import.', 'S');
 			return Promise.resolve({
 				message: 'Finished Trello import.',
+				messageThreadId: 'ImportProcessMessages',
 				ok: true,
 				listCnt: listCnt,
 				cardCnt: cardCnt,
@@ -284,7 +288,8 @@ class TrelloImporter {
 			if (!resp.size) {
 				console.log(' -> No or invalid data received:');
 				return Promise.reject({
-					message: 'Error fetching attachment'
+					message: 'Error fetching attachment',
+					messageThreadId: 'ImportProcessMessages'
 				});
 			}
 			console.log(" -> Received " + Tools.convertFilesize(resp.size) + ', type: ' + resp.type);

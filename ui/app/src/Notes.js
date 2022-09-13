@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.87.8';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.87.9';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -95,12 +95,14 @@ class Notes {
 		            if (e && e.isDirty()) {
 		            	e.stopDelayedSave();
 		            	 
-		            	that.showAlert("Saving " + e.current.name + "...", "I", "EditorMessages"); 
+		            	that.showAlert("Saving " + e.current.name + "...", "I", "SaveMessages"); 
 		            
-		            	Actions.getInstance().save(e.getCurrentId(), e.getContent()).then(function(data) {
-		            		if (data.message) that.showAlert(data.message, "S", "EditorMessages");
-		            	}).catch(function(err) {
-		            		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", "EditorMessages");
+		            	Actions.getInstance().save(e.getCurrentId(), e.getContent())
+						.then(function(data) {
+		            		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
+		            	})
+						.catch(function(err) {
+		            		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		            	});
 		            }
 		            break;		        
@@ -151,8 +153,8 @@ class Notes {
 			// Sync callbacks
 			syncOptions: {
 				// Message to the user
-				alert: function(msg, type) {
-					that.showAlert(msg, type);
+				alert: function(msg, type, threadId, alwaysHideAtNewMessage, callbackFunction) {
+					that.showAlert(msg, type, threadId, alwaysHideAtNewMessage, callbackFunction);
 				},
 				
 				// Update the sync state button in the header
@@ -183,7 +185,7 @@ class Notes {
 
 						Actions.getInstance().updateViews()
 						.catch(function(err) {
-							that.showAlert('Error: ' + err.message);
+							that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
 					}
 				},
@@ -218,7 +220,7 @@ class Notes {
 									} else {
 										a.request(doc._id)
 										.catch(function(err) {
-											that.showAlert('Error loading note: ' + err.message);
+											that.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
 										})
 									}
 									break;
@@ -239,7 +241,7 @@ class Notes {
 								return a.requestTree();
 							})
 							.catch(function(err) {
-								that.showAlert('Error: ' + err.message);
+								that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 							});
 							return;
 						}
@@ -254,7 +256,7 @@ class Notes {
 									console.log("Sync: -> Re-requesting tree, document " + (doc.name ? doc.name : doc._id) + " had relevant changes");
 									a.requestTree()
 									.catch(function(err) {
-										that.showAlert('Error: ' + err.message);
+										that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 									break;
 								}
@@ -478,7 +480,8 @@ class Notes {
 				this.update();
 				
 				return Promise.reject({
-					message: 'Error in connection address: ' + e
+					message: 'Error in connection address: ' + e,
+					messageThreadId: 'AppStartMessages'
 				});
 			}
 		}
@@ -540,12 +543,12 @@ class Notes {
 			if (data.initialised) {
 				settingsPromise = a.requestSettings()
 				.catch(function(err) {
-					that.showAlert('Error getting settings: ' + err.message);
+					that.showAlert('Error getting settings: ' + err.message, 'E', err.messageThreadId);
 				});
 				
 				treePromise = a.requestTree()
 				.catch(function(err) {
-					that.showAlert('Error loading TOC: ' + err.message);
+					that.showAlert('Error loading TOC: ' + err.message, 'E', err.messageThreadId);
 				});
 			}
 			
@@ -565,11 +568,12 @@ class Notes {
 			});
 		})
 		.catch(function(err) {
-			that.showAlert("Error connecting to database: " + err.message);
+			that.showAlert("Error connecting to database: " + err.message, 'E', err.messageThreadId);
 			
 			// Here we resolve, because the pages should be loaded nevertheless.
 			return Promise.resolve({
-				message: "Error connecting to database: " + err.message
+				message: "Error connecting to database: " + err.message,
+				messageThreadId: err.messageThreadId
 			});
 		});
 	}
@@ -582,11 +586,13 @@ class Notes {
 		if (e) {
 			if (e.isDirty()) {
 				var that = this;
-				Actions.getInstance().save(e.getCurrentId(), e.getContent()).then(function(data) {
-	        		if (data.message) that.showAlert(data.message, "S");
+				Actions.getInstance().save(e.getCurrentId(), e.getContent())
+				.then(function(data) {
+	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 	        		e.unload();
-	        	}).catch(function(err) {
-	        		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+	        	})
+				.catch(function(err) {
+	        		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
 	        		e.unload();
 	        	});
 			} else {
@@ -1083,10 +1089,10 @@ class Notes {
 	        		var doc = Notes.getInstance().getData().getById(id);
 	        		var tdoc = Notes.getInstance().getData().getById(target);
 	        		
-	        		Notes.getInstance().showAlert('Moved ' + doc.name + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME), 'S');
+	        		Notes.getInstance().showAlert('Moved ' + doc.name + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME), 'S', data.messageThreadId);
 	        	})
 	        	.catch(function(err) {
-	        		that.showAlert("Error moving document: " + err.message);
+	        		that.showAlert("Error moving document: " + err.message, 'E', err.messageThreadId);
 	        	});
 			})
 		);
@@ -1581,15 +1587,17 @@ class Notes {
 						if (that.optionsIds.length != 1) return;
 						
 						NoteTree.getInstance().block();
-						Actions.getInstance().create(that.optionsIds[0]).then(function(data) {
+						Actions.getInstance().create(that.optionsIds[0])
+						.then(function(data) {
 							NoteTree.getInstance().unblock();
 							
 							if (data.ok) {
 								that.showAlert("Successfully created document.", "S");
 							}
-						}).catch(function(err) {
+						})
+						.catch(function(err) {
 							NoteTree.getInstance().unblock();
-							that.showAlert(err.message, err.abort ? 'I' : "E");
+							that.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 						});
 					}),
 					
@@ -1601,15 +1609,17 @@ class Notes {
 						if (that.optionsIds.length != 1) return;
 						
 						NoteTree.getInstance().block();
-						Actions.getInstance().renameItem(that.optionsIds[0]).then(function(data) {
+						Actions.getInstance().renameItem(that.optionsIds[0])
+						.then(function(data) {
 							NoteTree.getInstance().unblock();
 							
 							if (data.message) {
-								that.showAlert(data.message, "S");
+								that.showAlert(data.message, "S", data.messageThreadId);
 							}
-						}).catch(function(err) {
+						})
+						.catch(function(err) {
 							NoteTree.getInstance().unblock();
-							that.showAlert(err.message, err.abort ? 'I': "E");
+							that.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 						});
 					}),
 					
@@ -1633,10 +1643,10 @@ class Notes {
 			        	
 			        	Actions.getInstance().setReference(that.optionsIds[0])
 			        	.then(function(data) {
-							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S');
+							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E');
+							that.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 			        }),
 					
@@ -1649,10 +1659,10 @@ class Notes {
 			        	
 			        	Actions.getInstance().moveItems(that.optionsIds)
 			        	.then(function(data) {
-							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S');
+							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E');
+							that.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 			        }),
 			       
@@ -1668,7 +1678,7 @@ class Notes {
 							that.showAlert('Successfully copied item', 'S');
 						})
 						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error copying item.', err.abort ? 'I' : 'E');
+							that.showAlert(err.message ? err.message : 'Error copying item.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}),
 							
@@ -1681,18 +1691,19 @@ class Notes {
 						
 						NoteTree.getInstance().block();
 						
-						that.showAlert("Preparing to delete items...", 'I');
+						that.showAlert("Preparing to delete items...", 'I', 'DeleteMessages');
+						
 						Actions.getInstance().deleteItems(that.optionsIds).then(function(data) {
 							NoteTree.getInstance().unblock();
 							
 							if (data.message) {
-								that.showAlert(data.message, "S");
+								that.showAlert(data.message, "S", data.messageThreadId);
 							}
 							
 						}).catch(function(err) {
 							NoteTree.getInstance().unblock();
 							
-							that.showAlert(err.message, err.abort ? 'I' : "E");
+							that.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 						});
 					}),
 					
@@ -1927,7 +1938,7 @@ class Notes {
 			return Actions.getInstance().saveItems(ids);
 		})
 		.catch(function(err) {
-    		that.showAlert("Error saving metadata: " + err.message, err.abort ? 'I' : 'E');
+    		that.showAlert("Error saving metadata: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
     	});
 	}
 	

@@ -45,8 +45,9 @@ class Routing {
 						Profiles.getInstance().load();
 					}
 				
-				}).catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			}
 			this.get('#/', function(context) {
@@ -63,8 +64,9 @@ class Routing {
 					that.app.resetPage();
 					Help.getInstance().load();
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading help page: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			this.get('#/doc/:docpage', function(context) {
@@ -75,8 +77,9 @@ class Routing {
 					that.app.resetPage();
 					Help.getInstance().load(docpage);
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading help page: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -87,8 +90,9 @@ class Routing {
 					that.app.resetPage();
 					Update.getInstance().load();
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading update page: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading update page: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 						
@@ -99,8 +103,9 @@ class Routing {
 					that.app.resetPage(true);
 					that.app.setStatusText();
 
-				}).catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			this.get('#/:profile/', function(context) {
@@ -109,8 +114,9 @@ class Routing {
 					that.app.resetPage(true);
 					that.app.setStatusText();
 
-				}).catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 	
@@ -128,8 +134,9 @@ class Routing {
 						Settings.getInstance().load();
 					});
 
-				}).catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -141,8 +148,9 @@ class Routing {
 					
 					Console.getInstance().show();
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 
@@ -159,8 +167,9 @@ class Routing {
 						return Actions.getInstance().showTrash();
 					});
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading trash: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading trash: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -172,8 +181,9 @@ class Routing {
 					
 					Check.getInstance().load();
 
-				}).catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 
@@ -189,8 +199,9 @@ class Routing {
 						return Conflicts.getInstance().load();
 					});
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading conflicts: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading conflicts: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -206,8 +217,9 @@ class Routing {
 						return LabelDefinitions.getInstance().load();
 					});
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading labels: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading labels: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 
@@ -229,8 +241,9 @@ class Routing {
 					that.app.resetPage();
 					return Actions.getInstance().requestVersion(noteId, versionName);
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading version: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading version: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -247,8 +260,9 @@ class Routing {
 					that.app.resetPage();
 					return Actions.getInstance().showHistory(noteId);
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading history: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading history: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 
@@ -269,8 +283,9 @@ class Routing {
 						Refs.getInstance().load(noteId);
 					});
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading references: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading references: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -293,8 +308,9 @@ class Routing {
 					
 					return Actions.getInstance().requestConflict(noteId, revId);
 						
-				}).catch(function(err) {
-					that.app.showAlert('Error loading conflict: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading conflict: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -315,8 +331,9 @@ class Routing {
 					that.app.resetPage();
 					return Actions.getInstance().requestLabelDefinitions(noteId);
 						
-				}).catch(function(err) {
-					that.app.showAlert('Error loading labels: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading labels: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -333,8 +350,9 @@ class Routing {
 					that.app.resetPage();
 					return Actions.getInstance().requestRawView(noteId);
 						
-				}).catch(function(err) {
-					that.app.showAlert('Error loading raw JSOn view: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading raw JSOn view: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			
@@ -359,8 +377,9 @@ class Routing {
 						return Actions.getInstance().request(noteId);
 					}
 					
-				}).catch(function(err) {
-					that.app.showAlert('Error loading note: ' + err.message, 'E');
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 		});

@@ -1124,7 +1124,7 @@ class Document {
 						n.routing.call(editor.getCurrentId());
 					})
 					.catch(function(err) {
-						Notes.getInstance().showAlert('Error: '+ err.message, "E");
+						Notes.getInstance().showAlert('Error: '+ err.message, "E", err.messageThreadId);
 					});
 				})
 				.on('click', function(event) {
@@ -1160,10 +1160,10 @@ class Document {
 				Actions.getInstance().create(editor.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
-						n.showAlert(data.message, "S");
+						n.showAlert(data.message, "S", data.messageThreadId);
 					}
 				}).catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I' : "E");
+					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
 			}),
 			
@@ -1175,11 +1175,11 @@ class Document {
 				
 				Actions.getInstance().renameItem(editor.getCurrentId()).then(function(data) {
 					if (data.message) {
-						n.showAlert(data.message, "S");
+						n.showAlert(data.message, "S", data.messageThreadId);
 					}
 					n.routing.call(editor.getCurrentId());
 				}).catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E");
+					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 			}),
 			
@@ -1191,7 +1191,7 @@ class Document {
 	        	
 	        	Actions.getInstance().moveItems([editor.getCurrentId()])
 	        	.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E");
+					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 	        }),
 	        
@@ -1203,7 +1203,7 @@ class Document {
 	        	
 	        	Actions.getInstance().copyItem(editor.getCurrentId())
 	        	.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E");
+					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 	        }),
 	        
@@ -1215,15 +1215,15 @@ class Document {
 	        	
 	        	var delId = editor.getCurrentId();
 	        	
-	        	n.showAlert("Preparing to delete item...", 'I');
+	        	n.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
 	        	Actions.getInstance().deleteItems([delId])
 				.then(function(data) {
 	        		if (data.message) {
-	        			n.showAlert(data.message, "S");
+	        			n.showAlert(data.message, "S", data.messageThreadId);
 	        		}
 	        		n.routing.call();
 	        	}).catch(function(err) {
-	        		n.showAlert(err.message, err.abort ? 'I' : "E");
+	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 	        		n.routing.call(delId);
 	        	});
 	        }),
@@ -1253,13 +1253,13 @@ class Document {
 				Actions.getInstance().createReference(id)
 				.then(function(data) {
 	        		if (data.message) {
-	        			n.showAlert(data.message, "S");
+	        			n.showAlert(data.message, "S", data.messageThreadId);
 	        		}
 					if (data.newIds && (data.newIds.length > 0)) {
 						NoteTree.getInstance().focus(data.newIds[0]);
 					}	        		
 	        	}).catch(function(err) {
-	        		n.showAlert(err.message, err.abort ? 'I' : "E");
+	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 	        	});
 			}),
 	        
@@ -1289,7 +1289,7 @@ class Document {
 				
 				Document.downloadDocumentDialog(editor.getCurrentId())
 				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I' : "E");
+					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
 			}),
 			
@@ -1326,10 +1326,12 @@ class Document {
 		
 		var doc = d.getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'DnldDocDialogMessages'
 		});
 		if (doc.type == 'reference') return Promise.reject({
-			message: 'Cannot download a reference Document. Please download the original.'
+			message: 'Cannot download a reference Document. Please download the original.',
+			messageThreadId: 'DnldDocDialogMessages'
 		});
 		
 		return new Promise(function(resolve, reject) {
@@ -1350,7 +1352,8 @@ class Document {
 				$(document).unbind('keypress', dnldKeyPressed);
 				reject({
 					abort: true,
-					message: 'Action canceled.'
+					message: 'Action canceled.',
+					messageThreadId: 'DnldDocDialogMessages'
 				 });
 			});
 			
@@ -1421,6 +1424,7 @@ class Document {
 			    	});
 				})
 				.catch(function(err) {
+					err.messageThreadId = 'DnldDocDialogMessages';
 					reject(err);
 				});
 				

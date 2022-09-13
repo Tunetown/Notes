@@ -125,14 +125,16 @@ class NoteTree {
         		Notes.getInstance().hideOptions();
         		
         		that.block();
-				Actions.getInstance().create(that.behaviour.getNewItemParent()).then(function(data) {
+				Actions.getInstance().create(that.behaviour.getNewItemParent())
+				.then(function(data) {
 					that.unblock();
 					if (data.message) {
-						Notes.getInstance().showAlert(data.message, "S");
+						Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
 					}
-				}).catch(function(err) {
+				})
+				.catch(function(err) {
 					that.unblock();
-					Notes.getInstance().showAlert(err.message, err.abort ? 'I' : "E");
+					Notes.getInstance().showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
         	});
 			
@@ -245,7 +247,7 @@ class NoteTree {
 		
 		var favSize = c.getViewSettings().favoritesSize;
 		if (!favSize) favSize = 70;
-		favBar.css('height', (favSize+2*2) + 'px');
+		favBar.css('height', (favSize + 7) + 'px');
 		
 		var favoritesNum = c.getViewSettings().favoritesNum;
 		if (!favoritesNum) favoritesNum = 10;
@@ -399,6 +401,12 @@ class NoteTree {
 		var currentItems = this.grid.grid.getItems();
 		var searchText = this.getSearchText();
 
+		if (searchText.length > 0) {
+			this.showFavorites(false);
+		} else {
+			this.updateFavorites();
+		}
+
 		var that = this;
 		function getItemById(id) {
 			for(var i in currentItems) {
@@ -505,7 +513,7 @@ class NoteTree {
 					
 					Actions.getInstance().uploadAttachments(doc._id, files)
 					.catch(function(err) {
-						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E');
+						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 					});
 				}
 			}
@@ -523,8 +531,6 @@ class NoteTree {
 		
 		$('#' + this.treeNavContainerId).append(
 			$('<div id="' + this.treeContainerId + '"></div>').append(
-				$('<div id="favBar" class="favBar favBarTree"></div>'),
-
 				$('<div id="searchBarTree" class="searchBar searchBarTree"></div>').append(
 					$('<input type="text" id="treeSearch" placeholder="Type text to search..." />')
 					.on('focus', function(event) {
@@ -553,6 +559,8 @@ class NoteTree {
 					})
 				),
 				
+				$('<div id="favBar" class="favBar favBarTree"></div>'),
+
 				$('<div id="treeGridContainer" />').append(
 					// Grid 
 					$('<div id="' + this.treeGridElementId + '" class="treeview" />'),
@@ -588,14 +596,16 @@ class NoteTree {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						that.block();
-						Actions.getInstance().create(that.behaviour.getNewItemParent()).then(function(data) {
+						Actions.getInstance().create(that.behaviour.getNewItemParent())
+						.then(function(data) {
 							that.unblock();
 							if (data.message) {
-								Notes.getInstance().showAlert(data.message, "S");
+								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
 							}
-						}).catch(function(err) {
+						})
+						.catch(function(err) {
 							that.unblock();
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : "E");
+							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 						});
 					}),
 						
@@ -626,7 +636,7 @@ class NoteTree {
 					
 					Actions.getInstance().uploadAttachments(that.behaviour.getNewItemParent(), files)
 					.catch(function(err) {
-						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E');
+						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 					});
 				}
 			}
@@ -1094,7 +1104,7 @@ class NoteTree {
     	var that = this;
     	Actions.getInstance().moveDocuments([srcId], tarId, moveToSubOfTarget)
     	.catch(function(err) {
-    		Notes.getInstance().showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E');
+    		Notes.getInstance().showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
     	});
 	}
 	

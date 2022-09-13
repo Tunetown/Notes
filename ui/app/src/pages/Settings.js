@@ -237,14 +237,14 @@ class Settings {
 									Database.getInstance().logout()
 									.then(function(data) {
 										if (!data.ok) {
-											Notes.getInstance().showAlert(data.message, 'E');
+											Notes.getInstance().showAlert(data.message, 'E', data.messageThreadId);
 											return;
 										}
 										Database.getInstance().reset();
 										Notes.getInstance().routing.call('settings');
 									})
 									.catch(function(err) {
-										Notes.getInstance().showAlert(err.message, 'E');
+										Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
 									});
 								}),
 								
@@ -409,7 +409,7 @@ class Settings {
 										Database.getInstance().reset();
 										Notes.getInstance().routing.call('settings');
 									}).catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E');
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								}),
 							])
@@ -645,7 +645,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							),
@@ -662,7 +662,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							)
@@ -711,7 +711,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							),
@@ -728,7 +728,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							)
@@ -749,7 +749,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							),
@@ -766,7 +766,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							)
@@ -787,7 +787,7 @@ class Settings {
 									
 									var a = Actions.getInstance();
 									a.requestTree().catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message);
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							)
@@ -1052,7 +1052,7 @@ class Settings {
 			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -1060,10 +1060,12 @@ class Settings {
 	 * Save settings
 	 */
 	saveSettings() {
-		Actions.getInstance().saveSettings().then(function(data) {
-			if (data.message) Notes.getInstance().showAlert(data.message, 'S');
-		}).catch(function(err) {
-			Notes.getInstance().showAlert('Error saving settings: ' + err.message, 'E');
+		Actions.getInstance().saveSettings()
+		.then(function(data) {
+			if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
+		})
+		.catch(function(err) {
+			Notes.getInstance().showAlert('Error saving settings: ' + err.message, 'E', err.messageThreadId);
 		})
 	}
 	

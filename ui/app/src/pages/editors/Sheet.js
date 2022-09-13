@@ -83,7 +83,7 @@ class Sheet {
 			that.updateStatus();
 		})
 		.catch(function(err) {
-			n.showAlert(err.message);
+			n.showAlert(err.message, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -105,13 +105,15 @@ class Sheet {
 			that.hideOptions();	
 			
 			// Rename
-			Actions.getInstance().renameItem(that.getCurrentId()).then(function(data) {
+			Actions.getInstance().renameItem(that.getCurrentId())
+			.then(function(data) {
 				if (data.message) {
-					n.showAlert(data.message, "S");
+					n.showAlert(data.message, "S", data.messageThreadId);
 				}
 				n.routing.call(that.getCurrentId());
-			}).catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E");
+			})
+			.catch(function(err) {
+				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
 		});
 	}
@@ -168,12 +170,14 @@ class Sheet {
 			this.stopDelayedSave();
 			
 			var n = Notes.getInstance();
-			n.showAlert("Saving " + this.current.name + "...", "I");
+			n.showAlert("Saving " + this.current.name + "...", "I", 'SaveMessages');
 			
-			Actions.getInstance().save(this.getCurrentId(), this.getContent()).then(function(data) {
-        		if (data.message) n.showAlert(data.message, "S");
-        	}).catch(function(err) {
-        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+			Actions.getInstance().save(this.getCurrentId(), this.getContent())
+			.then(function(data) {
+        		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
+        	})
+			.catch(function(err) {
+        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}
 	}
@@ -253,7 +257,7 @@ class Sheet {
 			if (!that.isDirty()) return;
 			
 			a.save(that.getCurrentId(), that.getContent()).catch(function(err) {
-        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E");
+        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}, secs * 1000);
 	}

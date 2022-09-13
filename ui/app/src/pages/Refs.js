@@ -55,11 +55,11 @@ class Refs {
 						var rid = $(this).data().id;
 						Actions.getInstance().deleteItems([rid])
 						.then(function(data) {
-							if (data.message) Notes.getInstance().showAlert(data.message, 'S');
+							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
 							Notes.getInstance().routing.call('refs/' + id);
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					})
 				]

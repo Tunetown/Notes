@@ -66,7 +66,8 @@ class Database {
 		if (!profile) {
 			return Promise.reject({
 				ok: false,
-				message: '"No profile could be loaded."'
+				message: '"No profile could be loaded."',
+				messageThreadId: 'DBInitMessages'
 			});
 		}
 		
@@ -99,7 +100,8 @@ class Database {
 					
 					return Promise.reject({
 						ok:false,
-						message: "Error creating database: " + data.message
+						message: "Error creating database: " + data.message,
+						messageThreadId: 'DBInitMessages'
 					});
 				}
 				
@@ -163,7 +165,8 @@ class Database {
 		if (!db) {
 			this.loggedInUser = false;
 			return Promise.reject({ 
-				message: 'No remote database to log in to' 
+				message: 'No remote database to log in to',
+				messageThreadId: 'DBLoginMessages'
 			});
 		}
 		
@@ -171,7 +174,8 @@ class Database {
 			this.loggedInUser = false;
 			return Promise.reject({ 
 				ok: false, 
-				message: 'You have no internet connection.' 
+				message: 'You have no internet connection.',
+				messageThreadId: 'DBLoginMessages'
 			});
 		}
 
@@ -179,7 +183,8 @@ class Database {
 			this.notifyOfflineState();
 			
 			return Promise.reject({
-				message: 'Login already running'
+				message: 'Login already running',
+				messageThreadId: 'DBLoginMessages'
 			});
 		}
 
@@ -213,7 +218,8 @@ class Database {
 						if (!pwd || (pwd.length == 0)) {
 							reject({
 								ok: false,
-								message: 'Please enter a password'
+								message: 'Please enter a password',
+								messageThreadId: 'DBLoginMessages'
 							});
 							return;
 						}
@@ -228,7 +234,8 @@ class Database {
 								
 								reject({
 									ok: false,
-									message: err.message
+									message: err.message,
+									messageThreadId: 'DBLoginMessages'
 								});
 							} else {
 								console.log("Connected successfully with user " + usr);
@@ -250,7 +257,8 @@ class Database {
 							
 							reject({
 								ok: false,
-								message: err.message
+								message: err.message,
+								messageThreadId: 'DBLoginMessages'
 							});
 						});
 					}
@@ -261,7 +269,8 @@ class Database {
 						
 						reject({
 							ok: false,
-							message: 'Login cancelled.'
+							message: 'Login cancelled.',
+							messageThreadId: 'DBLoginMessages'
 						});
 					}
 					
@@ -300,7 +309,8 @@ class Database {
 					
 					reject({
 						ok: false,
-						message: 'Could not connect to database: ' + err.message
+						message: 'Could not connect to database: ' + err.message,
+						messageThreadId: 'DBLoginMessages'
 					});
 				});
 			});
@@ -333,7 +343,8 @@ class Database {
 				});
 			}).catch(function(err) {
 				reject({
-					message: err.message
+					message: err.message,
+					messageThreadId: 'DBLogoutMessages'
 				});
 			});
 		});
@@ -401,7 +412,8 @@ class Database {
 		
 		if (!this.dbRemote) {
 			return Promise.resolve({ 
-				message: "No remote DB connected" 
+				message: "No remote DB connected",
+				messageThreadId: 'DBCheckRemoteMessages'
 			});
 		} else {
 			var that = this;
@@ -411,12 +423,14 @@ class Database {
 					that.notifyOfflineState();
 					
 					return Promise.reject({ 
-						message: "Could not connect to database" 
+						message: "Could not connect to database",
+						messageThreadId: 'DBCheckRemoteMessages'
 					});
 				} else {
 					return Promise.resolve({ 
 						ok: true, 
-						message: "Connected to database " + data.db_name + " over " + data.adapter  + " <br>Head sequence: " + that.syncHandler.extractSequence(data.update_seq) 
+						message: "Connected to database " + data.db_name + " over " + data.adapter  + " <br>Head sequence: " + that.syncHandler.extractSequence(data.update_seq),
+						messageThreadId: 'DBCheckRemoteMessages'
 					});
 				}
 			});
@@ -432,7 +446,8 @@ class Database {
 		if (!this.dbRemote) {
 			this.loggedInUser = false;
 			return Promise.resolve({ 
-				message: "No remote DB connected" 
+				message: "No remote DB connected",
+				messageThreadId: 'DBCheckRemoteMessages'
 			});
 		} else {
 			var that = this;
@@ -441,13 +456,15 @@ class Database {
 				if (!data.ok || !data.userCtx || !data.userCtx.name) {
 					that.loggedInUser = false;
 					return Promise.reject({ 
-						message: "Not logged in" 
+						message: "Not logged in",
+						messageThreadId: 'DBCheckRemoteMessages'
 					});
 				} else {
 					that.loggedInUser = data.userCtx.name;
 					return Promise.resolve({ 
 						ok: true, 
-						message: "Logged in as " + data.userCtx.name 
+						message: "Logged in as " + data.userCtx.name,
+						messageThreadId: 'DBCheckRemoteMessages'
 					});
 				}
 				
@@ -455,7 +472,8 @@ class Database {
 				that.notifyOfflineState();
 				
 				return Promise.reject({ 
-					message: "Error getting session info " + err.message
+					message: "Error getting session info " + err.message,
+					messageThreadId: 'DBCheckRemoteMessages'
 				});
 			});
 		}
@@ -508,7 +526,8 @@ class Database {
 					Console.log(" -> Denied: " + err.message, 'E');
 					reject({
 						ok: false,
-						message: err.message
+						message: err.message,
+						messageThreadId: 'DBReplicateMessages'
 					});
 					
 				}).on('complete', function (info) {
@@ -523,14 +542,16 @@ class Database {
 					Console.log(" -> Error: " + err.message, 'E');
 					reject({
 						ok: false,
-						message: err.message
+						message: err.message,
+						messageThreadId: 'DBReplicateMessages'
 					});
 					
 				}).catch(function(err) {
 					Console.log(" -> Error: " + err.message, 'E');
 					reject({
 						ok: false,
-						message: err.message
+						message: err.message,
+						messageThreadId: 'DBReplicateMessages'
 					});
 				});
 			});
@@ -654,7 +675,8 @@ class Database {
 		.then(function(data) {
 			if (!data.ok) {
 				return Promise.reject({
-					message: 'Error: ' + data.message
+					message: 'Error: ' + data.message,
+					messageThreadId: 'DBUpdateViewsMessages'
 				});
 			}
 			
@@ -675,7 +697,8 @@ class Database {
 						limit: 0 // don't return any results
 					}).catch(function (err) {
 						return Promise.reject({
-							message: 'Error building view: ' + err.message
+							message: 'Error building view: ' + err.message,
+							messageThreadId: 'DBUpdateViewsMessages'
 						});
 					})
 				);
@@ -710,6 +733,7 @@ class Database {
 			.catch(function(err) {
 				errors.push({
 					message: 'Design document ' + designDocId + ' not found',
+					messageThreadId: 'DBCheckViewsMessages',
 					id: designDocId,
 					type: 'E'
 				});
@@ -722,6 +746,7 @@ class Database {
 			if (!ddocPers) {
 				errors.push({
 					message: 'Design document ' + designDocId + ' not found (2)',
+					messageThreadId: 'DBCheckViewsMessages',
 					id: designDocId,
 					type: 'E'
 				});
@@ -863,7 +888,8 @@ class Database {
 	get() {
 		if (!this.db) return Promise.reject({ 
 			ok: false, 
-			message: 'No db set up' 
+			message: 'No db set up',
+			messageThreadId: 'DBGetMessages'
 		});
 	
 		// Local db never needs authentication
@@ -878,7 +904,8 @@ class Database {
 			if (!data.ok) {
 				return Promise.reject({
 					ok: false,
-					message: data.message
+					message: data.message,
+					messageThreadId: 'DBGetMessages'
 				});
 			}
 			

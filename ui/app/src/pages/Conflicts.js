@@ -57,10 +57,10 @@ class Conflicts {
 						Actions.getInstance().deleteItemPermanently(id, rev)
 						.then(function(data) {
 							if (data.message) {
-								Notes.getInstance().showAlert(data.message, "S");
+								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
 							}
 						}).catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					})
 				]);

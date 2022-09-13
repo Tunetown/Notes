@@ -45,7 +45,7 @@ class Import {
 			var file = $('#importFile')[0].files[0];
     		
     		if (!file) {
-    			n.showAlert('Please select a file to import.');
+    			n.showAlert('Please select a file to import.', 'E', 'ImportProcessMessages');
 				return;
 		    }
     		
@@ -56,7 +56,10 @@ class Import {
 			n.routing.callConsole();
 			
 			setTimeout(function() {
-				that.processFile(file);
+				that.processFile(file)
+				.catch(function(err) {
+					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+				});
 			}, 100);
 		});
 		
@@ -72,7 +75,8 @@ class Import {
 		return new Promise(function(resolve, reject) {
 			if (!file) {
 				reject({
-					message: 'No file selected'
+					message: 'No file selected',
+					messageThreadId: 'ImportProcessMessages'					
 				});
 			}
 			
@@ -95,7 +99,7 @@ class Import {
 			return Actions.getInstance().requestTree();
 		})
 		.catch(function(err) {
-			n.showAlert((!err.abort ? 'Error importing data: ' : '') + err.message, err.abort ? 'I' : 'E');
+			n.showAlert((!err.abort ? 'Error importing data: ' : '') + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		})
 	}
 }

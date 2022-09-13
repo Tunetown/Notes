@@ -119,10 +119,10 @@ class CheckList {
 								return Actions.getInstance().requestTree();
 							})
 							.then(function(data) {
-								Notes.getInstance().showAlert(data.message, 'I');
+								Notes.getInstance().showAlert(data.message, 'I', data.messageThreadId);
 							})
 							.catch(function(err) {
-								Notes.getInstance().showAlert(err.message, 'E');
+								Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
 							});
 						}),
 						
@@ -152,10 +152,10 @@ class CheckList {
 								return Actions.getInstance().requestTree();
 							})
 							.then(function(data) {
-								Notes.getInstance().showAlert(data.message, 'I');
+								Notes.getInstance().showAlert(data.message, 'I', data.messageThreadId);
 							})
 							.catch(function(err) {
-								Notes.getInstance().showAlert(err.message, 'E');
+								Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
 							});
 						})
 					),

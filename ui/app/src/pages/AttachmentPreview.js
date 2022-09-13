@@ -91,13 +91,13 @@ class AttachmentPreview {
 		Actions.getInstance().getAttachmentUrl(this.current._id)
 		.then(function(data) {
 			if (!data.ok || !data.url) {
-				n.showAlert(data.message ? data.message : 'Error downloading attachment', 'E');
+				n.showAlert(data.message ? data.message : 'Error downloading attachment', 'E', data.messageThreadId);
 			}
 			
 			window.saveAs(data.url, that.current.name);
 		})
 		.catch(function(err) {
-			n.showAlert('Error downloading attachment: ' + err.message, 'E');
+			n.showAlert('Error downloading attachment: ' + err.message, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -134,13 +134,13 @@ class AttachmentPreview {
 					Actions.getInstance().updateAttachmentFromFile(that.getCurrentId())
 					.then(function(data) {
 						if (data.message) {
-							n.showAlert(data.message, "S");
+							n.showAlert(data.message, "S", data.messageThreadId);
 						}
 						
 						n.routing.call(that.getCurrentId());
 						
 					}).catch(function(err) {
-						n.showAlert(err.message, err.abort ? 'I' : "E");
+						n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 					});
 				})
 			);

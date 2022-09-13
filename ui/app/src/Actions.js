@@ -127,7 +127,10 @@ class Actions {
 	 * After this, the documents are loaded fully int the data instance.
 	 */
 	loadDocuments(docs) {
-		if (!docs) return Promise.reject({ message: 'No docs passed' });
+		if (!docs) return Promise.reject({ 
+			message: 'No docs passed',
+			messageThreadId: 'LoadDocumentMessages' 
+		});
 			
 		var ids = [];
 		for(var i in docs) {
@@ -158,7 +161,8 @@ class Actions {
 		.then(function (data) {
 			if (!data.rows) {
 				return Promise.reject({
-					message: 'No documents received'
+					message: 'No documents received',
+					messageThreadId: 'LoadDocumentMessages'
 				});
 			}
 				
@@ -173,7 +177,8 @@ class Actions {
 				}
 				if (!docInput) {
 					return Promise.reject({
-						message: 'Document ' + ids[i] + ' not found in source data'
+						message: 'Document ' + ids[i] + ' not found in source data',
+						messageThreadId: 'LoadDocumentMessages'
 					});
 				}
 				
@@ -186,7 +191,8 @@ class Actions {
 				}
 				if (!docLoaded) {
 					return Promise.reject({
-						message: 'Document ' + ids[i] + ' not found in loaded data'
+						message: 'Document ' + ids[i] + ' not found in loaded data',
+						messageThreadId: 'LoadDocumentMessages'
 					});
 				}
 
@@ -212,7 +218,8 @@ class Actions {
 	 */
 	request(id) {
 		if (!id) return Promise.reject({
-			message: 'No id passed'
+			message: 'No id passed',
+			messageThreadId: 'RequestMessages'
 		});
 		
 		var db;
@@ -235,7 +242,8 @@ class Actions {
 				});
 			} else if (data.type == "reference") {
 				if (!data.ref) return Promise.reject({
-					message: 'Error in reference: no target ID exists.'
+					message: 'Error in reference: no target ID exists.',
+					messageThreadId: 'RequestMessages'
 				});
 				return db.get(data.ref, { 
 					conflicts: true 
@@ -244,7 +252,8 @@ class Actions {
 				var e = Document.getDocumentEditor(data);
 				if (!e) {
 					return Promise.reject({
-						message: 'No editor found for document type ' + data.type
+						message: 'No editor found for document type ' + data.type,
+						messageThreadId: 'RequestMessages'
 					});
 				}
 				
@@ -267,7 +276,8 @@ class Actions {
 			if (doc.type != 'reference') {
 				if (!data.ok) {
 					return Promise.reject({
-						message: data.message
+						message: data.message,
+						messageThreadId: 'RequestMessages'
 					});
 				}
 			}
@@ -309,8 +319,6 @@ class Actions {
 	 */
 	requestEditor(doc) {
 		var n = Notes.getInstance();
-		//n.triggerUnSyncedCheck();
-		//n.addFavorite(doc);
 		
 		var that = this;
 			
@@ -323,7 +331,7 @@ class Actions {
 				}
 				
 				if (doc.deleted) {
-					n.showAlert('This document is deleted.', 'W');
+					n.showAlert('This document is deleted.', 'W', "ConflictWarnings");
 				}
 				
 				return Database.getInstance().get();
@@ -352,7 +360,7 @@ class Actions {
 				}
 				
 				if (doc.deleted) {
-					n.showAlert('This document is deleted.', 'W');
+					n.showAlert('This document is deleted.', 'W', "ConflictWarnings");
 				}
 				
 				var e = Document.getDocumentEditor(doc);
@@ -376,11 +384,13 @@ class Actions {
 		
 		var doc = n.getData().getById(id);
 		if (!doc && (id.length > 0)) return Promise.reject({
-			message: 'Item ' + id + ' does not exist' 
+			message: 'Item ' + id + ' does not exist',
+			messageThreadId: 'CreateMessages'
 		});  
 		
 		if ((id.length > 0) && (doc.type == 'reference')) return Promise.reject({
-			message: 'Document ' + doc.name + ' is a reference and cannot have children.' 
+			message: 'Document ' + doc.name + ' is a reference and cannot have children.',
+			messageThreadId: 'CreateMessages'
 		});
 
 		var existingRefs = [];
@@ -391,9 +401,6 @@ class Actions {
 		var refSelector = n.getMoveTargetSelector(existingRefs, true);
 
 		var e = n.getCurrentEditor();
-		/*if (e && e.getCurrentId()) {
-			refSelector.val(e.getCurrentId());
-		}*/
 		refSelector.val('');
 		
 		var typeSelector = Document.getAvailableTypeSelect('createTypeInput');
@@ -500,7 +507,8 @@ class Actions {
 				$(document).unbind('keypress', createKeyPressed);
 				reject({
 					abort: true,
-					message: 'Action canceled.'
+					message: 'Action canceled.',
+					messageThreadId: 'CreateMessages'
 				 });
 			});
 			$('#createDialog').modal();
@@ -643,7 +651,8 @@ class Actions {
 			for(var d in data) {
 				if (!data[d].ok) {
 					return Promise.reject({
-						message: 'Error: ' + data[d].message
+						message: 'Error: ' + data[d].message,
+						messageThreadId: 'CreateMessages'
 					});
 				}
 				
@@ -679,6 +688,7 @@ class Actions {
 			return Promise.resolve({
 				ok: true,
 				message: 'Successfully created ' + newIds.length + ' document(s)',
+				messageThreadId: 'CreateMessages',
 				newIds: newIds
 			});
 		}); 
@@ -688,7 +698,10 @@ class Actions {
 	 * Saves the current note content to the server, creating a new version of it.
 	 */
 	save(id, content) { 
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({ 
+			message: 'No ID passed',
+			messageThreadId: "SaveMessages"
+		});
 			
 		var n = Notes.getInstance();
 		var e = n.getCurrentEditor();
@@ -696,7 +709,8 @@ class Actions {
 		var data = n.getData().getById(id);
 		if (!data) {
 			return Promise.reject({
-				message: 'Document ' + id + ' not found'
+				message: 'Document ' + id + ' not found',
+				messageThreadId: "SaveMessages"
 			});
 		}
 		
@@ -708,7 +722,8 @@ class Actions {
 				
 				return Promise.reject({ 
 					abort: true,
-					message: "Nothing changed."
+					message: "Nothing changed.",
+					messageThreadId: "SaveMessages"
 				});
 			}
 			
@@ -764,7 +779,8 @@ class Actions {
 				
 				return Promise.resolve({ 
 					ok: true,
-					message: "Successfully saved " + data.name + "."
+					message: "Successfully saved " + data.name + ".",
+					messageThreadId: "SaveMessages"
 				});
 			} else {
 				if (e) e.resetDirtyState();
@@ -787,7 +803,8 @@ class Actions {
 		for(var i in ids) {
 			var doc = n.getData().getById(ids[i]);
 			if (!doc) return Promise.reject({ 
-				message: 'Document ' + ids[i] + ' not found'
+				message: 'Document ' + ids[i] + ' not found',
+				messageThreadId: "DeleteMessages"
 			});
 			docs.push(doc);
 
@@ -818,9 +835,12 @@ class Actions {
 			for(var o in containedRefs) {
 				str += n.getData().getReadablePath(containedRefs[o]._id) + '\n';
 			}
-			alert('The following references still point to the item(s) to be deleted, please delete them first: \n\n' + str);
+			
+			//alert('The following references still point to the item(s) to be deleted, please delete them first: \n\n' + str);
+			
 			return Promise.reject({
-				message: 'References still exist.'
+				message: 'The following references still point to the item(s) to be deleted, please delete them first: <br><br>' + str,
+				messageThreadId: 'DeleteMessages'
 			});
 		}
 		
@@ -830,7 +850,8 @@ class Actions {
 		if (!confirm("Really delete " + displayName + addstr + "?")) {
 			return Promise.reject({
 				abort: true,
-				message: "Action canceled."
+				message: "Action canceled.",
+				messageThreadId: 'DeleteMessages'
 			});
 		}
 		
@@ -859,7 +880,8 @@ class Actions {
 
 			return Promise.resolve({
 				ok: true,
-				message: "Successfully trashed " + displayName + "."
+				message: "Successfully trashed " + displayName + ".",
+				messageThreadId: 'DeleteMessages'
 			});
 		});
 	}
@@ -872,14 +894,16 @@ class Actions {
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Item ' + id + ' not found'
+			message: 'Item ' + id + ' not found',
+			messageThreadId: 'RenameMessages'
 		});
 		
 		var name = prompt("New name:", doc.name);
 		if (!name || name.length == 0) {
 			return Promise.reject({
 				abort: true,
-				message: "Nothing changed."
+				message: "Nothing changed.",
+				messageThreadId: 'RenameMessages'
 			});
 		}
 
@@ -900,7 +924,8 @@ class Actions {
 			
 			return Promise.resolve({
 				ok: true,
-				message: "Successfully renamed item."
+				message: "Successfully renamed item.",
+				messageThreadId: 'RenameMessages'
 			});
 		});
 	}
@@ -917,14 +942,16 @@ class Actions {
 		for(var i in ids) {
 			var doc = Notes.getInstance().getData().getById(ids[i]);
 			if (!doc) return Promise.reject({
-				message: 'Document ' + ids[i] + ' not found'
+				message: 'Document ' + ids[i] + ' not found',
+				messageThreadId: 'MoveMessages'
 			});
 			
 			docs.push(doc);
 		}
 
 		if (ids.length == 0) return Promise.reject({
-			message: 'Nothing to move'
+			message: 'Nothing to move',
+			messageThreadId: 'MoveMessages'
 		});
 		
 		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
@@ -956,7 +983,8 @@ class Actions {
 	        	if (target == "_cancel") {
 	        		reject({
 	        			abort: true,
-						message: "Action cancelled."
+						message: "Action cancelled.",
+						messageThreadId: 'MoveMessages'
 					});
 	        		return;
 	        	}
@@ -967,12 +995,14 @@ class Actions {
 	        		
 					resolve({
 						ok: true,
-						message: 'Moved ' + displayName + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME)
+						message: 'Moved ' + displayName + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME),
+						messageThreadId: 'MoveMessages'
 					});
 	        	})
 	        	.catch(function(err) {
 	        		reject({
-						message: "Error moving document(s): " + err.message
+						message: "Error moving document(s): " + err.message,
+						messageThreadId: 'MoveMessages'
 					});
 	        	});
 			});
@@ -981,7 +1011,8 @@ class Actions {
 			$('#moveTargetSelector').on('hidden.bs.modal', function () {
 				reject({
 					abort: true,
-					message: 'Action cancelled.'
+					message: 'Action cancelled.',
+					messageThreadId: 'MoveMessages'
 				});
 			});
 			
@@ -1006,7 +1037,8 @@ class Actions {
     		var doc = n.getData().getById(ids[i]);
     		if (!doc) {
     			return Promise.reject({
-    				message: 'Document ' + ids[i] + ' not found'
+    				message: 'Document ' + ids[i] + ' not found',
+					messageThreadId: 'MoveMessages'
     			});
     		}
     		docsSrc.push(doc);
@@ -1107,11 +1139,13 @@ class Actions {
 	setReference(id) {
 		var doc = Notes.getInstance().getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SetRefMessages'
 		});
 		
 		if (doc.type != 'reference') return Promise.reject({
-			message: 'Document ' + id + ' is no reference'
+			message: 'Document ' + id + ' is no reference',
+			messageThreadId: 'SetRefMessages'
 		});
 		
 		var existingRefs = [id];
@@ -1142,7 +1176,8 @@ class Actions {
 	        	if (target == "_cancel") {
 	        		reject({
 	        			abort: true,
-						message: "Action cancelled."
+						message: "Action cancelled.",
+						messageThreadId: 'SetRefMessages'
 					});
 	        		return;
 	        	}
@@ -1167,12 +1202,14 @@ class Actions {
 				.then(function(data) {
 					resolve({
 						ok: true,
-						message: 'Saved new target for ' + doc.name + ' to ' + tdoc.name
+						message: 'Saved new target for ' + doc.name + ' to ' + tdoc.name,
+						messageThreadId: 'SetRefMessages'
 					});
 	        	})
 	        	.catch(function(err) {
 	        		reject({
-						message: "Error saving target: " + err.message
+						message: "Error saving target: " + err.message,
+						messageThreadId: 'SetRefMessages'
 					});
 	        	});
 			});
@@ -1181,7 +1218,8 @@ class Actions {
 			$('#moveTargetSelector').on('hidden.bs.modal', function () {
 				reject({
 					abort: true,
-					message: 'Action cancelled.'
+					message: 'Action cancelled.',
+					messageThreadId: 'SetRefMessages'
 				});
 			});
 			
@@ -1198,7 +1236,8 @@ class Actions {
 
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'CreateRefMessages'
 		});
 		
 		var existingRefs = [id];
@@ -1207,7 +1246,6 @@ class Actions {
 		});
 		
 		var selector = n.getMoveTargetSelector(existingRefs, false);
-		//selector.val(doc.ref);
 		
 		$('#createReferenceDialogContent').empty();
 		$('#createReferenceDialogContent').append(selector);
@@ -1228,7 +1266,8 @@ class Actions {
 	        	if (target == "_cancel") {
 	        		reject({
 	        			abort: true,
-						message: "Action cancelled."
+						message: "Action cancelled.",
+						messageThreadId: 'CreateRefMessages'
 					});
 	        		return;
 	        	}
@@ -1239,7 +1278,8 @@ class Actions {
 					var tdoc = n.getData().getById(target);
 		        	if (!tdoc) {
 						reject({
-							message: 'Target not found: ' + target
+							message: 'Target not found: ' + target,
+							messageThreadId: 'CreateRefMessages'
 						});
 						return;
 					}
@@ -1274,7 +1314,8 @@ class Actions {
 					for(var d in ret) {
 						if (!ret[d].ok) {
 							return Promise.reject({
-								message: 'Error: ' + ret[d].message
+								message: 'Error: ' + ret[d].message,
+								messageThreadId: 'CreateRefMessages'
 							});
 						}
 						
@@ -1298,13 +1339,15 @@ class Actions {
 					resolve({
 						ok: true,
 						message: 'Successfully created ' + newIds.length + ' references.',
+						messageThreadId: 'CreateRefMessages',
 						newIds: newIds
 					});
 				})
 	        	.catch(function(err) {
 					// Error handling
 	        		reject({
-						message: "Error saving target: " + err.message
+						message: "Error saving target: " + err.message,
+						messageThreadId: 'CreateRefMessages'
 					});
 	        	});
 			});
@@ -1313,7 +1356,8 @@ class Actions {
 			$('#createReferenceDialog').on('hidden.bs.modal', function () {
 				reject({
 					abort: true,
-					message: 'Action cancelled.'
+					message: 'Action cancelled.',
+					messageThreadId: 'CreateRefMessages'
 				});
 			});
 			
@@ -1327,14 +1371,16 @@ class Actions {
 	 */
 	copyItem(id) {
 		if (!id) return Promise.reject({
-			message: 'No id passed'
+			message: 'No id passed',
+			messageThreadId: 'CopyMessages'
 		});
 		
 		var n = Notes.getInstance();
 		
 		var doc = Notes.getInstance().getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'CopyMessages'
 		});
 		
 		var db;
@@ -1350,7 +1396,8 @@ class Actions {
 
 			if (doc.type == "attachment") {
 				return Promise.reject({
-					message: 'Attachments cannot be copied.'
+					message: 'Attachments cannot be copied.',
+					messageThreadId: 'CopyMessages'
 				});
 			}
 			
@@ -1358,7 +1405,8 @@ class Actions {
 			if (!name || name.length == 0) {
 				return Promise.reject({
 					abort: true,
-					message: "Nothing changed."
+					message: "Nothing changed.",
+					messageThreadId: 'CopyMessages'
 				});
 			}
 			
@@ -1424,13 +1472,17 @@ class Actions {
 	 * Saves the label definitions for the given document.
 	 */
 	saveLabelDefinitions(id) {
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({ 
+			message: 'No ID passed',
+			messageThreadId: 'SaveLabelMessages' 
+		});
 		
 		var n = Notes.getInstance();
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SaveLabelMessages'
 		});
 		
 		Document.addChangeLogEntry(doc, 'labelDefinitionsChanged');	
@@ -1446,7 +1498,8 @@ class Actions {
 				
 				return Promise.resolve({ 
 					ok: true,
-					message: "Successfully saved label definitions of " + doc.name + "."
+					message: "Successfully saved label definitions of " + doc.name + ".",
+					messageThreadId: 'SaveLabelMessages'
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -1458,13 +1511,17 @@ class Actions {
 	 * Saves the labels for the given document.
 	 */
 	saveLabels(id) {
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({ 
+			message: 'No ID passed',
+			messageThreadId: 'SaveLabelMessages'
+		});
 		
 		var n = Notes.getInstance();
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SaveLabelMessages'
 		});
 		
 		Document.addChangeLogEntry(doc, 'labelsChanged');	
@@ -1480,7 +1537,8 @@ class Actions {
 				
 				return Promise.resolve({ 
 					ok: true,
-					message: "Successfully saved labels of " + doc.name + "."
+					message: "Successfully saved labels of " + doc.name + ".",
+					messageThreadId: 'SaveLabelMessages'
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -1495,12 +1553,14 @@ class Actions {
 	moveLabelDefinition(id, labelId) {
 		var doc = Notes.getInstance().getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'MoveLabelMessages'
 		});
 
 		var def = Document.getLabelDefinition(doc, labelId);
 		if (!def) return Promise.reject({
-			message: 'Definition for label ' + labelId + ' not found'
+			message: 'Definition for label ' + labelId + ' not found',
+			messageThreadId: 'MoveLabelMessages'
 		});
 		
 		var selector = this.getMoveLabelDefinitionTargetSelector();
@@ -1521,7 +1581,8 @@ class Actions {
 	        	if (target == "_cancel") {
 	        		reject({
 	        			abort: true,
-						message: "Action cancelled."
+						message: "Action cancelled.",
+						messageThreadId: 'MoveLabelMessages'
 					});
 	        		return;
 	        	}
@@ -1549,12 +1610,14 @@ class Actions {
 					resolve({
 						ok: true,
 						newOwner: tdoc._id,
-						message: 'Moved label definition ' + labelId + ' from ' + doc.name + ' to ' + tdoc.name
+						message: 'Moved label definition ' + labelId + ' from ' + doc.name + ' to ' + tdoc.name,
+						messageThreadId: 'MoveLabelMessages'
 					});
 	        	})
 	        	.catch(function(err) {
 	        		reject({
-						message: "Error moving label definition: " + err.message
+						message: "Error moving label definition: " + err.message,
+						messageThreadId: 'MoveLabelMessages'
 					});
 	        	});
 			});
@@ -1563,7 +1626,8 @@ class Actions {
 			$('#moveTargetSelector').on('hidden.bs.modal', function () {
 				reject({
 					abort: true,
-					message: 'Action cancelled.'
+					message: 'Action cancelled.',
+					messageThreadId: 'MoveLabelMessages'
 				});
 			});
 			
@@ -1609,13 +1673,17 @@ class Actions {
 	 * Saves the note's editor mode to the server.
 	 */
 	saveEditorMode(id, editorMode, editorParams) {
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({ 
+			message: 'No ID passed',
+			messageThreadId: 'SaveEditorModeMessages' 
+		});
 			
 		var n = Notes.getInstance();
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SaveEditorModeMessages' 
 		});
 		
 		var that = this;
@@ -1640,7 +1708,8 @@ class Actions {
 				
 				return Promise.resolve({ 
 					ok: true,
-					message: "Successfully saved " + doc.name + "."
+					message: "Successfully saved " + doc.name + ".",
+					messageThreadId: 'SaveEditorModeMessages' 
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -1655,13 +1724,17 @@ class Actions {
 	 * Saves the note's board state to the server.
 	 */
 	saveBoardState(id, state) {
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({ 
+			message: 'No ID passed',
+			messageThreadId: 'SaveBoardStateMessages' 
+		});
 			
 		var n = Notes.getInstance();
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SaveBoardStateMessages' 
 		});
 
 		var that = this;
@@ -1680,7 +1753,8 @@ class Actions {
 				
 				return Promise.resolve({ 
 					ok: true,
-					message: "Successfully saved state of " + doc.name + "."
+					message: "Successfully saved state of " + doc.name + ".",
+					messageThreadId: 'SaveBoardStateMessages' 
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -1692,13 +1766,17 @@ class Actions {
 	 * Sets a new board background image for the given document
 	 */
 	setBoardBackgroundImage(id) {
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({ 
+			message: 'No ID passed',
+			messageThreadId: 'SaveBoardBgImageMessages' 
+		});
 		
 		var n = Notes.getInstance();
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SaveBoardBgImageMessages' 
 		});
 		
 		var that = this;
@@ -1726,7 +1804,8 @@ class Actions {
 				
 				return Promise.resolve({ 
 					ok: true,
-					message: "Successfully saved background image of " + doc.name + "."
+					message: "Successfully saved background image of " + doc.name + ".",
+					messageThreadId: 'SaveBoardBgImageMessages' 
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -1770,6 +1849,7 @@ class Actions {
 			$('#backgroundImageDialog').on('hidden.bs.modal', function () {
 				reject({
 					message: 'Action cancelled.',
+					messageThreadId: 'SelectBoardBgImageMessages',
 					abort: true
 				});
 			});
@@ -1837,11 +1917,13 @@ class Actions {
 			// Not found: This is no severe error in this case, so we resolve the promise instead of rejecting.
 			if (err.status == 404) return Promise.resolve({ 
 				ok: false,
-				message: err.message
+				message: err.message,
+				messageThreadId: 'RequestSettingsMessages'
 			});
 			
 			return Promise.reject({
-				message: err.message
+				message: err.message,
+				messageThreadId: 'RequestSettingsMessages'
 			});
 		});
 	}
@@ -1867,7 +1949,8 @@ class Actions {
 				//that.unlock('settings');
 				
 				return Promise.reject({
-					message: data.message
+					message: data.message,
+					messageThreadId: 'SaveSettingsMessages'
 				});
 			}
 			
@@ -1880,7 +1963,8 @@ class Actions {
     		//that.unlock('settings');
     		
 			return Promise.resolve({
-				message: "Saved settings."
+				message: "Saved settings.",
+				messageThreadId: 'SaveSettingsMessages'
 			});
 		})
 		.catch(function(err) {
@@ -1929,7 +2013,8 @@ class Actions {
 	 */
 	getAttachmentUrl(id) {
 		if (!id) return Promise.reject({ 
-			message: 'No ID passed'
+			message: 'No ID passed',
+			messageThreadId: 'GetAttUrlMessages'
 		});
 		
 		if (this.attachmentUrlBuffer) {
@@ -1944,10 +2029,12 @@ class Actions {
 		
 		var doc = Notes.getInstance().getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Item ' + id + ' does not exist'
+			message: 'Item ' + id + ' does not exist',
+			messageThreadId: 'GetAttUrlMessages'
 		});
 		if (doc.type != 'attachment') return Promise.reject({
-			message: 'Item ' + doc.name + ' is no attachment'
+			message: 'Item ' + doc.name + ' is no attachment',
+			messageThreadId: 'GetAttUrlMessages'
 		});
 		
 		var that = this;
@@ -1976,11 +2063,13 @@ class Actions {
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' does not exist' 
+			message: 'Document ' + id + ' does not exist',
+			messageThreadId: 'UpdateAttUrlMessages'
 		});  
 		
 		if (doc.type != 'attachment') return Promise.reject({
-			message: 'Document ' + doc.name + ' is not an attachment' 
+			message: 'Document ' + doc.name + ' is not an attachment',
+			messageThreadId: 'UpdateAttUrlMessages'
 		});
 
 		var file;
@@ -2006,7 +2095,8 @@ class Actions {
 				$(document).unbind('keypress', keyPressed);
 				reject({
 					abort: true,
-					message: 'Action canceled.'
+					message: 'Action canceled.',
+					messageThreadId: 'UpdateAttUrlMessages'
 				 });
 			});
 			$('#uploadDialog').modal();
@@ -2025,7 +2115,7 @@ class Actions {
 
 	    		var maxMB = parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
 	    		if (maxMB && (file.size > (maxMB * 1024 * 1024))) {
-	    			n.showAlert('The file is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.', 'E', 'UplAttMessages');
+	    			n.showAlert('The file is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.', 'E', 'UpdateAttUrlMessages');
 					return;
 	    		}
 		    		
@@ -2064,7 +2154,8 @@ class Actions {
 		.then(function (data) {
 			if (!data.ok) {
 				return Promise.reject({
-					message: 'Error: ' + data.message
+					message: 'Error: ' + data.message,
+					messageThreadId: 'UpdateAttUrlMessages'
 				});
 			}
 			
@@ -2075,7 +2166,8 @@ class Actions {
 			
 			return Promise.resolve({
 				ok: true,
-				message: 'Successfully updated ' + doc.name
+				message: 'Successfully updated ' + doc.name,
+				messageThreadId: 'UpdateAttUrlMessages'
 			});
 		});
 	}
@@ -2091,18 +2183,21 @@ class Actions {
 			var file = files[f];
 			if (maxMB && (file.size > (maxMB * 1024 * 1024))) {
 				return Promise.reject({
-					message: file.name + ' is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.'
+					message: file.name + ' is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.',
+					messageThreadId: 'UpdateAttMessages'
 				});
 			}
 		}
 		
 		var doc = n.getData().getById(id);
 		if (!doc && id.length) return Promise.reject({
-			message: 'Document ' + id + ' does not exist' 
+			message: 'Document ' + id + ' does not exist',
+			messageThreadId: 'UpdateAttMessages'
 		});  
 		
 		if (id.length && (doc.type == 'reference')) return Promise.reject({
-			message: 'Document ' + doc.name + ' is a reference and cannot have children' 
+			message: 'Document ' + doc.name + ' is a reference and cannot have children',
+			messageThreadId: 'UpdateAttMessages'
 		});
 
 		var docs = [];
@@ -2143,7 +2238,8 @@ class Actions {
 				$(document).unbind('keypress', keyPressed);
 				reject({
 					abort: true,
-					message: 'Action canceled.'
+					message: 'Action canceled.',
+					messageThreadId: 'UpdateAttMessages'
 				 });
 			});
 			$('#dropFilesDialog').modal();
@@ -2214,7 +2310,8 @@ class Actions {
 			for(var d in data) {
 				if (!data[d].ok) {
 					return Promise.reject({
-						message: 'Error: ' + data[d].message
+						message: 'Error: ' + data[d].message,
+						messageThreadId: 'UpdateAttMessages'
 					});
 				}
 				
@@ -2228,14 +2325,6 @@ class Actions {
 			});
 		})
 		.then(function(data) {
-			// Asynchronously request the document, if the parent is not part of a kanban board
-			/*if (data.rows.length == 1) {
-				var docc = data.rows[0].doc;
-				if (!(docc && ((docc.editor == 'board') || (docc.parentDoc && (docc.parentDoc.editor == 'board'))))) {
-					n.routing.call(docc._id);
-				}
-			}*/
-			
 			for(var d in data.rows) {
 				var docc = data.rows[d].doc;
 				
@@ -2251,6 +2340,7 @@ class Actions {
 			return Promise.resolve({
 				ok: true,
 				message: 'Successfully created ' + newIds.length + ' document(s)',
+				messageThreadId: 'UpdateAttMessages',
 				newIds: newIds
 			});
 		}); 
@@ -2330,7 +2420,8 @@ class Actions {
 				that.unlock(id);
 				
 				return Promise.reject({
-					message: data.message
+					message: data.message,
+					messageThreadId: 'DeleteVersionMessages'
 				});
 			}
 			
@@ -2340,7 +2431,8 @@ class Actions {
 		.then(function (data) {
 			return Promise.resolve({
 				ok: true,
-				message: 'Successfully deleted version.'
+				message: 'Successfully deleted version.',
+				messageThreadId: 'DeleteVersionMessages'
 			});
 		})
 		.catch(function(err) {
@@ -2379,7 +2471,8 @@ class Actions {
 				that.unlock(id);
 				
 				return Promise.reject({
-					message: data.message
+					message: data.message,
+					messageThreadId: 'DeleteHistoryMessages'
 				});
 			}
 			
@@ -2426,7 +2519,8 @@ class Actions {
 				that.unlock(id);
 				
 				return Promise.reject({
-					message: data.message
+					message: data.message,
+					messageThreadId: 'DeleteChangeLogMessages'
 				});
 			}
 
@@ -2464,7 +2558,8 @@ class Actions {
 			if (!data.rows) {
 				return Promise.resolve({
 					ok: true,
-					message: "Trash is empty."
+					message: "Trash is empty.",
+					messageThreadId: 'ShowTrashMessages'
 				});
 			}
 			
@@ -2495,7 +2590,8 @@ class Actions {
 		})
 		.then(function (data) {
 			if (!data.rows) return Promise.reject({
-				message: 'No documents to undelete'
+				message: 'No documents to undelete',
+				messageThreadId: 'UndeleteMessages'
 			});
 			
 			var undeleteDocs = [];
@@ -2516,7 +2612,8 @@ class Actions {
 				}
 			}
 			if (!doc) return Promise.reject({
-				message: 'Document ' + id + ' seems not to be deleted.'
+				message: 'Document ' + id + ' seems not to be deleted.',
+				messageThreadId: 'UndeleteMessages'
 			});
 			
 			// Reset parent if not existing anymore
@@ -2547,7 +2644,8 @@ class Actions {
 		.then(function (data) {
 			return Promise.resolve({
 				ok: true,
-				message: "Restored " + doc.name
+				message: "Restored " + doc.name,
+				messageThreadId: 'UndeleteMessages'
 			});
 		});
 	}
@@ -2591,7 +2689,8 @@ class Actions {
 			if (!confirm("Really delete " + data.name + revText + "?")) {
 				return Promise.reject({
 					abort: true,
-					message: "Nothing changed."
+					message: "Nothing changed.",
+					messageThreadId: 'DeletePermMessages'
 				});
 			}
 			doc = data;
@@ -2602,7 +2701,8 @@ class Actions {
 			if (!dataResp.ok) {
 				that.unlock(id);
 				return Promise.reject({
-					message: dataResp.message
+					message: dataResp.message,
+					messageThreadId: 'DeletePermMessages'
 				});
 			}
 			
@@ -2619,12 +2719,14 @@ class Actions {
 			if (rev) {
 				return Promise.resolve({
 					ok: true,
-					message: "Deleted revision " + rev + "."
+					message: "Deleted revision " + rev + ".",
+					messageThreadId: 'DeletePermMessages'
 				});
 			} else {
 				return Promise.resolve({
 					ok: true,
-					message: "Permanently deleted " + doc.name + "."
+					message: "Permanently deleted " + doc.name + ".",
+					messageThreadId: 'DeletePermMessages'
 				});
 			}
 		});
@@ -2649,7 +2751,8 @@ class Actions {
 			if (!confirm("Permanently delete " + data.rows.length + " trashed items?")) {
 				return Promise.reject({
 					abort: true,
-					message: "Nothing changed."
+					message: "Nothing changed.",
+					messageThreadId: 'EmptyTrashMessages'
 				});
 			}
 			
@@ -2668,7 +2771,8 @@ class Actions {
 		.then(function (data) {
 			return Promise.resolve({
 				ok: true,
-				message: "Trash is now empty."
+				message: "Trash is now empty.",
+				messageThreadId: 'EmptyTrashMessages'
 			});
 		});
 	}
@@ -2721,6 +2825,7 @@ class Actions {
 			return Promise.resolve({
 				ok: true,
 				message: 'Successfully imported ' + docs.length + ' documents',
+				messageThreadId: 'ImportDocsMessages'
 			});
 		}); 
 	}
@@ -2747,7 +2852,8 @@ class Actions {
 		.then(function(data) {
 			if (!data.rows) {
 				return Promise.reject({
-					message: "Error: No data received."
+					message: "Error: No data received.",
+					messageThreadId: 'ExportDocsMessages'
 				})
 			}
 			
@@ -2778,13 +2884,17 @@ class Actions {
 	 * Generic function to save an existing document on DB.
 	 */
 	saveItem(id) {
-		if (!id) return Promise.reject({ message: 'No ID passed' });
+		if (!id) return Promise.reject({
+			message: 'No ID passed',
+			messageThreadId: 'SaveItemMessages'
+		});
 			
 		var n = Notes.getInstance();
 		
 		var doc = n.getData().getById(id);
 		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found'
+			message: 'Document ' + id + ' not found',
+			messageThreadId: 'SaveItemMessages'
 		});
 		
 		var that = this;
@@ -2820,7 +2930,10 @@ class Actions {
 	 * Generic function to save multiple existing documents to DB. Expects an array of IDs.
 	 */
 	saveItems(ids) {
-		if (!ids) return Promise.reject({ message: 'No docs passed' });
+		if (!ids) return Promise.reject({ 
+			message: 'No docs passed',
+			messageThreadId: 'SaveItemsMessages'
+		});
 		var n = Notes.getInstance();
 			
 		// Remove duplicates
@@ -2834,7 +2947,8 @@ class Actions {
 			var doc = n.getData().getById(ids[l]);
 			if (!doc) {
 				return Promise.reject({
-					message: 'Document ' + ids[l] + ' not found'
+					message: 'Document ' + ids[l] + ' not found',
+					messageThreadId: 'SaveItemsMessages'
 				});
 			}
 			
@@ -2855,7 +2969,8 @@ class Actions {
 				var dd = d.getById(data[i].id);
 				if (!dd) {
 					return Promise.reject({
-						message: 'Document ' + data[i].id + ' not found in loaded data'
+						message: 'Document ' + data[i].id + ' not found in loaded data',
+						messageThreadId: 'SaveItemsMessages'
 					});
 				}
 				
@@ -2944,6 +3059,7 @@ class Actions {
 				
 				errors.push({
 					message: 'Unused view',
+					messageThreadId: 'CheckViewsMessages',
 					id: doc.id,
 					type: 'W'
 				});
@@ -2953,6 +3069,7 @@ class Actions {
 			if (ok) {
 				errors.push({
 					message: 'No unused design documents found',
+					messageThreadId: 'CheckViewsMessages',
 					type: 'S'
 				});
 			}
@@ -2994,7 +3111,8 @@ class Actions {
 			}
 			
 			if (docs.length == 0) return Promise.reject({
-				message: 'No documents to update.'
+				message: 'No documents to update.',
+				messageThreadId: 'DeleteViewsMessages'
 			});
 			
 			return db.bulkDocs(docs);
@@ -3002,7 +3120,8 @@ class Actions {
 		.then(function(data) {
 			return Promise.resolve({
 				ok: data.ok,
-				message: data.message ? data.message : ('Removed ' + docs.length + ' unused design documents.')
+				message: data.message ? data.message : ('Removed ' + docs.length + ' unused design documents.'),
+				messageThreadId: 'DeleteViewsMessages'
 			});
 		});
 	}
@@ -3028,6 +3147,7 @@ class Actions {
 			if (!errors.length) {
 				errors.push({
 					message: 'No inconsistent documents found (' + cnt + ' checked)',
+					messageThreadId: 'CheckMetaMessages',
 					type: 'S'
 				});
 			}
@@ -3067,7 +3187,8 @@ class Actions {
 			}
 			
 			if (docs.length == 0) return Promise.reject({
-				message: 'No documents to update.'
+				message: 'No documents to update.',
+				messageThreadId: 'RepairMetaMessages'
 			});
 			
 			return db.bulkDocs(docs);
@@ -3075,7 +3196,8 @@ class Actions {
 		.then(function(data) {
 			return Promise.resolve({
 				ok: data.ok,
-				message: data.message ? data.message : ('Solved problems for ' + docs.length + ' documents')
+				message: data.message ? data.message : ('Solved problems for ' + docs.length + ' documents'),
+				messageThreadId: 'RepairMetaMessages'
 			});
 		});
 	}
@@ -3101,6 +3223,7 @@ class Actions {
 			if (!errors.length) {
 				errors.push({
 					message: 'No inconsistent documents found (' + cnt + ' checked)',
+					messageThreadId: 'CheckMetaMessages',
 					type: 'S'
 				});
 			}
@@ -3156,7 +3279,8 @@ class Actions {
 			}
 			
 			if (docs.length == 0) return Promise.reject({
-				message: 'No documents to repair.'
+				message: 'No documents to repair.',
+				messageThreadId: 'SolveErrorsMessages'
 			});
 			
 			return db.bulkDocs(docs);
@@ -3164,7 +3288,8 @@ class Actions {
 		.then(function(data) {
 			return Promise.resolve({
 				ok: data.ok,
-				message: data.message ? data.message : ('Repaired ' + docs.length + ' documents')
+				message: data.message ? data.message : ('Repaired ' + docs.length + ' documents'),
+				messageThreadId: 'SolveErrorsMessages'
 			});
 		});
 	}
@@ -3183,6 +3308,7 @@ class Actions {
 					for (var c in doc._conflicts) {
 						errors.push({
 							message: 'Confict detected: ' + doc._conflicts[c],
+							messageThreadId: 'CheckConflictMessages',
 							id: doc._id,
 							type: 'E'
 						});
@@ -3193,6 +3319,7 @@ class Actions {
 			if (!errors.length) {
 				errors.push({
 					message: 'No conflicted documents found (' + allDocs.rows.length + ' checked)',
+					messageThreadId: 'CheckConflictMessages',
 					type: 'S'
 				});
 			}
@@ -3250,7 +3377,8 @@ class Actions {
 		.then(function(data) {
 			return Promise.resolve({
 				ok: data.ok,
-				message: 'Deleted ' + docRevs.length + ' conflict revisions'
+				message: 'Deleted ' + docRevs.length + ' conflict revisions',
+				messageThreadId: 'DeleteConflictMessages'
 			});
 		});
 	}
@@ -3269,7 +3397,8 @@ class Actions {
 		.then(function(doc) {
 			if(!doc) {
 				return Promise.reject({
-					message: 'Document ' + id + ' not found'
+					message: 'Document ' + id + ' not found',
+					messageThreadId: 'DeleteDbDocMessages'
 				});
 			}
 			return db.remove(doc);
@@ -3277,7 +3406,8 @@ class Actions {
 		.then(function(data) {
 			return Promise.resolve({
 				ok: data.ok,
-				message: 'Deleted ' + id
+				message: 'Deleted ' + id,
+				messageThreadId: 'DeleteDbDocMessages'
 			});
 		});
 	}
@@ -3296,7 +3426,8 @@ class Actions {
 		.then(function(data) {
 			return Promise.resolve({
 				ok: data.ok,
-				message: 'Saved ' + doc._id
+				message: 'Saved ' + doc._id,
+				messageThreadId: 'SaveDbDocMessages'
 			});
 		});
 	}
@@ -3319,6 +3450,7 @@ class Actions {
 				if (!doc.type) {
 					errors.push({
 						message: 'Type missing (document is not displayed)',
+						messageThreadId: 'CheckRefsMessages',
 						id: doc._id,
 						type: 'E'
 					});	
@@ -3328,6 +3460,7 @@ class Actions {
 					if (!doc.ref) {
 						errors.push({
 							message: 'Ref missing for reference document',
+							messageThreadId: 'CheckRefsMessages',
 							id: doc._id,
 							type: 'E'
 						});	
@@ -3335,6 +3468,7 @@ class Actions {
 						if (!that.checkRefsDocExists(allDocs.rows, doc.ref)) {
 							errors.push({
 								message: 'Broken reference: Target ' + doc.ref + ' does not exist',
+								messageThreadId: 'CheckRefsMessages',
 								id: doc._id,
 								type: 'E'
 							});	
@@ -3344,6 +3478,7 @@ class Actions {
 						for (var rr in refChildren) {
 							errors.push({
 								message: 'Child of reference document detected: ' + refChildren[rr]._id,
+								messageThreadId: 'CheckRefsMessages',
 								id: doc._id,
 								type: 'E'
 							});	
@@ -3358,6 +3493,7 @@ class Actions {
 			if (ok) {
 				errors.push({
 					message: 'No inconsistent documents found (' + cnt + ' checked)',
+					messageThreadId: 'CheckRefsMessages',
 					type: 'S'
 				});
 			}
@@ -3404,6 +3540,7 @@ class Actions {
 		if (!doc.hasOwnProperty('parent')) {
 			errors.push({
 				message: 'Parent missing (document is not displayed)',
+				messageThreadId: 'CheckHasRootMessages',
 				id: doc._id,
 				type: 'E'
 			});	
@@ -3414,6 +3551,7 @@ class Actions {
 		if (doc.parent == doc._id) {
 			errors.push({
 				message: 'Self-referencing parent',
+				messageThreadId: 'CheckHasRootMessages',
 				id: doc._id,
 				type: 'E'
 			});	
@@ -3428,6 +3566,7 @@ class Actions {
 		
 		errors.push({
 			message: 'Document has no root: (lost at ' + doc._id + ')',
+			messageThreadId: 'CheckHasRootMessages',
 			id: docId,
 			type: 'E'
 		});

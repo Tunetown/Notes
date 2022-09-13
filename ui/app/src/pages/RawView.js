@@ -78,10 +78,10 @@ class RawView {
 		
 		Actions.getInstance().exportDocuments(ids)
 		.then(function(data) {
-			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
+			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S', 'ExportDocsMessages');
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
@@ -100,12 +100,12 @@ class RawView {
 			return Actions.getInstance().requestTree();
 		})
 		.then(function(data) {
-			Notes.getInstance().showAlert('Saved ' + (doc.name ? doc.name : 'the document') + '.', 'S');
+			Notes.getInstance().showAlert('Saved ' + (doc.name ? doc.name : 'the document') + '.', 'S', 'SaveDbDocMessages');
 			
 			if (doc._id) Notes.getInstance().routing.call('raw/' + doc._id);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E');
+			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 	
