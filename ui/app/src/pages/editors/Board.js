@@ -221,7 +221,8 @@ class Board {
 				
 				// Colors for items
 				var itemContent = $('<div class="board-item-content" data-id="' + subList[i]._id + '"></div>');
-				if (subList[i].backColor) itemContent.css('background-color', subList[i].backColor);
+				Document.setBackground(subList[i], itemContent);
+				//if (subList[i].backColor) itemContent.css('background-color', subList[i].backColor);
 				if (subList[i].color) itemContent.css('color', subList[i].color);
 				
 				var itemIconClass = this.getItemIconClass(subList[i]);
@@ -398,7 +399,9 @@ class Board {
 					})	
 				);
 			}
-			if (lists[l].backColor) colHdr.css('background-color', lists[l].backColor);
+			
+			Document.setBackground(lists[l], colHdr);
+			//if (lists[l].backColor) colHdr.css('background-color', lists[l].backColor);
 			if (lists[l].color) colHdr.css('color', lists[l].color);
 			
 			var itemWidth;
@@ -414,16 +417,25 @@ class Board {
 				.css('width', itemWidth + 'px') 
 				.css('max-height', containerHeight + 'px')
 				.append(
-						$('<div class="board-column-container" data-id="' + lists[l]._id + '"></div>')
-						.css('max-height', containerHeight + 'px')
-						.append([
-							colHdr,
-							isCollapsed ? null : $('<div class="board-content-wrapper" data-id="' + lists[l]._id + '"></div>')
-							.css('max-height', (containerHeight - 50) + 'px')
-							.append(
-								$('<div class="board-column-content" data-id="' + lists[l]._id + '"></div>').append(items)
-							)
-						])
+					$('<div class="board-column-container" data-id="' + lists[l]._id + '"></div>')
+					.css('max-height', containerHeight + 'px')
+					.append([
+						colHdr,
+						isCollapsed ? null : $('<div class="board-content-wrapper" data-id="' + lists[l]._id + '"></div>')
+						.css('max-height', (containerHeight - 50) + 'px')
+						.append(
+							$('<div class="board-column-content" data-id="' + lists[l]._id + '"></div>')
+							.contextmenu(function(event) {
+								event.stopPropagation();
+								event.preventDefault();
+								
+								var data = $(event.currentTarget).parent().parent().data();
+								
+								n.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
+							})
+							.append(items)
+						)
+					])
 				)
 				.contextmenu(function(e) {
 					// Kills the right click on column backgrounds

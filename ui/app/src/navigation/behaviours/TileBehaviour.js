@@ -383,12 +383,16 @@ class TileBehaviour {
 	 */
 	colorItem(element, doc, color, back) {
 		if (back) {
-			$(element).css('background-color', color);
+			if (Document.setBackground(doc, element) != 'image') {
+				if (!color) return;
+				$(element).css('background-color', color);
+			}
 			
 			// Also color the underlay
 			var col = Tools.lightenDarkenColor(color, 12);
 			$(element).find('.' + this.getUnderlayClass()).css('color', col);
 		} else {
+			if (!color) return;
 			$(element).css('color', color);
 		}
 	}

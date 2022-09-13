@@ -352,6 +352,7 @@ class NoteTree {
 				noBgColor: true,
 				noColor: true,
 				noCreate: true,
+				noBgImage: true,
 				showDeleteFavorite: true,
 				showClearFavorites: true
 			});
@@ -375,7 +376,7 @@ class NoteTree {
 			delayHoldMillis: 600
 		});
 			
-		if (doc.backColor) el.css('background-color', doc.backColor);
+		Document.setBackground(doc, el);
 		if (doc.color) el.css('color', doc.color);
 		
 		favBar.append(
@@ -462,12 +463,13 @@ class NoteTree {
 		li.attr('data-id', doc._id);
 
 		// Colors (inherited when no color is set)
-		if (doc.backColor) {
+		/*if (doc.backColor) {
 			licont.css('background-color', doc.backColor);
 		}
+		
 		if (doc.color) {
 			licont.css('color', doc.color);
-		}
+		}*/
 		
 		// Is it a folder?
 		var isFolder = data.hasChildren(doc._id);
@@ -1184,11 +1186,11 @@ class NoteTree {
 		function setColor(doc, lvl) {
 			var bcol = getBackColor(doc);
 			var el = element ? element : that.getItemContent(doc._id);
-			if (bcol) that.behaviour.colorItem(el, doc, bcol, true); 
+			that.behaviour.colorItem(el, doc, bcol, true); 
 		
 			var col = getColor(doc);
 			var el = element ? element : that.getItemContent(doc._id);
-			if (col) that.behaviour.colorItem(el, doc, col, false); 
+			that.behaviour.colorItem(el, doc, col, false); 
 		}
 		
 		if (element && id) {

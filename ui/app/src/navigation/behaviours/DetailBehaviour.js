@@ -652,12 +652,17 @@ class DetailBehaviour {
 	 */
 	colorItem(element, doc, color, back) {
 		if (doc._id == this.selectedParent) {
+			$(element).css('background-image', '');
 			$(element).css('background-color', 'lightgrey');
 			$(element).css('color', 'black');
 		} else {
 			if (back) {
-				$(element).css('background-color', color);
+				if (Document.setBackground(doc, element) != 'image') {
+					if (!color) return;
+					$(element).css('background-color', color);
+				}
 			} else {
+				if (!color) return;
 				$(element).css('color', color);
 			}
 		}

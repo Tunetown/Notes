@@ -418,6 +418,7 @@ class Document {
 		doc.order = src.order;
 		doc.ref = src.ref;
 		doc.backColor = src.backColor;
+		doc.backImage = src.backImage;
 		doc.color = src.color;
 		doc.content = src.content;
 		doc.timestamp = src.timestamp;
@@ -484,6 +485,7 @@ class Document {
 		doc.order = src.order;
 		doc.ref = src.ref;
 		doc.backColor = src.backColor;
+		doc.backImage = src.backImage;
 		doc.color = src.color;
 		doc.content = src.content;
 		doc.timestamp = src.timestamp;
@@ -546,6 +548,7 @@ class Document {
 
 						color: doc.color,
 						backColor: doc.backColor,
+						backImage: doc.backImage,
 
 						editor: doc.editor,
 						
@@ -1023,6 +1026,14 @@ class Document {
 			console.log("   -> Background color changed");
 			return true;
 		}
+		
+		var backImageErrors = [];
+		Tools.compareObjects(doc.backimage, current.backImage, backImageErrors);
+		if (backImageErrors.length > 0) {
+			console.log("   -> Background image changed");
+			return true;
+		}
+		
 		if (doc.color != current.color) {
 			console.log("   -> Text color changed");
 			return true;
@@ -1523,5 +1534,84 @@ class Document {
 		//ret += options.lineFeed;
 		
 		return ret;
+	}
+	
+	/**
+	 * Sets an appropriate background on the element, according to the document.
+	 */
+	static setBackground(doc, element) {
+		$(element).css('background-image', '');
+		$(element).css('background-color', '');
+		$(element).css('background-repeat', '');
+		$(element).css('background-size', '');
+		$(element).css('background-position', '');	
+		
+		function handleSize() {
+			if (doc.backImage.size) {
+				if (Math.min(doc.backImage.size.width, doc.backImage.size.height) < 100) {
+					// Show repeated					
+					$(element).css('background-repeat', 'repeat');	
+				} else {
+					// Show all of image
+					$(element).css('background-size', 'cover');
+					$(element).css('background-position', 'center');	
+				}
+			} else {
+				// Show all of image
+				$(element).css('background-size', 'cover');
+				$(element).css('background-position', 'center');				
+			}
+		}
+		
+		if (Document.hasBackImageUrl(doc)) {
+			// URL background
+			$(element).css('background-image', 'url("' + doc.backImage.data + '")');
+			
+			handleSize();
+						
+			return 'image';
+			
+		} else if (Document.hasBackImageRef(doc)) {
+			// Reference background
+			
+			Actions.getInstance().getAttachmentUrl(doc.backImage.ref)
+			.then(function(data) {
+				if (data.url) {
+					$(element).css('background-image', 'url("' + data.url + '")');
+					$(element).css('background-size', 'cover');
+					$(element).css('background-position', 'center');
+					
+					handleSize();
+				}
+			})
+			.catch(function(err) {
+				Notes.getInstance().showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.backImage.ref, 'E', err.messageThreadId);
+			});
+			
+			return 'image';
+			
+		} else if (doc.backColor) {
+			// Solid background color
+			if (!doc.backColor) return false;
+			$(element).css('background-color', doc.backColor);
+			return 'color';
+			
+		} else {
+			// No background color
+			return false;
+		}
+	}
+	
+	/**
+	 * Determines if the document has a background image or not.
+	 */
+	static hasBackImage(doc) {
+		return Document.hasBackImageUrl(doc) ||  Document.hasBackImageRef(doc);
+	}
+	static hasBackImageUrl(doc) {
+		return doc.backImage && doc.backImage.data;
+	}
+	static hasBackImageRef(doc) {
+		return doc.backImage && doc.backImage.ref;
 	}
 }

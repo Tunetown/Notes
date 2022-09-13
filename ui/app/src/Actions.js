@@ -3000,6 +3000,374 @@ class Actions {
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
+	 * Lets the user choose a background image for the passed documents.
+	 */
+	setItemBackgroundImage(ids) {
+		var docs = [];
+		
+		ids = Tools.removeDuplicates(ids);
+		
+		for(var i in ids) {
+			var doc = Notes.getInstance().getData().getById(ids[i]);
+			if (!doc) return Promise.reject({
+				message: 'Document ' + ids[i] + ' not found',
+				messageThreadId: 'SetItemBgImageMessages'
+			});
+			
+			docs.push(doc);
+		}
+
+		if (ids.length == 0) return Promise.reject({
+			message: 'Nothing selected',
+			messageThreadId: 'SetItemBgImageMessages'
+		});
+		
+		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
+
+		function getClipboardImageData(event) {
+			return new Promise(function(resolve, reject) {
+				var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+				var found = false;
+				for (var index in items) {
+					var item = items[index];
+					if (item.kind === 'file') {
+						var blob = item.getAsFile();
+						var reader = new FileReader();
+						reader.onload = function(event){
+					    	resolve(event.target.result);
+						}; 
+						found = true;
+						reader.readAsDataURL(blob);
+						break;
+					}
+				}
+				
+				if (!found) reject();
+			});
+		}
+		
+		function pasteHandler(event) {
+			getClipboardImageData(event)
+			.then(function(data) {
+				$('#setBgImageDialogB64DataInput').val(data);
+			})
+			.catch(function(err) {
+			});
+		}
+
+		function setupInputs(mode) {
+			$('#setBgImageDialogInputSrcIn').empty();
+
+			var name = "";
+			switch (mode) {
+				case 'none': {
+					name = '';
+					break;
+				}
+				case 'url': {
+					name = 'URL';
+					$('#setBgImageDialogInputSrcIn').append(
+						$('<textarea id="setBgImageDialogB64DataInput"></textarea>')
+						.on('focus', function(event) {
+							$(this).select();
+						})
+						.val(docs[0].backImage ? (docs[0].backImage.data ? docs[0].backImage.data : '') : '')
+					);
+					window.addEventListener("paste", pasteHandler, false);
+					break;
+				}
+				case 'ref': {
+					name = 'Attachment Document';
+					
+					var selector = Notes.getInstance().getBackgroundImageSelector();
+					selector.css('max-width', '100%');
+					selector.attr('id', 'setBgImageDialogRefIdInput');
+					selector.val(docs[0].backImage ? (docs[0].backImage.ref ? docs[0].backImage.ref : '_cancel') : '_cancel');
+						
+					$('#setBgImageDialogInputSrcIn').append(selector);
+					
+					break;
+				}
+				case 'upload': {
+					name = 'URL';
+					$('#setBgImageDialogInputSrcIn').append(
+						$('<input type="file" class="form-control" id="setBgImageDialogFileUploadInput" />')
+					);
+					break;
+				}
+				default: {
+					return;
+				}
+			}
+			$('#setBgImageDialogInputName').html(name);
+		}
+		
+		$('#setBgImageDialogTypeSelector')
+		.on('change', function(event) {
+			setupInputs($(this).val());
+		});
+		
+		if (docs[0].backImage) {
+			if (docs[0].backImage.hasOwnProperty('data')) {
+				$('#setBgImageDialogTypeSelector').val('url');
+			}
+			if (docs[0].backImage.hasOwnProperty('ref')) {
+				$('#setBgImageDialogTypeSelector').val('ref');
+			}
+		}
+		
+		setupInputs($('#setBgImageDialogTypeSelector').val());
+		
+		$('#setBgImageDialogSubmitButton').html('Set');
+		
+		var that = this;
+		return new Promise(function(resolve, reject) {
+			$('#setBgImageDialogSubmitButton').off('click');
+			$('#setBgImageDialogSubmitButton').on('click', function(event) {
+				$('#setBgImageDialog').off('hidden.bs.modal');
+	        	$('#setBgImageDialog').modal('hide');
+				window.removeEventListener("paste", pasteHandler);
+
+				var mode = $('#setBgImageDialogTypeSelector').val();
+				switch(mode) {
+					// No image
+					case 'none': {
+						that.setItemBackImage(ids, false)
+			        	.then(function(data) {
+							resolve({
+								ok: true,
+								message: 'Updated background image for ' + displayName,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	})
+			        	.catch(function(err) {
+			        		reject({
+								message: "Error setting background image for document(s): " + err.message,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	});
+						return;
+					}
+					
+					// Link or data
+					case 'url': {
+						var b64data = $('#setBgImageDialogB64DataInput').val();
+
+						Tools.getImageSize(b64data)
+			        	.then(function(size) {
+							return that.setItemBackImage(ids, {
+								data: b64data,
+								size: size
+							});
+						})
+			        	.then(function(data) {
+							resolve({
+								ok: true,
+								message: 'Updated background image for ' + displayName,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	})
+			        	.catch(function(err) {
+			        		reject({
+								message: "Error setting background image for document(s): " + err.message,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	});
+						return;
+					}
+					
+					// Reference document
+					case 'ref': {
+						var refId = $('#setBgImageDialogRefIdInput').val();
+						if (refId == '_cancel') refId = false;
+						
+						Actions.getInstance().getAttachmentUrl(refId)
+						.then(function(data) {
+							return Tools.getImageSize(data.url);
+						})
+						.then(function(size) {
+							return that.setItemBackImage(ids, {
+								ref: refId,
+								size: size
+							});
+						})
+			        	.then(function(data) {
+							resolve({
+								ok: true,
+								message: 'Updated background image for ' + displayName,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	})
+			        	.catch(function(err) {
+			        		reject({
+								message: "Error setting background image for document(s): " + err.message,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	});
+						return;
+					}
+
+					// Upload file					
+					case 'upload': {
+						var files = $('#setBgImageDialogFileUploadInput')[0].files;
+		    		
+			    		if (!files || !files.length) {
+			    			Notes.getInstance().showAlert('Please select a file to upload.', 'E', 'SetItemBgImageMessages');
+							return;
+					    }
+	
+						var file = files[0];
+			    		
+			    		var maxMB = 0.5; //parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
+			    		if (file.size > (maxMB * 1024 * 1024)) {
+			    			if (!confirm('The file ' + file.name + 'is possibly too large for usage as item background: ' + Tools.convertFilesize(file.size) + '. Do you really want to use it?')) {
+								reject({
+									message: "Action cancelled",
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+								return;
+							}
+			    		}
+			    		
+						var b64data_;
+						Tools.fileToBase64(file)
+						.then(function(b64data) {
+							b64data_ = b64data;
+							return Tools.getImageSize(b64data);
+						})
+						.then(function(size) {
+							return that.setItemBackImage(ids, {
+								data: b64data_,
+								size: size
+							})
+						})
+			        	.then(function(data) {
+							resolve({
+								ok: true,
+								message: 'Updated background image for ' + displayName,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	})
+						.catch(function(err) {
+			        		reject({
+								message: "Error setting background image for document(s): " + err.message,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	});
+						
+						return;
+						/*var b64data = $('#setBgImageDialogB64DataInput').val();
+
+						that.setItemBackImage(ids, {
+							data: b64data
+						})
+			        	.then(function(data) {
+							resolve({
+								ok: true,
+								message: 'Updated background image for ' + displayName,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	})
+			        	.catch(function(err) {
+			        		reject({
+								message: "Error setting background image for document(s): " + err.message,
+								messageThreadId: 'SetItemBgImageMessages'
+							});
+			        	});
+						return;*/
+					}
+					
+					default: {
+						reject({
+							abort: true,
+							message: 'Invalid image mode: ' + mode,
+							messageThreadId: 'SetItemBgImageMessages'
+						});
+						return;
+					}
+				}
+			});
+			
+			$('#setBgImageDialog').off('hidden.bs.modal');
+			$('#setBgImageDialog').on('hidden.bs.modal', function () {
+				window.removeEventListener("paste", pasteHandler);
+				reject({
+					abort: true,
+					message: 'Action cancelled.',
+					messageThreadId: 'SetItemBgImageMessages'
+				});
+			});
+			
+			$('#setBgImageDialogText').text('Set background image for ' + displayName + ':');
+			$('#setBgImageDialog').modal();
+		});
+	}
+
+	/**
+	 * Saves the passed image data to the passed documents.
+	 */
+	setItemBackImage(ids, backImage) {
+		var n = Notes.getInstance();
+		var t = NoteTree.getInstance();
+
+		ids = Tools.removeDuplicates(ids);
+
+		var docsSrc = [];
+    	for(var i in ids) {
+    		var doc = n.getData().getById(ids[i]);
+    		if (!doc) {
+    			return Promise.reject({
+    				message: 'Document ' + ids[i] + ' not found',
+					messageThreadId: 'SetItemBgImageMessages'
+    			});
+    		}
+    		docsSrc.push(doc);
+    	}
+    	
+    	var that = this;
+    	return this.loadDocuments(docsSrc)
+    	.then(function(resp) {
+	    	for(var s in docsSrc) {
+	    		docsSrc[s].backImage = backImage;
+	
+				// Change log entry
+				Document.addChangeLogEntry(docsSrc[s], 'backImageChanged', { 
+					bytes: JSON.stringify(backImage).length
+				});
+	    	}
+			
+			// Execute callbacks
+			that.executeCallbacks('setItemBackImageBeforeSave', {
+				docsSrc: docsSrc,
+				backImage: backImage
+			});
+		
+	    	// Save the new tree structure by updating the metadata of all touched objects.
+	    	return that.saveItems(ids);
+    	})
+    	.then(function(data) {
+			return that.requestTree();
+		})
+    	.then(function(data) {
+    		// Execute callbacks
+    		that.executeCallbacks('setItemBackImageAfterSave', {
+    			docsSrc: docsSrc,
+    			backImage: backImage
+    		});
+    		
+    		return Promise.resolve({ ok: true });
+    	})
+    	.then(function(data) {
+    		t.unblock();
+
+    		return Promise.resolve({ ok: true });
+    	});
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
 	 * Returns a promise holding allDocs data including documents and conflicts (not attachments!), used for checks.
 	 */
 	getAllDocs() {

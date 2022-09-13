@@ -23,9 +23,9 @@ class Behaviours {
 	static getNextNavMode() {
 		var cs = ClientState.getInstance().getViewSettings();
 		switch (cs.navMode) {
-		case 'tiles': return 'detail';
+		//case 'tiles': return 'detail';
 		case 'detail': return 'tree';
-		case 'tree': return 'tiles';
+		case 'tree': return 'detail'; //'tiles';   // NOTE: Tile navigation is disabled here. 
 		} 
 		return null;
 	}

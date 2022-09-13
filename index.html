@@ -68,6 +68,45 @@
       </div>
     </div>
     
+    <div class="modal fade" id="setBgImageDialog" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title" id="exampleModalLabel"><span id="setBgImageDialogText"></span></h5>
+          </div>
+          <div class="modal-body">
+	          <table class="dialogTable">
+					<colgroup>
+						<col span="1" style="width: 15%;">
+						<col span="1" style="width: 70%;">
+					</colgroup>
+	          		<tbody>
+		          		<tr>
+		          			<td>Source</td>
+		          			<td>
+		          				<select id="setBgImageDialogTypeSelector">
+		          					<option value="none">No image</option>
+		          					<option value="upload" selected="selected">Upload</option>
+		          					<option value="ref">Attachment in Notebook</option>
+		          					<option value="url">URL</option>
+		          				</select>
+		          			</td>
+		          		</tr>
+		          		<tr>
+		          			<td id="setBgImageDialogInputName"></td>
+		          			<td id="setBgImageDialogInputSrcIn"></td>
+		          		</tr>
+	          		</tbody>
+	          	</table>
+          </div>
+          <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" id="setBgImageDialogSubmitButton">Move</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+          </div>
+        </div>
+      </div>
+    </div>
+    
     <div class="modal fade" id="createReferenceDialog" tabindex="-1" aria-hidden="true">
       <div class="modal-dialog modal-lg">
         <div class="modal-content">

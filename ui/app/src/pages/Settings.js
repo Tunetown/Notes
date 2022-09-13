@@ -68,8 +68,7 @@ class Settings {
 			maxUploadSizeMB: 1,
 			reduceHistory: true,
 			maxSearchResults: 15,
-			navigationAnimationDuration: 60,
-			showFavorites: true
+			navigationAnimationDuration: 60
 		};
 	}
 	

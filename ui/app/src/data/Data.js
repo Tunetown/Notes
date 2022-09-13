@@ -235,8 +235,8 @@ class Data {
 			}
 		}
 		
-		if (doc.labelDefinitions) {
-			ret += JSON.stringify(doc.labelDefinitions).length;
+		if (doc.backImage) {
+			ret += JSON.stringify(doc.backImage).length;
 		}
 		
 		if (doc.labels) {

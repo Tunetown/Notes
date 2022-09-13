@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.87.10';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.88.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1155,7 +1155,7 @@ class Notes {
 	/**
 	 * Returns a selector element containing all image attachments available
 	 */
-	getBackgroundImageSelector(currentImageId) {
+	getBackgroundImageSelector() {
 		var selector = $('<select></select>');
 		
 		var ids = [];
@@ -1486,6 +1486,7 @@ class Notes {
 				noBgColor: false,
 				noColor: false,
 				noLabels: false,
+				noBgImage: false,
 				showDeleteFavorite: false,
 				showClearFavorites: false
 			};
@@ -1514,6 +1515,8 @@ class Notes {
 			// Options for a single document
 			var doc = this.getData().getById(ids[0]);
 	
+			if (Document.hasBackImage(doc)) options.noBgColor = true;
+	
 			// Options: Show in Navigation (default: hidden)
 			$('.contextOptionRename').css('display', options.noRename ? 'none' : 'inline-block');
 			$('.contextOptionShowInNavigation').css('display', options.showInNavigation ? 'inline-block' : 'none');
@@ -1525,6 +1528,7 @@ class Notes {
 			$('.contextOptionBgColor').css('display', options.noBgColor ? 'none' : 'inline-block');
 			$('.contextOptionDeleteFavorite').css('display', options.showDeleteFavorite ? 'inline-block' : 'none');
 			$('.contextOptionClearFavorites').css('display', options.showClearFavorites ? 'inline-block' : 'none');
+			$('.contextOptionBgImage').css('display', options.noBgImage ? 'none' : 'inline-block');
 	
 			// Show special options for references
 			var isref = (doc && (doc.type == 'reference'));
@@ -1802,6 +1806,22 @@ class Notes {
 					        })
 			        ),
 
+				// BG Image
+				$('<label id="contextOptionBgImage" data-toggle="tooltip" title="Set background image..." class="fa fa-image treebutton roundedButton contextOptionBgImage"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						that.hideOptions();
+						if (!that.optionsIds.length) return;
+						
+						Actions.getInstance().setItemBackgroundImage(that.optionsIds)
+						.then(function(data) {
+							if (data.message) that.showAlert(data.message, 'S', data.messageThreadId);
+						})
+						.catch(function(err) {
+							that.showAlert(err.message ? err.message : 'Error setting background image for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+						});
+					}),
+					
 				// Delete favorite entry
 				$('<label id="contextOptionDeleteFavorite" data-toggle="tooltip" title="Delete entry" class="fa fa-times treebutton roundedButton contextOptionDeleteFavorite"></div>')
 					.on('click', function(event) {

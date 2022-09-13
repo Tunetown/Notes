@@ -44,4 +44,7 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
 - 0.87.0
     - Added Favorites Bar
     
+- 0.88.0
+    - Added item background images
+    
     
