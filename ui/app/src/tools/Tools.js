@@ -576,6 +576,19 @@ class Tools {
 				ctx.drawImage(img, 0, 0, width, height);
 
 				var dataurl = canvas.toDataURL(type, quality);
+				
+				/*if (!url.startsWith('http') && (dataurl.length > url.length)) {
+					console.log("NO RESCALING");
+					resolve({
+						data: url,
+						size: {
+							width: img.width,
+							height: img.height
+						}
+					});
+					return;
+				}*/
+				
 				resolve({
 					data: dataurl,
 					size: {

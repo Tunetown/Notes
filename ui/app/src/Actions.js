@@ -3243,10 +3243,10 @@ class Actions {
 								});
 							}
 							
-							if (b64data.length != compressed.data.length) {
-								console.log(' -> Image rescaled from ' + Tools.convertFilesize(b64data.length) + ' to ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+							if (b64data != compressed.data) {
+								console.log(' -> Item background image rescaled from ' + Tools.convertFilesize(b64data.length) + ' to ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
 							} else {
-								console.log(' -> Image memory: ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+								console.log(' -> Item background image: ' + Tools.convertFilesize(compressed.data.length) + ", size: " + JSON.stringify(compressed.size));
 							}
 							
 							return that.setItemBackImage(ids, {
@@ -3361,10 +3361,10 @@ class Actions {
 								});
 							}
 							
-							if (b64data_.length != compressed.data.length) {
-								console.log(' -> Image rescaled from ' + Tools.convertFilesize(b64data_.length) + ' to ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+							if (b64data_ != compressed.data) {
+								console.log(' -> Item background image rescaled from ' + Tools.convertFilesize(b64data_.length) + ' to ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
 							} else {
-								console.log(' -> Image memory: ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+								console.log(' -> Item background image: ' + Tools.convertFilesize(compressed.data.length) + ", size: " + JSON.stringify(compressed.size));
 							}
 
 							return that.setItemBackImage(ids, {
