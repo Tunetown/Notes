@@ -205,15 +205,21 @@ class NoteTree {
 		
 		var favBar = $('#favBar');
 		if (!favBar) return;
-		
-		// Clear content and hide at first
-		favBar.empty();
-		favBar.css('height', 'auto');
-		this.showFavorites(false);
+
+		var that = this;
+		function clear() {
+			// Clear content and hide at first
+			favBar.empty();
+			favBar.css('height', 'auto');
+			that.showFavorites(false);
+		}
 		
 		// No favorites: Dont show anything
 		var favorites = c.getFavorites();
-		if (!favorites) return;
+		if (!favorites) {
+			clear();			
+			return;
+		}
 
 		// Should the currently opened document be shown?
 		var currentId = Notes.getInstance().getCurrentlyShownId(true);
@@ -239,12 +245,27 @@ class NoteTree {
 		}
 		
 		favsSorted.sort(function(b, a){return (a.rank ? a.rank : 0) - (b.rank ? b.rank : 0); });
-		if (favsSorted.length == 0) return;
+		if (favsSorted.length == 0) {
+			clear();				
+			return;
+		}
 
 		// We have favorites: Check if the user wants to see them
 		var showFavorites = !c.getViewSettings().dontShowFavorites;
-		if (!showFavorites) return;
+		if (!showFavorites) {
+			clear();				
+			return;
+		}
 		
+		// Check if there have been changes
+		var cmp = Tools.hashCode(JSON.stringify(favsSorted));
+		if (this.lastRenderedFavs == cmp) {
+			return;
+		}
+		this.lastRenderedFavs = cmp;
+		clear();
+		
+		// Changed favorites: Update them
 		var favSize = c.getViewSettings().favoritesSize;
 		if (!favSize) favSize = 70;
 		favBar.css('height', (favSize + 7) + 'px');
@@ -375,13 +396,13 @@ class NoteTree {
 			delayedHoldCallback: handleFavContext,
 			delayHoldMillis: 600
 		});
-			
-		Document.setBackground(doc, el);
-		if (doc.color) el.css('color', doc.color);
-		
+
 		favBar.append(
 			el
 		);
+					
+		Document.setBackground(doc, el);
+		if (doc.color) el.css('color', doc.color);
 	}
 	
 	/**
@@ -478,16 +499,22 @@ class NoteTree {
 		}
 		
 		// Icon
-		var iconclass = this.behaviour.getIconStyleClass(isFolder, false, doc); //isFolder ? this.behaviour.getIconFolderClass(false) : this.behaviour.getIconDoctypeClass(doc.type);
+		var iconclass = this.behaviour.getIconStyleClass(false, doc); 
 
 		// Conflict icon
 		var conflictIcon = "";
 		if (data.hasConflicts(doc._id, true)) {
-			conflictIcon = '<span class="fa fa-exclamation conflictIcon"></span>';
+			conflictIcon = '<span class="fa fa-exclamation conflictIcon itemAdditionalIcon"></span>';
+		}
+		
+		// Reference icon
+		var referenceIcon = "";
+		if (doc.type == 'reference') {
+			referenceIcon = '<span class="fa fa-long-arrow-alt-right itemAdditionalIcon"></span>';
 		}
 		
 		// Build inner DOM of node
-		this.behaviour.setupItemContent(li, doc.level, doc, iconclass, conflictIcon, false, isFolder);
+		this.behaviour.setupItemContent(li, doc, iconclass, referenceIcon + conflictIcon, '');
 		
 		// Attach item events
 		this.behaviour.registerItemEvents(li);
@@ -1049,8 +1076,8 @@ class NoteTree {
 				var opened = that.behaviour.isItemOpened(doc); 
 				var ic = $(el).find('.' + that.behaviour.getIconClass());
 				
-				var folderClosedClass = that.behaviour.getIconStyleClass(true, false, doc);
-				var folderOpenedClass = that.behaviour.getIconStyleClass(true, true, doc);
+				var folderClosedClass = that.behaviour.getIconStyleClass(false, doc);
+				var folderOpenedClass = that.behaviour.getIconStyleClass(true, doc);
 				
 				if (opened) {
 					ic.toggleClass(folderClosedClass, !opened);

@@ -219,6 +219,7 @@ class Data {
 			ret += doc.contentSize ? doc.contentSize : 0; 
 			ret += doc.attachmentSize ? doc.attachmentSize : 0;
 			ret += doc.changeLogSize ? doc.changeLogSize : 0;
+			ret += doc.backImageSize ? doc.backImageSize : 0;
 		} else {
 			ret += doc.content ? doc.content.length : 0;
 			

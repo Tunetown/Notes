@@ -128,9 +128,14 @@
 	height: 1px;
 }
 
-.conflictIcon {
-	margin-left: 10px;
+.itemAdditionalIcon {
+	margin-left: 0px;
+	margin-right: 8px;
 	margin-top: 1px;
+}
+
+.conflictIcon {
+	color: red;
 }
 
 /**

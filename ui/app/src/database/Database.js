@@ -631,7 +631,8 @@ class Database {
 					if (ddocPers.views.hasOwnProperty(view.name)) {
 						var mapPers = ddocPers.views[view.name];
 						if (mapPers.map) {
-							if (mapPers.map == view.map.toString()) {
+							var viewStr = view.map.toString();
+							if (mapPers.map == viewStr) {
 								// Not changed
 								//console.log(' -> MapReduce: View ' + view.name + ' is still up to date.');
 								continue;

@@ -229,10 +229,8 @@ class TileBehaviour {
 	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
-	setupItemContent(itemContent, level, doc, additionalIconClasses, additionalText, conflictId, isFolder) {
-		var that = this;
-		
-		var underlayClasses = isFolder ? 'fa fa-folder' : additionalIconClasses;
+	setupItemContent(itemContent, doc, additionalIconClasses, additionalTextBefore, additionalTextAfter) {
+		var underlayClasses = Notes.getInstance().getData().hasChildren(doc._id) ? 'fa fa-folder' : additionalIconClasses;
 		
 		itemContent.append(
 			// We use a container holding all item content inside the content element.
@@ -249,7 +247,7 @@ class TileBehaviour {
 				),
 				
 				// Text
-				$('<div class="' + this.getItemTextClass() + '">' + doc.name + additionalText + '</div>'),
+				$('<div class="' + this.getItemTextClass() + '">' + additionalTextBefore + doc.name + additionalTextAfter + '</div>'),
 			]),
 			
 			// Drag handle (dynamically blended in)
@@ -430,7 +428,7 @@ class TileBehaviour {
 	 * Called after dopping, before the tree is re-requested.
 	 */
 	afterDrop(docSrc, docTarget, moveToSubOfTarget) {
-		if (docTarget && moveToSubOfTarget) {
+		if (moveToSubOfTarget) {
 			// If we moved into another item, we also expand it
 			this.expander.expandPathTo(docTarget, true);
 		}
@@ -558,15 +556,18 @@ class TileBehaviour {
 	 * Returns the icons for the file (can by glyph classes or any other).
 	 * Receives the document type, returns a string containing the class(es).
 	 */
-	getIconStyleClass(isFolder, isOpened, doc) {
+	getIconStyleClass(isOpened, docIn) {
+		var d = Notes.getInstance().getData();
+		var doc = Document.getTargetDoc(docIn);
+		
 		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
 		
-		if (isFolder) return isOpened ? 'fa fa-minus treeicon-tile-folder-open' : 'fa fa-plus treeicon-tile-folder-closed';
+		if (d.hasChildren(doc._id)) return isOpened ? 'fa fa-minus treeicon-tile-folder-open' : 'fa fa-plus treeicon-tile-folder-closed';
 		
 		switch (doc.type) {
 		case 'note':       return 'fa fa-file'; 
-		case 'reference':  return 'fa fa-long-arrow-alt-right'; 
-		case 'attachment': return 'fa fa-paperclip'; 
+		case 'reference':  return 'fa fa-long-arrow-alt-right';  // Should not be called anymore! Refs are shown differently now.
+		case 'attachment': return 'fa fa-paperclip';             
 		case 'sheet':      return 'fa fa-table'; 
 		}
 		return '';

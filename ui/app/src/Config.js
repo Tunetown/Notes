@@ -48,3 +48,12 @@ Config.MESSAGE_SUCCESS_FADEOUT_AFTER_MS = 3000;
 Config.MESSAGE_WARNING_FADEOUT_AFTER_MS = 12000;
 Config.MESSAGE_ERROR_FADEOUT_AFTER_MS = 12000;
 Config.MESSAGE_OTHERS_FADEOUT_AFTER_MS = 12000;
+
+/**
+ * Properties for item background images (these will be rescaling)
+ */
+Config.ITEM_BACKGROUND_MIME_TYPE = 'image/jpeg';
+Config.ITEM_BACKGROUND_QUALITY = 0.4;
+Config.ITEM_BACKGROUND_MAX_WIDTH = 400;
+Config.ITEM_BACKGROUND_MAX_HEIGHT = 400;
+Config.ITEM_BACKGROUND_MAX_PROPOSED_SIZE_BYTES = 50 * 1024;   // Size as of which the consistency check will give a warning. This has no influence on the rescaling itself.

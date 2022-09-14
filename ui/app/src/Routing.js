@@ -83,6 +83,20 @@ class Routing {
 				});
 			});
 			
+			// Console
+			this.get('#/console', function(context) {
+				that.app.startApp()
+				.then(function(data) {
+					that.app.resetPage();
+					
+					Console.getInstance().show();
+					
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
 			// Update page
 			this.get('#/update', function(context) {
 				that.app.startApp()
@@ -140,20 +154,6 @@ class Routing {
 				});
 			});
 			
-			// Console
-			this.get('#/:profile/console', function(context) {
-				that.app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.app.resetPage();
-					
-					Console.getInstance().show();
-					
-				})
-				.catch(function(err) {
-					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-
 			// Trash bin
 			this.get('#/:profile/trash', function(context) {
 				that.app.startApp(this.params['profile'])
@@ -500,7 +500,7 @@ class Routing {
 	 * Calls the console
 	 */
 	callConsole() {
-		this.call("console");
+		location.href = '#/console';
 	}
 	
 	/**

@@ -449,7 +449,7 @@ class DetailBehaviour {
 	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
-	setupItemContent(itemContent, level, doc, additionalIconClasses, additionalText, conflictId, isFolder) {
+	setupItemContent(itemContent, doc, additionalIconClasses, additionalTextBefore, additionalTextAfter) {
 		// Set up item DOM
 		itemContent.append(
 			$('<div class="' + this.getItemInnerContainerClass() + '">').append([
@@ -464,7 +464,7 @@ class DetailBehaviour {
 					$('<div class="' + this.getIconClass() + ' ' + additionalIconClasses + '"></div>'),
 					
 					// Text
-					$('<div class="' + this.getItemTextClass() + '"><div class="treeitemtext-detail-text">' + doc.name + additionalText + '</div></div>').append(
+					$('<div class="' + this.getItemTextClass() + '"><div class="treeitemtext-detail-text">' + additionalTextBefore + doc.name + additionalTextAfter + '</div></div>').append(
 						// Labels
 						Document.getLabelElements(doc, 'doc-label-detail')
 					),
@@ -559,7 +559,7 @@ class DetailBehaviour {
 		
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
 		var iconEl = itemContent.find('.' + this.getIconClass());
-		iconEl.css('min-width', hasChildren ? '20px' : '0');
+		//iconEl.css('min-width', hasChildren ? '20px' : '0');
 		iconEl.css('padding-right', (hasChildren || isAttachment || isReference) ? '10px' : '0');
 
 		// Hide preview / metadata for selected parent
@@ -702,9 +702,9 @@ class DetailBehaviour {
 	 * Called after dopping, before the tree is re-requested.
 	 */
 	afterDrop(docsSrc, docTarget, moveToSubOfTarget) {
-		if (docTarget && moveToSubOfTarget) {
+		if (moveToSubOfTarget) {
 			// If we moved into another item, we also select it
-			this.selectParent(docTarget._id);
+			this.selectParent(docTarget ? docTarget._id : '');
 		}
 		
 		if (this.multiSelect) {
@@ -780,13 +780,16 @@ class DetailBehaviour {
 	 * Returns the icons for the file (can by glyph classes or any other).
 	 * Receives the document type, returns a string containing the class(es).
 	 */
-	getIconStyleClass(isFolder, isOpened, doc) {
+	getIconStyleClass(isOpened, docIn) {
+		var d = Notes.getInstance().getData();
+		var doc = Document.getTargetDoc(docIn);
+		
 		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
 
-		if (isFolder) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';
+		if (d.hasChildren(doc._id)) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';
 		
 		if (doc.type == 'attachment') return 'fa fa-paperclip'; 
-		if (doc.type == 'reference') return 'fa fa-long-arrow-alt-right'; 
+		if (doc.type == 'reference') return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
 		return '';
 	}
 	

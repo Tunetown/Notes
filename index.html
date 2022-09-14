@@ -85,8 +85,8 @@
 		          			<td>Source</td>
 		          			<td>
 		          				<select id="setBgImageDialogTypeSelector">
-		          					<option value="none">No image</option>
-		          					<option value="upload" selected="selected">Upload</option>
+		          					<option value="none" selected="selected">No image</option>
+		          					<option value="upload">Upload</option>
 		          					<option value="ref">Attachment in Notebook</option>
 		          					<option value="url">URL</option>
 		          				</select>
@@ -95,6 +95,10 @@
 		          		<tr>
 		          			<td id="setBgImageDialogInputName"></td>
 		          			<td id="setBgImageDialogInputSrcIn"></td>
+		          		</tr>
+		          		<tr>
+		          			<td id="setBgImageDialogInputNameLine2"></td>
+		          			<td id="setBgImageDialogInputSrcInLine2"></td>
 		          		</tr>
 	          		</tbody>
 	          	</table>
@@ -386,6 +390,7 @@
 	<script src="ui/lib/jsdiff.min.js"></script>
 	<script src="ui/lib/sammy-latest.min.js"></script>
     <script src="ui/lib/selectize/selectize.min.js"></script>
+    <script src="ui/lib/jquery.color-2.1.2.min.js"></script>
 
     <script src="ui/app/src/database/Database.js"></script>
     <script src="ui/app/src/database/DatabaseSync.js"></script>

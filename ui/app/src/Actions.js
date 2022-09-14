@@ -149,7 +149,6 @@ class Actions {
 			});
 		}
 		
-		var that = this;
 		return Database.getInstance().get()
 		.then(function(db) {
 			return db.allDocs({
@@ -170,6 +169,7 @@ class Actions {
 			for(var i in ids) {
 				var docInput = null;
 				for(var l in docs) {
+					if (!docs[l]) continue;
 					if (docs[l]._id == ids[i]) {
 						docInput = docs[l];
 						break;
@@ -245,9 +245,15 @@ class Actions {
 					message: 'Error in reference: no target ID exists.',
 					messageThreadId: 'RequestMessages'
 				});
-				return db.get(data.ref, { 
-					conflicts: true 
+				
+				Notes.getInstance().routing.call(data.ref);
+				
+				return Promise.resolve({
+					ok: true
 				});
+				/*return db.get(data.ref, { 
+					conflicts: true 
+				});*/
 			} else {
 				var e = Document.getDocumentEditor(data);
 				if (!e) {
@@ -280,6 +286,11 @@ class Actions {
 						messageThreadId: 'RequestMessages'
 					});
 				}
+			} else {
+				return Promise.resolve({
+					ok: true,
+					redirected: true
+				});
 			}
 			
 			// Update data model
@@ -299,19 +310,29 @@ class Actions {
 				}
 			}
 
-			// Execute callbacks
 			var docs = [doc];
 			var targetDoc = doc;
-			if (doc.type == 'reference') {
+			/*if (doc.type == 'reference') {
 				docs.push(data);
 				targetDoc = data;
-			}
+			}*/
 			
+			// Execute callbacks
 			that.executeCallbacks('loadDocument', docs);
 
 			// Open document in editor
 			return that.requestEditor(targetDoc); 
-		});	
+		})
+		.catch(function(err) {
+			if (err.status = 404) {
+				return Promise.reject({
+					message: 'Document ' + id + ' not found',
+					messageThreadId: 'RequestMessages'
+				});	
+			}
+			
+			return Promise.reject(err);
+		});
 	}
 	
 	/**
@@ -322,10 +343,18 @@ class Actions {
 		
 		var that = this;
 			
+		if (doc.type == 'reference') {
+			Notes.getInstance().routing.call(doc.ref);
+				
+			return Promise.resolve({
+				ok: true,
+				redirected: true
+			});
+		} else 
 		if (doc.type == "attachment") {
 			var db;
 			return this.loadDocuments([doc])
-			.then(function(resp) {
+			.then(function(/*resp*/) {
 				if (doc._conflicts && doc._conflicts.length) {
 					n.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
@@ -971,6 +1000,11 @@ class Actions {
 		$('#moveTargetSelectorList').empty();
 		$('#moveTargetSelectorList').append(selector);
 
+		// Enable searching by text entry
+		selector.selectize({
+			sortField: 'text'
+		});
+		
 		$('#moveSubmitButton').html('Move');
 		
 		var that = this;
@@ -1594,7 +1628,7 @@ class Actions {
 	        	}
 	       
 	        	that.loadDocuments([doc, tdoc])
-	        	.then(function(resp) {
+	        	.then(function(/*resp*/) {
 	        		Document.removeLabelDefinition(doc, labelId);
 	        		Document.addChangeLogEntry(doc, 'labelDefinitionsChanged');	
 	        		
@@ -1603,7 +1637,7 @@ class Actions {
 	        		
 	        		return that.saveItems([doc._id, tdoc._id]);
 	        	})
-	        	.then(function(data) {
+	        	.then(function(/*data*/) {
 	        		// Execute callbacks
 					that.executeCallbacks('saveLabelDefinitions', [doc, tdoc]);
 					
@@ -1669,7 +1703,7 @@ class Actions {
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	/**
+	/** 
 	 * Saves the note's editor mode to the server.
 	 */
 	saveEditorMode(id, editorMode, editorParams) {
@@ -1688,7 +1722,7 @@ class Actions {
 		
 		var that = this;
 		return this.loadDocuments([doc])
-		.then(function(resp) {
+		.then(function(/*resp*/) {
 			Document.addChangeLogEntry(doc, 'editorModeChanged', {
 				from: doc.editor,
 				to: editorMode
@@ -1739,7 +1773,7 @@ class Actions {
 
 		var that = this;
 		return this.loadDocuments([doc])
-		.then(function(resp) {
+		.then(function(/*resp*/) {
 			doc.boardState = state;
 			
 			return that.saveItem(id);
@@ -1781,7 +1815,7 @@ class Actions {
 		
 		var that = this;
 		return this.loadDocuments([doc])
-		.then(function(resp) {
+		.then(function(/*resp*/) {
 			return that.selectBoardBackgroundImage(doc);
 		})
 		.then(function(data) {
@@ -1956,7 +1990,7 @@ class Actions {
 			
 			return that.requestSettings();
 		})
-		.then(function (data) {
+		.then(function (/*data*/) {
 			// Execute callbacks
     		that.executeCallbacks('saveSettings', doc);
     		
@@ -2073,7 +2107,7 @@ class Actions {
 		});
 
 		var file;
-		var db;
+		//var db;
 		var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#uploadFile').val('');
@@ -2087,11 +2121,11 @@ class Actions {
 			}
 			
 			$('#uploadDialog').off('shown.bs.modal');
-			$('#uploadDialog').on('shown.bs.modal', function (e) {
+			$('#uploadDialog').on('shown.bs.modal', function (/*event*/) {
 				$(document).keypress(keyPressed);
 			});
 			$('#uploadDialog').off('hidden.bs.modal');
-			$('#uploadDialog').on('hidden.bs.modal', function (e) {
+			$('#uploadDialog').on('hidden.bs.modal', function (/*event*/) {
 				$(document).unbind('keypress', keyPressed);
 				reject({
 					abort: true,
@@ -2134,7 +2168,7 @@ class Actions {
 			}
 			return that.loadDocuments([doc]);
 		})
-		.then(function(data) {
+		.then(function(/*data*/) {
 			var strippedName = Document.stripAttachmentName(file.name);
 			
 			doc.attachment_filename = strippedName;
@@ -2638,10 +2672,10 @@ class Actions {
 
 			return db.bulkDocs(undeleteDocs);
 		})
-		.then(function (data) {
+		.then(function (/*data*/) {
 			return that.requestTree();
 		})
-		.then(function (data) {
+		.then(function (/*data*/) {
 			return Promise.resolve({
 				ok: true,
 				message: "Restored " + doc.name,
@@ -2715,7 +2749,7 @@ class Actions {
 				return that.showTrash();
 			}
 		})
-		.then(function (dataResp) {
+		.then(function (/*dataResp*/) {
 			if (rev) {
 				return Promise.resolve({
 					ok: true,
@@ -2803,8 +2837,6 @@ class Actions {
 	 * Import an array of documents
 	 */
 	importDocuments(docs) {
-		var n = Notes.getInstance();
-
 		for(var i in docs) {
 			var doc = docs[i];
 			Document.updateMeta(doc);
@@ -2818,7 +2850,7 @@ class Actions {
 			
 			return db.bulkDocs(docs);
 		})
-		.then(function(data) {
+		.then(function(/*data*/) {
 			// Execute callbacks
 			that.executeCallbacks('importFinished', docs);
 			
@@ -2834,10 +2866,7 @@ class Actions {
 	 * Export (download) documents. Expects an array of IDs.
 	 */
 	exportDocuments(ids) {
-		var n = Notes.getInstance();
-		
 		var db;
-		var that = this;
 		return Database.getInstance().get()
 		.then(function(dbRef) {
 			db = dbRef;
@@ -3057,8 +3086,10 @@ class Actions {
 
 		function setupInputs(mode) {
 			$('#setBgImageDialogInputSrcIn').empty();
+			$('#setBgImageDialogInputSrcInLine2').empty();
 
 			var name = "";
+			var nameLine2 = "";
 			switch (mode) {
 				case 'none': {
 					name = '';
@@ -3078,6 +3109,7 @@ class Actions {
 				}
 				case 'ref': {
 					name = 'Attachment Document';
+					nameLine2 = 'Use attached image';
 					
 					var selector = Notes.getInstance().getBackgroundImageSelector();
 					selector.css('max-width', '100%');
@@ -3085,6 +3117,29 @@ class Actions {
 					selector.val(docs[0].backImage ? (docs[0].backImage.ref ? docs[0].backImage.ref : '_cancel') : '_cancel');
 						
 					$('#setBgImageDialogInputSrcIn').append(selector);
+
+					$('#setBgImageDialogInputSrcInLine2').append(
+						$('<input class="checkbox-switch" type="checkbox" id="setBgImageDialogRefSelfInput" />')
+						.each(function(i) {
+							var that = this;
+							setTimeout(function() {
+								new Switch(that, {
+									size: 'small',
+									onSwitchColor: '#337ab7',
+									disabled:  false,
+									onChange: function() {
+										var checked = !!this.getChecked();
+										if (checked) {
+											selector.val(docs[0]._id);
+											selector.prop('disabled', true);
+										} else {
+											selector.prop('disabled', false);
+										}
+									}
+								});
+							}, 0);
+						})
+					);
 					
 					break;
 				}
@@ -3100,6 +3155,7 @@ class Actions {
 				}
 			}
 			$('#setBgImageDialogInputName').html(name);
+			$('#setBgImageDialogInputNameLine2').html(nameLine2);
 		}
 		
 		$('#setBgImageDialogTypeSelector')
@@ -3153,11 +3209,49 @@ class Actions {
 					case 'url': {
 						var b64data = $('#setBgImageDialogB64DataInput').val();
 
-						Tools.getImageSize(b64data)
-			        	.then(function(size) {
+						if (!b64data || (b64data.length == 0)) {
+							that.setItemBackImage(ids, false)
+							.then(function(data) {
+								resolve({
+									ok: true,
+									message: 'Updated background image for ' + displayName,
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+				        	})
+				        	.catch(function(err) {
+				        		reject({
+									message: "Error setting background image for document(s): " + err.message,
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+				        	});
+
+							return;
+						}
+						
+						Tools.rescaleImage(
+							b64data, 
+							Config.ITEM_BACKGROUND_MAX_WIDTH, 
+							Config.ITEM_BACKGROUND_MAX_HEIGHT, 
+							Config.ITEM_BACKGROUND_MIME_TYPE,
+							Config.ITEM_BACKGROUND_QUALITY
+						)
+			        	.then(function(compressed) {
+							if (!compressed.data) {
+								reject({
+									message: "Error rescaling image",
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+							}
+							
+							if (b64data.length != compressed.data.length) {
+								console.log(' -> Image rescaled from ' + Tools.convertFilesize(b64data.length) + ' to ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+							} else {
+								console.log(' -> Image memory: ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+							}
+							
 							return that.setItemBackImage(ids, {
-								data: b64data,
-								size: size
+								data: compressed.data,
+								size: compressed.size
 							});
 						})
 			        	.then(function(data) {
@@ -3179,19 +3273,37 @@ class Actions {
 					// Reference document
 					case 'ref': {
 						var refId = $('#setBgImageDialogRefIdInput').val();
-						if (refId == '_cancel') refId = false;
-						
+						if (refId == '_cancel') {
+							that.setItemBackImage(ids, false)
+							.then(function(data) {
+								resolve({
+									ok: true,
+									message: 'Updated background image for ' + displayName,
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+				        	})
+				        	.catch(function(err) {
+				        		reject({
+									message: "Error setting background image for document(s): " + err.message,
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+				        	});
+
+							return;
+						}
+							
 						Actions.getInstance().getAttachmentUrl(refId)
 						.then(function(data) {
 							return Tools.getImageSize(data.url);
 						})
 						.then(function(size) {
+							console.log(' -> Image size: ' + JSON.stringify(size));
 							return that.setItemBackImage(ids, {
 								ref: refId,
 								size: size
 							});
 						})
-			        	.then(function(data) {
+			        	.then(function(/*data*/) {
 							resolve({
 								ok: true,
 								message: 'Updated background image for ' + displayName,
@@ -3212,13 +3324,13 @@ class Actions {
 						var files = $('#setBgImageDialogFileUploadInput')[0].files;
 		    		
 			    		if (!files || !files.length) {
-			    			Notes.getInstance().showAlert('Please select a file to upload.', 'E', 'SetItemBgImageMessages');
+			    			Notes.getInstance().showAlert('No file selected for upload.', 'E', 'SetItemBgImageMessages');
 							return;
 					    }
 	
 						var file = files[0];
 			    		
-			    		var maxMB = 0.5; //parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
+			    		/*var maxMB = 0.5; //parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
 			    		if (file.size > (maxMB * 1024 * 1024)) {
 			    			if (!confirm('The file ' + file.name + 'is possibly too large for usage as item background: ' + Tools.convertFilesize(file.size) + '. Do you really want to use it?')) {
 								reject({
@@ -3227,18 +3339,37 @@ class Actions {
 								});
 								return;
 							}
-			    		}
+			    		}*/
 			    		
 						var b64data_;
 						Tools.fileToBase64(file)
 						.then(function(b64data) {
 							b64data_ = b64data;
-							return Tools.getImageSize(b64data);
+							return Tools.rescaleImage(
+								b64data, 
+								Config.ITEM_BACKGROUND_MAX_WIDTH, 
+								Config.ITEM_BACKGROUND_MAX_HEIGHT, 
+								Config.ITEM_BACKGROUND_MIME_TYPE,
+								Config.ITEM_BACKGROUND_QUALITY
+							);
 						})
-						.then(function(size) {
+			        	.then(function(compressed) {
+							if (!compressed.data) {
+								reject({
+									message: "Error rescaling image",
+									messageThreadId: 'SetItemBgImageMessages'
+								});
+							}
+							
+							if (b64data_.length != compressed.data.length) {
+								console.log(' -> Image rescaled from ' + Tools.convertFilesize(b64data_.length) + ' to ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+							} else {
+								console.log(' -> Image memory: ' + Tools.convertFilesize(compressed.data.length) + ", new size: " + JSON.stringify(compressed.size));
+							}
+
 							return that.setItemBackImage(ids, {
-								data: b64data_,
-								size: size
+								data: compressed.data,
+								size: compressed.size
 							})
 						})
 			        	.then(function(data) {
@@ -3256,25 +3387,6 @@ class Actions {
 			        	});
 						
 						return;
-						/*var b64data = $('#setBgImageDialogB64DataInput').val();
-
-						that.setItemBackImage(ids, {
-							data: b64data
-						})
-			        	.then(function(data) {
-							resolve({
-								ok: true,
-								message: 'Updated background image for ' + displayName,
-								messageThreadId: 'SetItemBgImageMessages'
-							});
-			        	})
-			        	.catch(function(err) {
-			        		reject({
-								message: "Error setting background image for document(s): " + err.message,
-								messageThreadId: 'SetItemBgImageMessages'
-							});
-			        	});
-						return;*/
 					}
 					
 					default: {
@@ -3345,10 +3457,10 @@ class Actions {
 	    	// Save the new tree structure by updating the metadata of all touched objects.
 	    	return that.saveItems(ids);
     	})
-    	.then(function(data) {
+    	.then(function(/*data*/) {
 			return that.requestTree();
 		})
-    	.then(function(data) {
+    	.then(function(/*data*/) {
     		// Execute callbacks
     		that.executeCallbacks('setItemBackImageAfterSave', {
     			docsSrc: docsSrc,
@@ -3357,11 +3469,82 @@ class Actions {
     		
     		return Promise.resolve({ ok: true });
     	})
-    	.then(function(data) {
+    	.then(function(/*data*/) {
     		t.unblock();
 
     		return Promise.resolve({ ok: true });
     	});
+	}
+	
+	/**
+	 * For a given document, this loads the background image data (isolated, using a specific DB view) from the database.
+	 * Returns a promise with the backImage data for the document.
+	 */
+	loadBgImage(id) {
+		var doc = Notes.getInstance().getData().getById(id);
+		if (!doc) {
+			return Promise.reject({
+				message: 'Document ' + id + ' not found',
+				messageThreadId: 'LoadBgImageMessages'
+			});
+		}
+		if (!Document.hasBackImage(doc)) {
+			return Promise.reject({
+				message: 'Document ' + id + ' has no background image',
+				messageThreadId: 'LoadBgImageMessages'
+			});
+		}
+		
+		// Check if we already have the image data
+		if (!doc.stub) {
+			return Promise.resolve(doc.backImage);
+		}
+
+		var db;
+		var that = this; 
+		return Database.getInstance().get()
+		.then(function(dbRef) {
+			db = dbRef;
+			return db.query(that.getViewDocId() + '/bgimage', {
+				key: id
+			});
+		})
+		.then(function (data) {
+			if (!data.rows || (data.rows.length == 0)) {
+				return Promise.reject({
+    				message: 'Document ' + id + ' not found',
+					messageThreadId: 'LoadBgImageMessages'
+    			});
+			}
+			if (data.rows.length > 1) {
+				return Promise.reject({
+    				message: 'ID ' + id + ' is not unique: ' + data.rows.length + ' entries found.',
+					messageThreadId: 'LoadBgImageMessages'
+    			});
+			}
+			
+			var backImage = data.rows[0].value.backImage;
+			
+			//console.log(' -> Late Loader: Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
+			
+			// Update data model
+			if (Notes.getInstance().getData()) {
+				if (doc) {
+					doc.backImage = backImage;
+					
+					Document.update(doc, doc);
+				}
+			}
+
+			// Execute callbacks
+			that.executeCallbacks('loadBgImage', {
+				id: id,
+				backImage: backImage
+			});
+			
+			// Return new document
+			return Promise.resolve(backImage);
+		});
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -3371,8 +3554,6 @@ class Actions {
 	 * Returns a promise holding allDocs data including documents and conflicts (not attachments!), used for checks.
 	 */
 	getAllDocs() {
-		var that = this;
-		
 		return Database.getInstance().get()
 		.then(function(db) {
 			return db.allDocs({
@@ -3533,7 +3714,6 @@ class Actions {
 		var docs = [];
 		var db;
 
-		var that = this;
 		return Database.getInstance().get()
 		.then(function(dbRef) {
 			db = dbRef;

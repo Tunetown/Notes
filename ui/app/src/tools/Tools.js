@@ -530,7 +530,7 @@ class Tools {
 	}
 	
 	/**
-	 * Returns the size properties of an image url.
+	 * Returns the size properties of an image url as a Promise.
 	 */
 	static getImageSize(url) {
 		return new Promise((resolve, reject) => {
@@ -545,6 +545,49 @@ class Tools {
 		});
 	}
 	
+	/**
+	 * Returns a promise with the rescaled data for the image.
+	 */
+	static rescaleImage(url, maxWidth, maxHeight, type, quality) {
+		return new Promise((resolve, reject) => {
+			var img = new Image();
+			img.crossOrigin = "anonymous";
+			$(img).on('load', function() {
+				var width = img.width;
+				var height = img.height;
+				
+				if (width > height) {
+					if (width > maxWidth) {
+						height *= maxWidth / width;
+						width = maxWidth;
+					}
+				} else {
+					if (height > maxHeight) {
+						width *= maxHeight / height;
+						height = maxHeight;
+					}
+				}
+
+				var canvas = document.createElement("canvas");
+				canvas.width = width;
+				canvas.height = height;
+
+				var ctx = canvas.getContext("2d");
+				ctx.drawImage(img, 0, 0, width, height);
+
+				var dataurl = canvas.toDataURL(type, quality);
+				resolve({
+					data: dataurl,
+					size: {
+						width: width,
+						height: height
+					}
+				});
+			});
+			img.src = url;
+		});
+	}
+		
 	/**
 	 * Convert file data to base64. Returns a promise.
 	 */

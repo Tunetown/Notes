@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.88.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.88.2';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -538,7 +538,7 @@ class Notes {
 		})
 		.then(function(data) {
 			var a = Actions.getInstance();
-			var c = ClientState.getInstance();
+			//var c = ClientState.getInstance();
 			var d = Database.getInstance();
 
 			// The tree and note requests can run in parallel from here on
@@ -620,6 +620,7 @@ class Notes {
 		$('#contentContainer').css('background', '');
 		$('#contentContainer').scrollTop(0);
 		$('#contentContainer').scrollLeft(0);
+		$('#contentContainer').off('contextmenu');
 		
 		this.setButtons(null, true);
 		
@@ -1515,7 +1516,7 @@ class Notes {
 			// Options for a single document
 			var doc = this.getData().getById(ids[0]);
 	
-			if (Document.hasBackImage(doc)) options.noBgColor = true;
+			//if (Document.hasBackImage(doc)) options.noBgColor = true;
 	
 			// Options: Show in Navigation (default: hidden)
 			$('.contextOptionRename').css('display', options.noRename ? 'none' : 'inline-block');

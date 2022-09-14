@@ -46,6 +46,12 @@ class Document {
 			doc.changeLogSize = JSON.stringify(doc.changeLog).length;
 		}
 		
+		// Background image size
+		doc.backImageSize = 0;
+		if (doc.backImage) {
+			doc.backImageSize = JSON.stringify(doc.backImage).length;
+		}
+		
 		// Content preview
 		if (doc.type != 'attachment') {
 			doc.preview = Document.createPreview(doc, 1000);
@@ -264,6 +270,63 @@ class Document {
 		var cl = Document.clone(doc);
 		Document.updateMeta(cl);
 		
+		if (doc.backImage) {
+			// Back image data, if existent
+			if (doc.backImage.stub) {
+				errors.push({
+					message: 'Background image stub flag is set',
+					id: doc._id,
+					type: 'E',
+				});		
+			}
+
+			if (!doc.backImage.ref && !doc.backImage.data) {
+				errors.push({
+					message: 'No background image data found',
+					id: doc._id,
+					type: 'E',
+				});		
+			}
+			
+			if (!doc.backImage.size) {
+				errors.push({
+					message: 'No background image size descriptor found',
+					id: doc._id,
+					type: 'E',
+				});		
+			} else {
+				if (!doc.backImage.size.width || !doc.backImage.size.height) {
+					errors.push({
+						message: 'Incomplete background image size descriptor',
+						id: doc._id,
+						type: 'E',
+					});		
+				}
+			}
+			
+			if (!doc.hasOwnProperty('backImageSize')) {
+				errors.push({
+					message: 'Background image size missing',
+					id: doc._id,
+					type: 'W',
+				});		
+			} else if (cl.backImageSize != doc.backImageSize) {
+				errors.push({
+					message: 'Invalid background image size: is ' + doc.backImageSize + ' should be ' + cl.backImageSize,
+					id: doc._id,
+					type: 'E',
+				});
+			} else {
+				if (doc.backImageSize > Config.ITEM_BACKGROUND_MAX_PROPOSED_SIZE_BYTES) {
+					errors.push({
+						message: 'Background image very large: ' + Tools.convertFilesize(doc.backImageSize),
+						id: doc._id,
+						type: 'W',
+					});
+				}	
+			}
+		}
+		
 		if (!doc.hasOwnProperty('attachmentSize')) {
 			errors.push({
 				message: 'Attachments size missing',
@@ -334,7 +397,7 @@ class Document {
 		if (!doc) return null;
 		if (doc.type != 'reference') return doc;
 
-		return Notes.getInstance().getData().getById(doc.ref);
+		return Document.getTargetDoc(Notes.getInstance().getData().getById(doc.ref));
 	}
 	
 	/**
@@ -430,18 +493,7 @@ class Document {
 		doc.attachment_filename = src.attachment_filename;
 		doc.changeLog = src.changeLog;
 		doc.stub = src.stub;
-		
-		var d = Notes.getInstance().getData();
-		if (d) {
-			d.setParent(doc._id, src.parent);
-			if (doc._conflicts && doc._conflicts.length) {
-				d.pHasConflicts = true;
-				Notes.getInstance().update();
-			}
-		} else {
-			doc.parent = src.parent;
-		}
-		
+
 		doc.deleted = src.deleted;
 		
 		doc.editor = src.editor;
@@ -453,10 +505,23 @@ class Document {
 		doc.attachmentSize = src.attachmentSize;
 		doc.contentSize = src.contentSize;
 		doc.changeLogSize = src.changeLogSize;
+		doc.backImageSize = src.backImageSize;
 		
 		doc.preview = src.preview;
 		
-		doc.latestDoc = null;
+		delete doc.latestDoc;
+		//Document.strip(doc);
+				
+		var d = Notes.getInstance().getData();
+		if (d) {
+			d.setParent(doc._id, src.parent);
+			if (doc._conflicts && doc._conflicts.length) {
+				d.pHasConflicts = true;
+				Notes.getInstance().update();
+			}
+		} else {
+			doc.parent = src.parent;
+		}
 	}
 	
 	/**
@@ -467,6 +532,10 @@ class Document {
 		delete doc.parentDoc;
 		delete doc.level;
 		delete doc.lock;
+		
+		if (doc.backImage) {
+			delete doc.backImage.stub;
+		}
 	}
 	
 	/**
@@ -508,8 +577,11 @@ class Document {
 		doc.attachmentSize = src.attachmentSize;
 		doc.contentSize = src.contentSize; 
 		doc.changeLogSize = src.changeLogSize;
+		doc.backImageSize = src.backImageSize;
 		
 		doc.preview = src.preview;
+		
+		Document.strip(doc);
 		
 		return doc;
 	}
@@ -548,7 +620,7 @@ class Document {
 
 						color: doc.color,
 						backColor: doc.backColor,
-						backImage: doc.backImage,
+						backImage: doc.backImage ? { stub: true } : false,
 
 						editor: doc.editor,
 						
@@ -565,6 +637,7 @@ class Document {
 						contentSize: doc.contentSize,
 						attachmentSize: doc.attachmentSize,
 						changeLogSize: doc.changeLogSize,
+						backImageSize: doc.backImageSize,
 						
 						_conflicts: doc._conflicts,
 						
@@ -589,6 +662,29 @@ class Document {
 					) return;
 					
 					emit(doc._id, null); 
+				}
+			},
+			
+			/**
+			 * Background data (bgimage view)
+			 */
+			{ 
+				name:'bgimage', 
+				map: function (doc) {
+					if (doc.deleted) return;
+					if (!doc.type) return; 
+					if (
+						(doc.type != "note") &&
+						(doc.type != "attachment") &&
+						(doc.type != "sheet") &&
+						(doc.type != "reference")
+					) return;
+					
+					emit(doc._id, {
+						_id: doc._id,
+						_rev: doc._rev,
+						backImage: doc.backImage
+					}); 
 				}
 			}
 		];
@@ -1538,62 +1634,95 @@ class Document {
 	
 	/**
 	 * Sets an appropriate background on the element, according to the document.
+	 *
+	 * May start async tasks to load images, but the return value denotes the type of
+	 * background the document will use.
 	 */
 	static setBackground(doc, element) {
-		$(element).css('background-image', '');
-		$(element).css('background-color', '');
-		$(element).css('background-repeat', '');
-		$(element).css('background-size', '');
-		$(element).css('background-position', '');	
+		$(element).css('background', '');	
 		
-		function handleSize() {
-			if (doc.backImage.size) {
-				if (Math.min(doc.backImage.size.width, doc.backImage.size.height) < 100) {
+		/**
+		 * Sets the orientation and sizing options on the element
+		 */
+		function handleSize(backImage) {
+			if (backImage && backImage.size) {
+				if (Math.min(backImage.size.width, backImage.size.height) < 100) {
 					// Show repeated					
-					$(element).css('background-repeat', 'repeat');	
+					$(element).css('background-repeat', 'cover, repeat');	
 				} else {
 					// Show all of image
-					$(element).css('background-size', 'cover');
-					$(element).css('background-position', 'center');	
+					$(element).css('background-size', 'cover, cover');
+					$(element).css('background-position', 'center, center');	
 				}
 			} else {
 				// Show all of image
-				$(element).css('background-size', 'cover');
-				$(element).css('background-position', 'center');				
+				$(element).css('background-size', 'cover, cover');
+				$(element).css('background-position', 'center, center');			
 			}
 		}
 		
-		if (Document.hasBackImageUrl(doc)) {
-			// URL background
-			$(element).css('background-image', 'url("' + doc.backImage.data + '")');
-			
-			handleSize();
-						
-			return 'image';
-			
-		} else if (Document.hasBackImageRef(doc)) {
-			// Reference background
-			
-			Actions.getInstance().getAttachmentUrl(doc.backImage.ref)
-			.then(function(data) {
-				if (data.url) {
-					$(element).css('background-image', 'url("' + data.url + '")');
-					$(element).css('background-size', 'cover');
-					$(element).css('background-position', 'center');
+		var gradientColor = $.Color(doc.backColor ? doc.backColor : '#ffffffff').alpha(0.7).toRgbaString();
+		var gradient = 'linear-gradient(' + gradientColor + ', ' + gradientColor + ')';
+		
+		if (Document.hasBackImage(doc)) {
+			// Start new task to load and handle the background image (which may be stubbed)
+			Actions.getInstance().loadBgImage(doc._id)
+			.then(function(backImageData) {
+				// Image data is now fully loaded.
+				if (backImageData.data) {
+					// URL background
+					$(element).css('background-image', gradient + ', url("' + backImageData.data + '")');
 					
-					handleSize();
-				}
+					handleSize(backImageData);
+					
+					return Promise.resolve({
+						ok: true,
+						type: 'url'
+					});
+					
+				} else if (backImageData.ref) {
+					// Reference background
+					return Actions.getInstance().getAttachmentUrl(backImageData.ref)
+					.then(function(data) {
+						if (data.url) {
+							$(element).css('background-image', gradient + ', url("' + data.url + '")');
+							
+							handleSize(backImageData);
+
+							return Promise.resolve({
+								ok: true,
+								type: 'ref'
+							});
+						} else {
+							return Promise.reject({
+								message: "Could not load referenced attachment: " + backImageData.ref,
+								messageThreadId: 'DocSetBackgroundMessages'
+							});
+						}
+					})
+					.catch(function(err) {
+						return Promise.reject(err);
+					});
+					
+				} else {
+					// Error in image definition
+					return Promise.reject({
+						message: "Error in image definition for document " + doc._id,
+						messageThreadId: 'DocSetBackgroundMessages'
+					});
+				}		
 			})
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.backImage.ref, 'E', err.messageThreadId);
+				Notes.getInstance().showAlert(err.message ? err.message : 'Error determining board background image: ' + doc.backImage.ref, 'E', err.messageThreadId);
 			});
-			
+
 			return 'image';
 			
 		} else if (doc.backColor) {
 			// Solid background color
 			if (!doc.backColor) return false;
 			$(element).css('background-color', doc.backColor);
+
 			return 'color';
 			
 		} else {
@@ -1606,12 +1735,7 @@ class Document {
 	 * Determines if the document has a background image or not.
 	 */
 	static hasBackImage(doc) {
-		return Document.hasBackImageUrl(doc) ||  Document.hasBackImageRef(doc);
-	}
-	static hasBackImageUrl(doc) {
-		return doc.backImage && doc.backImage.data;
-	}
-	static hasBackImageRef(doc) {
-		return doc.backImage && doc.backImage.ref;
+		// Documents that have a background image will either contain its data or a stub flag.
+		return !!doc.backImage;
 	}
 }

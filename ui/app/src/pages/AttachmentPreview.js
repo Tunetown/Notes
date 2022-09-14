@@ -40,7 +40,17 @@ class AttachmentPreview {
 	load(doc, url) {
 		var n = Notes.getInstance();
 
-		var att = Document.getAttachments(doc)[doc.attachment_filename];
+		n.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-save" onclick="event.stopPropagation();AttachmentPreview.getInstance().download();"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();AttachmentPreview.getInstance().callOptions(event);"></div>'),
+		]);		
+		
+		var atts = Document.getAttachments(doc);
+		if (!atts) {
+			n.showAlert('Document ' + doc.name + ' has no attachments');
+			return;
+		}
+		var att = atts[doc.attachment_filename];
 		var attsize = Tools.convertFilesize(att.length);
 		
 		// Set note name in the header
@@ -72,11 +82,6 @@ class AttachmentPreview {
 		
 		this.current = doc;
 		this.currentUrl = url;
-		
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-save" onclick="event.stopPropagation();AttachmentPreview.getInstance().download();"></div>'),
-			$('<div type="button" data-toggle="tooltip" title="Options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();AttachmentPreview.getInstance().callOptions(event);"></div>'),
-		]);			
 	}
 	
 	/**
