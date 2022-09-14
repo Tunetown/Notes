@@ -47,4 +47,10 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
 - 0.88.0
     - Added item background images
     
+- 0.89.0
+    - Bug fixes and small minor improvements
+    - Optimized background images (now always rescaled to be really small, and stubbed in TOC)
+    - References: Now opened via routing
+    - Console URL now independent of notebook
+    
     

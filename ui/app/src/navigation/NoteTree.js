@@ -145,6 +145,7 @@ class NoteTree {
 				
 				Notes.getInstance().hideOptions();
 				
+				that.resetScrollPosition('all');
 				that.behaviour.onNavigationDoubleClick(event);
 			});
 			

@@ -431,7 +431,8 @@ div.tox-tinymce {
 .favBar {
 	height: 50px;
 	white-space: nowrap;
-    overflow: scroll;
+    overflow-x: scroll;
+    overflow-y: hidden;
     padding-left: 5px;
     padding-right: 5px;
     margin-bottom: 2px;
