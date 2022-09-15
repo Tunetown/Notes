@@ -224,8 +224,8 @@ class NoteTree {
 
 		// Should the currently opened document be shown?
 		var currentId = Notes.getInstance().getCurrentlyShownId(true);
-		var showCurrentInFavorites = !c.getViewSettings().showCurrentInFavorites;
-		if (!showCurrentInFavorites) currentId = false;
+		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
+		if (showCurrentInFavorites) currentId = false;
 
 		// Get favorites as array and sort it
 		var favsSorted = [];
@@ -266,19 +266,77 @@ class NoteTree {
 		this.lastRenderedFavs = cmp;
 		clear();
 		
-		// Changed favorites: Update them
+		// Changed favorites: Update them. First we need a container and some other elements.
 		var favSize = c.getViewSettings().favoritesSize;
 		if (!favSize) favSize = 70;
+
+		const teaserWidth = 30;   // Width of the teasers
+		var leftTeaser = $('<div class="beforeFavScrollTeaser"></div>')
+			/*.append(
+				$('<span class="favScrollTeaserIcon fa fa-chevron-left"></span>')
+			)*/
+			.css('height', (favSize + 7) + 'px')
+			.css('width', teaserWidth);
+		var rightTeaser = $('<div class="afterFavScrollTeaser"></div>')
+			/*.append(
+				$('<span class="favScrollTeaserIcon fa fa-chevron-right"></span>')
+			)*/
+			.css('height', (favSize + 7) + 'px')
+			.css('width', teaserWidth);
+			
+		const teaserFadeWidth = 10;  // Scroll position at which the fade of the teaser starts
+		function updateTeasers(container) {
+			var maxScrollLeft = cont.prop('scrollWidth') - container.outerWidth();
+			if (maxScrollLeft <= 0) {
+				leftTeaser.css('opacity', 0);
+				rightTeaser.css('opacity', 0);
+				return;
+			}
+			var pos = container.scrollLeft();
+			
+			if (pos <= teaserFadeWidth) {
+				var perc = pos / teaserFadeWidth;  // [0..1]
+				leftTeaser.css('opacity', perc);
+			} else {
+				leftTeaser.css('opacity', 1);
+			}
+			
+			var rightPos = maxScrollLeft - pos;
+			if (rightPos <= teaserFadeWidth) {
+				var perc = rightPos / teaserFadeWidth;  // [0..1]
+				rightTeaser.css('opacity', perc);
+			} else {
+				rightTeaser.css('opacity', 1);
+			}
+		}
+		
+		var cont = $('<div class="favoritesContainer"></div>')
+			.scroll(function() {
+				updateTeasers(cont);
+			});
+		
 		favBar.css('height', (favSize + 7) + 'px');
+		cont.css('height', (favSize + 7) + 'px');
 		
 		var favoritesNum = c.getViewSettings().favoritesNum;
 		if (!favoritesNum) favoritesNum = 10;
-				
+
 		// Add the favorites to the bar
 		for(var i=0; i<favsSorted.length && i<favoritesNum; ++i) {
-			this.addFavoriteToBar(favsSorted[i]);
+			this.addFavoriteToBar(cont, favsSorted[i]);
 		}
+
+		// Teasers
+		favBar.append(
+			cont,
+			leftTeaser,
+			rightTeaser
+		);
 		
+		setTimeout(function() {
+			updateTeasers(cont);
+		}, 0);
+
 		// Show favorites		
 		this.showFavorites(true);
 	}
@@ -331,9 +389,7 @@ class NoteTree {
 	/**
 	 * Add one favorite to the bar (internal usage only).
 	 */
-	addFavoriteToBar(favEntry) {
-		var favBar = $('#favBar');
-		
+	addFavoriteToBar(container, favEntry) {
 		var data = Notes.getInstance().getData();
 		if (!data) return;
 		
@@ -389,8 +445,15 @@ class NoteTree {
 
 				var data = $(event.currentTarget).data();
 
-				that.openNode(data.id);
-				that.focus(data.id);
+				var d = Notes.getInstance().getData();
+				var targetDoc = Document.getTargetDoc(d.getById(data.id));
+				if (d.hasChildren(targetDoc._id)) {
+					that.open(targetDoc._id);											
+				} else {
+					that.focus(targetDoc._id);
+				}	
+
+				Notes.getInstance().routing.call(targetDoc._id);
 				
 			},
 			
@@ -398,11 +461,11 @@ class NoteTree {
 			delayHoldMillis: 600
 		});
 
-		favBar.append(
+		container.append(
 			el
 		);
 					
-		Document.setBackground(doc, el);
+		Document.setItemBackground(doc, el, doc.backColor ? doc.backColor : 'white');
 		if (doc.color) el.css('color', doc.color);
 	}
 	
@@ -829,7 +892,6 @@ class NoteTree {
 	 */
 	open(id) {
 		this.behaviour.open(id);
-		this.setSelected(id);
 	}
 	
 	/**

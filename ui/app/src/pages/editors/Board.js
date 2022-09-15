@@ -158,9 +158,11 @@ class Board {
 		$('#contentContainer').empty();
 		
 		// Add background and content container. Default is light grey.
+		var boardBack = $('<div id="boardBackground" style="display:none"></div>');
 		$('#contentContainer').css('background', 'lightgrey');
 		$('#contentContainer').append(
-			!doc.boardBackground ? null : $('<img id="boardBackground"></img>'),
+			boardBack,
+			
 			$('<div id="board-scroll-container"></div>').append(
 				dragContainer,
 				$('<div class="board-container"></div>').append(
@@ -179,22 +181,20 @@ class Board {
 				noMove: true,
 				noDelete: true,
 				noBgColor: true,
-				noColor: true
+				noColor: true,
+				noBgImage: true
 			});
 		});
 		
 		// Asyncronously load the background image, if any
-		if (doc.boardBackground) {
-			Actions.getInstance().getAttachmentUrl(doc.boardBackground)
-			.then(function(data) {
-				if (data.url) {
-					$('#boardBackground').attr('src', data.url);
-				}
-			})
-			.catch(function(err) {
-				n.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
-			})
-		}
+		Actions.getInstance().getBoardBackground(doc._id)
+		.then(function(imageData) {
+			Document.setBackground(imageData, false, boardBack);
+			boardBack.css('display', 'block');
+		})
+		.catch(function(err) {
+			n.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
+		})
 		
 		// Build board DOM structure first
 		var containerHeight = $('#contentContainer').height() - 35;
@@ -221,8 +221,7 @@ class Board {
 				
 				// Colors for items
 				var itemContent = $('<div class="board-item-content" data-id="' + subList[i]._id + '"></div>');
-				Document.setBackground(subList[i], itemContent);
-				//if (subList[i].backColor) itemContent.css('background-color', subList[i].backColor);
+				Document.setItemBackground(subList[i], itemContent, subList[i].backColor ? subList[i].backColor : 'white');
 				if (subList[i].color) itemContent.css('color', subList[i].color);
 				
 				var itemIconClass = this.getItemIconClass(subList[i]);
@@ -276,8 +275,13 @@ class Board {
 										if (Notes.getInstance().hideOptions()) return;										
 										
 										// Focus the document in navigation
-										var focusId = Document.getTargetDoc(Notes.getInstance().getData().getById(data.id))._id;
-										NoteTree.getInstance().focus(focusId);
+										var d = Notes.getInstance().getData();
+										var targetDoc = Document.getTargetDoc(d.getById(data.id));
+										if (d.hasChildren(targetDoc._id)) {
+											NoteTree.getInstance().open(targetDoc._id);											
+										} else {
+											NoteTree.getInstance().focus(targetDoc._id);
+										}
 										
 										// Open the document
 										Notes.getInstance().routing.call(data.id);
@@ -400,8 +404,8 @@ class Board {
 				);
 			}
 			
-			Document.setBackground(lists[l], colHdr);
-			//if (lists[l].backColor) colHdr.css('background-color', lists[l].backColor);
+			// Colors for list headers
+			Document.setItemBackground(lists[l], colHdr, lists[l].backColor ? lists[l].backColor : 'black');
 			if (lists[l].color) colHdr.css('color', lists[l].color);
 			
 			var itemWidth;
@@ -887,9 +891,8 @@ class Board {
 					event.stopPropagation();
 					that.hideOptions();
 					
-					// Set board flag on item
 					Actions.getInstance().setBoardBackgroundImage(that.getCurrentId())
-					.then(function(data) {
+					.then(function(/*data*/) {
 						n.routing.call(that.getCurrentId());
 					})
 					.catch(function(err) {
@@ -971,6 +974,23 @@ class Board {
 	 * Stop delayed save
 	 */
 	stopDelayedSave() {
+	}
+	
+	/**
+	 * Check basic property correctness
+	 */
+	static checkBasicProps(doc, errors) {
+		if (doc.boardBackground) {  // This is relevant for all documents!
+			errors.push({
+				message: 'Document contains deprecated boardBackground reference',
+				id: doc._id,
+				type: 'W',
+				solverReceipt: [{
+					action: 'deleteProperty',
+					propertyName: 'boardBackground'
+				}]
+			});		
+		}
 	}
 }
 	

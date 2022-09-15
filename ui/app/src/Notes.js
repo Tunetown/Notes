@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.89.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.90.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1360,6 +1360,24 @@ class Notes {
 		}
 		
 		return false;
+	}
+
+	/**
+	 * If there is an editor opened, reload it from database.
+	 */	
+	reloadCurrentEditor() {
+		var e = this.getCurrentEditor();
+		if (!e) return Promise.resolve();
+		
+		var current = e.getCurrentId();
+		if (!current) return Promise.resolve();
+	
+		var that = this;
+		return Actions.getInstance().loadDocumentsById([current])
+		.then(function(data) {
+			e.load(that.getData().getById(current));
+			return Promise.resolve();
+		});
 	}
 	
 	/**

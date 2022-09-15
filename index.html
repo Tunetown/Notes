@@ -86,9 +86,9 @@
 		          			<td>
 		          				<select id="setBgImageDialogTypeSelector">
 		          					<option value="none" selected="selected">No image</option>
-		          					<option value="upload">Upload</option>
-		          					<option value="ref">Attachment in Notebook</option>
-		          					<option value="url">URL</option>
+		          					<option value="upload">Upload from File</option>
+		          					<option value="ref">Image Attachment in Notebook</option>
+		          					<option value="url">Paste from Clipboard / Web Link</option>
 		          				</select>
 		          			</td>
 		          		</tr>
@@ -99,6 +99,14 @@
 		          		<tr>
 		          			<td id="setBgImageDialogInputNameLine2"></td>
 		          			<td id="setBgImageDialogInputSrcInLine2"></td>
+		          		</tr>
+		          		<tr>
+		          			<td id="setBgImageDialogInputNameLine3"></td>
+		          			<td id="setBgImageDialogInputSrcInLine3"></td>
+		          		</tr>
+		          		<tr>
+		          			<td id="setBgImageDialogInputPreviewName"></td>
+		          			<td id="setBgImageDialogInputPreview"></td>
 		          		</tr>
 	          		</tbody>
 	          	</table>
@@ -172,24 +180,6 @@
           </div>
           <div class="modal-footer">
             <button type="button" class="btn btn-secondary" id="createSubmitButton">Create</button>
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
-          </div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="modal fade" id="backgroundImageDialog" tabindex="-1" aria-hidden="true">
-      <div class="modal-dialog">
-        <div class="modal-content">
-          <div class="modal-header">
-            <h5 class="modal-title">Link background image for <span id="backgroundImageText"></span>:</h5>
-          </div>
-          <div class="modal-body">
-          	<div id="backgroundImageSelectorList">
-            </div>
-          </div>
-          <div class="modal-footer">
-            <button type="button" class="btn btn-secondary" id="backgroundImageSubmitButton">Use as Background Image</button>
             <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
           </div>
         </div>

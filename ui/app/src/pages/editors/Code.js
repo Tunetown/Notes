@@ -340,6 +340,8 @@ class Code {
 	 * Check basic property correctness
 	 */
 	static checkBasicProps(doc, errors) {
+		if (doc.editor != 'code') return;
+		
 		/*if (!doc.editorParams || !doc.editorParams.language) {
 			errors.push({
 				message: 'Code editor: language missing',

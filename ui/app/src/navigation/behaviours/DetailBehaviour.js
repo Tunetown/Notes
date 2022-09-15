@@ -657,10 +657,7 @@ class DetailBehaviour {
 			$(element).css('color', 'black');
 		} else {
 			if (back) {
-				if (Document.setBackground(doc, element) != 'image') {
-					if (!color) return;
-					$(element).css('background-color', color);
-				}
+				Document.setItemBackground(doc, element, color ? color : 'white');
 			} else {
 				if (!color) return;
 				$(element).css('color', color);

@@ -535,6 +535,12 @@ class Tools {
 	static getImageSize(url) {
 		return new Promise((resolve, reject) => {
 			var img = new Image();
+			$(img).on('error', function() {
+				reject({
+					message: 'Error loading image data',
+					messageThreadId: 'ImageUrlMessages'
+				});
+			});
 			$(img).on('load', function() {
 				resolve({
 					width: img.width,
@@ -548,11 +554,27 @@ class Tools {
 	/**
 	 * Returns a promise with the rescaled data for the image.
 	 */
-	static rescaleImage(url, maxWidth, maxHeight, type, quality) {
+	static rescaleImage(url, maxWidth, maxHeight, type, quality, maxBytes) {
 		return new Promise((resolve, reject) => {
 			var img = new Image();
 			img.crossOrigin = "anonymous";
+			$(img).on('error', function() {
+				reject({
+					message: 'Error loading image data',
+					messageThreadId: 'RescaleImageMessages'
+				});
+			});
 			$(img).on('load', function() {
+				if (!url.startsWith('http') && (url.length <= maxBytes) && (img.width <= maxWidth) && (img.height <= maxHeight)) {
+					resolve({
+						data: url,
+						size: {
+							width: img.width,
+							height: img.height
+						}
+					});
+				}
+			
 				var width = img.width;
 				var height = img.height;
 				
@@ -577,18 +599,6 @@ class Tools {
 
 				var dataurl = canvas.toDataURL(type, quality);
 				
-				/*if (!url.startsWith('http') && (dataurl.length > url.length)) {
-					console.log("NO RESCALING");
-					resolve({
-						data: url,
-						size: {
-							width: img.width,
-							height: img.height
-						}
-					});
-					return;
-				}*/
-				
 				resolve({
 					data: dataurl,
 					size: {
@@ -598,6 +608,37 @@ class Tools {
 				});
 			});
 			img.src = url;
+		});
+	}
+	
+	/**
+	 * Returns a promise which returns the image file from the clipboard, if any.
+	 */
+	static getClipboardImageData(event) {
+		return new Promise(function(resolve, reject) {
+			var items = (event.clipboardData || event.originalEvent.clipboardData).items;
+			var found = false;
+			for (var index in items) {
+				var item = items[index];
+				if (item.kind === 'file') {
+					var blob = item.getAsFile();
+					var reader = new FileReader();
+					reader.onload = function(event){
+				    	resolve(event.target.result);
+					}; 
+					reader.onerror = function() {
+						reject({
+							message: 'Error loading image data',
+							messageThreadId: 'GetCLipboardImageMessages'
+						});
+					};
+					found = true;
+					reader.readAsDataURL(blob);
+					break;
+				}
+			}
+			
+			if (!found) reject();
 		});
 	}
 		

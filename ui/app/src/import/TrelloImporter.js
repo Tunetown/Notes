@@ -124,7 +124,7 @@ class TrelloImporter {
 			parent: '',
 			content: '',
 			board: true,
-			boardBackground: bgDoc ? bgDoc._id : false,
+			//boardBackground: bgDoc ? bgDoc._id : false,   // TODO deprecated! Implement this again with attachment background. 
 			timestamp: Date.now(),
 		};
 		
@@ -307,7 +307,7 @@ class TrelloImporter {
 				_attachments: {}
 			};
 		    
-			doc._attachments[strippedName] = {
+			doc._attachments['attachment_data'] = {
 				content_type: resp.type,
     			data: resp
 			};

@@ -171,11 +171,6 @@ class Document {
 			}
 		}
 		
-		// Check attachment stuff
-		if (doc.type == "attachment") {
-			AttachmentPreview.checkBasicProps(doc, errors);
-		}
-		
 		// Check editor mode etc.
 		if (doc.type == "note") {
 			if (!doc.editor) {
@@ -202,11 +197,11 @@ class Document {
 					}]
 				});		
 			}
-			
-			if (doc.editor == 'code') {
-				Code.checkBasicProps(doc, errors);
-			}
 		}
+
+		AttachmentPreview.checkBasicProps(doc, errors);
+		Code.checkBasicProps(doc, errors);
+		Board.checkBasicProps(doc, errors);
 		
 		// Check label definitions and labels.
 		LabelDefinitions.check(doc, errors, allDocs);
@@ -317,7 +312,7 @@ class Document {
 					type: 'E',
 				});
 			} else {
-				if (doc.backImageSize > Config.ITEM_BACKGROUND_MAX_PROPOSED_SIZE_BYTES) {
+				if (doc.backImageSize > Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES) {
 					errors.push({
 						message: 'Background image very large: ' + Tools.convertFilesize(doc.backImageSize),
 						id: doc._id,
@@ -500,7 +495,6 @@ class Document {
 		doc.editorParams = src.editorParams;
 		
 		doc.boardState = src.boardState;
-		doc.boardBackground = src.boardBackground;
 		
 		doc.attachmentSize = src.attachmentSize;
 		doc.contentSize = src.contentSize;
@@ -572,7 +566,6 @@ class Document {
 		doc.editorParams = src.editorParams;
 		
 		doc.boardState = src.boardState;
-		doc.boardBackground = src.boardBackground;
 		
 		doc.attachmentSize = src.attachmentSize;
 		doc.contentSize = src.contentSize; 
@@ -625,7 +618,6 @@ class Document {
 						editor: doc.editor,
 						
 						boardState: doc.boardState,
-						boardBackground: doc.boardBackground,
 
 						labelDefinitions: doc.labelDefinitions,
 						labels: doc.labels,
@@ -1626,108 +1618,128 @@ class Document {
 				++num;
 			}
 		}
-		
-		//ret += options.lineFeed;
-		
+
 		return ret;
 	}
 	
+	/**
+	 * Item background specific version of setBackground.
+	 */
+	static setItemBackground(doc, element, overrideBackColor) {
+		var that = this;
+		if (Document.hasBackImage(doc)) {
+			// The document has a specific image for this: Start new task to load and handle the background image (which may be stubbed).
+			Actions.getInstance().loadBgImage(doc._id)
+			.then(function(backImageData) {
+				that.setBackground(backImageData, overrideBackColor ? overrideBackColor : doc.backColor, element);		
+			})
+			.catch(function(err) {
+				Notes.getInstance().showAlert(err.message ? err.message : 'Error determining specific background image', 'E', err.messageThreadId);
+			});
+
+		} else if (Document.isImage(doc) && Settings.getInstance().settings.showAttachedImageAsItemBackground) {
+			// Use the attachment image as background
+			// NOTE: No size is passed here, so repeat backgrounds will not work with references, only with b64 data!
+			this.setBackground({ ref: doc._id }, overrideBackColor ? overrideBackColor : doc.backColor, element);
+		} else {
+			this.setBackground(false, overrideBackColor ? overrideBackColor : doc.backColor, element);		
+		}
+	}
+			
 	/**
 	 * Sets an appropriate background on the element, according to the document.
 	 *
 	 * May start async tasks to load images, but the return value denotes the type of
 	 * background the document will use.
 	 */
-	static setBackground(doc, element) {
+	static setBackground(imageData, backColor, element) {
 		$(element).css('background', '');	
 		
 		/**
 		 * Sets the orientation and sizing options on the element
 		 */
-		function handleSize(backImage) {
-			if (backImage && backImage.size) {
-				if (Math.min(backImage.size.width, backImage.size.height) < 100) {
+		function handleSize(imageDataP) {
+			if (imageDataP && imageDataP.size) {
+				if (Math.min(imageDataP.size.width, imageDataP.size.height) < 100) {
 					// Show repeated					
-					$(element).css('background-repeat', 'cover, repeat');	
+					$(element).css('background-repeat', backColor ? 'repeat' : 'cover, repeat');	
 				} else {
 					// Show all of image
-					$(element).css('background-size', 'cover, cover');
-					$(element).css('background-position', 'center, center');	
+					$(element).css('background-size', backColor ? 'cover' : 'cover, cover');
+					$(element).css('background-position', backColor ? 'center' : 'center, center');	
 				}
 			} else {
 				// Show all of image
-				$(element).css('background-size', 'cover, cover');
-				$(element).css('background-position', 'center, center');			
+				$(element).css('background-size', backColor ? 'cover' : 'cover, cover');
+				$(element).css('background-position', backColor ? 'center' : 'center, center');			
 			}
 		}
 		
-		var gradientColor = $.Color(doc.backColor ? doc.backColor : '#ffffffff').alpha(0.7).toRgbaString();
-		var gradient = 'linear-gradient(' + gradientColor + ', ' + gradientColor + ')';
+		var gradient = "";
+		if (backColor) {
+			var gradientColor = $.Color(backColor).alpha(0.7).toRgbaString();
+			gradient = 'linear-gradient(' + gradientColor + ', ' + gradientColor + '), ';
+		}
 		
-		if (Document.hasBackImage(doc)) {
-			// Start new task to load and handle the background image (which may be stubbed)
-			Actions.getInstance().loadBgImage(doc._id)
-			.then(function(backImageData) {
-				// Image data is now fully loaded.
-				if (backImageData.data) {
-					// URL background
-					$(element).css('background-image', gradient + ', url("' + backImageData.data + '")');
-					
-					handleSize(backImageData);
-					
-					return Promise.resolve({
-						ok: true,
-						type: 'url'
-					});
-					
-				} else if (backImageData.ref) {
-					// Reference background
-					return Actions.getInstance().getAttachmentUrl(backImageData.ref)
-					.then(function(data) {
-						if (data.url) {
-							$(element).css('background-image', gradient + ', url("' + data.url + '")');
-							
-							handleSize(backImageData);
+		/**
+		 * Applies the passed image data. Returns a Promise.
+		 */
+		function applyBackgroundImage(imageDataP) {
+			if (imageDataP.data) {
+				// URL background
+				$(element).css('background-image', gradient + 'url("' + imageDataP.data + '")');
+				
+				handleSize(imageDataP);
+				
+				return Promise.resolve({
+					ok: true,
+					type: 'url'
+				});
+				
+			} else if (imageDataP.ref) {
+				// Reference background
+				return Actions.getInstance().getAttachmentUrl(imageDataP.ref)
+				.then(function(data) {
+					if (data.url) {
+						$(element).css('background-image', gradient + 'url("' + data.url + '")');
+						
+						handleSize(imageDataP);
 
-							return Promise.resolve({
-								ok: true,
-								type: 'ref'
-							});
-						} else {
-							return Promise.reject({
-								message: "Could not load referenced attachment: " + backImageData.ref,
-								messageThreadId: 'DocSetBackgroundMessages'
-							});
-						}
-					})
-					.catch(function(err) {
-						return Promise.reject(err);
-					});
-					
-				} else {
-					// Error in image definition
-					return Promise.reject({
-						message: "Error in image definition for document " + doc._id,
-						messageThreadId: 'DocSetBackgroundMessages'
-					});
-				}		
-			})
+						return Promise.resolve({
+							ok: true,
+							type: 'ref'
+						});
+					} else {
+						return Promise.reject({
+							message: "Could not load referenced attachment: " + imageDataP.ref,
+							messageThreadId: 'DocSetBackgroundMessages'
+						});
+					}
+				})
+				.catch(function(err) {
+					return Promise.reject(err);
+				});
+				
+			} else {
+				// Error in image definition
+				return Promise.reject({
+					message: "Error in image definition",
+					messageThreadId: 'DocSetBackgroundMessages'
+				});
+			}
+		}
+		
+		if (imageData) {
+			// The document has a specific image for this: Start new task to load and handle the background image (which may be stubbed)
+			applyBackgroundImage(imageData)		
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error determining board background image: ' + doc.backImage.ref, 'E', err.messageThreadId);
+				Notes.getInstance().showAlert(err.message ? err.message : 'Error determining background image: ' + imageData.ref, 'E', err.messageThreadId);
 			});
-
-			return 'image';
-			
-		} else if (doc.backColor) {
+		
+		} else if (backColor) {
 			// Solid background color
-			if (!doc.backColor) return false;
-			$(element).css('background-color', doc.backColor);
-
-			return 'color';
-			
-		} else {
-			// No background color
-			return false;
+			if (!backColor) return false;
+			$(element).css('background-color', backColor);
 		}
 	}
 	

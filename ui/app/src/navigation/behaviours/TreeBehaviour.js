@@ -247,10 +247,7 @@ class TreeBehaviour {
 	 */
 	colorItem(element, doc, color, back) {
 		if (back) {
-			if (Document.setBackground(doc, element) != 'image') {
-				if (!color) return;
-				$(element).css('background-color', color);
-			}
+			Document.setItemBackground(doc, element, color ? color : 'white');
 		} else {
 			if (!color) return;
 			$(element).css('color', color);
@@ -314,6 +311,7 @@ class TreeBehaviour {
 	open(id) {
 		var doc = Notes.getInstance().getData().getById(id);
 		this.expander.expandPathTo(doc);
+		this.grid.setSelected(id);
 	}
 	
 	/**

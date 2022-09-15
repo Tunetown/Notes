@@ -49,14 +49,14 @@ class Editor {
 	/**
 	 * Loads the given data into the editor (which also is initialized here at first time).
 	 */
-	load(data) {
+	load(doc) {
 		var that = this;
 		var n = Notes.getInstance();
 		
 		var content = '';
-		if (Document.getContent(data)) content = Document.getContent(data);
+		if (Document.getContent(doc)) content = Document.getContent(doc);
 		
-		this.setCurrent(data);
+		this.setCurrent(doc);
 		n.setCurrentEditor(this);
 		
 		$('#contentContainer').hide();

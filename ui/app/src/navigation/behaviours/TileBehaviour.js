@@ -381,10 +381,7 @@ class TileBehaviour {
 	 */
 	colorItem(element, doc, color, back) {
 		if (back) {
-			if (Document.setBackground(doc, element) != 'image') {
-				if (!color) return;
-				$(element).css('background-color', color);
-			}
+			Document.setItemBackground(doc, element, color ? color : 'white');
 			
 			// Also color the underlay
 			var col = Tools.lightenDarkenColor(color, 12);
@@ -453,6 +450,7 @@ class TileBehaviour {
 	open(id) {
 		var doc = Notes.getInstance().getData().getById(id);
 		this.expander.expandPathTo(doc);
+		this.grid.setSelected(id);
 	}
 	
 	/**

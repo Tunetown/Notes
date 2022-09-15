@@ -56,4 +56,13 @@ Config.ITEM_BACKGROUND_MIME_TYPE = 'image/jpeg';
 Config.ITEM_BACKGROUND_QUALITY = 0.4;
 Config.ITEM_BACKGROUND_MAX_WIDTH = 400;
 Config.ITEM_BACKGROUND_MAX_HEIGHT = 400;
-Config.ITEM_BACKGROUND_MAX_PROPOSED_SIZE_BYTES = 50 * 1024;   // Size as of which the consistency check will give a warning. This has no influence on the rescaling itself.
+Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES = 50 * 1024;  
+
+/**
+ * Properties for board background images (these will be rescaling)
+ */
+Config.BOARD_BACKGROUND_MAX_WIDTH = 1000;
+Config.BOARD_BACKGROUND_MAX_HEIGHT = 1000;
+Config.BOARD_BACKGROUND_MIME_TYPE = 'image/jpeg';
+Config.BOARD_BACKGROUND_QUALITY = 0.4;
+Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES = 500 * 1024;

@@ -68,7 +68,8 @@ class Settings {
 			maxUploadSizeMB: 1,
 			reduceHistory: true,
 			maxSearchResults: 15,
-			navigationAnimationDuration: 60
+			navigationAnimationDuration: 60,
+			showAttachedImageAsItemBackground: true
 		};
 	}
 	
@@ -791,6 +792,28 @@ class Settings {
 								})
 							)
 						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Show images in navigation</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (this.settings.showAttachedImageAsItemBackground ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											onChange: function() {
+												var s = Settings.getInstance();
+												s.settings.showAttachedImageAsItemBackground = !!this.getChecked();
+												
+												s.saveSettings();
+											}
+										});
+									}, 0);
+								})
+							),
+						),
 							
 						///////////////////////////////////////////////////////////////////////////////////////////////////
 						///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -972,7 +995,7 @@ class Settings {
 						$('<tr/>').append(
 							$('<td class="w-auto">Show current Document in Favorites</td>'),
 							$('<td colspan="2" />').append(
-								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getViewSettings().showCurrentInFavorites ? 'checked' : '') + ' />')
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getViewSettings().dontShowCurrentInFavorites ? '' : 'checked') + ' />')
 								.each(function(i) {
 									var that = this;
 									setTimeout(function() {
@@ -982,7 +1005,7 @@ class Settings {
 											disabled:  false,
 											onChange: function() {
 												var cs = ClientState.getInstance().getViewSettings();
-												cs.showCurrentInFavorites = !!this.getChecked();
+												cs.dontShowCurrentInFavorites = !this.getChecked();
 												ClientState.getInstance().saveViewSettings(cs);
 												NoteTree.getInstance().refresh();
 											}

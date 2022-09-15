@@ -50,7 +50,9 @@ class AttachmentPreview {
 			n.showAlert('Document ' + doc.name + ' has no attachments');
 			return;
 		}
-		var att = atts[doc.attachment_filename];
+		var att = atts['attachment_data'];
+		if (!att) att = atts[doc.attachment_filename];
+		 
 		var attsize = Tools.convertFilesize(att.length);
 		
 		// Set note name in the header
@@ -164,6 +166,8 @@ class AttachmentPreview {
 	 * Check basic property correctness
 	 */
 	static checkBasicProps(doc, errors) {
+		if (doc.type != 'attachment') return;
+		
 		if (!doc.attachment_filename) {
 			errors.push({
 				message: 'attachment_filename missing',
@@ -172,25 +176,45 @@ class AttachmentPreview {
 			});		
 		}
 		
-		if (!doc._attachments || !doc._attachments[doc.attachment_filename]) {
+		if (!doc._attachments) {
 			errors.push({
-				message: 'Attachment data missing',
+				message: 'No attachment data',
 				id: doc._id,
 				type: 'E'
 			});		
+			return;
+		}
+		
+		var attname = 'attachment_data';
+		if (!doc._attachments[attname]) {
+			if (doc._attachments[doc.attachment_filename]) {
+				attname = doc.attachment_filename;
+				
+				errors.push({
+					message: 'Attachment uses deprecated name: ' + doc.attachment_filename + '. Re-upload it to solve this.',
+					id: doc._id,
+					type: 'I'
+				});		
+			} else {
+				errors.push({
+					message: 'Attachment data missing',
+					id: doc._id,
+					type: 'E'
+				});		
+			}
 		}
 		
 		if (!doc.content_type) {
 			errors.push({
-				message: 'content_type missing',
+				message: 'Document content_type missing',
 				id: doc._id,
 				type: 'W'
 			});		
 		}
 		
-		if (doc._attachments[doc.attachment_filename].content_type != doc.content_type) {
+		if (doc._attachments[attname] && (doc._attachments[attname].content_type != doc.content_type)) {
 			errors.push({
-				message: 'Attachment mismatching content_types: ' + doc._attachments[doc.attachment_filename].content_type + ' != ' + doc.content_type,
+				message: 'Attachment mismatching content_types: ' + doc._attachments[attname].content_type + ' != ' + doc.content_type,
 				id: doc._id,
 				type: 'E'
 			});		
