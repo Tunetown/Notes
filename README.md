@@ -53,4 +53,10 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - References: Now opened via routing
     - Console URL now independent of notebook
     
+0.90.0
+    - Board backgrounds now way more flexible, like item backgrounds
+    - Selected item in detail view is highlighted better
+    - Rework of attachment names for attachment documents (backwards compatible)
+    - Optical improvements
+
     
