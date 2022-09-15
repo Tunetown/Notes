@@ -1861,6 +1861,18 @@ class Actions {
 				Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
 			);
 		}) 
+		.catch(function() {
+			return that.askForImage(
+				doc,
+				doc.name,
+				false,
+				Config.BOARD_BACKGROUND_MAX_WIDTH, 
+				Config.BOARD_BACKGROUND_MAX_HEIGHT, 
+				Config.BOARD_BACKGROUND_MIME_TYPE,
+				Config.BOARD_BACKGROUND_QUALITY,
+				Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
+			);
+		})
 		.then(function(backImage) {
 			return that.setBoardBackImage(id, backImage);
 		})			        	
@@ -1891,6 +1903,9 @@ class Actions {
 			var blobData =  new Blob([JSON.stringify(imageData)], {
 			    type: 'application/json'
 			});
+			if (!doc._attachments) {
+				doc._attachments = {};
+			}
 			doc._attachments['board_background'] = {
 				content_type: 'application/json',
     			data: blobData,
