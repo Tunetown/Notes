@@ -193,6 +193,9 @@ class Board {
 			boardBack.css('display', 'block');
 		})
 		.catch(function(err) {
+			if (err && (err.status == 404)) {
+				return;
+			}
 			n.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
 		})
 		
