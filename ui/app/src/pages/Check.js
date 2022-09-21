@@ -34,19 +34,19 @@ class Check {
 				description: 'Views consistency',
 				runner: function(onFinish) {
 					that.processCheck(
-						Actions.getInstance().checkViews(),
+						Views.getInstance().checkViews(),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Actions.getInstance().updateViews();
+					return Views.getInstance().updateViews();
 				}
 			}],
 			['settingsCheck', {
 				description: 'Settings consistency',
 				runner: function(onFinish) {
 					that.processCheck(
-						Actions.getInstance().checkSettings(),
+						SettingsActions.getInstance().checkSettings(),
 						onFinish
 					);
 				}
@@ -55,12 +55,12 @@ class Check {
 				description: 'Unnecessary views',
 				runner: function(onFinish) {
 					that.processCheck(
-						Actions.getInstance().checkUnusedViews(),
+						Views.getInstance().checkUnusedViews(),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Actions.getInstance().deleteUnusedViews();
+					return Views.getInstance().deleteUnusedViews();
 				}
 			}],
 			['basicCheck', {
@@ -68,12 +68,12 @@ class Check {
 				description: 'Document Integrity',
 				runner: function(onFinish, allDocs) {
 					that.processCheck(
-						Actions.getInstance().checkDocumentsData(allDocs),
+						DocumentChecks.getInstance().checkDocumentsData(allDocs),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Actions.getInstance().solveDocumentErrors(errors);
+					return DocumentChecks.getInstance().solveDocumentErrors(errors);
 				}
 			}],
 			['metaCheck', {
@@ -81,12 +81,12 @@ class Check {
 				description: 'Document Metadata',
 				runner: function(onFinish, allDocs) {
 					that.processCheck(
-						Actions.getInstance().checkDocumentsMeta(allDocs),
+						DocumentChecks.getInstance().checkDocumentsMeta(allDocs),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Actions.getInstance().repairDocumentsMeta(ids);
+					return DocumentChecks.getInstance().repairDocumentsMeta(ids);
 				}
 			}],
 			['treeDocsCheck', {
@@ -94,7 +94,7 @@ class Check {
 				description: 'Tree structure integrity',
 				runner: function(onFinish, allDocs) {
 					that.processCheck(
-						Actions.getInstance().checkDocumentsRefs(allDocs),
+						DocumentChecks.getInstance().checkDocumentsRefs(allDocs),
 						onFinish
 					);
 				}
@@ -104,12 +104,12 @@ class Check {
 				description: 'Conflicts',
 				runner: function(onFinish, allDocs) {
 					that.processCheck(
-						Actions.getInstance().checkDocumentsConflicts(allDocs),
+						DocumentChecks.getInstance().checkDocumentsConflicts(allDocs),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Actions.getInstance().repairDocumentsConflicts();
+					return DocumentChecks.getInstance().repairDocumentsConflicts();
 				}
 			}],
 			['syncChecks', {
@@ -134,7 +134,7 @@ class Check {
 				description: 'Document Size Statistics',
 				runner: function(onFinish, allDocs) {
 					that.processCheck(
-						Actions.getInstance().getStats(allDocs),
+						DocumentAccess.getInstance().getStats(allDocs),
 						onFinish
 					);
 				}
@@ -242,7 +242,7 @@ class Check {
 					check.runner(onFinish, that.allDocs);
 				} else {
 					// Get all docs beforehand
-					Actions.getInstance().getAllDocs()
+					DocumentAccess.getInstance().getAllDocs()
 					.then(function(all) {
 						check.runner(onFinish, all);
 					})
@@ -263,7 +263,7 @@ class Check {
 	runAll() {
 		// Get all documents, then run tests on it.
 		var that = this;
-		Actions.getInstance().getAllDocs()
+		DocumentAccess.getInstance().getAllDocs()
 		.then(function(all) {
 			that.allDocs = all;
 			
@@ -476,7 +476,7 @@ class Check {
 			return that.runCheck(check);
 		})
 		.then(function(data) {
-			return Actions.getInstance().requestTree();
+			return TreeActions.getInstance().requestTree();
 		})
 		.catch(function(err) {
 			Notes.getInstance().showAlert((err && err.message) ? err.message : 'Error solving problems.', 'E');

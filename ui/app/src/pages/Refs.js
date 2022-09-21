@@ -53,7 +53,7 @@ class Refs {
 					$('<div data-toggle="tooltip" title="Delete Reference" class="fa fa-trash versionButton" data-id="' + ref._id + '"/>')
 					.on('click', function(e) {
 						var rid = $(this).data().id;
-						Actions.getInstance().deleteItems([rid])
+						DocumentActions.getInstance().deleteItems([rid])
 						.then(function(data) {
 							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
 							Notes.getInstance().routing.call('refs/' + id);

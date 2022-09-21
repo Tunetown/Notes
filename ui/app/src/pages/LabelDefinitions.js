@@ -244,13 +244,13 @@ class LabelDefinitions {
 		var that = this;
 		this.saveLabelsHandler = setTimeout(function() {
 			var labels = doc.labels;
-			Actions.getInstance().loadDocuments([doc])
-			.then(function(resp) {
+			DocumentAccess.getInstance().loadDocuments([doc])
+			.then(function(/*resp*/) {
 				doc.labels = labels;
 				
-				return Actions.getInstance().saveLabels(doc._id);
+				return LabelActions.getInstance().saveLabels(doc._id);
 			})
-			.then(function(data) {
+			.then(function(/*data*/) {
 				if (!that.current) return;
 				
 				var docl = d.getById(doc._id);
@@ -289,14 +289,14 @@ class LabelDefinitions {
 		if (!doc) return;
 		
 		var that = this;
-		Actions.getInstance().loadDocuments([doc])
-		.then(function(resp) {
+		DocumentAccess.getInstance().loadDocuments([doc])
+		.then(function(/*resp*/) {
 			var def = Document.getLabelDefinition(doc, id);
 			def.color = color;
 			
-			return Actions.getInstance().saveLabelDefinitions(doc._id);
+			return LabelActions.getInstance().saveLabelDefinitions(doc._id);
 		})
-		.then(function(data) {
+		.then(function(/*data*/) {
 			that.load(that.current);
 		})
 		.catch(function(err) {
@@ -314,7 +314,7 @@ class LabelDefinitions {
 		if (!doc) return;
 		
 		var that = this;
-		Actions.getInstance().loadDocuments([doc])
+		DocumentAccess.getInstance().loadDocuments([doc])
 		.then(function(resp) {
 			var def = Document.getLabelDefinition(doc, id);
 			
@@ -322,7 +322,7 @@ class LabelDefinitions {
 			if (!name) return;
 			def.name = name;
 		
-			return Actions.getInstance().saveLabelDefinitions(doc._id)
+			return LabelActions.getInstance().saveLabelDefinitions(doc._id)
 		})
 		.then(function(data) {
 			that.load(that.current);
@@ -342,8 +342,8 @@ class LabelDefinitions {
 		if (!doc) return;
 		
 		var that = this;
-		Actions.getInstance().loadDocuments([doc])
-		.then(function(resp) {
+		DocumentAccess.getInstance().loadDocuments([doc])
+		.then(function(/*resp*/) {
 			var def = Document.getLabelDefinition(doc, id);
 			
 			if (!confirm('Really delete label ' + def.name + '?')) return Promise.reject({
@@ -357,7 +357,7 @@ class LabelDefinitions {
 				ok: true
 			});
 		
-			return Actions.getInstance().saveLabelDefinitions(doc._id);
+			return LabelActions.getInstance().saveLabelDefinitions(doc._id);
 		})
 		.then(function(data) {
 			if (!data || !data.noReload) that.load(that.current);
@@ -376,10 +376,10 @@ class LabelDefinitions {
 		var doc = d.getById(owner);
 		if (!doc) return;
 		
-		var def = Document.getLabelDefinition(doc, id);
+		//var def = Document.getLabelDefinition(doc, id);
 		
-		var that = this;
-		Actions.getInstance().moveLabelDefinition(doc._id, id)
+		//var that = this;
+		LabelActions.getInstance().moveLabelDefinition(doc._id, id)
 		.then(function(data) {
 			if (data.newOwner) Notes.getInstance().routing.callLabelDefinitions(data.newOwner);
 		})
@@ -403,13 +403,13 @@ class LabelDefinitions {
 		if (!name) return;
 		
 		var that = this;
-		Actions.getInstance().loadDocuments([doc])
+		DocumentAccess.getInstance().loadDocuments([doc])
 		.then(function(resp) {
 			Document.addLabelDefinition(doc, {
 				name: name
 			});
 		
-			return Actions.getInstance().saveLabelDefinitions(doc._id);
+			return LabelActions.getInstance().saveLabelDefinitions(doc._id);
 		})
 		.then(function(data) {
 			that.load(that.current);

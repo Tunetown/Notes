@@ -95,7 +95,7 @@ class AttachmentPreview {
 		var n = Notes.getInstance();
 		
 		var that = this;
-		Actions.getInstance().getAttachmentUrl(this.current._id)
+		AttachmentActions.getInstance().getAttachmentUrl(this.current._id)
 		.then(function(data) {
 			if (!data.ok || !data.url) {
 				n.showAlert(data.message ? data.message : 'Error downloading attachment', 'E', data.messageThreadId);
@@ -138,7 +138,7 @@ class AttachmentPreview {
 					event.stopPropagation();
 					that.hideOptions();	
 					
-					Actions.getInstance().updateAttachmentFromFile(that.getCurrentId())
+					AttachmentActions.getInstance().updateAttachmentFromFile(that.getCurrentId())
 					.then(function(data) {
 						if (data.message) {
 							n.showAlert(data.message, "S", data.messageThreadId);

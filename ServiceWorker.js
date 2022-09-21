@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.90.3.a';
+const PRECACHE = 'notes_precache-v0.91.1.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -89,11 +89,24 @@ const PRECACHE_URLS = [
   './ui/app/doc/technical.html',
   './ui/app/doc/usage.html',
 
+  './ui/app/src/actions/AttachmentActions.js',
+  './ui/app/src/actions/BoardActions.js',
+  './ui/app/src/actions/DocumentActions.js',
+  './ui/app/src/actions/EditorActions.js',
+  './ui/app/src/actions/HistoryActions.js',
+  './ui/app/src/actions/LabelActions.js',
+  './ui/app/src/actions/ReferenceActions.js',
+  './ui/app/src/actions/SettingsActions.js',
+  './ui/app/src/actions/TrashActions.js',
+  './ui/app/src/actions/TreeActions.js',
   './ui/app/src/database/Database.js',
   './ui/app/src/database/DatabaseSync.js',
   './ui/app/src/database/ProfileHandler.js',
   './ui/app/src/data/Data.js',
   './ui/app/src/data/Document.js',
+  './ui/app/src/data/DocumentAccess.js',
+  './ui/app/src/data/DocumentChecks.js',
+  './ui/app/src/data/Views.js',
   './ui/app/src/navigation/behaviours/TreeBehaviour.js',
   './ui/app/src/navigation/behaviours/DetailBehaviour.js',
   './ui/app/src/navigation/behaviours/TileBehaviour.js',
@@ -129,9 +142,10 @@ const PRECACHE_URLS = [
   './ui/app/src/tools/TouchClickHandler.js',
   './ui/app/src/tools/ClientState.js',
   './ui/app/src/tools/OnlineSensor.js',
+  './ui/app/src/tools/ImageDialog.js',
+  './ui/app/src/tools/Callbacks.js',
   './ui/app/src/Config.js',
   './ui/app/src/Routing.js',
-  './ui/app/src/Actions.js',
   './ui/app/src/Notes.js',
 
   './ui/lib/fa/webfonts/fa-solid-900.woff2',

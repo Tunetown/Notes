@@ -96,7 +96,7 @@ class Import {
 			return that.importer.process(data.json, file.name);
 		})
 		.then(function(data) {
-			return Actions.getInstance().requestTree();
+			return TreeActions.getInstance().requestTree();
 		})
 		.catch(function(err) {
 			n.showAlert((!err.abort ? 'Error importing data: ' : '') + err.message, err.abort ? 'I' : 'E', err.messageThreadId);

@@ -180,7 +180,7 @@ class Editor {
 			that.hideOptions();	
 			
 			// Rename
-			Actions.getInstance().renameItem(that.getCurrentId())
+			DocumentActions.getInstance().renameItem(that.getCurrentId())
 			.then(function(data) {
 				if (data.message) {
 					n.showAlert(data.message, "S", data.messageThreadId);
@@ -258,7 +258,7 @@ class Editor {
 			var n = Notes.getInstance();
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
-			return Actions.getInstance().save(this.current._id, this.getContent())
+			return DocumentActions.getInstance().save(this.current._id, this.getContent())
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
         	})
@@ -360,10 +360,9 @@ class Editor {
 		this.stopDelayedSave();
 		this.timeoutHandle = setTimeout(function(){
 			var e = Editor.getInstance();
-			var a = Actions.getInstance();
 			if (!tinymce.get(e.editorId).isDirty()) return;
 			
-			a.save(e.getCurrentId(), e.getContent())
+			DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
 			.catch(function(err) {
         		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});

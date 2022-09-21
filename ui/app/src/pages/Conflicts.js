@@ -54,7 +54,7 @@ class Conflicts {
 						var id = $(this).data().id;
 						var rev = $(this).data().rev;
 						
-						Actions.getInstance().deleteItemPermanently(id, rev)
+						DocumentActions.getInstance().deleteItemPermanently(id, rev)
 						.then(function(data) {
 							if (data.message) {
 								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);

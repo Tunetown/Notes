@@ -113,7 +113,7 @@ class Code {
 			that.hideOptions();	
 			
 			// Rename
-			Actions.getInstance().renameItem(that.getCurrentId())
+			DocumentActions.getInstance().renameItem(that.getCurrentId())
 			.then(function(data) {
 				if (data.message) {
 					n.showAlert(data.message, "S", data.messageThreadId);
@@ -184,7 +184,7 @@ class Code {
 						that.hideOptions();
 						
 						// Change language mode
-						Actions.getInstance().saveEditorMode(that.getCurrentId(), that.getEditorMode(), {
+						EditorActions.getInstance().saveEditorMode(that.getCurrentId(), that.getEditorMode(), {
 							language: this.value
 						})
 						.then(function(data) {
@@ -244,7 +244,7 @@ class Code {
 			var n = Notes.getInstance();
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
-			Actions.getInstance().save(this.getCurrentId(), this.getContent())
+			DocumentActions.getInstance().save(this.getCurrentId(), this.getContent())
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
         	})
@@ -319,10 +319,9 @@ class Code {
 		var that = this;
 		this.stopDelayedSave();
 		this.timeoutHandle = setTimeout(function(){
-			var a = Actions.getInstance();
 			if (!that.isDirty()) return;
 			
-			a.save(that.getCurrentId(), that.getContent())
+			DocumentActions.getInstance().save(that.getCurrentId(), that.getContent())
 			.catch(function(err) {
         		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});

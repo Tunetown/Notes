@@ -54,56 +54,56 @@ class Board {
 		});
 		
 		// Callbacks for actions
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'delete',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'copy',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'moveDocumentAfterSave',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'rename',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'create',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'setBoardBackgroundImage',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'saveLabels',
 			function(id) {
 				that.refresh();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'board',
 			'saveLabelDefinitions',
 			function(id) {
@@ -128,7 +128,7 @@ class Board {
 			}
 		}
 		
-		return Actions.getInstance().loadDocuments(docs)
+		return DocumentAccess.getInstance().loadDocuments(docs)
 		.then(function(resp) {
 			that.setCurrent(doc);
 			
@@ -187,7 +187,7 @@ class Board {
 		});
 		
 		// Asyncronously load the background image, if any
-		Actions.getInstance().getBoardBackground(doc._id)
+		BoardActions.getInstance().getBoardBackground(doc._id)
 		.then(function(imageData) {
 			Document.setBackground(imageData, false, boardBack);
 			boardBack.css('display', 'block');
@@ -464,7 +464,7 @@ class Board {
 						
 						console.log("Dropped " + files.length + " files into " + lst.name);
 						
-						Actions.getInstance().uploadAttachments(id, files)
+						AttachmentActions.getInstance().uploadAttachments(id, files)
 						.catch(function(err) {
 							Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
@@ -507,7 +507,7 @@ class Board {
 				dragContainer: dragContainer[0],
 				dragStartPredicate: {
 					distance: 0,
-					delay: 0, //200,
+					delay: Notes.getInstance().isMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 				},
 				dragAutoScroll: {
 					targets: (item) => {
@@ -564,7 +564,7 @@ class Board {
 			dragHandle: '.board-column-header',
 			dragStartPredicate: {
 				distance: 50,
-				delay: 0
+				delay: Notes.getInstance().isMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 			},
 			dragAutoScroll: {
 				targets: (item) => {
@@ -633,7 +633,7 @@ class Board {
 		this.refresh();
 		
 		// Save state on DB
-		Actions.getInstance().saveBoardState(id, doc.boardState)
+		BoardActions.getInstance().saveBoardState(id, doc.boardState)
 		/*.then(function(data) {
 			n.showAlert(data.message ? data.message : 'Saved list state', 'S');
 		})*/
@@ -791,10 +791,7 @@ class Board {
 		NoteTree.getInstance().destroy();
 		NoteTree.getInstance().init(true);
 
-		Actions.getInstance().saveItems(ids)
-		/*.then(function(data) {
-			Notes.getInstance().showAlert(data.message ? data.message : 'Successfully moved item(s)', 'S');
-		})*/
+		DocumentAccess.getInstance().saveItems(ids)
 		.catch(function(err) {
 			Notes.getInstance().showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 		});
@@ -855,7 +852,7 @@ class Board {
 			that.hideOptions();	
 			
 			// Rename
-			Actions.getInstance().renameItem(that.getCurrentId())
+			DocumentActions.getInstance().renameItem(that.getCurrentId())
 			.then(function(data) {
 				if (data.message) {
 					n.showAlert(data.message, "S", data.messageThreadId);
@@ -894,7 +891,7 @@ class Board {
 					event.stopPropagation();
 					that.hideOptions();
 					
-					Actions.getInstance().setBoardBackgroundImage(that.getCurrentId())
+					BoardActions.getInstance().setBoardBackgroundImage(that.getCurrentId())
 					.then(function(/*data*/) {
 						n.routing.call(that.getCurrentId());
 					})
@@ -943,7 +940,7 @@ class Board {
 		Notes.getInstance().registerOptionsCallbacks({
 			id: 'board'
 		});
-		Actions.getInstance().deleteCallbacks('board');
+		Callbacks.getInstance().deleteCallbacks('board');
 				
 		this.setCurrent();
 		this.resetDirtyState();

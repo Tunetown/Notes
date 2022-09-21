@@ -42,7 +42,7 @@ class Trash {
 					$('<div data-toggle="tooltip" title="Restore Note" class="fa fa-redo versionButton" data-name="' + doc.name + '"id="vref_' + doc._id + '"/>')
 					.on('click', function(e) {
 						var id = $(this).attr('id').substring('vref_'.length);
-						Actions.getInstance().undeleteItem(id)
+						DocumentActions.getInstance().undeleteItem(id)
 						.then(function(data) {
 							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
 							Notes.getInstance().routing.call('trash');
@@ -55,7 +55,7 @@ class Trash {
 					.on('click', function(e) {
 						var id = $(this).attr('id').substring('vref_'.length);
 						
-						Actions.getInstance().deleteItemPermanently(id)
+						DocumentActions.getInstance().deleteItemPermanently(id)
 						.then(function(data) {
 							if (data.message) {
 								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
@@ -166,7 +166,7 @@ class Trash {
 	}
 	
 	emptyTrash() {
-		Actions.getInstance().emptyTrash()
+		TrashActions.getInstance().emptyTrash()
 		.then(function(data) {
 			if (data.message) {
 				Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);

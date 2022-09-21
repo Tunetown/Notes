@@ -76,7 +76,7 @@ class RawView {
 		
 		if (!confirm('Download JSON export data of ' + this.current.name + ' including its contents (' + ids.length + ' documents)?')) return;
 		
-		Actions.getInstance().exportDocuments(ids)
+		DocumentAccess.getInstance().exportDocuments(ids)
 		.then(function(data) {
 			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S', 'ExportDocsMessages');
 		})
@@ -95,9 +95,9 @@ class RawView {
 		
 		var doc = JSON.parse(this.editor.getValue());
 		
-		Actions.getInstance().saveDbDocument(doc)
+		DocumentAccess.getInstance().saveDbDocument(doc)
 		.then(function(data) {
-			return Actions.getInstance().requestTree();
+			return TreeActions.getInstance().requestTree();
 		})
 		.then(function(data) {
 			Notes.getInstance().showAlert('Saved ' + (doc.name ? doc.name : 'the document') + '.', 'S', 'SaveDbDocMessages');

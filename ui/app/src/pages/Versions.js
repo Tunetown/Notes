@@ -97,7 +97,7 @@ class Versions {
 						}
 						
 						var v = Versions.getInstance();
-						Actions.getInstance().deleteVersion(v.currentId, name)
+						HistoryActions.getInstance().deleteVersion(v.currentId, name)
 						.then(function(data) {
 							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
 						})
@@ -241,9 +241,9 @@ class Versions {
 		}
 
 		var that = this;
-		Actions.getInstance().deleteHistory(this.currentId)
-		.then(function(data) {
-			Actions.getInstance().showHistory(that.currentId);
+		HistoryActions.getInstance().deleteHistory(this.currentId)
+		.then(function(/*data*/) {
+			HistoryActions.getInstance().showHistory(that.currentId);
 		})
 		.catch(function(err) {
 			n.showAlert('Error deleting history: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
@@ -266,9 +266,9 @@ class Versions {
 		}
 		
 		var that = this;
-		Actions.getInstance().deleteChangeLog(this.currentId)
+		DocumentActions.getInstance().deleteChangeLog(this.currentId)
 		.then(function(data) {
-			Actions.getInstance().showHistory(that.currentId);
+			HistoryActions.getInstance().showHistory(that.currentId);
 		})
 		.catch(function(err) {
 			n.showAlert('Error deleting change log: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)

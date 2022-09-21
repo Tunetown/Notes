@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.90.3';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.91.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -97,7 +97,7 @@ class Notes {
 		            	 
 		            	that.showAlert("Saving " + e.current.name + "...", "I", "SaveMessages"); 
 		            
-		            	Actions.getInstance().save(e.getCurrentId(), e.getContent())
+		            	DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
 						.then(function(data) {
 		            		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 		            	})
@@ -164,12 +164,12 @@ class Notes {
 				
 				// Called after manually syncing. Just reloads the tree.
 				onManualSyncFinishedCallback: function() {
-					return Actions.getInstance().updateViews()
+					return Views.getInstance().updateViews()
 					.then(function(resp) {
 						if (resp.docCreated) {
 							that.showAlert('Successfully initialized database views.', 'S');
 						}
-						return Actions.getInstance().requestTree();
+						return TreeActions.getInstance().requestTree();
 					});
 				},
 				
@@ -183,7 +183,7 @@ class Notes {
 					if (!that.updatedViews) {
 						that.updatedViews = true;
 
-						Actions.getInstance().updateViews()
+						Views.getInstance().updateViews()
 						.catch(function(err) {
 							that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
@@ -193,7 +193,7 @@ class Notes {
 				// Called when the live sync (autoSync) gets changes. Checks if the changes are relevant to the tree or the
 				// opened document, and reloads whatever needs to be reloaded.
 				onLiveSyncChangeCallback: function(change, change_seq, final_seq) {
-					var a = Actions.getInstance();
+					//var a = Actions.getInstance();
 					var e = that.getCurrentEditor();
 					
 					// Check if we need to update anything. This only applies when we get changes from the remote (pull).
@@ -218,7 +218,7 @@ class Notes {
 										e.stopDelayedSave();
 										that.showAlert('Warning: ' + (doc.name ? doc.name : doc._id) + ' has been changed remotely. If you save now, the remote version will be overwritten! Reload the app to keep the server version.', 'W');
 									} else {
-										a.request(doc._id)
+										DocumentActions.getInstance().request(doc._id)
 										.catch(function(err) {
 											that.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
 										})
@@ -232,13 +232,13 @@ class Notes {
 						if (change_seq == final_seq) {
 							that.showProgressBar(1);
 							
-							a.updateViews()
+							Views.getInstance().updateViews()
 							.then(function(resp) {
 								if (resp.docCreated) {
 									that.showAlert('Successfully initialized database views.', 'S');
 								}
 								
-								return a.requestTree();
+								return TreeActions.getInstance().requestTree();
 							})
 							.catch(function(err) {
 								that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -254,7 +254,7 @@ class Notes {
 								
 								if (Document.containsTreeRelevantChanges(doc)) {
 									console.log("Sync: -> Re-requesting tree, document " + (doc.name ? doc.name : doc._id) + " had relevant changes");
-									a.requestTree()
+									TreeActions.getInstance().requestTree()
 									.catch(function(err) {
 										that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
@@ -446,6 +446,18 @@ class Notes {
 	}
 	
 	/**
+	 * Disables the back swipe gesture. 
+	 * Taken from https://www.outsystems.com/forums/discussion/77514/disable-swipe-to-previous-screen-some-android-and-ios/
+	 *
+	disableBackSwipe() {
+		document.addEventListener('touchstart', function(e) {
+			var x = e.touches[0].pageX;
+			console.log(x);
+			if (x > 10 && x < window.innerWidth - 10) return;
+		    e.preventDefault();
+		}, { passive: false });
+	}
+	/**
 	 * Load the DBs and start the app. This is called before any route and returns a promise,
 	 * after which the DB can be used.
 	 */
@@ -509,6 +521,11 @@ class Notes {
 		// Store URL as last loaded address
 		ClientState.getInstance().setLastOpenedUrl(location.href);
 				
+		// Disable back swiping for mobile devices
+		/*if (this.isMobile()) {
+			this.disableBackSwipe();
+		}*/
+				
 		// Initialize database instance with the user ID. This is started asynchronously. After the database(s)
 		// is/are up, the settings, notes tree and the last loaded note are requested independently.
 		return Database.getInstance().init()
@@ -521,7 +538,7 @@ class Notes {
 				if (!that.updatedViews) {
 					that.updatedViews = true;
 
-					return Actions.getInstance().updateViews()
+					return Views.getInstance().updateViews()
 					.then(function(resp) {
 						return Promise.resolve(data);
 					});
@@ -537,8 +554,6 @@ class Notes {
 			return Promise.resolve(data);
 		})
 		.then(function(data) {
-			var a = Actions.getInstance();
-			//var c = ClientState.getInstance();
 			var d = Database.getInstance();
 
 			// The tree and note requests can run in parallel from here on
@@ -549,12 +564,12 @@ class Notes {
 			var settingsPromise = null;
 			
 			if (data.initialised) {
-				settingsPromise = a.requestSettings()
+				settingsPromise = SettingsActions.getInstance().requestSettings()
 				.catch(function(err) {
 					that.showAlert('Error getting settings: ' + err.message, 'E', err.messageThreadId);
 				});
 				
-				treePromise = a.requestTree()
+				treePromise = TreeActions.getInstance().requestTree()
 				.catch(function(err) {
 					that.showAlert('Error loading TOC: ' + err.message, 'E', err.messageThreadId);
 				});
@@ -594,7 +609,7 @@ class Notes {
 		if (e) {
 			if (e.isDirty()) {
 				var that = this;
-				Actions.getInstance().save(e.getCurrentId(), e.getContent())
+				DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
 				.then(function(data) {
 	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 	        		e.unload();
@@ -1087,13 +1102,13 @@ class Notes {
 		var that = this;
 		$('#headerMoveSelectorContainer').append(
 			selector
-			.on('change', function(event) {
+			.on('change', function(/*event*/) {
 	        	var target = this.value;
 	        	
 	        	Tools.adjustSelectWidthToValue($(this));
 	        	$(this).blur();
 	        	
-	        	Actions.getInstance().moveDocuments([id], target, true)
+	        	DocumentActions.getInstance().moveDocuments([id], target, true)
 	        	.then(function(data) {
 	        		var doc = Notes.getInstance().getData().getById(id);
 	        		var tdoc = Notes.getInstance().getData().getById(target);
@@ -1373,7 +1388,7 @@ class Notes {
 		if (!current) return Promise.resolve();
 	
 		var that = this;
-		return Actions.getInstance().loadDocumentsById([current])
+		return DocumentAccess.getInstance().loadDocumentsById([current])
 		.then(function(data) {
 			e.load(that.getData().getById(current));
 			return Promise.resolve();
@@ -1618,7 +1633,7 @@ class Notes {
 						if (that.optionsIds.length != 1) return;
 						
 						NoteTree.getInstance().block();
-						Actions.getInstance().create(that.optionsIds[0])
+						DocumentActions.getInstance().create(that.optionsIds[0])
 						.then(function(data) {
 							NoteTree.getInstance().unblock();
 							
@@ -1640,7 +1655,7 @@ class Notes {
 						if (that.optionsIds.length != 1) return;
 						
 						NoteTree.getInstance().block();
-						Actions.getInstance().renameItem(that.optionsIds[0])
+						DocumentActions.getInstance().renameItem(that.optionsIds[0])
 						.then(function(data) {
 							NoteTree.getInstance().unblock();
 							
@@ -1672,7 +1687,7 @@ class Notes {
 			        	that.hideOptions();
 			        	if (that.optionsIds.length != 1) return;
 			        	
-			        	Actions.getInstance().setReference(that.optionsIds[0])
+			        	ReferenceActions.getInstance().setReference(that.optionsIds[0])
 			        	.then(function(data) {
 							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
@@ -1688,7 +1703,7 @@ class Notes {
 			        	that.hideOptions();
 			        	if (!that.optionsIds.length) return;
 			        	
-			        	Actions.getInstance().moveItems(that.optionsIds)
+			        	DocumentActions.getInstance().moveItems(that.optionsIds)
 			        	.then(function(data) {
 							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
@@ -1704,8 +1719,8 @@ class Notes {
 						that.hideOptions();
 						if (that.optionsIds.length != 1) return;
 						
-						Actions.getInstance().copyItem(that.optionsIds[0])
-						.then(function(data) {
+						DocumentActions.getInstance().copyItem(that.optionsIds[0])
+						.then(function(/*data*/) {
 							that.showAlert('Successfully copied item', 'S');
 						})
 						.catch(function(err) {
@@ -1724,7 +1739,7 @@ class Notes {
 						
 						that.showAlert("Preparing to delete items...", 'I', 'DeleteMessages');
 						
-						Actions.getInstance().deleteItems(that.optionsIds).then(function(data) {
+						DocumentActions.getInstance().deleteItems(that.optionsIds).then(function(data) {
 							NoteTree.getInstance().unblock();
 							
 							if (data.message) {
@@ -1832,7 +1847,7 @@ class Notes {
 						that.hideOptions();
 						if (!that.optionsIds.length) return;
 						
-						Actions.getInstance().setItemBackgroundImage(that.optionsIds)
+						DocumentActions.getInstance().setItemBackgroundImage(that.optionsIds)
 						.then(function(data) {
 							if (data.message) that.showAlert(data.message, 'S', data.messageThreadId);
 						})
@@ -1975,14 +1990,14 @@ class Notes {
 		var bgColor = docs[0].backColor;
 		
 		var that = this;
-		Actions.getInstance().loadDocuments(docs)
+		DocumentAccess.getInstance().loadDocuments(docs)
 		.then(function(resp) {
 			for(var d in docs) {
 				docs[d].color = color;
 				docs[d].backColor = bgColor;
 			}
 			
-			return Actions.getInstance().saveItems(ids);
+			return DocumentAccess.getInstance().saveItems(ids);
 		})
 		.catch(function(err) {
     		that.showAlert("Error saving metadata: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);

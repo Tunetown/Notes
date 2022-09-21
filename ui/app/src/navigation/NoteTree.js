@@ -125,7 +125,7 @@ class NoteTree {
         		Notes.getInstance().hideOptions();
         		
         		that.block();
-				Actions.getInstance().create(that.behaviour.getNewItemParent())
+				DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
 				.then(function(data) {
 					that.unblock();
 					if (data.message) {
@@ -604,7 +604,7 @@ class NoteTree {
 				callback: function(files, definition, element) {
 					console.log("Dropped " + files.length + " files into " + doc.name);
 					
-					Actions.getInstance().uploadAttachments(doc._id, files)
+					AttachmentActions.getInstance().uploadAttachments(doc._id, files)
 					.catch(function(err) {
 						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 					});
@@ -689,7 +689,7 @@ class NoteTree {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						that.block();
-						Actions.getInstance().create(that.behaviour.getNewItemParent())
+						DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
 						.then(function(data) {
 							that.unblock();
 							if (data.message) {
@@ -727,7 +727,7 @@ class NoteTree {
 				callback: function(files, definition, element) {
 					console.log("Dropped " + files.length + " files into navigation container");
 					
-					Actions.getInstance().uploadAttachments(that.behaviour.getNewItemParent(), files)
+					AttachmentActions.getInstance().uploadAttachments(that.behaviour.getNewItemParent(), files)
 					.catch(function(err) {
 						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 					});
@@ -736,7 +736,7 @@ class NoteTree {
 		]);
 		
 		// Action callbacks
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'requestTree',
 			function(data) {
@@ -744,7 +744,7 @@ class NoteTree {
 				that.init();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'loadDocument',
 			function(docs) {
@@ -757,7 +757,7 @@ class NoteTree {
 				}
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'openDocument',
 			function(doc) {
@@ -766,7 +766,7 @@ class NoteTree {
 				n.addFavorite(doc);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'create',
 			function(newIds) {
@@ -779,14 +779,14 @@ class NoteTree {
 				}, 0);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'save',
 			function(doc) {
 				that.behaviour.afterSave(doc);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'moveDocumentBeforeSave',
 			function(data) {
@@ -795,21 +795,21 @@ class NoteTree {
 
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'moveDocumentAfterSave',
 			function(data) {
 				return that.behaviour.afterDrop(data.docsSrc, data.docTarget, data.moveToSubOfTarget);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'requestConflict',
 			function(data) {
 				that.updateSelectedState(true);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'delete',
 			function(docs) {
@@ -819,7 +819,7 @@ class NoteTree {
 				that.behaviour.afterDelete(docs);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'rename',
 			function(data) {
@@ -827,7 +827,7 @@ class NoteTree {
 				that.init();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'copy',
 			function(data) {
@@ -835,7 +835,7 @@ class NoteTree {
 				that.init();
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'saveLabels',
 			function(data) {
@@ -843,7 +843,7 @@ class NoteTree {
 				that.init(true);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'saveLabelDefinitions',
 			function(data) {
@@ -851,7 +851,7 @@ class NoteTree {
 				that.init(true);
 			}
 		);
-		Actions.getInstance().registerCallback(
+		Callbacks.getInstance().registerCallback(
 			'tree',
 			'importFinished',
 			function(data) {
@@ -1084,7 +1084,7 @@ class NoteTree {
 		var that = this;
 		if (text && (text.length > 0)) {
 			// Load all documents
-			return Actions.getInstance().loadAllDocuments()
+			return DocumentAccess.getInstance().loadAllDocuments()
 			.then(function(resp) {
 				that.filter(true);
 				
@@ -1193,8 +1193,7 @@ class NoteTree {
 			return;
 		}
     	
-    	var that = this;
-    	Actions.getInstance().moveDocuments([srcId], tarId, moveToSubOfTarget)
+    	DocumentActions.getInstance().moveDocuments([srcId], tarId, moveToSubOfTarget)
     	.catch(function(err) {
     		Notes.getInstance().showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
     	});

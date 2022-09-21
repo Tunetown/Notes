@@ -238,7 +238,7 @@ class TrelloImporter {
 			});
 		}
 		
-		return Actions.getInstance().importDocuments(docs)
+		return DocumentAccess.getInstance().importDocuments(docs)
 		.then(function(data) {
 			if (!data.ok) {
 				Console.log('Error in Trello import: ' + data.message, 'E');

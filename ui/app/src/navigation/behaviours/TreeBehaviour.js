@@ -560,7 +560,7 @@ class TreeBehaviour {
 	 */
 	onNavigationDoubleClick() {
 		// Reload navigation (dor debugging)
-		Actions.getInstance().requestTree()
+		TreeActions.getInstance().requestTree()
 		.then(function(data) {
 			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S", data.messageThreadId);
 		});

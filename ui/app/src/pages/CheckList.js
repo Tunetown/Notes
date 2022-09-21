@@ -114,9 +114,9 @@ class CheckList {
 							
 							if (!confirm('Try to solve ' + id + ' (' + numSteps + ' steps)?\n\n' + stepsStr)) return;
 							
-							Actions.getInstance().solveDocumentErrors([ms])
+							DocumentChecks.getInstance().solveDocumentErrors([ms])
 							.then(function(data) {
-								return Actions.getInstance().requestTree();
+								return TreeActions.getInstance().requestTree();
 							})
 							.then(function(data) {
 								Notes.getInstance().showAlert(data.message, 'I', data.messageThreadId);
@@ -147,9 +147,9 @@ class CheckList {
 							
 							if (!confirm('Really delete document ' + id + ' from database?')) return;
 							
-							Actions.getInstance().deleteDbDocument(id)
+							DocumentAccess.getInstance().deleteDbDocument(id)
 							.then(function(data) {
-								return Actions.getInstance().requestTree();
+								return TreeActions.getInstance().requestTree();
 							})
 							.then(function(data) {
 								Notes.getInstance().showAlert(data.message, 'I', data.messageThreadId);

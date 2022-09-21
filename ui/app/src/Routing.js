@@ -164,7 +164,7 @@ class Routing {
 					//       parents. This is why we wait for the tree here.
 					return Promise.resolve(data.treePromise)
 					.then(function(data) {
-						return Actions.getInstance().showTrash();
+						return TrashActions.getInstance().showTrash();
 					});
 					
 				})
@@ -239,7 +239,7 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					return Actions.getInstance().requestVersion(noteId, versionName);
+					return HistoryActions.getInstance().requestVersion(noteId, versionName);
 					
 				})
 				.catch(function(err) {
@@ -258,7 +258,7 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					return Actions.getInstance().showHistory(noteId);
+					return HistoryActions.getInstance().showHistory(noteId);
 					
 				})
 				.catch(function(err) {
@@ -306,7 +306,7 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					
-					return Actions.getInstance().requestConflict(noteId, revId);
+					return DocumentActions.getInstance().requestConflict(noteId, revId);
 						
 				})
 				.catch(function(err) {
@@ -329,7 +329,7 @@ class Routing {
 				})
 				.then(function(data) {
 					that.app.resetPage();
-					return Actions.getInstance().requestLabelDefinitions(noteId);
+					return LabelActions.getInstance().requestLabelDefinitions(noteId);
 						
 				})
 				.catch(function(err) {
@@ -348,7 +348,7 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					return Actions.getInstance().requestRawView(noteId);
+					return DocumentActions.getInstance().requestRawView(noteId);
 						
 				})
 				.catch(function(err) {
@@ -371,10 +371,10 @@ class Routing {
 					var doc = Document.getTargetDoc(that.app.getData() ? that.app.getData().getById(noteId) : null);
 					if (Database.getInstance().profileHandler.getCurrentProfile().clone && doc) {
 						// If the data is already there, use it
-						return Actions.getInstance().requestEditor(doc);
+						return EditorActions.getInstance().requestEditor(doc);
 					} else {
 						// If the data is not yet there or we are not in clone mode, load it from DB
-						return Actions.getInstance().request(noteId);
+						return DocumentActions.getInstance().request(noteId);
 					}
 					
 				})

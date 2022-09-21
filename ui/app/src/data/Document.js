@@ -753,7 +753,7 @@ class Document {
 			}
 		}
 		
-		// NOTE: Attachments are handled directly in Actions.request().
+		// NOTE: Attachments are handled directly in DocumentActions.request().
 		return null;
 	}
 	
@@ -1218,7 +1218,7 @@ class Document {
 					editor.hideOptions();
 					
 					// Change board mode
-					Actions.getInstance().saveEditorMode(editor.getCurrentId(), this.value)
+					EditorActions.getInstance().saveEditorMode(editor.getCurrentId(), this.value)
 					.then(function(data) {
 						n.routing.call(editor.getCurrentId());
 					})
@@ -1256,12 +1256,13 @@ class Document {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				Actions.getInstance().create(editor.getCurrentId())
+				DocumentActions.getInstance().create(editor.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
 						n.showAlert(data.message, "S", data.messageThreadId);
 					}
-				}).catch(function(err) {
+				})
+				.catch(function(err) {
 					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
 			}),
@@ -1272,12 +1273,14 @@ class Document {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				Actions.getInstance().renameItem(editor.getCurrentId()).then(function(data) {
+				DocumentActions.getInstance().renameItem(editor.getCurrentId())
+				.then(function(data) {
 					if (data.message) {
 						n.showAlert(data.message, "S", data.messageThreadId);
 					}
 					n.routing.call(editor.getCurrentId());
-				}).catch(function(err) {
+				})
+				.catch(function(err) {
 					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 			}),
@@ -1288,7 +1291,7 @@ class Document {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	Actions.getInstance().moveItems([editor.getCurrentId()])
+	        	DocumentActions.getInstance().moveItems([editor.getCurrentId()])
 	        	.catch(function(err) {
 					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
@@ -1300,7 +1303,7 @@ class Document {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	Actions.getInstance().copyItem(editor.getCurrentId())
+	        	DocumentActions.getInstance().copyItem(editor.getCurrentId())
 	        	.catch(function(err) {
 					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
@@ -1315,13 +1318,14 @@ class Document {
 	        	var delId = editor.getCurrentId();
 	        	
 	        	n.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
-	        	Actions.getInstance().deleteItems([delId])
+	        	DocumentActions.getInstance().deleteItems([delId])
 				.then(function(data) {
 	        		if (data.message) {
 	        			n.showAlert(data.message, "S", data.messageThreadId);
 	        		}
 	        		n.routing.call();
-	        	}).catch(function(err) {
+	        	})
+				.catch(function(err) {
 	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 	        		n.routing.call(delId);
 	        	});
@@ -1349,7 +1353,7 @@ class Document {
 				
 				var id = editor.getCurrentId();
 				
-				Actions.getInstance().createReference(id)
+				ReferenceActions.getInstance().createReference(id)
 				.then(function(data) {
 	        		if (data.message) {
 	        			n.showAlert(data.message, "S", data.messageThreadId);
@@ -1357,7 +1361,8 @@ class Document {
 					if (data.newIds && (data.newIds.length > 0)) {
 						NoteTree.getInstance().focus(data.newIds[0]);
 					}	        		
-	        	}).catch(function(err) {
+	        	})
+				.catch(function(err) {
 	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 	        	});
 			}),
@@ -1506,7 +1511,7 @@ class Document {
 				var docs = d.getChildren(doc._id, true);
 				docs.push(doc);
 				
-				Actions.getInstance().loadDocuments(docs)
+				DocumentAccess.getInstance().loadDocuments(docs)
 				.then(function(data) {
 					Document.downloadDocument(id, {
 						format: format, 
@@ -1629,7 +1634,7 @@ class Document {
 		var that = this;
 		if (Document.hasBackImage(doc)) {
 			// The document has a specific image for this: Start new task to load and handle the background image (which may be stubbed).
-			Actions.getInstance().loadBgImage(doc._id)
+			DocumentActions.getInstance().loadItemBackgroundImage(doc._id)
 			.then(function(backImageData) {
 				that.setBackground(backImageData, overrideBackColor ? overrideBackColor : doc.backColor, element);		
 			})
@@ -1698,7 +1703,7 @@ class Document {
 				
 			} else if (imageDataP.ref) {
 				// Reference background
-				return Actions.getInstance().getAttachmentUrl(imageDataP.ref)
+				return AttachmentActions.getInstance().getAttachmentUrl(imageDataP.ref)
 				.then(function(data) {
 					if (data.url) {
 						$(element).css('background-image', gradient + 'url("' + data.url + '")');

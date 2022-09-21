@@ -643,8 +643,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -660,8 +660,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -709,8 +709,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -726,8 +726,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -747,8 +747,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -764,8 +764,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -785,8 +785,8 @@ class Settings {
 									
 									that.saveSettings();
 									
-									var a = Actions.getInstance();
-									a.requestTree().catch(function(err) {
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
 										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
@@ -1069,7 +1069,7 @@ class Settings {
 			ids.push(children[d]._id);
 		}
 		
-		Actions.getInstance().exportDocuments(ids)
+		DocumentAccess.getInstance().exportDocuments(ids)
 		.then(function(data) {
 			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
 		})
@@ -1082,7 +1082,7 @@ class Settings {
 	 * Save settings
 	 */
 	saveSettings() {
-		Actions.getInstance().saveSettings()
+		SettingsActions.getInstance().saveSettings()
 		.then(function(data) {
 			if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
 		})

@@ -115,7 +115,7 @@ class Conflict {
 	deleteConflict() {
 		if (!this.current || !this.current._id || !this.current._rev) return;
 		
-		Actions.getInstance().deleteItemPermanently(this.current._id, this.current._rev)
+		DocumentActions.getInstance().deleteItemPermanently(this.current._id, this.current._rev)
 		.then(function(data) {
 			if (data.message) {
 				Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);

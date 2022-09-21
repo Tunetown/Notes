@@ -108,7 +108,7 @@ class NotesImporter {
 			});
 		}
 
-		return Actions.getInstance().importDocuments(data)
+		return DocumentAccess.getInstance().importDocuments(data)
 		.then(function(data) {
 			if (!data.ok) {
 				Console.log('Error in import: ' + data.message, 'E');
