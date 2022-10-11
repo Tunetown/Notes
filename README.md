@@ -59,4 +59,8 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Rework of attachment names for attachment documents (backwards compatible)
     - Optical improvements
 
-    
+0.91.0
+    - Dragging Optimization for Boards in mobile mode
+    - Bug fixes
+    - Refactoring
+        
