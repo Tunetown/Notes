@@ -430,7 +430,7 @@ class Settings {
 								$('<button class="btn btn-secondary settings-button">Export Raw Data (JSON)</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
-									that.exportAll();
+									that.exportAll('json');
 								}),
 								$('<button class="btn btn-secondary settings-button">Import Raw Data (JSON)</button>')
 								.on('click', function(event) {
@@ -446,6 +446,16 @@ class Settings {
 								.on('click', function(event) {
 									event.stopPropagation();
 									new Import(new TrelloImporter()).startFileImport();
+								}),
+							])
+						),	
+						$('<tr/>').append(
+							$('<td class="w-auto">Obsidian</td>'),
+							$('<td colspan="2"/>').append([
+								$('<button class="btn btn-secondary settings-button">Export as ZIP of MD files</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									that.exportAll('files');
 								}),
 							])
 						),	
@@ -1059,7 +1069,12 @@ class Settings {
 	/**
 	 * Export all documents as internal JSON
 	 */
-	exportAll() {
+	exportAll(format) {
+		if (!format) {
+			Notes.getInstance().showAlert("No format specified", "E");
+			return;
+		}
+		
 		var children = Notes.getInstance().getData().getChildren("", true);
 		
 		if (!confirm('Export all ' + children.length + ' documents?')) return;
@@ -1069,13 +1084,24 @@ class Settings {
 			ids.push(children[d]._id);
 		}
 		
-		DocumentAccess.getInstance().exportDocuments(ids)
-		.then(function(data) {
-			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
-		});
+		if (format == 'json') {
+			DocumentAccess.getInstance().exportDocuments(ids)
+			.then(function(/*data*/) {
+				Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
+			})
+			.catch(function(err) {
+				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			});
+		}
+		if (format == 'files') {
+			DocumentAccess.getInstance().exportDocumentsToObsidian(ids)
+			.then(function(/*data*/) {
+				Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
+			})
+			.catch(function(err) {
+				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			});
+		}
 	}
 	
 	/**

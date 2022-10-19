@@ -592,7 +592,32 @@ class Data {
 
 		var ret = "";
 		for(var i=path.length-1; i>=0; --i) {
-			ret += path[i] + separator;   
+			var str = path[i];
+			
+			ret += str + separator;   
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * For an ID, this returns a readable name path to root. Version does not show separators at the end,
+	 * and can escape the note name for file export.
+	 */
+	getFilePath(id, separator) {
+		if (!separator) separator = "/";
+		var doc = this.data.get(id);
+		if (!doc) return 'InvalidID';
+		
+		var path = this.getReadablePathRec(doc);
+
+		var ret = "";
+		for(var i=path.length-1; i>=0; --i) {
+			var str = path[i];
+			
+			str = Tools.escapeFilename(str);
+			
+			ret += str + ((i > 0) ? separator : '');   
 		}
 		
 		return ret;

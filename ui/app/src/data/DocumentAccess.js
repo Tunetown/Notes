@@ -465,4 +465,203 @@ class DocumentAccess {
 			});
 		}); 
 	}
+	
+	/**
+	 * Export (download) documents as ZIP file. Expects an array of IDs.
+	 */
+	exportDocumentsToObsidian(ids) {
+		var db;
+		var _data;
+		var docsPrepped = [];
+		return Database.getInstance().get()
+		.then(function(dbRef) {
+			db = dbRef;
+			
+			return db.allDocs({
+				conflicts: true,
+				include_docs: true,
+				attachments: true,
+				keys: ids
+			});
+		})
+		.then(function(data) {
+			_data = data;
+			if (!_data.rows) {
+				return Promise.reject({
+					message: "Error: No data received.",
+					messageThreadId: 'ExportDocsMessages'
+				})
+			}
+			
+			// Load all attachments first, and also add links in the contents.
+			var filenames = [];
+			var promises = [];
+			var nonDocFolders = 0;
+			for(var i in _data.rows) {
+				var doc = _data.rows[i].doc;
+				
+				var path = Notes.getInstance().getData().getFilePath(doc._id);
+				if (path[0] == '/') path = path.substring(1);
+				
+				var hasChildren = Notes.getInstance().getData().hasChildren(doc._id);
+				if (hasChildren) {
+					path += '_CONTENT';
+				}
+				
+				var content = "";
+				var skip = false;
+				switch (doc.type) {
+					case 'note': {
+						content = doc.content;
+						path += '.md';
+						break;
+					}
+					case 'reference': {
+						// TODO	
+						console.log('ERROR: Refs not implemented yet: ' + doc._id);	
+						skip = true;				
+						break;
+					}
+					case 'sheet': {
+						console.log('WARNING: Sheets are not exported properly (just as plain text MD): ' + path);
+						content = doc.content;
+						path += '.md';
+						break;
+					}
+					case 'attachment': {
+						if (doc.name != doc.attachment_filename) {
+							path += ' - ' + doc.attachment_filename;  // TODO Could be more convenient...
+						}
+						
+						promises.push(
+							AttachmentActions.getInstance().getAttachmentUrl(doc._id)
+							.then(function(ret) {
+								var found = false;
+								for(var j=0; j<docsPrepped.length; ++j) {
+									if (docsPrepped[j].id == ret.id) {
+										docsPrepped[j].content = ret.blob;
+										found = true;
+										break;
+									}
+								}
+								if (!found) {
+									console.log("ERROR: Attachment " + ret.id + " failed to load");
+								}
+								return Promise.resolve();
+							})
+						);
+						break;
+					}
+				}
+				
+				// TODO: (Not clear in Obsidian!)
+				// - Background Images and colors
+				// - order
+				// - labels
+				
+				/*if ((doc.type != 'attachment') && !content && hasChildren) {
+					//console.log('Folder has no document content, skipping ' + path);
+					++nonDocFolders;
+					skip = true;	
+				}*/
+				
+				if (skip) continue;
+				
+				// Check for duplicate file names
+				var filename = Tools.removeFileExtension(Tools.extractFilename(path));
+				var basefilename = filename;
+				var dupi = 0;
+				while(filenames.findIndex(function(e) { return (e == filename); }) >= 0) {
+					console.log(' -> Name collision: ' + filename);
+
+					dupi++;
+					filename = basefilename + ' (' + dupi + ')'; //Tools.replaceFileName(Tools.extractFilename(path), Tools.escapeFilename(doc.name) + ' (' + dupi + ')');
+				}
+				path = Tools.replaceFileName(path, filename);
+				filenames.push(filename);
+
+				console.log('Exporting ' + path);
+				docsPrepped.push({
+					id: doc._id,
+					path: path,
+					filename: filename,
+					doc: doc,
+					content: content,
+					lastModified: new Date()
+				});
+			}
+			
+			for(var i=0; i<docsPrepped.length; ++i) {
+				var links = [];
+				var dp = docsPrepped[i];
+				
+				// Parent: Add a link to all documents pointing to their parents
+				if (dp.doc.parent) {
+					var found = false;
+					for(var j=0; j<docsPrepped.length; ++j) {
+						if (docsPrepped[j].id == dp.doc.parent) {
+							links.push(docsPrepped[j].filename);			
+							
+							found = true;
+							break;
+						}
+					}
+					if (!found) {
+						console.log('ERROR: Parent does not exist for ' + dp.id);
+					}
+				}
+				
+				// References: Add a link at the referenced document, pointing to the parent.
+				
+				// TODO
+				
+				docsPrepped[i].links = links;
+			}
+			
+			// Add all links at the start of the content
+			for(var i=0; i<docsPrepped.length; ++i) {
+				// TODO
+				var ltext = "";
+				for(var l=0;l<docsPrepped[i].links.length; ++l) {
+					ltext += "[[" + docsPrepped[i].links[l] + "]] ";
+				}
+				if (!ltext) continue;
+				
+				docsPrepped[i].content = ltext + '\n\n' + docsPrepped[i].content; 
+			}
+			
+			console.log(' -> Exported ' + docsPrepped.length + ' file documents');
+			console.log('   -> ' + nonDocFolders + ' non-document folders skipped');
+			console.log('     -> ' + (_data.rows.length - docsPrepped.length - nonDocFolders) + ' unexported documents left');
+			
+			return Promise.all(promises);
+		})
+		.then(function(/*attPromises*/) {
+			var files = [];
+			
+			console.log('Creating ZIP containing  ' + docsPrepped.length + ' documents');
+			for(var i=0; i<docsPrepped.length; ++i) {
+				var dp = docsPrepped[i];
+
+				files.push({
+					name: dp.path,
+					lastModified: dp.lastModified,
+					input: dp.content
+				});
+			}
+			
+			// get the ZIP stream in a Blob
+			return downloadZip(files).blob();
+		})
+		.then(function(blob) {
+			// make and click a temporary link to download the Blob
+			var url = URL.createObjectURL(blob);
+			
+			window.saveAs(url, 'Notes Export ' + new Date().toLocaleString() + '.zip');
+			
+			return Promise.resolve({
+				ok: true
+			});
+		}); 
+	}
 }

@@ -54,6 +54,7 @@ class AttachmentActions {
 			
 			if (buf) return Promise.resolve({
 				ok: true,
+				id: id,
 				buffered: true,
 				url: buf.url,
 				blob: buf.blob
@@ -86,6 +87,7 @@ class AttachmentActions {
 			
 			return Promise.resolve({
 				ok: true,
+				id: id,
 				url: url,
 				blob: data
 			});

@@ -381,7 +381,7 @@
 	<script src="ui/lib/sammy-latest.min.js"></script>
     <script src="ui/lib/selectize/selectize.min.js"></script>
     <script src="ui/lib/jquery.color-2.1.2.min.js"></script>
-
+    
     <script src="ui/app/src/actions/AttachmentActions.js"></script>
     <script src="ui/app/src/actions/BoardActions.js"></script>
     <script src="ui/app/src/actions/DocumentActions.js"></script>
@@ -462,5 +462,9 @@
     <script src="ui/lib/tinymce/plugins/textpattern/plugin.min.js"></script>
     <script src="ui/lib/tinymce/plugins/toc/plugin.min.js"></script>
   
+   	<script type="module">
+		import { downloadZip } from "./ui/lib/client-zip.js"
+		window.downloadZip = downloadZip;
+	</script>
 </body>
 </html>

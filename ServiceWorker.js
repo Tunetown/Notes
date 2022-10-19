@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.91.1.a';
+const PRECACHE = 'notes_precache-v0.92.0.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -71,6 +71,7 @@ const PRECACHE_URLS = [
   './ui/lib/showdown/showdown.min.js',
   './ui/lib/jsdiff.min.js',
   './ui/lib/sammy-latest.min.js',
+  './ui/lib/client-zip.js',
   
   './ui/lib/codemirror/lib/codemirror.js',
   './ui/lib/codemirror/mode/markdown/markdown.js',

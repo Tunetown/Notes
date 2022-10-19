@@ -655,6 +655,56 @@ class Tools {
 	}
 	
 	/**
+	 * File name escaping
+	 */
+	static escapeFilename(name) {
+		return name.replace(/[/\\?%*:|"<>]/g, '');
+	}
+	
+	/**
+	 * Replaces the name of the file in the given path, keeping the extenson.
+	 */
+	static replaceFileName(path, newname, separator) {
+		if (!separator) separator = '/';
+		var arr = path.split(separator);
+		
+		var name = arr[arr.length - 1].split('.');
+		if (name.length == 0) {
+			arr[arr.length - 1] = newname;
+		} else {
+			arr[arr.length - 1] = newname + '.' + name[name.length - 1];
+		}
+	
+		var ret = "";
+		for(var i=0; i<arr.length; ++i) {
+			ret += arr[i] + ((i < arr.length - 1) ? separator : '');
+		}
+		
+		return ret;
+	}
+	
+	static removeFileExtension(filename, separator) {
+		if (!separator) separator = '.';
+		var arr = filename.split(separator);
+		if (arr.length <= 1) return filename;
+
+		var ret = "";
+		for(var i=0; i<arr.length - 1; ++i) {
+			ret += arr[i] + ((i < (arr.length - 2)) ? separator : '');
+		}
+		
+		return ret;
+	}
+	
+	static extractFilename(path, removeExtension, separator) {
+		if (!separator) separator = '/';
+		var arr = path.split(separator);
+		if (arr.length <= 1) return path;
+		
+		return arr[arr.length - 1];
+	}
+	
+	/**
 	 * https://jsfiddle.net/Mottie/xcqpF/316/
 	 *
 	static rgb2hex(orig) {
