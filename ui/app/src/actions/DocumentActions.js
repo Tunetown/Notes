@@ -130,7 +130,7 @@ class DocumentActions {
 			return EditorActions.getInstance().requestEditor(targetDoc); 
 		})
 		.catch(function(err) {
-			if (err.status = 404) {
+			if (err.status == 404) {
 				return Promise.reject({
 					message: 'Document ' + id + ' not found',
 					messageThreadId: 'RequestMessages'

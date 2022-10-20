@@ -367,21 +367,16 @@ class Settings {
 									event.stopPropagation();
 									
 									Notes.getInstance().routing.call('check');
-									
-									/*Notes.getInstance().routing.call('console');
-									Database.getInstance().syncHandler.checkConsistency(function(msg, type) {
-										Console.log(msg, type);
-									});*/
 								}),
 								
-								$('<button class="btn btn-secondary settings-button">Replicate Local Data to URL</button>')
+								$('<button class="btn btn-secondary settings-button">Replicate Local Notebook to URL</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									
 									var url = prompt('URL to replicate to: ');
 									if (!url) return;
 									
-									Notes.getInstance().routing.call('console');
+									Notes.getInstance().routing.callConsole();
 									Database.getInstance().replicateLocalTo(url)
 									.catch(function(err) {
 										Notes.getInstance().showAlert("Error replicating to " + url);
@@ -895,7 +890,7 @@ class Settings {
 
 								$('<a style="cursor: pointer; padding-left: 10px;">Open Console</a>')
 								.on('click', function(event) {
-									Notes.getInstance().routing.call('console');
+									Notes.getInstance().routing.callConsole();
 								})
 							)
 						),
