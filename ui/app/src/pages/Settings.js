@@ -1094,7 +1094,7 @@ class Settings {
 			});
 		}
 		if (format == 'files') {
-			DocumentAccess.getInstance().exportDocumentsToObsidian(ids)
+			ObsidianExporter.getInstance().exportDocumentsToObsidian(ids)
 			.then(function(/*data*/) {
 				Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
 			})

@@ -658,21 +658,27 @@ class Tools {
 	 * File name escaping
 	 */
 	static escapeFilename(name) {
-		return name.replace(/[/\\?%*:|"<>]/g, '');
+		return name.replace(/[^a-zA-Z0-9 ._\-()]/g, '').trim();
+		//return name.replace(/[/\\?%*:|"<>]/g, '').trim();
 	}
 	
 	/**
 	 * Replaces the name of the file in the given path, keeping the extenson.
-	 */
-	static replaceFileName(path, newname, separator) {
+	 *
+	static replaceFileName(path, newname, separator, dontKeepExtension) {
 		if (!separator) separator = '/';
 		var arr = path.split(separator);
-		
-		var name = arr[arr.length - 1].split('.');
-		if (name.length == 0) {
-			arr[arr.length - 1] = newname;
+		if (arr.length == 0) return path;
+
+		if (!dontKeepExtension) {
+			var name = arr[arr.length - 1].split('.');
+			if (name.length == 0) {
+				arr[arr.length - 1] = newname;
+			} else {
+				arr[arr.length - 1] = newname + '.' + name[name.length - 1];
+			}
 		} else {
-			arr[arr.length - 1] = newname + '.' + name[name.length - 1];
+			arr[arr.length - 1] = newname;
 		}
 	
 		var ret = "";
@@ -696,6 +702,14 @@ class Tools {
 		return ret;
 	}
 	
+	static extractFileExtension(filename, separator) {
+		if (!separator) separator = '.';
+		var arr = filename.split(separator);
+		if (arr.length <= 1) return '';
+
+		return arr[arr.length-1];
+	}
+	
 	static extractFilename(path, removeExtension, separator) {
 		if (!separator) separator = '/';
 		var arr = path.split(separator);
@@ -703,6 +717,34 @@ class Tools {
 		
 		return arr[arr.length - 1];
 	}
+	
+	static getFolderNames(path, separator) {
+		if (!separator) separator = '/';
+		var arr = path.split(separator);
+		if (arr.length == 0) return arr;
+		arr.pop();
+		return arr;
+	}
+	
+	/*static umlautMap = {
+		  '\u00dc': 'Ue',
+		  '\u00c4': 'Ae',
+		  '\u00d6': 'Oe',
+		  '\u00fc': 'ue',
+		  '\u00e4': 'ae',
+		  '\u00f6': 'oe',
+		  '\u00df': 'ss',
+		};
+
+	static replaceUmlaute(str) {
+  		return str.replace(/[\u00dc|\u00c4|\u00d6][a-z]/g, (a) => {
+      		const big = Tools.umlautMap[a.slice(0, 1)];
+      		return big.charAt(0) + big.charAt(1).toLowerCase() + a.slice(1);
+    	})
+    	.replace(new RegExp('['+Object.keys(Tools.umlautMap).join('|')+']',"g"),
+      		(a) => Tools.umlautMap[a]
+    	);
+	}*/
 	
 	/**
 	 * https://jsfiddle.net/Mottie/xcqpF/316/

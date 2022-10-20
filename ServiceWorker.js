@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.92.0.a';
+const PRECACHE = 'notes_precache-v0.92.1.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -139,6 +139,7 @@ const PRECACHE_URLS = [
   './ui/app/src/import/Import.js',
   './ui/app/src/import/NotesImporter.js',
   './ui/app/src/import/TrelloImporter.js',
+  './ui/app/src/export/ObsidianExporter.js',
   './ui/app/src/tools/Tools.js',
   './ui/app/src/tools/TouchClickHandler.js',
   './ui/app/src/tools/ClientState.js',

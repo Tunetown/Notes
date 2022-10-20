@@ -391,7 +391,7 @@ class Data {
 	 * Returns if a document is a (deep) child of another document. Both must be doc IDs.
 	 * Also returns true if both are equal.
 	 */
-	isChildOf(id1, id2) {
+	isChildOf(id1, id2, shallow) {
 		if (!id1 || !id2) return false;
 		if (id1 == id2) return true;
 
@@ -402,7 +402,7 @@ class Data {
 		if (!doc1.parent) return false;
 		if (doc1.deleted) return false;
 		
-		return this.isChildOf(doc1.parent, id2);
+		return shallow ? false : this.isChildOf(doc1.parent, id2, true);
 	}
 	
 	/**
@@ -601,26 +601,47 @@ class Data {
 	}
 	
 	/**
-	 * For an ID, this returns a readable name path to root. Version does not show separators at the end,
-	 * and can escape the note name for file export.
+	 * For an ID, this returns metadata for export as file. Returns an object.
 	 */
-	getFilePath(id, separator) {
-		if (!separator) separator = "/";
+	getExportFileMeta(id, separator, folderPrefix) {
 		var doc = this.data.get(id);
-		if (!doc) return 'InvalidID';
+		if (!doc) return null;
 		
 		var path = this.getReadablePathRec(doc);
 
-		var ret = "";
+		var pathFull = "";
+		var pathFolder = "";
+		var tokens = [];
+		var filename  = "";
 		for(var i=path.length-1; i>=0; --i) {
 			var str = path[i];
 			
-			str = Tools.escapeFilename(str);
+			if (str) {
+				str = (folderPrefix ? ((i > 0) ? folderPrefix : '') : '') + Tools.escapeFilename(str);
+			}
 			
-			ret += str + ((i > 0) ? separator : '');   
+			pathFull += str + ((i > 0) ? separator : '');
+			tokens.push(str);
+			if (i == 0) {
+				filename = str;	
+			}
+			if (i > 0) {
+				pathFolder += str + ((i > 1) ? separator : '');
+			}
 		}
 		
-		return ret;
+		if (pathFull[0] == separator) pathFull = pathFull.substring(1);
+		if (pathFolder[0] == separator) pathFolder = pathFolder.substring(1);
+
+		return { 
+			id: id,
+			separator: separator,			
+			folderPrefix: folderPrefix,
+			path: pathFull,                // Full path, including file name
+			folder: pathFolder,            // Path to the file, excluding the file name
+			tokens: tokens,                // Path split by separator (including file name)
+			filename: filename,            // File name
+		};
 	}
 	
 	/**

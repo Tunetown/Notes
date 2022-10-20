@@ -34,7 +34,7 @@ class AttachmentActions {
 		.catch(function(/*err*/) {
 			// This is for being downward compatible: Older attachment documents still use the file name as attachment name,
 			// which has been changed as of version 0.90.0 because of potential collisions with other attachments. 
-			console.log('WARNING: (Uncritical) Attachment document ' + id + ' uses deprecated attachment_filename.');
+			//console.log('WARNING: (Uncritical) Attachment document ' + id + ' uses deprecated attachment_filename.');
 			
 			return db.getAttachment(id, doc.attachment_filename);
 		});
