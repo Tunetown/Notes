@@ -1155,7 +1155,7 @@ class Document {
 		var hideKanban = (options && options.hideKanban);
 		return $('<select class="' + ((options && options.cssClass) ? options.cssClass : '')+ '"></select>').append(
 			$('<option value="richtext">' + prefix + 'Rich Text</option>').prop('selected', 'richtext' == selectedValue),
-			$('<option value="code">' + prefix + 'Code</option>').prop('selected', 'code' == selectedValue),
+			$('<option value="code">' + prefix + 'Plain Text</option>').prop('selected', 'code' == selectedValue),
 			hideKanban ? null : $('<option value="board">Kanban Board</option>').prop('selected', 'board' == selectedValue),
 		);
 	} 

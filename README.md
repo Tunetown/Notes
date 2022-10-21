@@ -69,7 +69,7 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Small bug fixes
 
 - 0.93.0 
-    - **Official name change: Notes v2**
-    - Added non-hierarchical (reference driven) navigation behaviour
+    - Internal links in documents: Rich text and Plain text (Code)
+    - Renamed code editor to Plain Text
 
     
