@@ -24,7 +24,8 @@ class Behaviours {
 		var cs = ClientState.getInstance().getViewSettings();
 		switch (cs.navMode) {
 		//case 'tiles': return 'detail';
-		case 'detail': return 'tree';
+		case 'detail': return 'reference';
+		case 'reference': return 'tree';
 		case 'tree': return 'detail'; //'tiles';   // NOTE: Tile navigation is disabled here. 
 		} 
 		return null;
@@ -35,6 +36,7 @@ class Behaviours {
 	 */
 	static getNavModeIcon(mode) {
 		switch (mode) {
+		case 'reference': return 'project-diagram';
 		case 'tiles': return 'th-large';
 		case 'detail': return 'list';
 		case 'tree': return 'tree';
@@ -46,6 +48,7 @@ class Behaviours {
 	 * Sets the correct icon class active on the element for the passed mode
 	 */
 	static setNavModeIconClass(el, mode) {
+		el.toggleClass('fa-' + Behaviours.getNavModeIcon('reference'), mode == 'reference');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('tiles'), mode == 'tiles');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('detail'), mode == 'detail');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('tree'), mode == 'tree');
@@ -56,6 +59,7 @@ class Behaviours {
 	 */
 	static get(mode, grid) {
 		switch (mode) {
+		case 'reference': return new ReferenceBehaviour(grid);
 		case 'tiles': return new TileBehaviour(grid);
 		case 'detail': return new DetailBehaviour(grid);
 		case 'tree': return new TreeBehaviour(grid);

@@ -64,3 +64,10 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Bug fixes
     - Refactoring
         
+0.92.0
+    - Added Obsidian Exporter
+    - Small bug fixes
+    
+0.93.0
+    - Added non-hierarchical (reference driven) navigation behaviour
+    
