@@ -396,7 +396,7 @@ class Editor {
 	     * Items are built using the CardMenuItem.
 	     */
 	    editor.ui.registry.addAutocompleter('addlink', {
-			ch: '[',
+			ch: Linkage.startChar,
 			minChars: 0,
 			columns: 1,
 			highlightOn: ['char_name'],
@@ -417,7 +417,7 @@ class Editor {
 	 */
 	doTriggerLinkAutoCompletion(editor, rng, text, pattern) {
 		var lastChar = text.substring(rng.startOffset-1, rng.startOffset);
-		return (lastChar == '[');
+		return (lastChar == Linkage.startChar);
 	}
 	
 	/**
@@ -430,7 +430,7 @@ class Editor {
 			resolve(that.getLinkAutocompleteMatchedChars(editor, pattern).map(function (char) {
 				return {
 					type: 'cardmenuitem',
-					value: '[' + char.id + (char.displayText ? ('|' + char.displayText) : '') + ']]',
+					value: Linkage.startTagRest + char.id + (char.displayText ? (Linkage.separator + char.displayText) : '') + Linkage.endTag,
 					label: char.text,
 					items: [
 						{
@@ -503,7 +503,7 @@ class Editor {
 		for(var i=0; i<content.length-1; ++i) {
 			const cc = content[i] + content[i+1];
 			
-			if ((!capturing) && (cc == '[[')) {
+			if ((!capturing) && (cc == Linkage.startTag)) {
 				capturing = true;
 				start = i+2;
 				
@@ -514,7 +514,7 @@ class Editor {
 				}
 				
 			}
-			if (capturing && (cc == ']]')) {
+			if (capturing && (cc == Linkage.endTag)) {
 				capturing = false;
 				end = i;
 
@@ -537,42 +537,17 @@ class Editor {
 		
 		for(var c=0; c<coll.length; ++c) {
 			const co = coll[c];
-			const meta = this.splitLink(co.link);
+			const meta = Linkage.splitLink(co.link);
 			if (!meta) {
 				console.log("Invalid link ignored: " + co.link);
 				continue;	
 			}
 			const link = this.createLinkElement(meta.target, meta.text);
 			
-			content = content.replaceAll('[[' + co.link + ']]', link);
+			content = content.replaceAll(Linkage.startTag + co.link + Linkage.endTag, link);
 		}
 		
 		return content;
-	}
-	
-	/**
-	 * Splits the link into taret and visible text.
-	 */
-	splitLink(text) {
-		if (!text) return null;
-		
-		const textNoBrackets = text.replaceAll('[', '').replaceAll(']', '');
-		const spl = textNoBrackets.split('|');
-
-		var target = "";
-		var text = "";
-		
-		if (spl.length == 0) return null;
-		if (spl.length >= 1) {
-			target = spl[0];
-		}
-		if (spl.length > 1) {
-			text = spl[1];
-		}
-		return {
-			target: target,
-			text: text
-		}
 	}
 	
 	/**
@@ -593,14 +568,7 @@ class Editor {
 	 * Generates a link span HTML. Returns a string.
 	 */
 	createLinkElement(target, text) {
-		return '<span class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + this.composeLink(target, text) + '">' + (text ? text : target) + '</span>';
-	}
-	
-	/**
-	 * Composes the links.
-	 */
-	composeLink(target, text) {
-		return '[[' + target + (text ? ('|' + text) : '') + ']]';
+		return '<span class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>';
 	}
 	
 	/**

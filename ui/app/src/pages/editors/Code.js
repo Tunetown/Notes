@@ -51,14 +51,14 @@ class Code {
 		.then(function(/*resp*/) {
 			$('#contentContainer').empty();
 			
+			var ec = {};
+			ec["'" + Linkage.startChar + "'"] = function(cm, pred) { return that.triggerAutocomplete(cm, pred); };
+			
 			// Create the editor instance
 			that.editor = CodeMirror($('#contentContainer')[0], {
 				value: Document.getContent(doc),
 				mode: that.getEditorLanguage(),
-				extraKeys: {
-					//"Ctrl-Space": "autocomplete"
-					"'['": function(cm, pred) { return that.triggerAutocomplete(cm, pred); }
-				},
+				extraKeys: ec,
 				hintOptions: {
 					hint: function(cm, option) {
 						return that.handleAutoComplete(cm, option);
@@ -379,7 +379,7 @@ class Code {
 		var lastChar = line.substring(cursor.ch-1, cursor.ch);
 
 		// Trigger autocomplete if the user is entering [ the second time
-		if (lastChar == '[') {
+		if (lastChar == Linkage.startChar) {
 			if (!pred || pred()) setTimeout(function() {
 				if (!cm.state.completionActive) {
 					cm.showHint();
@@ -423,6 +423,8 @@ class Code {
 		});
 	}
 
+	static linkTextPrefix = ' -> ';
+
 	/**
 	 * This actually composes the autocomplete list.
 	 */
@@ -431,7 +433,7 @@ class Code {
 		var list = [];
 		for(var i in proposals) {
 			list.push({
-				text: proposals[i].id + '| -> ' + proposals[i].displayText + ']]',
+				text: proposals[i].id + Linkage.separator + Code.linkTextPrefix + proposals[i].displayText + Linkage.endTag,
 				displayText: proposals[i].text
 			});
 		}
@@ -460,31 +462,6 @@ class Code {
 	}
 	
 	/**
-	 * Splits the link into taret and visible text.
-	 */
-	splitLink(text) {
-		if (!text) return null;
-		
-		const textNoBrackets = text.replaceAll('[', '').replaceAll(']', '');
-		const spl = textNoBrackets.split('|');
-
-		var target = "";
-		var text = "";
-		
-		if (spl.length == 0) return null;
-		if (spl.length >= 1) {
-			target = spl[0];
-		}
-		if (spl.length > 1) {
-			text = spl[1];
-		}
-		return {
-			target: target,
-			text: text
-		}
-	}
-	
-	/**
 	 * Click handler for internal links.
 	 */
 	onLinkClick(event) {
@@ -496,7 +473,7 @@ class Code {
 		const link = $(event.currentTarget).html();
 		if (!link) return;
 		
-		const meta = Code.getInstance().splitLink(link);
+		const meta = Linkage.splitLink(link);
 		
 		Notes.getInstance().routing.call(meta.target);
 	}

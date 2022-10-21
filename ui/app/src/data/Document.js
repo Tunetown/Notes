@@ -56,6 +56,11 @@ class Document {
 		if (doc.type != 'attachment') {
 			doc.preview = Document.createPreview(doc, 1000);
 		}
+		
+		// Links
+		if (doc.type != 'note') {
+			// TODO
+		}
 	}
 	
 	/**
@@ -494,6 +499,8 @@ class Document {
 		doc.editor = src.editor;
 		doc.editorParams = src.editorParams;
 		
+		doc.links = src.links;
+		
 		doc.boardState = src.boardState;
 		
 		doc.attachmentSize = src.attachmentSize;
@@ -565,6 +572,8 @@ class Document {
 		doc.editor = src.editor;
 		doc.editorParams = src.editorParams;
 		
+		doc.links = src.links;
+		
 		doc.boardState = src.boardState;
 		
 		doc.attachmentSize = src.attachmentSize;
@@ -616,6 +625,8 @@ class Document {
 						backImage: doc.backImage ? { stub: true } : false,
 
 						editor: doc.editor,
+						
+						links: doc.links,
 						
 						boardState: doc.boardState,
 
