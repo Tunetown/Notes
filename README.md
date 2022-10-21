@@ -43,31 +43,33 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     
 - 0.87.0
     - Added Favorites Bar
-    
+
 - 0.88.0
     - Added item background images
-    
+
 - 0.89.0
     - Bug fixes and small minor improvements
     - Optimized background images (now always rescaled to be really small, and stubbed in TOC)
     - References: Now opened via routing
     - Console URL now independent of notebook
-    
-0.90.0
+
+- 0.90.0
     - Board backgrounds now way more flexible, like item backgrounds
     - Selected item in detail view is highlighted better
     - Rework of attachment names for attachment documents (backwards compatible)
     - Optical improvements
 
-0.91.0
+- 0.91.0
     - Dragging Optimization for Boards in mobile mode
     - Bug fixes
     - Refactoring
-        
-0.92.0
+
+- 0.92.0
     - Added Obsidian Exporter
     - Small bug fixes
-    
-0.93.0
+
+- 0.93.0 
+    - **Official name change: Notes v2**
     - Added non-hierarchical (reference driven) navigation behaviour
+
     
