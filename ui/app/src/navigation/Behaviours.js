@@ -24,8 +24,8 @@ class Behaviours {
 		var cs = ClientState.getInstance().getViewSettings();
 		switch (cs.navMode) {
 		//case 'tiles': return 'detail';
-		case 'detail': return 'reference';
-		case 'reference': return 'tree';
+		case 'detail': return 'tree';
+		//case 'reference': return 'tree';         // NOTE: Reference behaviour is not developed yet. Currentyl it is a 1:1 copy of Detail.
 		case 'tree': return 'detail'; //'tiles';   // NOTE: Tile navigation is disabled here. 
 		} 
 		return null;

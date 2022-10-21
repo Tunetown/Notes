@@ -581,26 +581,6 @@ class Data {
 	}
 	
 	/**
-	 * For an ID, this returns a readable name path to root.
-	 */
-	getReadablePath(id, separator) {
-		if (!separator) separator = " / ";
-		var doc = this.data.get(id);
-		if (!doc) return 'InvalidID';
-		
-		var path = this.getReadablePathRec(doc);
-
-		var ret = "";
-		for(var i=path.length-1; i>=0; --i) {
-			var str = path[i];
-			
-			ret += str + separator;   
-		}
-		
-		return ret;
-	}
-	
-	/**
 	 * For an ID, this returns metadata for export as file. Returns an object.
 	 */
 	getExportFileMeta(id, separator, folderPrefix) {
@@ -645,6 +625,30 @@ class Data {
 	}
 	
 	/**
+	 * For an ID, this returns a readable name path to root.
+	 */
+	getReadablePath(id, separator, dontAppendSeparatorAfterName) {
+		if (!separator) separator = " / ";
+		var doc = this.data.get(id);
+		if (!doc) return 'InvalidID';
+		
+		var path = this.getReadablePathRec(doc);
+
+		var ret = "";
+		for(var i=path.length-1; i>=0; --i) {
+			var str = path[i];
+			
+			if (dontAppendSeparatorAfterName) {
+				ret += str + ((i > 0) ? separator : '');
+			} else {
+				ret += str + separator;   
+			}
+		}
+		
+		return ret;
+	}
+	
+	/**
 	 * Recursive Helper for getReadablePath().
 	 */
 	getReadablePathRec(doc, ret) {
@@ -658,6 +662,37 @@ class Data {
 		} else {
 			return this.getReadablePathRec(doc.parentDoc, ret);
 		}
+	}
+	
+	/**
+	 * Returns a list of all documents in the notebook which contain the passed token in their paths. 
+	 * The list contains meta objects, and does not include root.
+	 */
+	getAutocompleteList(token) {
+		var that = this;
+		var ret = [];
+		var tokenL = token.toLowerCase();
+
+		this.each(function(d) {
+			var path = that.getReadablePath(d._id, '/', true);
+			if (path[0] == '/') path = path.substring(1);
+			
+			if (path.toLowerCase().indexOf(tokenL) < 0) return;
+			
+			ret.push({
+				text: path,
+				displayText: d.name,
+				id: d._id,
+			});
+		});
+		
+		ret.sort(function(a, b) { 
+			if (a.text < b.text) return -1;
+			if (a.text > b.text) return 1;
+			return 0;
+		});
+
+		return ret;		
 	}
 	
 	/**

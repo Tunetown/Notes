@@ -26,6 +26,8 @@ class Editor {
 		return Editor.instance;
 	}
 	
+	static linkClass = 'notesTMCELink';       ///< Class for the internal links
+	
 	constructor() {
 		this.editorId = "editorContent";
 	}
@@ -55,7 +57,8 @@ class Editor {
 		
 		var content = '';
 		if (Document.getContent(doc)) content = Document.getContent(doc);
-		
+		content = this.convertPlainLinks(content);
+			
 		this.setCurrent(doc);
 		n.setCurrentEditor(this);
 		
@@ -71,16 +74,19 @@ class Editor {
 	            width: '100%',
 	            resize : false,
 				statusbar: false,
+				content_css: 'ui/app/css/Editor.css',
 	            setup: function (editor) {
 	                editor.addShortcut('ctrl+s', 'Save', function () {
-	                	that.saveNote();
+						that.saveNote();
 	                });
 	                editor.on('change', function(e) {
 	                	that.updateStatus();
+						that.updateLinkClickHandlers(editor);
 	                	that.startDelayedSave();
 	                    
 	                });
 	                editor.on('input', function(e) {
+						that.updateLinkClickHandlers(editor);
 	                	that.startDelayedSave();
 	                });
 	                editor.on('click', function(e) {
@@ -100,6 +106,9 @@ class Editor {
 							document.activeElement.blur();
 						}
 					});
+					
+					that.setupLinkAutoCompleter(editor);
+					that.updateLinkClickHandlers(editor);
 	            },
 				plugins: 
 					"code table image lists advlist charmap codesample emoticons fullscreen hr imagetools link media print searchreplace textpattern toc",
@@ -258,7 +267,7 @@ class Editor {
 			var n = Notes.getInstance();
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
-			return DocumentActions.getInstance().save(this.current._id, this.getContent())
+			return DocumentActions.getInstance().save(this.current._id, this.convertPlainLinks(this.getContent()))
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
         	})
@@ -357,12 +366,12 @@ class Editor {
 		var secs = Settings.getInstance().settings.autoSaveIntervalSecs;
 		if (!secs) return;
 		
+		var that = this;
 		this.stopDelayedSave();
 		this.timeoutHandle = setTimeout(function(){
-			var e = Editor.getInstance();
-			if (!tinymce.get(e.editorId).isDirty()) return;
+			if (!tinymce.get(that.editorId).isDirty()) return;
 			
-			DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
+			DocumentActions.getInstance().save(that.getCurrentId(), that.convertPlainLinks(that.getContent()))
 			.catch(function(err) {
         		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
@@ -375,5 +384,238 @@ class Editor {
 	stopDelayedSave() {
 		if (this.timeoutHandle) clearTimeout(this.timeoutHandle);
 	}
-}
 	
+	/**
+	 * Init the link auto completion.
+	 */
+	setupLinkAutoCompleter(editor) {
+		var that = this;
+		
+		/**
+	     * An autocompleter that allows you to insert special characters.
+	     * Items are built using the CardMenuItem.
+	     */
+	    editor.ui.registry.addAutocompleter('addlink', {
+			ch: '[',
+			minChars: 0,
+			columns: 1,
+			highlightOn: ['char_name'],
+			onAction: function(autocompleteApi, rng, value) {
+				that.onLinkAutoCompleteAction(editor, autocompleteApi, rng, value);
+			},
+			fetch: function (pattern) {
+				return that.fetchLinkAutoCompletion(editor, pattern);
+			},
+			matches: function(rng, text, pattern) {
+				return that.doTriggerLinkAutoCompletion(editor, rng, text, pattern);
+			}
+		});
+	}
+	
+	/**
+	 * Returns if the auto completion shall be triggered. This is the case if the last char before the trigger char is [.
+	 */
+	doTriggerLinkAutoCompletion(editor, rng, text, pattern) {
+		var lastChar = text.substring(rng.startOffset-1, rng.startOffset);
+		return (lastChar == '[');
+	}
+	
+	/**
+	 * Returns a TinyMCE Promise wchich returns the list in the TinyMCE auto completer format.
+	 */
+	fetchLinkAutoCompletion(editor, pattern) {
+		var that = this;
+		
+		return new tinymce.util.Promise(function (resolve) {
+			resolve(that.getLinkAutocompleteMatchedChars(editor, pattern).map(function (char) {
+				return {
+					type: 'cardmenuitem',
+					value: '[' + char.id + (char.displayText ? ('|' + char.displayText) : '') + ']]',
+					label: char.text,
+					items: [
+						{
+							type: 'cardcontainer',
+							direction: 'vertical',
+							items: [
+								{
+									type: 'cardtext',
+									text: char.text,
+									name: 'char_name'
+								}
+							]
+						}
+					]
+				}
+			}));
+		});
+	}
+	
+	/**
+	 * Called to perform the text replacement when the user chooses an auto complete option.
+	 */
+	onLinkAutoCompleteAction(editor, autocompleteApi, rng, value) {
+		// Insert the text
+		editor.selection.setRng(rng);
+		editor.insertContent(value);
+		
+		// Hide auto complete dialog
+		autocompleteApi.hide();
+		
+		// Convert all links to spans
+		tinymce.get(this.editorId).setContent(this.convertPlainLinks(this.getContent()));		
+		
+		// Update click handlers
+		this.updateLinkClickHandlers(editor);
+	}
+	
+	/**
+	 * Returns the list of proposals for link aut completion.
+	 */
+	getLinkAutocompleteMatchedChars(editor, pattern) {
+		return Notes.getInstance().getData().getAutocompleteList(pattern);
+	}
+	
+	////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Replaces all plain links ([[]]) to HTML with click handlers, if not yet converted. If
+	 * an already converted link is found, it will be checked for correctness and updated to match
+	 * the data-link tag again, if necessary.
+	 *    
+	 * Link format is: 
+	 *    
+	 *   [[Target|Text]] 
+	 *    
+	 * is converted to 
+	 *    
+	 *   <span class="notesTMCELink" data-ref="Target" data-link="[[Target|Text]]">Text</span>
+	 *
+	 */
+	convertPlainLinks(content) {
+		var that = this;
+		
+		// Then convert the new ones
+		var capturing = false;
+		var start = -1;
+		var end = -1;
+		var coll = [];
+		var hadQuote = false;
+		for(var i=0; i<content.length-1; ++i) {
+			const cc = content[i] + content[i+1];
+			
+			if ((!capturing) && (cc == '[[')) {
+				capturing = true;
+				start = i+2;
+				
+				if ((i > 0) && (content[i-1] == '"')) {
+					hadQuote = true;
+				} else {
+					hadQuote = false;
+				}
+				
+			}
+			if (capturing && (cc == ']]')) {
+				capturing = false;
+				end = i;
+
+				if (hadQuote && (i < (content.length-2)) && (content[i+2] == '"')) {
+					// Already converted link (this is determined by the surrounding quotes)
+					continue;
+				}
+				
+				coll.push({
+					start: start,
+					end: end,
+					link: content.substring(start, end)
+				});
+			}
+		}
+		
+		if (coll.length == 0) return content;
+		
+		console.log(' -> Replacing ' + coll.length + ' raw links with HTML');
+		
+		for(var c=0; c<coll.length; ++c) {
+			const co = coll[c];
+			const meta = this.splitLink(co.link);
+			if (!meta) {
+				console.log("Invalid link ignored: " + co.link);
+				continue;	
+			}
+			const link = this.createLinkElement(meta.target, meta.text);
+			
+			content = content.replaceAll('[[' + co.link + ']]', link);
+		}
+		
+		return content;
+	}
+	
+	/**
+	 * Splits the link into taret and visible text.
+	 */
+	splitLink(text) {
+		if (!text) return null;
+		
+		const textNoBrackets = text.replaceAll('[', '').replaceAll(']', '');
+		const spl = textNoBrackets.split('|');
+
+		var target = "";
+		var text = "";
+		
+		if (spl.length == 0) return null;
+		if (spl.length >= 1) {
+			target = spl[0];
+		}
+		if (spl.length > 1) {
+			text = spl[1];
+		}
+		return {
+			target: target,
+			text: text
+		}
+	}
+	
+	/**
+	 * Re-sets all onclick handlers for the internal links.
+	 */
+	updateLinkClickHandlers(editor) {
+		var that = this;
+		setTimeout(function() {
+			const links = editor.contentDocument.getElementsByClassName(Editor.linkClass);
+			for (var i=0; i<links.length; ++i) {
+				links[i].removeEventListener("click", that.onLinkClick);
+				links[i].addEventListener("click", that.onLinkClick);
+			}
+		}, 0);
+	}
+
+	/**
+	 * Generates a link span HTML. Returns a string.
+	 */
+	createLinkElement(target, text) {
+		return '<span class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + this.composeLink(target, text) + '">' + (text ? text : target) + '</span>';
+	}
+	
+	/**
+	 * Composes the links.
+	 */
+	composeLink(target, text) {
+		return '[[' + target + (text ? ('|' + text) : '') + ']]';
+	}
+	
+	/**
+	 * Click handler for internal links.
+	 */
+	onLinkClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+		
+		if (!event.currentTarget) return;
+		
+		const ref = $(event.currentTarget).data('ref');
+		if (!ref) return;
+		
+		Notes.getInstance().routing.call(ref);
+	}
+}
+

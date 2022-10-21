@@ -48,6 +48,7 @@ const PRECACHE_URLS = [
   './ui/lib/switch/switch.css',
   './ui/lib/switch/switch.js',
   './ui/lib/codemirror/lib/codemirror.css',
+  './ui/lib/codemirror/addon/hint/show-hint.css',
   
   './ui/app/css/Notes.css',
   './ui/app/css/Header.css',
@@ -58,6 +59,7 @@ const PRECACHE_URLS = [
   './ui/app/css/ReferenceBehaviour.css',
   './ui/app/css/Misc.css',
   './ui/app/css/Board.css',
+  './ui/app/css/Editor.css',
 
   './ui/lib/jquery-min.js',
   './ui/lib/luckysheet/luckysheet.umd.js',
@@ -85,6 +87,7 @@ const PRECACHE_URLS = [
   './ui/lib/codemirror/mode/ruby/ruby.js',
   './ui/lib/codemirror/mode/shell/shell.js',
   './ui/lib/codemirror/mode/sql/sql.js',
+  './ui/lib/codemirror/addon/hint/show-hint.js',
 
   './ui/app/doc/index.html',
   './ui/app/doc/overview.html',

@@ -48,19 +48,30 @@ class Code {
 		Tools.getScripts([
 			'ui/lib/codemirror/mode/' + that.getEditorLanguage() + '/' + that.getEditorLanguage() + '.js'
 		])
-		.then(function(resp) {
+		.then(function(/*resp*/) {
 			$('#contentContainer').empty();
 			
+			// Create the editor instance
 			that.editor = CodeMirror($('#contentContainer')[0], {
 				value: Document.getContent(doc),
-				mode: that.getEditorLanguage()
+				mode: that.getEditorLanguage(),
+				extraKeys: {
+					//"Ctrl-Space": "autocomplete"
+					"'['": function(cm, pred) { return that.triggerAutocomplete(cm, pred); }
+				},
+				hintOptions: {
+					hint: function(cm, option) {
+						return that.handleAutoComplete(cm, option);
+					}, 
+				},
 			});
 			
-			that.editor.on('change', function(obj) {
+			that.editor.on('change', function(/*obj*/) {
 				that.setDirty();
+				that.updateLinkClickHandlers();
             	that.startDelayedSave();
 			});
-			that.editor.on('focus', function(obj) {
+			that.editor.on('focus', function(/*obj*/) {
 				that.hideOptions();
 			});
 			
@@ -73,6 +84,7 @@ class Code {
 			]);			
 
 			that.updateStatus();
+			that.updateLinkClickHandlers();
 		})
 		.catch(function(err) {
 			n.showAlert(err.message, 'E', err.messageThreadId);
@@ -355,6 +367,138 @@ class Code {
 				type: 'E'
 			});		
 		}
+	}
+	
+	/**
+	 * Called every time the users types '['. If the character before the cursor 
+	 * aslo is the same character, auto complete is being triggered. 
+	 */
+	triggerAutocomplete(cm, pred) {
+		var cursor = cm.getCursor();
+		var line = cm.getLine(cursor.line);
+		var lastChar = line.substring(cursor.ch-1, cursor.ch);
+
+		// Trigger autocomplete if the user is entering [ the second time
+		if (lastChar == '[') {
+			if (!pred || pred()) setTimeout(function() {
+				if (!cm.state.completionActive) {
+					cm.showHint();
+				}
+			}, 0);
+		}
+
+        return CodeMirror.Pass;
+	}
+	
+	/**
+	 * This is wrapped to the autocompleter of CodeMirror and delivers 
+	 * the proposals when auto complete has been triggered.
+	 */
+	handleAutoComplete(cm, option) {
+		var that = this;
+		return new Promise(function(accept) {
+			setTimeout(function() {
+				// Get the current line and calculate the start and end positions 
+				// of the word to complete
+				var cursor = cm.getCursor();
+				var line = cm.getLine(cursor.line);
+	        
+				var start = cursor.ch;
+				var end = cursor.ch;
+				while (start && /\w/.test(line.charAt(start - 1))) --start;
+				while (end < line.length && /\w/.test(line.charAt(end))) ++end;
+				
+				var typedToken = line.substring(start, end);
+
+				// Let getAutocompleteOptions() generate a list of completions
+				var data = that.getAutocompleteOptions(cm, option, typedToken, start, end);
+				
+				return accept({
+					list: data.list,
+					selectedHint: data.selectedHint,
+					from: CodeMirror.Pos(cursor.line, start),
+					to: CodeMirror.Pos(cursor.line, end),
+				});   
+			}, 0);
+		});
+	}
+
+	/**
+	 * This actually composes the autocomplete list.
+	 */
+	getAutocompleteOptions(cm, option, typedToken, start, end) {
+		var proposals = Notes.getInstance().getData().getAutocompleteList(typedToken);
+		var list = [];
+		for(var i in proposals) {
+			list.push({
+				text: proposals[i].id + '| -> ' + proposals[i].displayText + ']]',
+				displayText: proposals[i].text
+			});
+		}
+		
+		return {
+			list: list,
+			selectedHint: 0
+		};
+	}
+	
+	static linkClass = 'cm-link';
+	
+	/**
+	 * Re-sets all onclick handlers for the internal links.
+	 */
+	updateLinkClickHandlers() {
+		var that = this;
+		
+		setTimeout(function() {
+			const links = document.getElementsByClassName(Code.linkClass);
+			for (var i=0; i<links.length; ++i) {
+				links[i].removeEventListener("click", that.onLinkClick);
+				links[i].addEventListener("click", that.onLinkClick);
+			}
+		}, 0);
+	}
+	
+	/**
+	 * Splits the link into taret and visible text.
+	 */
+	splitLink(text) {
+		if (!text) return null;
+		
+		const textNoBrackets = text.replaceAll('[', '').replaceAll(']', '');
+		const spl = textNoBrackets.split('|');
+
+		var target = "";
+		var text = "";
+		
+		if (spl.length == 0) return null;
+		if (spl.length >= 1) {
+			target = spl[0];
+		}
+		if (spl.length > 1) {
+			text = spl[1];
+		}
+		return {
+			target: target,
+			text: text
+		}
+	}
+	
+	/**
+	 * Click handler for internal links.
+	 */
+	onLinkClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+		
+		if (!event.currentTarget) return;
+		
+		const link = $(event.currentTarget).html();
+		if (!link) return;
+		
+		const meta = Code.getInstance().splitLink(link);
+		
+		Notes.getInstance().routing.call(meta.target);
 	}
 }
 	

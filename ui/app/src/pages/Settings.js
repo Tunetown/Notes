@@ -60,7 +60,7 @@ class Settings {
 			dbAccountName: Database.getInstance().profileHandler.getCurrentProfile().url,
 
 			// Editor settings
-			defaultNoteEditor: 'richtext',
+			defaultNoteEditor: 'code',
 			defaultCodeLanguage: 'markdown',
 
 			// Div. options

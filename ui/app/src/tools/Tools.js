@@ -663,6 +663,28 @@ class Tools {
 	}
 	
 	/**
+	 * Search for all occurrences of token in str. Returns an array of indices.
+	 */
+	static getIndicesOf(token, str, caseSensitive) {
+		var searchStrLen = token.length;
+		if (searchStrLen == 0) {
+			return [];
+		}
+		var startIndex = 0, index, indices = [];
+		
+		if (!caseSensitive) {
+			str = str.toLowerCase();
+			token = token.toLowerCase();
+		}
+		while ((index = str.indexOf(token, startIndex)) > -1) {
+			indices.push(index);
+			startIndex = index + searchStrLen;
+		}
+		
+		return indices;
+	}
+	
+	/**
 	 * Replaces the name of the file in the given path, keeping the extenson.
 	 *
 	static replaceFileName(path, newname, separator, dontKeepExtension) {
