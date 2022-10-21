@@ -53,7 +53,7 @@ class Code {
 			
 			that.editor = CodeMirror($('#contentContainer')[0], {
 				value: Document.getContent(doc),
-				mode:  that.getEditorLanguage()
+				mode: that.getEditorLanguage()
 			});
 			
 			that.editor.on('change', function(obj) {
