@@ -458,7 +458,7 @@ class DocumentAccess {
 			// For debugging
 			console.log(' -> ' + Tools.convertFilesize(dataString.length) + ' of data loaded in export request');
 
-			window.saveAs(url, 'Notes Export ' + new Date().toLocaleString() + '.txt');
+			window.saveAs(url, Settings.getInstance().settings.dbAccountName + ' Raw Export ' + new Date().toLocaleString() + '.txt');
 			
 			return Promise.resolve({
 				ok: true
