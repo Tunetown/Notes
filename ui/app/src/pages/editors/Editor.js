@@ -492,44 +492,7 @@ class Editor {
 	 *
 	 */
 	convertPlainLinks(content) {
-		var that = this;
-		
-		// Then convert the new ones
-		var capturing = false;
-		var start = -1;
-		var end = -1;
-		var coll = [];
-		var hadQuote = false;
-		for(var i=0; i<content.length-1; ++i) {
-			const cc = content[i] + content[i+1];
-			
-			if ((!capturing) && (cc == Linkage.startTag)) {
-				capturing = true;
-				start = i+2;
-				
-				if ((i > 0) && (content[i-1] == '"')) {
-					hadQuote = true;
-				} else {
-					hadQuote = false;
-				}
-				
-			}
-			if (capturing && (cc == Linkage.endTag)) {
-				capturing = false;
-				end = i;
-
-				if (hadQuote && (i < (content.length-2)) && (content[i+2] == '"')) {
-					// Already converted link (this is determined by the surrounding quotes)
-					continue;
-				}
-				
-				coll.push({
-					start: start,
-					end: end,
-					link: content.substring(start, end)
-				});
-			}
-		}
+		const coll = Linkage.parse(content, '"');
 		
 		if (coll.length == 0) return content;
 		

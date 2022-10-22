@@ -58,8 +58,8 @@ class Document {
 		}
 		
 		// Links
-		if (doc.type != 'note') {
-			// TODO
+		if (doc.type == 'note') {
+			doc.links = Document.getLinksFromContent(doc);
 		}
 	}
 	
@@ -388,6 +388,46 @@ class Document {
 				});		
 			}
 		}
+		
+		// Linkages
+		if (doc.type == 'note') {
+			if (cl.hasOwnProperty('links')) {
+				if (!doc.hasOwnProperty('links')) {
+					errors.push({
+						message: 'Links buffer does not exist',
+						id: doc._id,
+						type: 'E'
+					});
+				} else {
+					if (cl.links.length != doc.links.length) {
+						errors.push({
+							message: 'Links buffer do not match',
+							id: doc._id,
+							type: 'E'
+						});
+					} else {
+						// Compare links
+						for(var c=0; c<cl.links.length; ++c) {
+							var found = false;
+							for(var d=0; d<doc.links.length; ++d) {
+								if (doc.links[d] == cl.links[c]) {
+									found = true;
+									break;
+								}
+							}
+							
+							if (!found) {
+								errors.push({
+									message: 'Link buffer invalid',
+									id: doc._id,
+									type: 'E'
+								});
+							}
+						}
+					}
+				}	
+			}
+		}
 	}
 	
 	/**
@@ -441,6 +481,27 @@ class Document {
 	static setStub(doc) {
 		doc.stub = true;
 	} 
+	
+	/**
+	 * Returns the links array from the given documents content
+	 */
+	static getLinksFromContent(doc) {
+		if (!doc) return [];
+		if (!doc.content) return [];
+	
+		const links = Linkage.parse(doc.content);
+	
+		var ret = [];
+		for(var i=0; i<links.length; ++i) {
+			const meta = Linkage.splitLink(links[i].link);
+			
+			if (!meta) continue;
+			if (!meta.target) continue;
+			
+			ret.push(meta.target);	
+		}
+		return ret;
+	}
 	
 	/**
 	 * Sets a lock for the given ID (scope is the instance). If the document is locked,
