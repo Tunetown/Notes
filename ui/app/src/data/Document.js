@@ -248,6 +248,8 @@ class Document {
 	 * Check meta correctness
 	 */
 	static checkMeta(doc, errors) {
+		var d = Notes.getInstance().getData();
+		
 		if (!Document.isLoaded(doc)) {
 			errors.push({
 				message: 'Document has stub flag set',
@@ -409,8 +411,8 @@ class Document {
 						// Compare links
 						for(var c=0; c<cl.links.length; ++c) {
 							var found = false;
-							for(var d=0; d<doc.links.length; ++d) {
-								if (doc.links[d] == cl.links[c]) {
+							for(var dd=0; dd<doc.links.length; ++dd) {
+								if (doc.links[dd] == cl.links[c]) {
 									found = true;
 									break;
 								}
@@ -423,9 +425,19 @@ class Document {
 									type: 'E'
 								});
 							}
+							
+							// Check if the links are broken
+							var link = doc.links[c];
+							if (!d.getById(link)) {
+								errors.push({
+									message: 'Broken link: ' + link,
+									id: doc._id,
+									type: 'E'
+								});
+							}
 						}
 					}
-				}	
+				}
 			}
 		}
 	}
