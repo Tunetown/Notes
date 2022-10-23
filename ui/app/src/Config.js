@@ -66,3 +66,8 @@ Config.BOARD_BACKGROUND_MAX_HEIGHT = 1000;
 Config.BOARD_BACKGROUND_MIME_TYPE = 'image/jpeg';
 Config.BOARD_BACKGROUND_QUALITY = 0.4;
 Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES = 500 * 1024;
+
+/**
+ * Background color for graph view
+ */
+Config.graphBackgroundColor = '#555';

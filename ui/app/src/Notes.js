@@ -27,12 +27,10 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.93.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.93.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
-		
-		//this.redirectOnLandingPageDone = false;
 	}
 	
 	/**
@@ -446,6 +444,22 @@ class Notes {
 	}
 	
 	/**
+	 * Checks if the notebook contains sheets and displays a warning in this case.
+	 * TODO remove when sheets are finally removed in the future.
+	 */
+	warnSheetsUsed() {
+		var that = this;
+		
+		this.getData().each(function(doc, quit) {
+			if (doc.type == 'sheet') {
+				that.showAlert('This notebook contains sheets, which will become obsolete soon! Please remove them before updating the app the next time.<br>You can use "type:sheet" to search for sheet documents.', 'W');		
+				
+				quit();
+			}
+		});
+	}
+	
+	/**
 	 * Disables the back swipe gesture. 
 	 * Taken from https://www.outsystems.com/forums/discussion/77514/disable-swipe-to-previous-screen-some-android-and-ios/
 	 *
@@ -457,6 +471,7 @@ class Notes {
 		    e.preventDefault();
 		}, { passive: false });
 	}
+	
 	/**
 	 * Load the DBs and start the app. This is called before any route and returns a promise,
 	 * after which the DB can be used.
@@ -525,6 +540,16 @@ class Notes {
 		/*if (this.isMobile()) {
 			this.disableBackSwipe();
 		}*/
+				
+		// Set up a requestTree callback which warns the user if sheets are still used.
+		// TODO: Remove when sheets are finally removed completely in the future. 
+		Callbacks.getInstance().registerCallback(
+			'sheetWarning',
+			'requestTree',
+			function() {
+				that.warnSheetsUsed();
+			}
+		);
 				
 		// Initialize database instance with the user ID. This is started asynchronously. After the database(s)
 		// is/are up, the settings, notes tree and the last loaded note are requested independently.
@@ -625,6 +650,7 @@ class Notes {
 		AttachmentPreview.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
 		Versions.getInstance().unload();
+		GraphView.getInstance().unload();
 		
 		this.setCurrentEditor();
 		this.setMoveSelector();
@@ -940,6 +966,7 @@ class Notes {
 				$('<div class="userbuttonLine"></div>'),
 
 				$('<div class="userbutton" id="selProfileMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile()"><div class="fa fa-home userbuttonIcon"></div>Select Notebook</div>'),
+				$('<div class="userbutton" id="graphMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callGraphView()"><div class="fa fa-project-diagram userbuttonIcon"></div>Graph</div>'),
 				$('<div class="userbutton" id="conflictsMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callConflicts()"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>'),
 				$('<div class="userbuttonLine"></div>'),
 				
@@ -1601,6 +1628,7 @@ class Notes {
 		var t = NoteTree.getInstance();
 		if (t.behaviour) {
 			t.showRootOptions(true);
+			t.showSettingsPanel(false);
 			t.behaviour.afterHideOptionMenus(visible);
 			t.deselectFavorites();
 		}

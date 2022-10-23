@@ -171,12 +171,12 @@ class TreeBehaviour {
 	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
-	setupItemContent(itemContent, doc, additionalIconClasses, additionalTextBefore, additionalTextAfter) {
+	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
 		itemContent.append(
 			// We use a container holding all item content inside the content div.
 			$('<div class="' + this.getItemInnerContainerClass() + '">').append([
 				// Icon
-				$('<div class="' + this.getIconClass() + ' ' + additionalIconClasses + '"></div>'),
+				$('<div class="' + this.getIconClass() + '"></div>'),
 				
 				// Text
 				$('<div class="' + this.getItemTextClass() + '">' + additionalTextBefore + doc.name + additionalTextAfter + '</div>'),
@@ -202,6 +202,15 @@ class TreeBehaviour {
 		labels.css('min-height', this.treeFontSize + 'px');
 		labels.css('max-height', this.treeFontSize + 'px');
 		
+		var data = Notes.getInstance().getData();
+		var hasChildren = data.hasChildren(doc._id);
+		var iconEl = itemContent.find('.' + this.getIconClass());
+		iconEl.toggleClass('folder', hasChildren);
+		
+		var poss = this.getAllPossibleIconStyleClasses();
+		for(var p in poss) iconEl.toggleClass(poss[p], false);
+		iconEl.toggleClass(this.getIconStyleClass(this.isItemOpened(doc), doc), true); 
+		
 		// Indentation of tree children
 		var indent = searchText ? 0 : (doc.level * 20);
 		itemContent.css('padding-left', indent + "px");
@@ -225,6 +234,21 @@ class TreeBehaviour {
 		if (!this.expander.isExpanded(doc.parent)) return false;
 
 		return this.isItemVisible(doc.parentDoc);
+	}
+	
+	/**
+	 * Returns if the document has children.
+	 */
+	hasChildren(doc) {
+		var data = Notes.getInstance().getData();
+		return data.hasChildren(doc._id);
+	}
+	
+	/**
+	 * Returns the children of the document.
+	 */
+	getChildren(doc) {
+		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
 	}
 	
 	/**
@@ -384,6 +408,22 @@ class TreeBehaviour {
 		case 'sheet':      return 'fa fa-table'; 
 		}
 		return '';
+	}
+	
+	/**
+	 * Returns all possible icon style classes.
+	 */
+	getAllPossibleIconStyleClasses() {
+		return [
+			'fa fa-border-all',   // TODO const! hier und die funktion davor.
+			'fa fa-caret-down',
+			'fa fa-caret-right',
+			'fa fa-file',
+			'fa fa-paperclip',
+			'fa fa-long-arrow-alt-right',
+			'fa fa-paperclip',
+			'fa fa-table'
+		]
 	}
 	
 	/**

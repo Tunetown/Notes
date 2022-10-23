@@ -516,10 +516,21 @@ class Data {
 	 * Apply a callback function to each document (unordered).
 	 */
 	each(callback) {
+		var quit = false;
+		
+		/**
+		 * Call this to stop the loop from within the callback function.
+		 */
+		function quitLoopCallback() {
+			quit = true;
+		}
+		
 		for(var [key, doc] of this.data) {
 			if (doc.deleted) continue;
 			
-			callback(doc);
+			callback(doc, quitLoopCallback);
+			
+			if (quit) return;
 		}
 	}
 	
@@ -550,6 +561,15 @@ class Data {
 		if (token.startsWith('name:')) {
 			tokenLowercase = tokenLowercase.substring('name:'.length);
 			if (doc.name.toLowerCase().search(tokenLowercase) != -1) {
+				return true;
+			}
+			return false;
+		}
+		
+		// Type only search
+		if (token.startsWith('type:')) {
+			tokenLowercase = tokenLowercase.substring('type:'.length);
+			if (doc.type.toLowerCase().search(tokenLowercase) != -1) {
 				return true;
 			}
 			return false;
@@ -665,7 +685,7 @@ class Data {
 	}
 	
 	/**
-	 * Returns a list of all documents in the notebook which contain the passed token in their paths. 
+	 * Returns a list of all documents in the notebook which contain the passed token in their readable paths. 
 	 * The list contains meta objects, and does not include root.
 	 */
 	getAutocompleteList(token) {
@@ -693,6 +713,87 @@ class Data {
 		});
 
 		return ret;		
+	}
+	
+	/**
+	 * Returns all found (outgoing) references of the document to ther documents as meta array.
+	 */
+	getAllReferences(doc) {
+		if (!doc) return [];
+		
+		var ret = [];
+		
+		// Parent
+		if (doc.parent) {
+			ret.push({
+				id: doc.parent,
+				type: 'parent',
+				incoming: true
+			});
+		}
+		
+		// Reference target
+		if ((doc.type == 'reference') && doc.ref) {
+			ret.push({
+				id: doc.ref,
+				type: 'reference'
+			});
+		}
+		
+		// Links in content
+		if ((doc.type == 'note') && (doc.links)) {
+			for(var i=0; i<doc.links.length; ++i) {
+				ret.push({
+					id: doc.links[i],
+					type: 'link'
+				});
+			}
+		}
+
+		return ret;
+	}
+	
+	/**
+	 * Returns all backlings of a document as array of meta objects.
+	 */
+	getBacklinks(doc) {
+		if (!doc) return [];
+		
+		var ret = [];
+		var that = this;
+		this.each(function(d) {
+			var linktype = that.hasLinkTo(d, doc);
+			if (linktype) {
+				ret.push({
+					doc: d,
+					type: linktype
+				});
+			}
+		});
+		return ret;
+	}
+	
+	/**
+	 * Returns if the two documents are connected in the given direction
+	 */
+	hasLinkTo(srcDoc, tarDoc) {
+		if (!srcDoc) return false;
+		if (!tarDoc) return false;
+		
+		// Parent
+		if (srcDoc.parent && (srcDoc.parent == tarDoc._id)) return 'parent';
+		
+		// Reference target
+		if ((srcDoc.type == 'reference') && srcDoc.ref && (srcDoc.ref == tarDoc._id)) return 'reference';
+		
+		// Links in content
+		if ((srcDoc.type == 'note') && (srcDoc.links)) {
+			for(var i=0; i<srcDoc.links.length; ++i) {
+				if (srcDoc.links[i] == tarDoc._id) return 'link';
+			}
+		}
+		
+		return false;
 	}
 	
 	/**

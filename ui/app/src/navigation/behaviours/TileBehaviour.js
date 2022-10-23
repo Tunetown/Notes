@@ -229,7 +229,7 @@ class TileBehaviour {
 	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
-	setupItemContent(itemContent, doc, additionalIconClasses, additionalTextBefore, additionalTextAfter) {
+	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
 		var underlayClasses = Notes.getInstance().getData().hasChildren(doc._id) ? 'fa fa-folder' : additionalIconClasses;
 		
 		itemContent.append(
@@ -239,7 +239,7 @@ class TileBehaviour {
 				$('<div class="' + this.getUnderlayClass() + ' ' + underlayClasses + '"></div>'),
 
 				// Icon
-				$('<div class="' + this.getIconClass() + ' ' + additionalIconClasses + '"></div>'),
+				$('<div class="' + this.getIconClass() + '"></div>'),
 				
 				// Labels
 				$('<div class="doc-label-tile-container"></div>').append(
@@ -352,11 +352,14 @@ class TileBehaviour {
 		}
 		
 		var data = Notes.getInstance().getData();
-		if (data.hasChildren(doc._id)) {
-			itemContent.find('.' + this.getIconClass()).css('display', 'block');
-		} else {
-			itemContent.find('.' + this.getIconClass()).css('display', 'none');
-		}
+		var hasChildren = data.hasChildren(doc._id);
+		var iconEl = itemContent.find('.' + this.getIconClass());
+		iconEl.css('display', hasChildren ? 'block' : 'none');
+		iconEl.toggleClass('folder', hasChildren);
+		
+		var poss = this.getAllPossibleIconStyleClasses();
+		for(var p in poss) iconEl.toggleClass(poss[p], false);
+		iconEl.toggleClass(this.getIconStyleClass(this.isItemOpened(doc), doc), true); 
 		
 		// Labels
 		var labels = itemContent.find('.doc-label');
@@ -374,6 +377,20 @@ class TileBehaviour {
 		return true;
 	}
 
+	/**
+	 * Returns if the document has children.
+	 */
+	hasChildren(doc) {
+		var data = Notes.getInstance().getData();
+		return data.hasChildren(doc._id);
+	}
+	
+	/**
+	 * Returns the children of the document.
+	 */
+	getChildren(doc) {
+		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
+	}
 	
 	/**
 	 * Used to apply custom colors to the items. The node is a result of getNodeById(), the
@@ -569,6 +586,21 @@ class TileBehaviour {
 		case 'sheet':      return 'fa fa-table'; 
 		}
 		return '';
+	}
+	
+	/**
+	 * Returns all possible icon style classes.
+	 */
+	getAllPossibleIconStyleClasses() {
+		return [
+			'fa fa-border-all',   // TODO const! hier und die funktion davor.
+			'fa fa-minus treeicon-tile-folder-open',
+			'fa fa-plus treeicon-tile-folder-closed',
+			'fa fa-file',
+			'fa fa-long-arrow-alt-right',
+			'fa fa-paperclip',
+			'fa fa-table'
+		]
 	}
 	
 	/**

@@ -32,6 +32,7 @@ class NoteTree {
 		this.treeGridElementId = "treeview";
 		
 		this.treeRootModeSwitchContainer = "treeRootModeSwitchContainer";
+		this.treeRootSettingsSwitchContainer = "treeRootSettingsSwitchContainer";
 		this.treeRootTopSwitchContainer = "treeRootTopSwitchContainer";
 	}
 	
@@ -447,7 +448,7 @@ class NoteTree {
 
 				var d = Notes.getInstance().getData();
 				var targetDoc = Document.getTargetDoc(d.getById(data.id));
-				if (d.hasChildren(targetDoc._id)) {
+				if (that.behaviour.hasChildren(targetDoc)) {
 					that.open(targetDoc._id);											
 				} else {
 					that.focus(targetDoc._id);
@@ -547,24 +548,12 @@ class NoteTree {
 		// Set the document ID as data attribute for reference
 		li.attr('data-id', doc._id);
 
-		// Colors (inherited when no color is set)
-		/*if (doc.backColor) {
-			licont.css('background-color', doc.backColor);
-		}
-		
-		if (doc.color) {
-			licont.css('color', doc.color);
-		}*/
-		
 		// Is it a folder?
-		var isFolder = data.hasChildren(doc._id);
+		/*var isFolder = this.behaviour.hasChildren(doc);
 		if (isFolder) {
 			li.addClass('folder');
-		}
+		}*/
 		
-		// Icon
-		var iconclass = this.behaviour.getIconStyleClass(false, doc); 
-
 		// Conflict icon
 		var conflictIcon = "";
 		if (data.hasConflicts(doc._id, true)) {
@@ -578,7 +567,7 @@ class NoteTree {
 		}
 		
 		// Build inner DOM of node
-		this.behaviour.setupItemContent(li, doc, iconclass, referenceIcon + conflictIcon, '');
+		this.behaviour.setupItemContent(li, doc, referenceIcon + conflictIcon, '');
 		
 		// Attach item events
 		this.behaviour.registerItemEvents(li);
@@ -621,7 +610,6 @@ class NoteTree {
 	 */
 	setupDom() {
 		var that = this;
-		
 		$('#' + this.treeNavContainerId).append(
 			$('<div id="' + this.treeContainerId + '"></div>').append(
 				$('<div id="searchBarTree" class="searchBar searchBarTree"></div>').append(
@@ -703,7 +691,7 @@ class NoteTree {
 					}),
 						
 				// Toggle navigation mode
-				$('<div data-toggle="tooltip" title="Toggle navigation mode" class="fa fa-' + Behaviours.getNavModeIcon(Behaviours.getNextNavMode()) + ' treeModeSwitchbutton roundedButton"></div>')
+				/*$('<div data-toggle="tooltip" title="Toggle navigation mode" class="fa fa-' + Behaviours.getNavModeIcon(Behaviours.getNextNavMode()) + ' treeModeSwitchbutton roundedButton"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
@@ -714,7 +702,25 @@ class NoteTree {
 						Behaviours.setNavModeIconClass($(this), Behaviours.getNextNavMode());
 						
 						that.refresh();
+					})*/
+			),
+			
+			$('<div id="' + this.treeRootSettingsSwitchContainer + '" />').append(
+				// Settings Button
+				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog treeModeSwitchbutton roundedButton" id="treeSettingsButton"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						Notes.getInstance().hideOptions();
+						
+						that.settingsButtonPushed(event);
 					})
+					.append(
+						// Settings panel
+						$('<div id="treeSettingsPanel"></div>')
+						.on('click', function(event) {
+							event.stopPropagation();
+						})
+					)
 			),
 			
 			$('<div id="treeblock"></div>')
@@ -862,6 +868,65 @@ class NoteTree {
 	}
 	
 	/**
+	 * Show tree settings at bottom right.
+	 */
+	settingsButtonPushed(event) {
+		this.buildSettingsPanel();
+		this.showSettingsPanel(true); //!this.isSettingsPanelVisible());
+	}
+	
+	/**
+	 * Builds the settings panel part which depends on the behaviour.
+	 */
+	buildSettingsPanel() {
+		$('#treeSettingsPanel').empty();
+		if (!this.behaviour) return;
+			
+		var behaviourRows = [];
+		if (typeof this.behaviour.getSettingsPanelContentTableRows === 'function') {
+			behaviourRows = this.behaviour.getSettingsPanelContentTableRows();
+		}
+		
+		var that = this;
+		$('#treeSettingsPanel').append(
+			$('<table></table>')
+			.append(
+				$('<tbody></tbody>')
+				.append(
+					$('<tr></tr>')
+					.append(
+						$('<td>Mode</td>'),
+						$('<td></td>').append(
+							Behaviours.getModeSelector('treeModeSelectorList', ClientState.getInstance().getViewSettings().navMode)
+							.on('change', function(event) {
+								Notes.getInstance().hideOptions();
+								
+								var s = ClientState.getInstance().getViewSettings();
+								s.navMode = this.value; //Behaviours.getNextNavMode();
+								ClientState.getInstance().saveViewSettings(s);
+		
+								that.refresh();
+							})
+						)
+					),
+					behaviourRows
+				)
+			)
+		);
+	}
+	
+	/**
+	 * Show and hide the tree settings panel.
+	 */
+	showSettingsPanel(doShow) {
+		$('#treeSettingsPanel').css('display', doShow ? 'block' : 'none');
+	}
+	
+	isSettingsPanelVisible() {
+		return $('#treeSettingsPanel').css('display') != 'none';
+	}
+	
+	/**
 	 * Set favorites visibility
 	 */
 	showFavorites(show) {
@@ -923,6 +988,7 @@ class NoteTree {
 	 */
 	showRootOptions(show) {
 		$('#' + this.treeRootModeSwitchContainer).css('display', show ? 'block' : 'none');
+		$('#' + this.treeRootSettingsSwitchContainer).css('display', show ? 'block' : 'none');
 	}
 	
 	/**
@@ -1135,7 +1201,7 @@ class NoteTree {
 			var visible = that.behaviour.isItemVisible(doc, searchText); 
 			
 			// Set the folder open/close icons
-			if (visible && n.getData().hasChildren(id)) {
+			/*if (visible && that.behaviour.hasChildren(doc)) {
 				var opened = that.behaviour.isItemOpened(doc); 
 				var ic = $(el).find('.' + that.behaviour.getIconClass());
 				
@@ -1149,7 +1215,7 @@ class NoteTree {
 					ic.toggleClass(folderOpenedClass, opened);					
 					ic.toggleClass(folderClosedClass, !opened);
 				}
-			}
+			}*/
 
 			// Disable dragging for conflicts
 			that.behaviour.setItemStyles(item, doc, $(el).parent(), $(el), visible, searchText);
@@ -1289,7 +1355,7 @@ class NoteTree {
 			if (id) {
 				Notes.getInstance().getData().applyRecursively(id, setColor);
 			} else {
-				var children = Notes.getInstance().getData().getChildren("");
+				var children = this.behaviour.getChildren();
 				for(var a in children) {
 					Notes.getInstance().getData().applyRecursively(children[a]._id, setColor);
 				}

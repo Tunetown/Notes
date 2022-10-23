@@ -19,13 +19,12 @@
 class Behaviours {
 	/**
 	 * Gets the next nav mode proposed
-	 */
+	 *
 	static getNextNavMode() {
 		var cs = ClientState.getInstance().getViewSettings();
 		switch (cs.navMode) {
 		//case 'tiles': return 'detail';
 		case 'detail': return 'tree';
-		//case 'reference': return 'tree';         // NOTE: Reference behaviour is not developed yet. Currentyl it is a 1:1 copy of Detail.
 		case 'tree': return 'detail'; //'tiles';   // NOTE: Tile navigation is disabled here. 
 		} 
 		return null;
@@ -33,10 +32,9 @@ class Behaviours {
 	
 	/**
 	 * Returns the FA icon class postfix for the given nav mode
-	 */
+	 *
 	static getNavModeIcon(mode) {
 		switch (mode) {
-		case 'reference': return 'project-diagram';
 		case 'tiles': return 'th-large';
 		case 'detail': return 'list';
 		case 'tree': return 'tree';
@@ -46,12 +44,21 @@ class Behaviours {
 	
 	/**
 	 * Sets the correct icon class active on the element for the passed mode
-	 */
+	 *
 	static setNavModeIconClass(el, mode) {
-		el.toggleClass('fa-' + Behaviours.getNavModeIcon('reference'), mode == 'reference');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('tiles'), mode == 'tiles');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('detail'), mode == 'detail');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('tree'), mode == 'tree');
+	}
+	
+	/**
+	 * Returns a mode selector.
+	 */
+	static getModeSelector(id, selectedMode) {
+		return $('<select id="' + id + '"></select>').append(
+			$('<option value="detail">Detail List</option>').prop('selected', 'detail' == selectedMode),
+			$('<option value="tree">Tree</option>').prop('selected', 'tree' == selectedMode),
+		);
 	}
 	
 	/**
@@ -59,7 +66,6 @@ class Behaviours {
 	 */
 	static get(mode, grid) {
 		switch (mode) {
-		case 'reference': return new ReferenceBehaviour(grid);
 		case 'tiles': return new TileBehaviour(grid);
 		case 'detail': return new DetailBehaviour(grid);
 		case 'tree': return new TreeBehaviour(grid);

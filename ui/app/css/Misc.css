@@ -531,3 +531,24 @@ div.tox-tinymce {
 	margin-top: 10px;
 }
 
+/**
+ * Graph stuff
+ */
+#graphContainer {
+	height: 100%;
+	background: #111;
+}
+
+#graphInfoPanel {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	display: none;
+	font-size: 20px;
+	padding-left: 10px;
+	padding-right: 10px;
+	background: white;
+	border: 2px solid gray;
+	border-radius: 5px;
+}
+ 

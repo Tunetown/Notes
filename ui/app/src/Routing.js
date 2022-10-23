@@ -154,6 +154,25 @@ class Routing {
 				});
 			});
 			
+			// Graph view
+			this.get('#/:profile/graph', function(context) {
+				that.app.startApp(this.params['profile'])
+				.then(function(data) {
+					that.app.resetPage();
+					
+					return Promise.all([data.treePromise, data.settingsPromise])
+					.then(function(data) {
+						
+						GraphView.getInstance().load();
+						return Promise.resolve();
+					});
+
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
 			// Trash bin
 			this.get('#/:profile/trash', function(context) {
 				that.app.startApp(this.params['profile'])
@@ -508,6 +527,13 @@ class Routing {
 	 */
 	callTrash() {
 		this.call("trash");
+	}
+	
+	/**
+	 * Call graph view.
+	 */
+	callGraphView() {
+		this.call("graph");
 	}
 	
 	/**

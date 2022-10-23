@@ -32,6 +32,7 @@ class ClientState {
 		this.cidMobileOverride = "mo";
 		this.cidLastOpenedUrl = "lo";
 		this.cidFavorites = "fa";
+		this.cidGraphMeta = "gs";
 	}
 	
 	/**
@@ -40,6 +41,63 @@ class ClientState {
 	static getInstance() {
 		if (!ClientState.instance) ClientState.instance = new ClientState();
 		return ClientState.instance;
+	}
+	
+	/**
+	 * Saves the passed favorites list.
+	 */
+	saveGraphMeta(id, data) {
+		var all = this.getLocal(this.cidGraphMeta);
+		if (!all || !all.entries) all = { entries: [] };
+		
+		var found = false;
+		for(var i in all.entries) {
+			if (all.entries[i].id == id) {
+				all.entries[i].data = data;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			all.entries.push({
+				id: id,
+				data: data
+			})
+		}
+		this.setLocal(this.cidGraphMeta, all);
+	}
+	
+	/**
+	 * Saves the passed favorites list.
+	 */
+	saveGlobalGraphMeta(data) {
+		var all = this.getLocal(this.cidGraphMeta);
+		all.global = data;
+		this.setLocal(this.cidGraphMeta, all);
+	}
+	
+	/**
+	 * Returns the passed favorites list.
+	 */
+	getGraphMeta(id) {
+		var all = this.getLocal(this.cidGraphMeta);
+		if (!all || !all.entries) return {};
+		
+		for(var i in all.entries) {
+			if (all.entries[i].id == id) {
+				return all.entries[i].data;
+			}
+		}
+		return {};
+	}
+	
+	/**
+	 * Returns the passed favorites list.
+	 */
+	getGlobalGraphMeta(id) {
+		var all = this.getLocal(this.cidGraphMeta);
+		if (!all || !all.global) return {};
+		return all.global;
 	}
 	
 	/**

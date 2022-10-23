@@ -63,7 +63,7 @@ class TreeActions {
 	}
 	
 	/**
-	 * Fallback for requestTree in case the views are missing.
+	 * Fallback for requestTree in case the TOC views are missing.
 	 */
 	requestTreeFallback() {
 		return Database.getInstance().get()

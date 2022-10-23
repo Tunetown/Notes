@@ -24,6 +24,10 @@ class DetailBehaviour {
 		this.selectedParent = "";
 		this.sortModes = {};
 		
+		this.enableChildren = true;
+		this.enableLinks = false;
+		this.enableBacklinks = false;
+		
 		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
 	}
 	
@@ -117,6 +121,9 @@ class DetailBehaviour {
 		
 		state.detail.sp = this.selectedParent;
 		state.detail.sortModes = this.sortModes;
+		state.detail.enableChildren = this.enableChildren ? 'on' : '';
+		state.detail.enableLinks = this.enableLinks ? 'on' : '';
+		state.detail.enableBacklinks = this.enableBacklinks ? 'on' : '';
 	}
 
 	/**
@@ -131,6 +138,18 @@ class DetailBehaviour {
 		
 		if (state.detail.sortMode) {
 			this.sortModes = state.detail.sortModes;
+		}
+		
+		if (state.detail.enableChildren) {
+			this.enableChildren = (state.detail.enableChildren == 'on');
+		}
+
+		if (state.detail.enableLinks) {
+			this.enableLinks = (state.detail.enableLinks == 'on');
+		}
+
+		if (state.detail.enableChildren) {
+			this.enableBacklinks = (state.detail.enableBacklinks == 'on');
 		}
 	}
 	
@@ -449,7 +468,7 @@ class DetailBehaviour {
 	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
-	setupItemContent(itemContent, doc, additionalIconClasses, additionalTextBefore, additionalTextAfter) {
+	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
 		// Set up item DOM
 		itemContent.append(
 			$('<div class="' + this.getItemInnerContainerClass() + '">').append([
@@ -461,7 +480,7 @@ class DetailBehaviour {
 					),
 					
 					// Icon
-					$('<div class="' + this.getIconClass() + ' ' + additionalIconClasses + '"></div>'),
+					$('<div class="' + this.getIconClass() + '"></div>'),
 					
 					// Text
 					$('<div class="' + this.getItemTextClass() + '"><div class="treeitemtext-detail-text">' + additionalTextBefore + doc.name + additionalTextAfter + '</div></div>').append(
@@ -548,7 +567,7 @@ class DetailBehaviour {
 		var isSelectedParent = (doc._id == this.selectedParent);
 		var isAttachment = (doc.type == 'attachment');
 		var isReference = (doc.type == 'reference');
-		var hasChildren = data.hasChildren(doc._id);
+		var hasChildren = this.hasChildren(doc);
 
 		var previewEl = itemContent.find('.' + this.getItemPreviewClass());
 		var metaEl = itemContent.find('.' + this.getItemMetaClass());
@@ -561,6 +580,11 @@ class DetailBehaviour {
 		var iconEl = itemContent.find('.' + this.getIconClass());
 		//iconEl.css('min-width', hasChildren ? '20px' : '0');
 		iconEl.css('padding-right', (hasChildren || isAttachment || isReference) ? '10px' : '0');
+		iconEl.toggleClass('folder', hasChildren);
+
+		var poss = this.getAllPossibleIconStyleClasses();
+		for(var p in poss) iconEl.toggleClass(poss[p], false);
+		iconEl.toggleClass(this.getIconStyleClass(this.isItemOpened(doc), doc), true); 
 
 		// Hide preview / metadata for selected parent
 		previewEl.css('display', isSelectedParent ? 'none' : 'block');
@@ -624,12 +648,84 @@ class DetailBehaviour {
 			return Notes.getInstance().getData().containsText(doc, searchText);
 		}
 		
-		// Only show children of the selected parent
-		if ((this.selectedParent == doc.parent) || (this.selectedParent == doc._id)) {
-			return true;
-		} else {
-			return false;
+		if (this.selectedParent == doc._id) return true;
+		
+		if (this.enableChildren) {
+			// Show children of the selected parent
+			if (this.selectedParent == doc.parent) {
+				return true;
+			} 
 		}
+		
+		var d = Notes.getInstance().getData();
+		var selectedDoc = d.getById(this.selectedParent);
+		if (!selectedDoc) return false;
+		
+		if (this.enableLinks) {
+			// Show documents which are linked in the selected document
+			if (selectedDoc.links) {
+				for(var l=0; l<selectedDoc.links.length; ++l) {
+					if ((doc._id == selectedDoc.links[l])) {
+						return true;
+					} 
+				}
+			}
+		}
+		
+		if (this.enableBacklinks) {
+			// Show documents which have links to this document
+			var backlinks = d.getBacklinks(selectedDoc);
+			if (backlinks) {
+				for(var l=0; l<backlinks.length; ++l) {
+					if (backlinks[l].type != 'link') continue;
+					
+					if ((doc._id == backlinks[l].doc._id)) {
+						return true;
+					} 
+				}
+			}
+		}
+
+		return false;
+	}
+	
+	/**
+	 * Returns if the document has children.
+	 */
+	hasChildren(doc) {
+		var d = Notes.getInstance().getData();
+
+		if (this.enableChildren) {
+			if (d.hasChildren(doc._id)) {
+				return true;
+			}
+		}
+		
+		if (this.enableLinks) {
+			if (doc.links && (doc.links.length > 0)) {
+				return true;
+			}
+		}
+		
+		if (this.enableBacklinks) {
+			var backlinks = d.getBacklinks(doc);
+			if (backlinks && (backlinks.length > 0)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
+	 * Returns the children of the document.
+	 */
+	getChildren(doc) {
+		if (doc) {
+			Notes.getInstance().showAlert('DEVELOPER ERROR: getChildren not implemented completely in DetailBehaviour.js, the links and backlinks are missing!', 'E');
+		}
+		
+		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
 	}
 	
 	/**
@@ -783,11 +879,24 @@ class DetailBehaviour {
 		
 		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
 
-		if (d.hasChildren(doc._id)) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';
+		if (this.hasChildren(doc)) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';
 		
 		if (doc.type == 'attachment') return 'fa fa-paperclip'; 
 		if (doc.type == 'reference') return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
 		return '';
+	}
+	
+	/**
+	 * Returns all possible icon style classes.
+	 */
+	getAllPossibleIconStyleClasses() {
+		return [
+			'fa fa-border-all',   // TODO const! hier und die funktion davor.
+			'fa fa-chevron-left',
+			'fa fa-plus',
+			'fa fa-paperclip',
+			'fa fa-long-arrow-alt-right',
+		]
 	}
 	
 	/**
@@ -887,6 +996,83 @@ class DetailBehaviour {
 	 */
 	getGridParentSelectedClass() {
 		return "gridParentSelected-detail";
+	}
+	
+	/**
+	 * Returns the elements to be added to the settings panel (optional function, does not have to exist).
+	 */
+	getSettingsPanelContentTableRows() {
+		var that = this;
+		return [
+			$('<tr></tr>')
+			.append(
+				$('<td>Parents</td>'),
+				$('<td></td>')
+				.append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableChildren ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that2 = this;
+						setTimeout(function() {
+							new Switch(that2, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									that.enableChildren = !!this.getChecked();
+									that.grid.filter();
+								}
+							});
+						}, 0);
+					}),
+				)
+			),
+			
+			$('<tr></tr>')
+			.append(
+				$('<td>Outgoing Links</td>'),
+				$('<td></td>')
+				.append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableLinks ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that2 = this;
+						setTimeout(function() {
+							new Switch(that2, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									that.enableLinks = !!this.getChecked();
+									that.grid.filter();
+								}
+							});
+						}, 0);
+					}),
+				)
+			),
+			
+			$('<tr></tr>')
+			.append(
+				$('<td>Backlinks</td>'),
+				$('<td></td>')
+				.append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableBacklinks ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that2 = this;
+						setTimeout(function() {
+							new Switch(that2, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									that.enableBacklinks = !!this.getChecked();
+									that.grid.filter();
+								}
+							});
+						}, 0);
+					}),
+				)
+			)
+		];		
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1043,7 +1229,7 @@ class DetailBehaviour {
 		if (!doc) throw new Error("Doc " + data.id + " not found");
 		
 		// Select
-		if (Notes.getInstance().getData().hasChildren(data.id)) {
+		if (this.hasChildren(doc)) {
 			if (this.selectedParent == data.id) {
 				// Click on parent: Close it
 				this.selectParent(doc.parent);
