@@ -415,21 +415,23 @@ class DetailBehaviour {
 			var dataB = $(itemB.getElement()).find('.' + that.getItemContentClass()).data();
 			var docB = d.getById(dataB.id);
 				
+			var weight = 1;
+				
 			// Selected parent always on top
-			if (docA._id == that.selectedParent) return -1;
-			if (docB._id == that.selectedParent) return 1;
+			if (docA._id == that.selectedParent) return -weight;
+			if (docB._id == that.selectedParent) return weight;
 			
 			// Parent of the selected item (when enableParents is true) always second
 			var selectedDoc = d.getById(that.selectedParent);
 			if (selectedDoc) {
 				if (docA._id == selectedDoc.parent) {
-					if (docB._id == that.selectedParent) return -1;
-					else return 1;
+					if (docB._id == that.selectedParent) return -weight;
+					else return weight;
 				} 
 	
 				if (docB._id == selectedDoc.parent) {
-					if (docA._id == that.selectedParent) return 1;
-					else return -1;
+					if (docA._id == that.selectedParent) return weight;
+					else return -weight;
 				} 
 			}
 			
@@ -439,36 +441,36 @@ class DetailBehaviour {
 			if (s.mode == 'size') {
 				var docsizeA = d.getSize(docA, true);
 				var docsizeB = d.getSize(docB, true);
-				return s.up ? (docsizeA - docsizeB) : (docsizeB - docsizeA);
+				return (s.up ? (docsizeA - docsizeB) : (docsizeB - docsizeA)) * weight;
 			}
 
 			// Sort by name
 			if (s.mode == 'name') {
 				if (docA.name == docB.name) return 0;
-				if (docA.name > docB.name) return s.up ? -1 : 1;
-				else return s.up ? 1 : -1;
+				if (docA.name > docB.name) return (s.up ? -weight : weight) * weight;
+				else return (s.up ? weight : -weight) * weight;
 			}
 				
 			// Sort by last changed (deep)
 			if (s.mode == 'lastChanged') {
 				var tsA = d.getLatest(docA).timestamp;
 				var tsB = d.getLatest(docB).timestamp;
-				return s.up ? (tsA - tsB) : (tsB - tsA);
+				return (s.up ? (tsA - tsB) : (tsB - tsA)) * weight;
 			}
 				
 			// Default: Sort by order as stored on DB
 			if (docA.order && docB.order && (docA.order != docB.order)) {
-				return docA.order - docB.order;
+				return (docA.order - docB.order) * weight;
 			}
 
 			// If orders are identical, use the names.
 			if (docA.name == docB.name) {
-				return 0;
+				return weight;
 			} else {
 				if (docA.name > docB.name) {
-					return 1;
+					return weight;
 				} else {
-					return -1;
+					return -weight;
 				}
 			}
 		});
