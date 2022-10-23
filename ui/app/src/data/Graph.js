@@ -96,15 +96,20 @@ class Graph {
 		};
 		
 		// Nodes
+		var dd = Notes.getInstance().getData();
 		for(var d=0; d<docs.length; ++d) {
 			var doc = docs[d];
 			
 			var nodeId = this.nextNodeId++;
 			this.nodeIds.set(doc._id, nodeId);
 			
-			var weight = 1 + (Notes.getInstance().getData().getAllReferences(doc).length + Notes.getInstance().getData().getBacklinks(doc).length) / 10;
+			var weight = 0;
+			weight += dd.getChildren(doc._id).length;
+			weight += dd.getAllReferences(doc).length;
+			weight += dd.getBacklinks(doc).length;
+			weight = 1 + (weight / 10);
 			if (weight > 20) weight = 20;
-			
+
 			data.nodes.push({
 				id: nodeId,
             	labels: [ doc.name ],
@@ -119,7 +124,7 @@ class Graph {
 		// Links
 		for(var d=0; d<docs.length; ++d) {
 			var doc = docs[d];
-			var links = Notes.getInstance().getData().getAllReferences(doc);
+			var links = dd.getAllReferences(doc);
 		
 			for(var l in links) {
 				var link = links[l];

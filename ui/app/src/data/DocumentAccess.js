@@ -78,12 +78,17 @@ class DocumentAccess {
 		if (ids.length == 0) {
 			//console.log(" -> Late Loader: All " + docs.length + " required documents already loaded");
 			
+			for(var i in docs) {
+				Document.invalidMetaWarning(docs[i]);
+			}
+			
 			return Promise.resolve({
 				ok: true,
 				updatedIds: ids
 			});
 		}
 		
+		var that = this;
 		return Database.getInstance().get()
 		.then(function(db) {
 			return db.allDocs({
@@ -133,6 +138,8 @@ class DocumentAccess {
 
 				Document.update(docInput, docLoaded);
 				Document.setLoaded(docInput);
+				
+				Document.invalidMetaWarning(docInput);
 			}
 			
 			// For debugging

@@ -391,6 +391,17 @@ class Document {
 			}
 		}
 		
+		Document.checkLinkages(doc, cl, errors);
+	}
+	
+	static checkLinkages(doc, cl, errors, ignoreBrokenLinksInContent) {
+		var d = Notes.getInstance().getData();
+		
+		if (!cl) {
+			cl = Document.clone(doc);
+			Document.updateMeta(cl);
+		}
+		
 		// Linkages
 		if (doc.type == 'note') {
 			if (cl.hasOwnProperty('links')) {
@@ -427,19 +438,77 @@ class Document {
 							}
 							
 							// Check if the links are broken
-							var link = doc.links[c];
-							if (!d.getById(link)) {
-								errors.push({
-									message: 'Broken link: ' + link,
-									id: doc._id,
-									type: 'E'
-								});
+							if (!ignoreBrokenLinksInContent) {
+								var link = doc.links[c];
+								if (!d.getById(link)) {
+									errors.push({
+										message: 'Broken link: ' + link,
+										id: doc._id,
+										brokenLink: link,
+										type: 'W'
+									});
+								}
 							}
 						}
 					}
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Check the documents link buffer and warn the user if anything is wrong.
+	 */
+	static invalidMetaWarning(doc) {
+		// Sanity check
+		setTimeout(function() {
+			var errors = [];
+			
+			// Just check if the links buffers are up to date
+			Document.checkLinkages(doc, null, errors, true);
+			
+			if (errors.length > 0) {
+				Notes.getInstance().showAlert(
+					'Broken metadata (' + errors.length + ' errors) in document ' + doc._id + ', please re-save it or repair in Settings.', 
+					'E', 
+					false, 
+					false, 
+					function(msgCont, event) {
+						Notes.getInstance().routing.call(doc._id);
+					}
+				);
+			}
+		}, 500);
+	}
+	
+	/**
+	 * Check the documents link buffer and warn the user if anything is wrong.
+	 */
+	static brokenLinksWarning(doc) {
+		// Sanity check
+		setTimeout(function() {
+			var errors = [];
+			
+			// Just check if the links buffers are up to date
+			Document.checkLinkages(doc, null, errors);
+			
+			var cnt = 0;
+			var bl = '';
+			for(var e in errors) {
+				if (errors[e].brokenLink) {
+					if (cnt == 0) {
+						bl = errors[e].brokenLink;
+					}
+					cnt++;
+				}
+			}
+			if (cnt > 0) {
+				Notes.getInstance().showAlert(
+					cnt + ' broken link(s) detected in this document: ' + bl + ((cnt > 1) ? ' ...' : ''), 
+					'W'
+				);
+			}
+		}, 500);
 	}
 	
 	/**
@@ -1172,6 +1241,30 @@ class Document {
 			return true;
 		}
 		
+		if (doc.links) {
+			if (!current.links) {
+				console.log("   -> Links have been added");
+				return true;
+			}
+			
+			if (doc.links.length != current.links.length) {
+				console.log("   -> Links have been changed");
+				return true;
+			}
+			
+			for(var c in doc.links) {
+				if (doc.links[c] != current.links[c]) {
+					console.log("   -> Link " + c + " changed");
+					return true;
+				}
+			}
+		} else {
+			if (current.links) {
+				console.log("   -> Links have been removed");
+				return true;
+			}
+		}
+		
 		if (doc.parent != current.parent) {
 			console.log("   -> Parent changed");
 			return true;
@@ -1501,6 +1594,14 @@ class Document {
 				editor.hideOptions();	
 				
 				n.routing.callRawView(editor.getCurrentId());
+			}),
+			
+			!openedDoc ? null : $('<div class="userbuttonLine"></div>'),
+			
+			!openedDoc ? null : $('<div class="userbuttonPassive"></div>')
+			.html('ID: ' + openedDoc._id)
+			.on('click', function(event) {
+				event.stopPropagation();
 			}),
 		];
 	}

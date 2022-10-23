@@ -18,15 +18,21 @@
  */
 class DetailBehaviour {
 	
-	constructor(grid) {
+	constructor(grid, refMode) {
 		this.grid = grid;             // NoteTree instance
 		
 		this.selectedParent = "";
 		this.sortModes = {};
 		
+		this.mode = refMode ? 'ref' : 'hierarchical';
+
+		// Parameters for ref mode
 		this.enableChildren = true;
-		this.enableLinks = false;
-		this.enableBacklinks = false;
+		this.enableRefs = true;
+		this.enableParents = true;   // Always true, not stored in client state
+		this.enableLinks = true;
+		this.enableBacklinks = true;
+		this.groupBy = 'category';
 		
 		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
 	}
@@ -122,8 +128,11 @@ class DetailBehaviour {
 		state.detail.sp = this.selectedParent;
 		state.detail.sortModes = this.sortModes;
 		state.detail.enableChildren = this.enableChildren ? 'on' : '';
+		state.detail.enableRefs = this.enableRefs ? 'on' : '';
+		//state.detail.enableParents = this.enableParents ? 'on' : '';
 		state.detail.enableLinks = this.enableLinks ? 'on' : '';
 		state.detail.enableBacklinks = this.enableBacklinks ? 'on' : '';
+		state.detail.groupBy = this.groupBy;
 	}
 
 	/**
@@ -143,6 +152,14 @@ class DetailBehaviour {
 		if (state.detail.enableChildren) {
 			this.enableChildren = (state.detail.enableChildren == 'on');
 		}
+		
+		if (state.detail.enableRefs) {
+			this.enableRefs = (state.detail.enableRefs == 'on');
+		}
+		
+		/*if (state.detail.enableParents) {
+			this.enableParents = (state.detail.enableParents == 'on');
+		}*/
 
 		if (state.detail.enableLinks) {
 			this.enableLinks = (state.detail.enableLinks == 'on');
@@ -150,6 +167,10 @@ class DetailBehaviour {
 
 		if (state.detail.enableChildren) {
 			this.enableBacklinks = (state.detail.enableBacklinks == 'on');
+		}
+		
+		if (state.detail.groupBy) {
+			this.groupBy = state.detail.groupBy;
 		}
 	}
 	
@@ -174,12 +195,22 @@ class DetailBehaviour {
 	 * Called before the grid is initialized
 	 */
 	beforeInit() {
-		$('#treeBackButton').show();
+		if (this.mode == 'ref') $('#treeBackButton').hide();
+		else $('#treeBackButton').show();
 		$('#treeHomeButton').show();
 		
 		// Search buttons
 		var that = this;
 		$('#' + this.grid.treeRootTopSwitchContainer).append(
+			// Group by (ref mode only)
+			(this.mode != 'ref') ? null : 
+			$('<div data-toggle="tooltip" title="Group by item category" class="fa fa-layer-group treeDetailTopSwitchbutton" id="sortButtonCategory"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				
+				that.setNextGroupMode();
+			}),
+			
 			// Last changed
 			$('<div data-toggle="tooltip" title="Sort by last changed" class="fa fa-sort-numeric-down treeDetailTopSwitchbutton" id="sortButtonLastChanged"></div>')
 			.on('click', function(event) {
@@ -286,6 +317,16 @@ class DetailBehaviour {
 		};
 	}
 	
+	setNextGroupMode() {
+		if (this.groupBy == 'category') this.groupBy = false;
+		else this.groupBy = 'category';
+		
+		this.updateSortButtons();
+		
+		this.saveScrollPosition();
+		this.grid.filter();
+	}
+	
 	/**
 	 * Sets the next following sort mode, depending on the one passed 
 	 * (which indicates just what button has been clicked, NOT the mode to be set!)
@@ -321,6 +362,8 @@ class DetailBehaviour {
 		// Sort
 		var s = this.getCurrentSortMode();
 		
+		$('#sortButtonCategory').css('color', (this.groupBy == 'category') ? 'black' : 'grey');
+
 		$('#sortButtonSize').css('color', (s.mode == 'size') ? 'black' : 'grey');
 		$('#sortButtonName').css('color', (s.mode == 'name') ? 'black' : 'grey');
 		$('#sortButtonLastChanged').css('color', (s.mode == 'lastChanged') ? 'black' : 'grey');
@@ -375,7 +418,21 @@ class DetailBehaviour {
 			// Selected parent always on top
 			if (docA._id == that.selectedParent) return -1;
 			if (docB._id == that.selectedParent) return 1;
-				
+			
+			// Parent of the selected item (when enableParents is true) always second
+			var selectedDoc = d.getById(that.selectedParent);
+			if (selectedDoc) {
+				if (docA._id == selectedDoc.parent) {
+					if (docB._id == that.selectedParent) return -1;
+					else return 1;
+				} 
+	
+				if (docB._id == selectedDoc.parent) {
+					if (docA._id == that.selectedParent) return 1;
+					else return -1;
+				} 
+			}
+			
 			var s = that.getCurrentSortMode();
 			
 			// Sort by size (deep)
@@ -471,6 +528,12 @@ class DetailBehaviour {
 	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
 		// Set up item DOM
 		itemContent.append(
+			// Links Bar at the left
+			$('<div data-toggle="tooltip" title="..." class="' + this.getItemLeftMarkerClass() + '">').append(
+				$('<span class="' + this.getMarkerIconClass() + ' fa fa-chevron-right"></span>')
+			),
+			
+			// Content
 			$('<div class="' + this.getItemInnerContainerClass() + '">').append([
 				// We use a container holding all item content inside the content div.
 				$('<div class="' + this.getItemHeadlineClass() + '">').append([
@@ -498,6 +561,11 @@ class DetailBehaviour {
 				),
 			]),
 			
+			// Links Bar at the left
+			$('<div data-toggle="tooltip" title="..." class="' + this.getItemRightMarkerClass() + '">').append(
+				$('<span class="' + this.getMarkerIconClass() + ' fa fa-chevron-right"></span>')
+			),
+			
 			// Drag handle (dynamically blended in)
 			$('<div class="' + this.getDragHandleClass() + '"></div>')
 		);
@@ -512,7 +580,7 @@ class DetailBehaviour {
 		var d = Notes.getInstance().getData();
 		
 		// Generate meta data text
-		var numChildren = d.getChildren(doc._id).length;
+		var numChildren = (this.mode == 'ref') ? this.getRefEntries(doc, true).length : d.getChildren(doc._id).length;
 		
 		// Get sort mode for currently selected document
 		var s = this.sortModes[this.selectedParent];
@@ -560,14 +628,20 @@ class DetailBehaviour {
 	 * of the Muuri grid items as parameters (jquery instances). Also, the data container of 
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
-	setItemStyles(muuriItem, doc, itemContainer, itemContent, isItemVisible, searchText) {
+	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
 		var data = Notes.getInstance().getData();
+		var selectedDoc = data.getById(this.selectedParent);
 
 		// Gather attributes
 		var isSelectedParent = (doc._id == this.selectedParent);
 		var isAttachment = (doc.type == 'attachment');
 		var isReference = (doc.type == 'reference');
 		var hasChildren = this.hasChildren(doc);
+		var isBacklinkOfSelected = this.enableBacklinks && (data.hasLinkTo(doc, selectedDoc) == 'link');
+		var isParentOfSelected = this.enableParents && (selectedDoc && selectedDoc.parent && (doc._id == selectedDoc.parent));
+		var isReferenceToSelected = this.enableRefs && (data.containsReferenceTo(doc, selectedDoc));
+		var isOutgoinglinkOfSelected = this.enableLinks && (data.hasLinkTo(selectedDoc, doc) == 'link');
+		var selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
 
 		var previewEl = itemContent.find('.' + this.getItemPreviewClass());
 		var metaEl = itemContent.find('.' + this.getItemMetaClass());
@@ -576,11 +650,28 @@ class DetailBehaviour {
 		itemContent.css('height', isSelectedParent ? '100%' : ((this.treeFontSize * 6) + 'px'));
 		itemContainer.css('width', isSelectedParent ? (this.grid.getContainerWidth() - 120) + 'px' : '100%');
 		
+		// Inner container
+		var innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
+		innerContainer.css('margin-top', isSelectedParent ? '0px' : '2px');
+		innerContainer.css('margin-bottom', isSelectedParent ? '0px' : '2px');
+
+		// Markers at left for outgoing links of the selected doc. and parent of the selected doc.
+		var markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
+		markerLeftEl.css('display', (isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isOutgoinglinkOfSelected || isParentOfSelected) ? 'block' : 'none'));
+		markerLeftEl.css('background', isOutgoinglinkOfSelected ? '#b5f7c6' : '#faacac');
+		markerLeftEl.attr('title', isOutgoinglinkOfSelected ? ('Outgoing link from ' + selectedDocName + ' to ' + doc.name) : ('Parent of ' + selectedDocName + ' in the hierarchy'));
+		
+		// Marker at the right for backlinks and and references
+		var markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
+		markerRightEl.css('display', (isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isBacklinkOfSelected || isReferenceToSelected) ? 'block' : 'none'));
+		markerRightEl.css('background', isReferenceToSelected ? '#fff2bf' : '#b5f7c6');
+		markerRightEl.attr('title', isReferenceToSelected ? (doc.name + ' contains a reference to ' + selectedDocName) : ('Link from ' + doc.name + ' to ' + selectedDocName));
+
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
 		var iconEl = itemContent.find('.' + this.getIconClass());
-		//iconEl.css('min-width', hasChildren ? '20px' : '0');
 		iconEl.css('padding-right', (hasChildren || isAttachment || isReference) ? '10px' : '0');
 		iconEl.toggleClass('folder', hasChildren);
+		iconEl.css('display', ((!this.enableParents) || (!isSelectedParent)) ? 'block' : 'none');
 
 		var poss = this.getAllPossibleIconStyleClasses();
 		for(var p in poss) iconEl.toggleClass(poss[p], false);
@@ -607,28 +698,28 @@ class DetailBehaviour {
 			metaEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
 		}
 		
-		if (isItemVisible) {
-			this.updateItemMeta(doc, itemContent);
+		//if (isItemVisible) {
+		this.updateItemMeta(doc, itemContent);
 
-			// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)			
-			var soll = itemContent.offset().top + itemContent.height();
-			var ist = previewEl.offset().top + previewEl.height();
-			var diff = ist - soll;
-			if (diff > 0) {
-				var previewHeight = previewEl.height() - diff; 
-				previewEl.css('height', previewHeight);		
-			}
-
-			var labels = itemContent.find('.doc-label');
-			labels.css('min-width', this.treeFontSize + 'px');
-			labels.css('max-width', this.treeFontSize + 'px');
-			labels.css('min-height', this.treeFontSize + 'px');
-			labels.css('max-height', this.treeFontSize + 'px');
-			
-			this.setItemLabelAlignment(itemContent, !isSelectedParent);
-			
-			itemContent.find('.' + this.getSelectorClass()).css('display', this.multiSelect ? 'inline-block' : 'none');
+		// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)			
+		var soll = itemContent.offset().top + itemContent.height();
+		var ist = previewEl.offset().top + previewEl.height();
+		var diff = ist - soll;
+		if (diff > 0) {
+			var previewHeight = previewEl.height() - diff; 
+			previewEl.css('height', previewHeight);		
 		}
+
+		var labels = itemContent.find('.doc-label');
+		labels.css('min-width', this.treeFontSize + 'px');
+		labels.css('max-width', this.treeFontSize + 'px');
+		labels.css('min-height', this.treeFontSize + 'px');
+		labels.css('max-height', this.treeFontSize + 'px');
+		
+		this.setItemLabelAlignment(itemContent, !isSelectedParent);
+		
+		itemContent.find('.' + this.getSelectorClass()).css('display', this.multiSelect ? 'inline-block' : 'none');
+		//}
 	}
 	
 	/**
@@ -643,50 +734,135 @@ class DetailBehaviour {
 	 * Returns if the doc should be shown
 	 */
 	isItemVisible(doc, searchText) {
+		var d = Notes.getInstance().getData();
+		
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
-			return Notes.getInstance().getData().containsText(doc, searchText);
+			return d.containsText(doc, searchText);
 		}
 		
 		if (this.selectedParent == doc._id) return true;
 		
-		if (this.enableChildren) {
-			// Show children of the selected parent
+		if (this.enableChildren || (this.mode != 'ref')) {
+			// Show children of the selected document
 			if (this.selectedParent == doc.parent) {
 				return true;
 			} 
 		}
 		
-		var d = Notes.getInstance().getData();
+		if (this.mode != 'ref') return false;
+		
 		var selectedDoc = d.getById(this.selectedParent);
 		if (!selectedDoc) return false;
 		
+		if (this.enableRefs) {
+			// Show refs to the selected document
+			if (d.containsReferenceTo(doc, selectedDoc)) {
+				return true;
+			} 
+		}
+		
+		if (this.enableParents) {
+			// Show parents of the selected document
+			if (doc._id == selectedDoc.parent) {
+				return true;
+			} 
+		}
+		
 		if (this.enableLinks) {
 			// Show documents which are linked in the selected document
-			if (selectedDoc.links) {
-				for(var l=0; l<selectedDoc.links.length; ++l) {
-					if ((doc._id == selectedDoc.links[l])) {
-						return true;
-					} 
+			if (d.hasLinkTo(selectedDoc, doc) == 'link') return true;
+		}
+		
+		if (this.enableBacklinks) {
+			// Show documents which have links to this document
+			if (this.hasBackLinkTo(selectedDoc, doc._id)) return true;
+		}
+
+		return false;
+	}
+	
+	/**
+	 * Returns what is regarded as backlink here
+	 */
+	getBacklinks(doc) {
+		return Notes.getInstance().getData().getBacklinks(doc)
+	}
+	
+	/**
+	 */
+	hasBackLinkTo(doc, targetId) {
+		return Notes.getInstance().getData().hasBackLinkTo(doc, targetId);
+	}
+	
+	/**
+	 * Returns all documents which are visible in ref mode. So far, only used for statistics.
+	 */
+	getRefEntries(doc, ignoreParent) {
+		var d = Notes.getInstance().getData();
+		
+		var ret = [];
+		if (this.enableChildren) {
+			var children = d.getChildren(doc ? doc._id : '');
+			for(var i=0; i<children.length; ++i) {
+				ret.push(children[i]);
+			}
+		}
+		
+		if (!doc) return ret;
+		
+		if (this.enableRefs) {
+			var rs = d.getReferencesTo(doc._id);
+			for(var i=0; i<rs.length; ++i) {
+				if (rs[i].parent) {
+					if (ignoreParent && (rs[i].parent == doc.parent)) continue;
+					
+					var rp = d.getById(rs[i].parent);
+					ret.push(rp);
+				}
+			}
+		}
+		
+		if (this.enableParents && !ignoreParent) {
+			if (doc.parent) {
+				var p = d.getById(doc.parent);
+				if (p) {
+					ret.push(p);
+				}
+			}
+		}
+		
+		var refs = d.getAllReferences(doc);
+		if (this.enableLinks) {
+			for(var r=0; r<refs.length; ++r) {
+				if (refs[r].type != 'link') continue;
+				
+				if (ignoreParent && (refs[r].id == doc.parent)) continue;
+				
+				var rdoc = d.getById(refs[r].id);
+				if (rdoc) {
+					ret.push(rdoc);
 				}
 			}
 		}
 		
 		if (this.enableBacklinks) {
-			// Show documents which have links to this document
-			var backlinks = d.getBacklinks(selectedDoc);
-			if (backlinks) {
-				for(var l=0; l<backlinks.length; ++l) {
-					if (backlinks[l].type != 'link') continue;
-					
-					if ((doc._id == backlinks[l].doc._id)) {
-						return true;
-					} 
-				}
+			var backlinks = this.getBacklinks(doc);
+			for(var r=0; r<backlinks.length; ++r) {
+				if (ignoreParent && (backlinks[r].doc._id == doc.parent)) continue;
+				
+				ret.push(backlinks[r].doc);
 			}
 		}
-
-		return false;
+		
+		// Remove duplicates
+		var uniqueRet = ret.filter(function(a, pos) {
+	    	return ret.findIndex(function(b) {
+				return (b._id == a._id);
+			}) == pos;
+		})
+		
+		return uniqueRet;
 	}
 	
 	/**
@@ -695,9 +871,26 @@ class DetailBehaviour {
 	hasChildren(doc) {
 		var d = Notes.getInstance().getData();
 
-		if (this.enableChildren) {
+		if (this.enableChildren || (this.mode != 'ref')) {
 			if (d.hasChildren(doc._id)) {
 				return true;
+			}
+		}
+		
+		if (this.mode != 'ref') return false;
+		
+		if (this.enableRefs) {
+			if (d.getReferencesTo(doc._id).length > 0) {
+				return true;
+			}
+		}
+		
+		if (this.enableParents) {
+			if (doc.parent) {
+				var p = d.getById(doc.parent);
+				if (p) {
+					return true;
+				}
 			}
 		}
 		
@@ -708,24 +901,13 @@ class DetailBehaviour {
 		}
 		
 		if (this.enableBacklinks) {
-			var backlinks = d.getBacklinks(doc);
+			var backlinks = this.getBacklinks(doc);
 			if (backlinks && (backlinks.length > 0)) {
 				return true;
 			}
 		}
 		
 		return false;
-	}
-	
-	/**
-	 * Returns the children of the document.
-	 */
-	getChildren(doc) {
-		if (doc) {
-			Notes.getInstance().showAlert('DEVELOPER ERROR: getChildren not implemented completely in DetailBehaviour.js, the links and backlinks are missing!', 'E');
-		}
-		
-		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
 	}
 	
 	/**
@@ -813,8 +995,12 @@ class DetailBehaviour {
 	 * Sets focus on the given document.
 	 */
 	focus(id) {
-		var doc = Notes.getInstance().getData().getById(id);
-		this.selectParent(doc ? doc.parent : "");
+		if (this.mode == 'ref') {
+			this.selectParent(id);
+		} else {
+			var doc = Notes.getInstance().getData().getById(id);
+			this.selectParent(doc ? doc.parent : "");
+		}
 	}
 	
 	/**
@@ -879,7 +1065,9 @@ class DetailBehaviour {
 		
 		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
 
-		if (this.hasChildren(doc)) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';
+		if (this.mode != 'ref') {
+			if (this.hasChildren(doc)) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';			
+		}
 		
 		if (doc.type == 'attachment') return 'fa fa-paperclip'; 
 		if (doc.type == 'reference') return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
@@ -942,6 +1130,13 @@ class DetailBehaviour {
 		return "treeitemcontainer-detail";
 	}
 	
+	getItemLeftMarkerClass() {
+		return "treeitemmarkerleft-detail";
+	}
+	getItemRightMarkerClass() {
+		return "treeitemmarkerright-detail";
+	}
+	
 	/**
 	 * Get the class for the item headline
 	 */
@@ -999,14 +1194,27 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Returns the class for the icons in the left and right link marker areas.
+	 */
+	getMarkerIconClass() {
+		return "treemarkericon-detail";
+	}
+	
+	/**
 	 * Returns the elements to be added to the settings panel (optional function, does not have to exist).
 	 */
 	getSettingsPanelContentTableRows() {
 		var that = this;
+		
+		if (this.mode != 'ref') return [];
+		
+		var d = Notes.getInstance().getData();
+		var selectedDoc = d.getById(this.selectedParent);
+		
 		return [
 			$('<tr></tr>')
 			.append(
-				$('<td>Parents</td>'),
+				$('<td>Children</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableChildren ? 'checked' : '') + ' />')
@@ -1024,8 +1232,33 @@ class DetailBehaviour {
 							});
 						}, 0);
 					}),
+					
+					$('<span class="treesettingsinfo-detail"></span>').html('(' + d.getChildren(selectedDoc ? selectedDoc._id : '').length + ')')
 				)
 			),
+			/*
+			$('<tr></tr>')
+			.append(
+				$('<td>Parents</td>'),
+				$('<td></td>')
+				.append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableParents ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that2 = this;
+						setTimeout(function() {
+							new Switch(that2, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									that.enableParents = !!this.getChecked();
+									that.grid.filter();
+								}
+							});
+						}, 0);
+					}),
+				)
+			),*/
 			
 			$('<tr></tr>')
 			.append(
@@ -1047,6 +1280,8 @@ class DetailBehaviour {
 							});
 						}, 0);
 					}),
+					
+					$('<span class="treesettingsinfo-detail"></span>').html('(' + ((selectedDoc && selectedDoc.links) ? selectedDoc.links.length : 0) + ')')
 				)
 			),
 			
@@ -1070,6 +1305,33 @@ class DetailBehaviour {
 							});
 						}, 0);
 					}),
+					
+					$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getBacklinks(selectedDoc).length) + ')')
+				)
+			),
+			
+			$('<tr></tr>')
+			.append(
+				$('<td>References</td>'),
+				$('<td></td>')
+				.append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableRefs ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that2 = this;
+						setTimeout(function() {
+							new Switch(that2, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									that.enableRefs = !!this.getChecked();
+									that.grid.filter();
+								}
+							});
+						}, 0);
+					}),
+					
+					$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getReferencesTo(selectedDoc ? selectedDoc._id : null).length) + ')')
 				)
 			)
 		];		
@@ -1084,19 +1346,21 @@ class DetailBehaviour {
 	selectParent(id) {
 		if (this.selectedParent == id) return;
 		
+		// If we go deeper in the tree, we also reset the scroll position.
+		if (id) {
+			var docIn = Notes.getInstance().getData().getById(id);
+			var doc = Document.getTargetDoc(docIn);
+			if (doc && (doc.parent == old)) {
+				this.resetScrollPosition();
+			}
+			if (doc) id = doc._id;
+		}
+		
 		var old = this.selectedParent;
 		
 		this.selectedParent = id;
 		this.grid.filter();
 		this.grid.setSelected();
-		
-		// If we go deeper in the tree, we also reset the scroll position.
-		if (id) {
-			var doc = Notes.getInstance().getData().getById(id);
-			if (doc && (doc.parent == old)) {
-				this.resetScrollPosition();
-			}
-		}
 		
 		this.grid.refreshColors();
 		
@@ -1203,10 +1467,15 @@ class DetailBehaviour {
 		if (!doc) throw new Error("Doc " + data.id + " not found");
 		
 		if (this.selectedParent == data.id) {
-			this.selectParent(doc.parent);
+			if (this.mode == 'ref') {
+				this.grid.setSelected();
+				this.grid.openNode(data.id, true);		
+			} else {
+				this.selectParent(doc.parent);
+			}
 		} else {
 			this.grid.setSelected(data.id);
-			this.grid.openNode(data.id);
+			this.grid.openNode(data.id, this.mode == 'ref');
 		}
 	}
 	
@@ -1228,7 +1497,7 @@ class DetailBehaviour {
 		var doc = Notes.getInstance().getData().getById(data.id);
 		if (!doc) throw new Error("Doc " + data.id + " not found");
 		
-		// Select
+		// Select as parent in navigation
 		if (this.hasChildren(doc)) {
 			if (this.selectedParent == data.id) {
 				// Click on parent: Close it

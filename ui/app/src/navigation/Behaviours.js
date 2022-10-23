@@ -49,15 +49,21 @@ class Behaviours {
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('tiles'), mode == 'tiles');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('detail'), mode == 'detail');
 		el.toggleClass('fa-' + Behaviours.getNavModeIcon('tree'), mode == 'tree');
-	}
+	}*/
+	
+	static modeIdDetailRef = 'detail-ref';
+	static modeIdDetailHierarchical = 'detail-hier';
+	static modeIdTiles = 'tiles';
+	static modeIdTree = 'tree';
 	
 	/**
 	 * Returns a mode selector.
 	 */
 	static getModeSelector(id, selectedMode) {
 		return $('<select id="' + id + '"></select>').append(
-			$('<option value="detail">Detail List</option>').prop('selected', 'detail' == selectedMode),
-			$('<option value="tree">Tree</option>').prop('selected', 'tree' == selectedMode),
+			$('<option value="' + Behaviours.modeIdDetailRef + '">References</option>').prop('selected', Behaviours.modeIdDetailRef == selectedMode),
+			$('<option value="' + Behaviours.modeIdDetailHierarchical + '">Hierarchical</option>').prop('selected', Behaviours.modeIdDetailHierarchical == selectedMode),
+			$('<option value="' + Behaviours.modeIdTree + '">Tree</option>').prop('selected', Behaviours.modeIdTree == selectedMode),
 		);
 	}
 	
@@ -66,9 +72,11 @@ class Behaviours {
 	 */
 	static get(mode, grid) {
 		switch (mode) {
-		case 'tiles': return new TileBehaviour(grid);
-		case 'detail': return new DetailBehaviour(grid);
-		case 'tree': return new TreeBehaviour(grid);
+		case Behaviours.modeIdTiles: return new TileBehaviour(grid);
+		case Behaviours.modeIdDetailRef: return new DetailBehaviour(grid, true);
+		case Behaviours.modeIdDetailHierarchical: return new DetailBehaviour(grid);
+		case Behaviours.modeIdTree: return new TreeBehaviour(grid);
+		default: return new DetailBehaviour(grid, true);
 		} 
 		return null;
 	}

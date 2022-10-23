@@ -548,12 +548,6 @@ class NoteTree {
 		// Set the document ID as data attribute for reference
 		li.attr('data-id', doc._id);
 
-		// Is it a folder?
-		/*var isFolder = this.behaviour.hasChildren(doc);
-		if (isFolder) {
-			li.addClass('folder');
-		}*/
-		
 		// Conflict icon
 		var conflictIcon = "";
 		if (data.hasConflicts(doc._id, true)) {
@@ -1033,10 +1027,10 @@ class NoteTree {
 	/**
 	 * Opens a document by its id. Called by event handlers etc.
 	 */
-	openNode(id) {
+	openNode(id, noFocus) {
 		var n = Notes.getInstance();
 		
-		this.behaviour.focus(id);
+		if (!noFocus) this.behaviour.focus(id);
 		
 		// Open the note/document
 		n.routing.call(id);			
@@ -1200,26 +1194,10 @@ class NoteTree {
 			var doc = n.getData().getById(id);
 			var visible = that.behaviour.isItemVisible(doc, searchText); 
 			
-			// Set the folder open/close icons
-			/*if (visible && that.behaviour.hasChildren(doc)) {
-				var opened = that.behaviour.isItemOpened(doc); 
-				var ic = $(el).find('.' + that.behaviour.getIconClass());
-				
-				var folderClosedClass = that.behaviour.getIconStyleClass(false, doc);
-				var folderOpenedClass = that.behaviour.getIconStyleClass(true, doc);
-				
-				if (opened) {
-					ic.toggleClass(folderClosedClass, !opened);
-					ic.toggleClass(folderOpenedClass, opened);					
-				} else {
-					ic.toggleClass(folderOpenedClass, opened);					
-					ic.toggleClass(folderClosedClass, !opened);
-				}
-			}*/
-
 			// Disable dragging for conflicts
-			that.behaviour.setItemStyles(item, doc, $(el).parent(), $(el), visible, searchText);
-			
+			if (visible) {
+				that.behaviour.setItemStyles(item, doc, $(el).parent(), $(el), searchText);
+			}
 			return visible;
 			
 		}, noAnimations ? {
@@ -1355,7 +1333,7 @@ class NoteTree {
 			if (id) {
 				Notes.getInstance().getData().applyRecursively(id, setColor);
 			} else {
-				var children = this.behaviour.getChildren();
+				var children = Notes.getInstance().getData().getChildren('');
 				for(var a in children) {
 					Notes.getInstance().getData().applyRecursively(children[a]._id, setColor);
 				}

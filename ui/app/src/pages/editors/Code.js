@@ -40,6 +40,8 @@ class Code {
 		var that = this;
 		var n = Notes.getInstance();
 		
+		Document.brokenLinksWarning(doc);
+		
 		this.setCurrent(doc);
 		
 		n.setCurrentEditor(this);
@@ -475,7 +477,8 @@ class Code {
 		
 		const meta = Linkage.splitLink(link);
 		
-		Notes.getInstance().routing.call(meta.target);
+		NoteTree.getInstance().openNode(meta.target);
+		//Notes.getInstance().routing.call(meta.target);
 	}
 }
 	

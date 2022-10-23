@@ -208,7 +208,7 @@ class ClientState {
 	getViewSettings() {
 		var ret = this.getLocal(this.cidViewSettings);
 		
-		if (!ret.navMode) ret.navMode = 'detail';
+		if (!ret.navMode) ret.navMode = Behaviours.modeIdDetailRef;
 		if (!ret.tileMaxSize) ret.tileMaxSize = 220;
 		
 		return ret;

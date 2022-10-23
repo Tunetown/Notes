@@ -1123,7 +1123,7 @@ class Settings {
 		n.setTextColor(this.settings.textColor);
 		n.updateHeaderSize();
 		
-		if (ClientState.getInstance().getViewSettings().navMode == 'tiles') {
+		if (ClientState.getInstance().getViewSettings().navMode == Behaviours.modeIdTiles) {
 			t.setTreeTextSize(n.isMobile() ? this.settings.tileTextSizeMobile : this.settings.tileTextSizeDesktop);
 		} else {
 			t.setTreeTextSize(n.isMobile() ? this.settings.treeTextSizeMobile : this.settings.treeTextSizeDesktop);

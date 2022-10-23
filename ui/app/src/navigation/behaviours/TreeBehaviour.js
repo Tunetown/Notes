@@ -195,7 +195,7 @@ class TreeBehaviour {
 	 * of the Muuri grid items as parameters (jquery instances). Also, the data container of 
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
-	setItemStyles(muuriItem, doc, itemContainer, itemContent, isItemVisible, searchText) {
+	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
 		var labels = itemContent.find('.doc-label');
 		labels.css('min-width', this.treeFontSize + 'px');
 		labels.css('max-width', this.treeFontSize + 'px');
@@ -246,7 +246,7 @@ class TreeBehaviour {
 	
 	/**
 	 * Returns the children of the document.
-	 */
+	 *
 	getChildren(doc) {
 		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
 	}

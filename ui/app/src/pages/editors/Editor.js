@@ -55,6 +55,8 @@ class Editor {
 		var that = this;
 		var n = Notes.getInstance();
 		
+		Document.brokenLinksWarning(doc);
+		
 		var content = '';
 		if (Document.getContent(doc)) content = Document.getContent(doc);
 		content = this.convertPlainLinks(content);
@@ -546,7 +548,8 @@ class Editor {
 		const ref = $(event.currentTarget).data('ref');
 		if (!ref) return;
 		
-		Notes.getInstance().routing.call(ref);
+		NoteTree.getInstance().openNode(ref);
+		//Notes.getInstance().routing.call(ref);
 	}
 }
 

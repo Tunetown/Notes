@@ -287,7 +287,7 @@ class TileBehaviour {
 	 * of the Muuri grid items as parameters (jquery instances). Also, the data container of 
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
-	setItemStyles(muuriItem, doc, itemContainer, itemContent, isItemVisible, searchText) {
+	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
 		// Margin of item containers
 		// NOTE: This could also be determined by itemContainer.outerWidth(true) - itemContainer.outerWidth(), 
 		//       but this is very CPU hungry so we set this fixed here.
@@ -387,7 +387,7 @@ class TileBehaviour {
 	
 	/**
 	 * Returns the children of the document.
-	 */
+	 *
 	getChildren(doc) {
 		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
 	}
@@ -458,6 +458,8 @@ class TileBehaviour {
 	 */
 	focus(id) {
 		var doc = Notes.getInstance().getData().getById(id);
+		
+		
 		this.expander.expandPathTo(doc ? doc.parentDoc : "");
 	}
 	

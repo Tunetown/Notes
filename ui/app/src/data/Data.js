@@ -187,6 +187,23 @@ class Data {
 	}
 	
 	/**
+	 * Returns if one of doc's children is a reference to targetDoc.
+	 */
+	containsReferenceTo(doc, targetDoc) {
+		if (!doc) return false;
+		if (!targetDoc) return false;
+		var children = this.getChildren(doc._id);
+		
+		for(var c=0; c<children.length; ++c) {
+			if ((children[c].type == 'reference') && (children[c].ref == targetDoc._id)) {
+				return true;
+			}
+		}
+		
+		return false;
+	}
+	
+	/**
 	 * Returns true if the passed name already exists.
 	 */
 	documentNameExists(name) {
@@ -763,7 +780,7 @@ class Data {
 		var that = this;
 		this.each(function(d) {
 			var linktype = that.hasLinkTo(d, doc);
-			if (linktype) {
+			if (linktype == 'link') {
 				ret.push({
 					doc: d,
 					type: linktype
@@ -771,6 +788,24 @@ class Data {
 			}
 		});
 		return ret;
+	}
+	
+	/**
+	 * Returns if the document has a backlink to the target id.
+	 */
+	hasBackLinkTo(doc, targetId) {
+		if (!doc) return false;
+		if (!targetId) return false;
+
+		var backlinks = this.getBacklinks(doc);
+		if (!backlinks) return false;
+		
+		for(var l=0; l<backlinks.length; ++l) {
+			//if (backlinks[l].type != 'link') continue;
+			
+			if (backlinks[l].doc._id == targetId) return true;
+		}
+		return false;
 	}
 	
 	/**
