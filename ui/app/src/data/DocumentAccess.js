@@ -345,6 +345,12 @@ class DocumentAccess {
 		// Collect and lock documents
 		var docs = [];
 		for (var l in ids) {
+			if (!ids[l]) {
+				return Promise.reject({
+					message: 'Empty ID passed',
+					messageThreadId: 'SaveItemsMessages'
+				});
+			}
 			Document.lock(ids[l]);
 			
 			var doc = n.getData().getById(ids[l]);

@@ -533,6 +533,8 @@ class NoteTree {
 				}
 			}
 		});
+		
+		this.behaviour.afterUpdateItems();
 	}
 
 	/**
@@ -1191,7 +1193,7 @@ class NoteTree {
 			
 			var id = dt.id;
 			
-			var doc = n.getData().getById(id);
+			var doc = that.behaviour.getById(id);
 			var visible = that.behaviour.isItemVisible(doc, searchText); 
 			
 			// Disable dragging for conflicts
@@ -1332,12 +1334,12 @@ class NoteTree {
 		} else {
 			if (id) {
 				Notes.getInstance().getData().applyRecursively(id, setColor);
-			} else {
+			} /*else {
 				var children = Notes.getInstance().getData().getChildren('');
 				for(var a in children) {
 					Notes.getInstance().getData().applyRecursively(children[a]._id, setColor);
 				}
-			}
+			}*/
 		}
 	}
 }

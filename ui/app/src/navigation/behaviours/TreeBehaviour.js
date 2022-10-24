@@ -169,6 +169,12 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Called after the item tree is updated.
+	 */
+	afterUpdateItems() {
+	}
+	
+	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
 	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
@@ -214,6 +220,10 @@ class TreeBehaviour {
 		// Indentation of tree children
 		var indent = searchText ? 0 : (doc.level * 20);
 		itemContent.css('padding-left', indent + "px");
+	}
+	
+	getById(id) {
+		return Notes.getInstance().getData().getById(id);
 	}
 	
 	/**

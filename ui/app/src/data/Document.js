@@ -438,7 +438,7 @@ class Document {
 							// Check if the links are broken
 							if (!ignoreBrokenLinksInContent) {
 								var link = doc.links[c];
-								if (!d.getById(link)) {
+								if (d && (!d.getById(link))) {
 									errors.push({
 										message: 'Broken link: ' + link,
 										id: doc._id,

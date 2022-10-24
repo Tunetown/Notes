@@ -35,6 +35,13 @@ class DetailBehaviour {
 		this.groupBy = 'category';
 		
 		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
+		
+		// Root doument for ref mode
+		this.rootDocument = {
+			_id: '',
+			name: 'Notebook Home',
+			type: 'root'
+		};
 	}
 	
 	/**
@@ -414,12 +421,10 @@ class DetailBehaviour {
 		const that = this;
 		this.grid.grid.grid.sort(function (itemA, itemB) {
 			// Get documents
-			const d = Notes.getInstance().getData();
-			
 			const dataA = $(itemA.getElement()).find('.' + that.getItemContentClass()).data();
-			const docA = d.getById(dataA.id);
+			const docA = that.getById(dataA.id);
 			const dataB = $(itemB.getElement()).find('.' + that.getItemContentClass()).data();
-			const docB = d.getById(dataB.id);
+			const docB = that.getById(dataB.id);
 				
 			const docAmeta = that.getItemRefTypeDescriptor(docA);
 			const docBmeta = that.getItemRefTypeDescriptor(docB);
@@ -542,6 +547,18 @@ class DetailBehaviour {
 		var selectedDoc = d.getById(this.selectedParent);
 		var d = Notes.getInstance().getData();
 		
+		/*if (!doc) {
+			// Root node
+			return {
+				isSelectedParent: ('' == this.selectedParent),
+				isParentOfSelectedParent: (selectedDoc && ('' == selectedDoc.parent)),
+				isChildOfSelectedParent: false,
+				isBacklinkOfSelected: false, 
+				isReferenceToSelected: false, 
+				isOutgoinglinkOfSelected: false
+			}
+		}*/
+		
 		// Hierarchical mode
 		if (this.mode != 'ref') return {
 			isSelectedParent: (doc._id == this.selectedParent),
@@ -550,7 +567,7 @@ class DetailBehaviour {
 			isBacklinkOfSelected: false, 
 			isReferenceToSelected: false, 
 			isOutgoinglinkOfSelected: false
-		} 
+		}
 		
 		// Reference mode
 		return {
@@ -568,6 +585,11 @@ class DetailBehaviour {
 	 */
 	getSortFunctions() {
 		return null;
+	}
+	
+	getById(id) {
+		if ((id == '') && (this.mode == 'ref')) return this.rootDocument;
+		return Notes.getInstance().getData().getById(id);
 	}
 	
 	/**
@@ -597,6 +619,32 @@ class DetailBehaviour {
 	 */
 	getSelectorInputClass() {
 		return 'detail-behaviour-selector-input';
+	}
+	
+	/**
+	 * Called after the item tree is updated.
+	 */
+	afterUpdateItems() {
+		// Root node (only in ref mode)
+		if (this.mode == 'ref') {
+			if (!this.rootItem) {
+				this.rootItem = this.grid.createItem(this.rootDocument)[0];
+				
+				this.grid.grid.grid.add([this.rootItem], {
+					index: 0,
+					layout: false
+				});
+			}
+		} else {
+			if (this.rootItem) {
+				this.grid.grid.grid.remove([this.rootItem], {
+					removeElements: true,
+					layout: false
+				});
+				
+				this.rootItem = null;
+			}
+		}
 	}
 	
 	/**
@@ -777,7 +825,6 @@ class DetailBehaviour {
 			metaEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
 		}
 		
-		//if (isItemVisible) {
 		this.updateItemMeta(doc, itemContent);
 
 		// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)			
@@ -798,7 +845,6 @@ class DetailBehaviour {
 		this.setItemLabelAlignment(itemContent, !meta.isSelectedParent);
 		
 		itemContent.find('.' + this.getSelectorClass()).css('display', this.multiSelect ? 'inline-block' : 'none');
-		//}
 	}
 	
 	/**
@@ -814,6 +860,7 @@ class DetailBehaviour {
 	 */
 	isItemVisible(doc, searchText) {
 		var d = Notes.getInstance().getData();
+		var selectedDoc = d.getById(this.selectedParent);
 		
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
@@ -1513,19 +1560,24 @@ class DetailBehaviour {
 	 * Call options
 	 */
 	callOptionsWithId(ids, x, y) {
-		if (!ids.length) {
+		var idsUsed = [];
+		for(var i in ids) {
+			if (!ids[i]) continue;
+			idsUsed.push(ids[i]);
+		}
+		if (!idsUsed.length) {
 			Notes.getInstance().hideOptions();
 			return;
 		}
-		
+				
 		if (this.multiSelect) {
 			// In multi select mode we place the options at the very top of the page.
 			x = - Config.CONTEXT_OPTIONS_XOFFSET;
 			y = - Config.CONTEXT_OPTIONS_YOFFSET;
 		}
 		
-		this.grid.setSelected(ids[ids.length-1]);
-		this.grid.callOptionsWithId(ids, x, y);
+		this.grid.setSelected(ids[idsUsed.length-1]);
+		this.grid.callOptionsWithId(idsUsed, x, y);
 	}
 	
 	/**
@@ -1545,7 +1597,14 @@ class DetailBehaviour {
 		if (Notes.getInstance().hideOptions()) return;
 
 		var doc = Notes.getInstance().getData().getById(data.id);
-		if (!doc) throw new Error("Doc " + data.id + " not found");
+		if (!doc) {
+			if (this.mode == 'ref') {
+				this.selectParent('');
+				return;
+			} else {
+				throw new Error("Doc " + data.id + " not found");
+			}
+		} 
 		
 		if (this.selectedParent == data.id) {
 			if (this.mode == 'ref') {
@@ -1576,7 +1635,14 @@ class DetailBehaviour {
 		if (Notes.getInstance().hideOptions()) return;
 
 		var doc = Notes.getInstance().getData().getById(data.id);
-		if (!doc) throw new Error("Doc " + data.id + " not found");
+		if (!doc) {
+			if (this.mode == 'ref') {
+				this.selectParent('');
+				return;
+			} else {
+				throw new Error("Doc " + data.id + " not found");
+			}
+		} 
 		
 		// Select as parent in navigation
 		if (this.hasChildren(doc)) {

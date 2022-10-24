@@ -227,6 +227,12 @@ class TileBehaviour {
 	}
 	
 	/**
+	 * Called after the item tree is updated.
+	 */
+	afterUpdateItems() {
+	}
+	
+	/**
 	 * Fills the DOM of the item content div (the inner one needed for muuri). 
 	 */
 	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
@@ -257,6 +263,10 @@ class TileBehaviour {
 		itemContent.css('padding-left', "5px");
 	}
 	
+	getById(id) {
+		return Notes.getInstance().getData().getById(id);
+	}
+
 	/**
 	 * Returns if the doc should be shown
 	 */
