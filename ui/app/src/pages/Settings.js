@@ -47,6 +47,9 @@ class Settings {
 			treeTextSizeDesktop: 18,
 			treeTextSizeMobile: 22,
 			
+			detailItemHeightDesktop: (18 * 4.4), // Formerly: * 6
+			detailItemHeightMobile: (18 * 4.4), // Formerly: * 6
+			
 			// Tile text sizes
 			tileTextSizeDesktop: 18,
 			tileTextSizeMobile: 18,
@@ -100,8 +103,8 @@ class Settings {
 		this.checkNumeric(settings, 'treeTextSizeDesktop', errors);
 		this.checkNumeric(settings, 'treeTextSizeMobile', errors);
 		
-		this.checkNumeric(settings, 'treeTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'treeTextSizeMobile', errors);
+		this.checkNumeric(settings, 'detailItemHeightDesktop', errors);
+		this.checkNumeric(settings, 'detailItemHeightMobile', errors);
 		
 		this.checkNumeric(settings, 'tileTextSizeDesktop', errors);
 		this.checkNumeric(settings, 'tileTextSizeMobile', errors);
@@ -702,7 +705,7 @@ class Settings {
 						),
 						
 						$('<tr/>').append(
-							$('<td class="w-auto">List Text Size</td>'),
+							$('<td class="w-auto">Navigation Text Size</td>'),
 							$('<td/>').append(
 								$('<input type="text" value="' + parseFloat(this.settings.treeTextSizeDesktop) + '" />')
 								.on('change', function() {
@@ -740,6 +743,45 @@ class Settings {
 						),
 						
 						$('<tr/>').append(
+							$('<td class="w-auto">Navigation Item Size</td>'),
+							$('<td/>').append(
+								$('<input type="text" value="' + parseFloat(this.settings.detailItemHeightDesktop) + '" />')
+								.on('change', function() {
+									var s = Settings.getInstance();
+									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
+									
+									s.settings.detailItemHeightDesktop = parseFloat(this.value);
+									s.apply();
+									
+									that.saveSettings();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							),
+							$('<td/>').append(
+								$('<input type="text" value="' + parseFloat(this.settings.detailItemHeightMobile) + '" />')
+								.on('change', function() {
+									var s = Settings.getInstance();
+									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
+									
+									s.settings.detailItemHeightMobile = parseFloat(this.value);
+									s.apply();
+									
+									that.saveSettings();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							)
+						),
+						
+						/*
+						$('<tr/>').append(
 							$('<td class="w-auto">Tile Text Size</td>'),
 							$('<td/>').append(
 								$('<input type="text" value="' + parseFloat(this.settings.tileTextSizeDesktop) + '" />')
@@ -775,7 +817,7 @@ class Settings {
 									});
 								})
 							)
-						),
+						),*/
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Navigation Animation Time</td>'),
@@ -799,7 +841,7 @@ class Settings {
 						),
 						
 						$('<tr/>').append(
-							$('<td class="w-auto">Show images in navigation</td>'),
+							$('<td class="w-auto">Preview attachment images in navigation</td>'),
 							$('<td colspan="2" />').append(
 								$('<input class="checkbox-switch" type="checkbox" ' + (this.settings.showAttachedImageAsItemBackground ? 'checked' : '') + ' />')
 								.each(function(i) {
@@ -844,7 +886,8 @@ class Settings {
 								})
 							)
 						),
-
+						
+						/*
 						$('<tr/>').append(
 							$('<td class="w-auto">Tile Mode: Max. item size</td>'),
 							$('<td colspan="2" />').append(
@@ -864,7 +907,7 @@ class Settings {
 									Notes.getInstance().routing.call('settings');
 								})
 							)
-						),
+						),*/
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Persistent Console logs</td>'),
@@ -983,7 +1026,7 @@ class Settings {
 							)
 						),
 						$('<tr/>').append(
-							$('<td class="w-auto">Number of Favorites</td>'),
+							$('<td class="w-auto">Max. Number of Favorites</td>'),
 							$('<td colspan="2" />').append(
 								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum ? ClientState.getInstance().getViewSettings().favoritesNum : "10") + '" />')
 								.on('change', function() {

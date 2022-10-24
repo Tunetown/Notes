@@ -528,9 +528,10 @@ class DocumentActions {
 			});
 		}
 		
-		var that = this;
+		var reloadTree = false;
+
 		return DocumentAccess.getInstance().loadDocuments([data])
-		.then(function(resp) {
+		.then(function(/*resp*/) {
 			if (Document.getContent(data) == content) {
 				if (e) e.resetDirtyState();
 				
@@ -574,7 +575,11 @@ class DocumentActions {
 			if (versionName) chgData.versionCreated = versionName;
 			if (deletedVersions.length) chgData.deletedVersions = deletedVersions;
 			Document.addChangeLogEntry(data, 'edited', chgData);
-			
+
+			var brokenLinkErrors = [];
+			Document.checkLinkages(data, null, brokenLinkErrors, true);
+			reloadTree = (brokenLinkErrors.length > 0);
+
 			return DocumentAccess.getInstance().saveItem(id);
 		})
 		.then(function (dataResp) {
@@ -590,6 +595,20 @@ class DocumentActions {
 				Callbacks.getInstance().executeCallbacks('save', data);
 				
 				console.log("Successfully saved " + data.name);
+				
+				if (reloadTree) {
+					console.log("Save: -> Re-requesting tree, document " + (data.name ? data.name : data._id) + " had relevant changes");
+					
+					return TreeActions.getInstance().requestTree()
+					.then(function() {
+						return Promise.resolve({ 
+							ok: true,
+							message: "Successfully saved " + data.name + ".",
+							messageThreadId: "SaveMessages",
+							treeReloaded: true
+						});
+					});
+				}
 				
 				return Promise.resolve({ 
 					ok: true,

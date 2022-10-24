@@ -437,7 +437,7 @@ class TreeBehaviour {
 	/**
 	 * Makes the node (content element) look selected.
 	 */
-	selectItem(node) {
+	selectItem(node, selectedId) {
 		node.addClass(this.getGridSelectedClass());
 		node.parent().addClass(this.getGridParentSelectedClass());
 	}

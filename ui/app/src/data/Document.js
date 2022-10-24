@@ -248,8 +248,6 @@ class Document {
 	 * Check meta correctness
 	 */
 	static checkMeta(doc, errors) {
-		var d = Notes.getInstance().getData();
-		
 		if (!Document.isLoaded(doc)) {
 			errors.push({
 				message: 'Document has stub flag set',
@@ -1202,10 +1200,12 @@ class Document {
 	 * For the given document, this checks if there are relevant changes in comparison
 	 * to the current doc state. Returns true if the tree should be rebuilt.
 	 */
-	static containsTreeRelevantChanges(doc) {
+	static containsTreeRelevantChanges(doc, current) {
 		if (!Notes.getInstance().getData()) return false;
 		
-		var current = Notes.getInstance().getData().getById(doc._id);
+		if (!current) {
+			current = Notes.getInstance().getData().getById(doc._id);
+		}
 		if (!current) {
 			if (!doc.deleted && !doc._deleted) {
 				// Document is NOT shown in the current tree, and is not deleted: Must be a new document.

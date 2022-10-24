@@ -1055,10 +1055,10 @@ class NoteTree {
 		ClientState.getInstance().saveTreeState();
 		
 		if (this.selected) {
-			var doc = this.getItemContent(this.selected)
-			if (!doc) return;
+			var item = this.getItemContent(this.selected)
+			if (!item) return;
 			
-			this.behaviour.selectItem(doc);
+			this.behaviour.selectItem(item, id);
 		}
 		
 		this.filter();

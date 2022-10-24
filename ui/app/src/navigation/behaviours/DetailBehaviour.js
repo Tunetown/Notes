@@ -394,6 +394,10 @@ class DetailBehaviour {
 	beforeFilter(noAnimations) {
 		this.treeFontSize = this.grid.getTreeTextSize();
 		
+		var settings = Settings.getInstance().settings;
+		var iH = Notes.getInstance().isMobile() ? settings.detailItemHeightMobile : settings.detailItemHeightDesktop;
+		this.itemHeight = iH ? iH : (this.treeFontSize * 4.4);
+		
 		var d = Notes.getInstance().getData();
 		if (!d) return;
 		var selDoc = d.getById(this.selectedParent);
@@ -405,74 +409,33 @@ class DetailBehaviour {
 	 */
 	afterFilter(noAnimations) {
 		// Sorting
-		var that = this;
 		this.grid.grid.grid.refreshSortData();
+		
+		const that = this;
 		this.grid.grid.grid.sort(function (itemA, itemB) {
 			// Get documents
-			var d = Notes.getInstance().getData();
-			var dataA = $(itemA.getElement()).find('.' + that.getItemContentClass()).data();
-			var docA = d.getById(dataA.id);
-			var dataB = $(itemB.getElement()).find('.' + that.getItemContentClass()).data();
-			var docB = d.getById(dataB.id);
-				
-			var weight = 1;
-				
-			// Selected parent always on top
-			if (docA._id == that.selectedParent) return -weight;
-			if (docB._id == that.selectedParent) return weight;
+			const d = Notes.getInstance().getData();
 			
-			// Parent of the selected item (when enableParents is true) always second
-			var selectedDoc = d.getById(that.selectedParent);
-			if (selectedDoc) {
-				if (docA._id == selectedDoc.parent) {
-					if (docB._id == that.selectedParent) return -weight;
-					else return weight;
-				} 
-	
-				if (docB._id == selectedDoc.parent) {
-					if (docA._id == that.selectedParent) return weight;
-					else return -weight;
-				} 
-			}
-			
-			var s = that.getCurrentSortMode();
-			
-			// Sort by size (deep)
-			if (s.mode == 'size') {
-				var docsizeA = d.getSize(docA, true);
-				var docsizeB = d.getSize(docB, true);
-				return (s.up ? (docsizeA - docsizeB) : (docsizeB - docsizeA)) * weight;
-			}
-
-			// Sort by name
-			if (s.mode == 'name') {
-				if (docA.name == docB.name) return 0;
-				if (docA.name > docB.name) return (s.up ? -weight : weight) * weight;
-				else return (s.up ? weight : -weight) * weight;
-			}
+			const dataA = $(itemA.getElement()).find('.' + that.getItemContentClass()).data();
+			const docA = d.getById(dataA.id);
+			const dataB = $(itemB.getElement()).find('.' + that.getItemContentClass()).data();
+			const docB = d.getById(dataB.id);
 				
-			// Sort by last changed (deep)
-			if (s.mode == 'lastChanged') {
-				var tsA = d.getLatest(docA).timestamp;
-				var tsB = d.getLatest(docB).timestamp;
-				return (s.up ? (tsA - tsB) : (tsB - tsA)) * weight;
-			}
+			const docAmeta = that.getItemRefTypeDescriptor(docA);
+			const docBmeta = that.getItemRefTypeDescriptor(docB);
 				
-			// Default: Sort by order as stored on DB
-			if (docA.order && docB.order && (docA.order != docB.order)) {
-				return (docA.order - docB.order) * weight;
-			}
-
-			// If orders are identical, use the names.
-			if (docA.name == docB.name) {
-				return weight;
-			} else {
-				if (docA.name > docB.name) {
-					return weight;
-				} else {
-					return -weight;
-				}
-			}
+			// Flexible sorting
+			const sortWeight = that.getSortComparisonValue(docA, docB, docAmeta, docBmeta); 
+			const groupWeightA = that.getSortWeight(docA, docAmeta);
+			const groupWeightB = that.getSortWeight(docB, docBmeta);
+			
+			//console.log(sortWeight + '   ' + groupWeightA + '    ' + groupWeightB);
+			
+			// TODO remove
+			if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
+			if (sortWeight < -1) console.log("Sort weight out of range: " + sortWeight); 
+			
+			return sortWeight + groupWeightA - groupWeightB;
 		});
 		
 		// Align the labels to the left for the upmost item
@@ -486,6 +449,118 @@ class DetailBehaviour {
 				this.setItemLabelAlignment($(first.getElement()), false);
 			}
 		}
+	}
+	
+	/**
+	 * Get sort weight for sorting the items. Should return a numeric value in range [-1..1].
+	 */
+	getSortComparisonValue(docA, docB, docAmeta, docBmeta) {
+		const d = Notes.getInstance().getData();
+		
+		// Selected parent always on top
+		if (docAmeta.isSelectedParent) return -1;
+		if (docBmeta.isSelectedParent) return 1;
+		
+		// Parent of the selected item always second (only applies to ref mode, else it is irrelevant because the parent is never shown)
+		if (docAmeta.isParentOfSelectedParent) return docBmeta.isSelectedParent ? 1 : -1; 
+		if (docBmeta.isParentOfSelectedParent) return docAmeta.isSelectedParent ? -1 : 1; 
+		
+		const s = this.getCurrentSortMode();
+		
+		// Sort by size (deep)
+		if (s.mode == 'size') {
+			const docsizeA = d.getSize(docA, true);
+			const docsizeB = d.getSize(docB, true);
+			return (s.up ? this.getComparisonValue(docsizeA, docsizeB) : this.getComparisonValue(docsizeB, docsizeA));
+		}
+
+		const nameAlower = (docA && docA.name) ? docA.name.toLowerCase() : '';
+		const nameBlower = (docB && docB.name) ? docB.name.toLowerCase() : '';
+
+		// Sort by name
+		if (s.mode == 'name') {
+			if (nameAlower == nameBlower) return 0;
+			if (nameAlower > nameBlower) return (s.up ? -1 : 1);
+			else return (s.up ? 1 : -1);
+		}
+			
+		// Sort by last changed (deep)
+		if (s.mode == 'lastChanged') {
+			const tsA = d.getLatest(docA).timestamp;
+			const tsB = d.getLatest(docB).timestamp;
+			return (s.up ? this.getComparisonValue(tsA, tsB) : this.getComparisonValue(tsB, tsA));
+		}
+			
+		// Default: Sort by order as stored on DB
+		if (docA.order && docB.order && (docA.order != docB.order)) {
+			return this.getComparisonValue(docA.order, docB.order);
+		}
+
+		// If orders are identical, use the names again.
+		if (nameAlower == nameBlower) {
+			return 0;
+		} else {
+			return (nameAlower > nameBlower) ? 1 : -1;
+		}
+	}
+	
+	/**
+	 * Returns a comparison value (-1, 0 or 1).
+	 */
+	getComparisonValue(a, b) {
+		const diff = (a - b);
+		return ((diff > 0) ? 1 : ((diff == 0) ? 0 : -1));
+	}
+	
+	/**
+	 * Offset of the groups.
+	 */
+	static groupDistance = 100; 
+	
+	/**
+	 * Returns a value that determines the 
+	 */
+	getSortWeight(doc, docmeta) {
+		if (this.mode != 'ref') return 0;
+		if (this.groupBy != 'category') return 0;
+		
+		if (docmeta.isSelectedParent) return DetailBehaviour.groupDistance * 10;
+		if (docmeta.isParentOfSelectedParent) return DetailBehaviour.groupDistance * 20;
+		if (docmeta.isOutgoinglinkOfSelected) return DetailBehaviour.groupDistance * 30;
+		if (docmeta.isChildOfSelectedParent) return DetailBehaviour.groupDistance * 40;
+		if (docmeta.isBacklinkOfSelected) return DetailBehaviour.groupDistance * 50;
+		if (docmeta.isReferenceToSelected) return DetailBehaviour.groupDistance * 60;
+		
+		return 0;
+	}
+	
+	/**
+	 * Determines meta info relevant for categorizing the document's item (most relevant in ref mode only)
+	 */
+	getItemRefTypeDescriptor(doc) {
+		var d = Notes.getInstance().getData();
+		var selectedDoc = d.getById(this.selectedParent);
+		var d = Notes.getInstance().getData();
+		
+		// Hierarchical mode
+		if (this.mode != 'ref') return {
+			isSelectedParent: (doc._id == this.selectedParent),
+			isParentOfSelectedParent: (selectedDoc && (doc._id == selectedDoc.parent)),
+			isChildOfSelectedParent: (doc.parent == this.selectedParent),
+			isBacklinkOfSelected: false, 
+			isReferenceToSelected: false, 
+			isOutgoinglinkOfSelected: false
+		} 
+		
+		// Reference mode
+		return {
+			isSelectedParent: (doc._id == this.selectedParent),
+			isParentOfSelectedParent: (selectedDoc && (doc._id == selectedDoc.parent)),
+			isChildOfSelectedParent: (doc.parent == this.selectedParent),
+			isBacklinkOfSelected: (selectedDoc && (d.hasLinkTo(doc, selectedDoc) == 'link')),
+			isReferenceToSelected: (selectedDoc && d.containsReferenceTo(doc, selectedDoc)),
+			isOutgoinglinkOfSelected: (selectedDoc && (d.hasLinkTo(selectedDoc, doc) == 'link'))
+		} 
 	}
 	
 	/**
@@ -587,7 +662,7 @@ class DetailBehaviour {
 		// Get sort mode for currently selected document
 		var s = this.sortModes[this.selectedParent];
 		var sortMode = s ? s.mode : "";
-		var sortUp = s ? s.up : false;
+		//var sortUp = s ? s.up : false;
 		
 		var meta = "";
 		
@@ -635,37 +710,39 @@ class DetailBehaviour {
 		var selectedDoc = data.getById(this.selectedParent);
 
 		// Gather attributes
-		var isSelectedParent = (doc._id == this.selectedParent);
+		var meta = this.getItemRefTypeDescriptor(doc);
+		
+		//var isSelectedParent = (doc._id == this.selectedParent);
 		var isAttachment = (doc.type == 'attachment');
 		var isReference = (doc.type == 'reference');
 		var hasChildren = this.hasChildren(doc);
-		var isBacklinkOfSelected = this.enableBacklinks && (data.hasLinkTo(doc, selectedDoc) == 'link');
-		var isParentOfSelected = this.enableParents && (selectedDoc && selectedDoc.parent && (doc._id == selectedDoc.parent));
-		var isReferenceToSelected = this.enableRefs && (data.containsReferenceTo(doc, selectedDoc));
-		var isOutgoinglinkOfSelected = this.enableLinks && (data.hasLinkTo(selectedDoc, doc) == 'link');
+		var isBacklinkOfSelected = this.enableBacklinks && meta.isBacklinkOfSelected; //(data.hasLinkTo(doc, selectedDoc) == 'link');
+		var isParentOfSelected = this.enableParents && meta.isParentOfSelectedParent; //(selectedDoc && selectedDoc.parent && (doc._id == selectedDoc.parent));
+		var isReferenceToSelected = this.enableRefs && meta.isReferenceToSelected; //(data.containsReferenceTo(doc, selectedDoc));
+		var isOutgoinglinkOfSelected = this.enableLinks && meta.isOutgoinglinkOfSelected; //(data.hasLinkTo(selectedDoc, doc) == 'link');
 		var selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
 
 		var previewEl = itemContent.find('.' + this.getItemPreviewClass());
 		var metaEl = itemContent.find('.' + this.getItemMetaClass());
 
 		// Parent shall be small (like font size), the normal items should be larger.
-		itemContent.css('height', isSelectedParent ? '100%' : ((this.treeFontSize * 6) + 'px'));
-		itemContainer.css('width', isSelectedParent ? (this.grid.getContainerWidth() - 120) + 'px' : '100%');
+		itemContent.css('height', meta.isSelectedParent ? '100%' : (this.itemHeight + 'px'));
+		itemContainer.css('width', meta.isSelectedParent ? (this.grid.getContainerWidth() - 120) + 'px' : '100%');
 		
 		// Inner container
 		var innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
-		innerContainer.css('margin-top', isSelectedParent ? '0px' : '2px');
-		innerContainer.css('margin-bottom', isSelectedParent ? '0px' : '2px');
+		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
+		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
 
 		// Markers at left for outgoing links of the selected doc. and parent of the selected doc.
 		var markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
-		markerLeftEl.css('display', (isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isOutgoinglinkOfSelected || isParentOfSelected) ? 'block' : 'none'));
+		markerLeftEl.css('display', (meta.isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isOutgoinglinkOfSelected || isParentOfSelected) ? 'block' : 'none'));
 		markerLeftEl.css('background', isOutgoinglinkOfSelected ? '#b5f7c6' : '#faacac');
 		markerLeftEl.attr('title', isOutgoinglinkOfSelected ? ('Outgoing link from ' + selectedDocName + ' to ' + doc.name) : ('Parent of ' + selectedDocName + ' in the hierarchy'));
 		
 		// Marker at the right for backlinks and and references
 		var markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
-		markerRightEl.css('display', (isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isBacklinkOfSelected || isReferenceToSelected) ? 'block' : 'none'));
+		markerRightEl.css('display', (meta.isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isBacklinkOfSelected || isReferenceToSelected) ? 'block' : 'none'));
 		markerRightEl.css('background', isReferenceToSelected ? '#fff2bf' : '#b5f7c6');
 		markerRightEl.attr('title', isReferenceToSelected ? (doc.name + ' contains a reference to ' + selectedDocName) : ('Link from ' + doc.name + ' to ' + selectedDocName));
 
@@ -673,18 +750,18 @@ class DetailBehaviour {
 		var iconEl = itemContent.find('.' + this.getIconClass());
 		iconEl.css('padding-right', (hasChildren || isAttachment || isReference) ? '10px' : '0');
 		iconEl.toggleClass('folder', hasChildren);
-		iconEl.css('display', ((!this.enableParents) || (!isSelectedParent)) ? 'block' : 'none');
+		iconEl.css('display', ((!this.enableParents) || (!meta.isSelectedParent)) ? 'block' : 'none');
 
 		var poss = this.getAllPossibleIconStyleClasses();
 		for(var p in poss) iconEl.toggleClass(poss[p], false);
 		iconEl.toggleClass(this.getIconStyleClass(this.isItemOpened(doc), doc), true); 
 
 		// Hide preview / metadata for selected parent
-		previewEl.css('display', isSelectedParent ? 'none' : 'block');
-		metaEl.css('display', isSelectedParent ? 'none' : 'block');
+		previewEl.css('display', meta.isSelectedParent ? 'none' : 'block');
+		metaEl.css('display', meta.isSelectedParent ? 'none' : 'block');
 		
 		// Set colors
-		if (isSelectedParent) {
+		if (meta.isSelectedParent) {
 			// Override colors for selected parent
 			itemContent.css('background-color', 'lightgrey');
 			itemContent.css('color', 'black');
@@ -718,7 +795,7 @@ class DetailBehaviour {
 		labels.css('min-height', this.treeFontSize + 'px');
 		labels.css('max-height', this.treeFontSize + 'px');
 		
-		this.setItemLabelAlignment(itemContent, !isSelectedParent);
+		this.setItemLabelAlignment(itemContent, !meta.isSelectedParent);
 		
 		itemContent.find('.' + this.getSelectorClass()).css('display', this.multiSelect ? 'inline-block' : 'none');
 		//}
@@ -1052,7 +1129,9 @@ class DetailBehaviour {
 	/**
 	 * Makes the node (content element) look selected.
 	 */
-	selectItem(node) {
+	selectItem(node, selectedId) {
+		if (selectedId == this.selectedParent) return;
+		
 		node.addClass(this.getGridSelectedClass());
 		node.parent().addClass(this.getGridParentSelectedClass());
 	}
