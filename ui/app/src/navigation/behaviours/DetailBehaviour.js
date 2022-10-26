@@ -25,8 +25,9 @@ class DetailBehaviour {
 		this.sortModes = {};
 		
 		this.mode = refMode ? 'ref' : 'hierarchical';
+		this.rootItem = null;
 
-		// Parameters for ref mode
+		// Parameters for ref mode with their defaults
 		this.enableChildren = true;
 		this.enableRefs = true;
 		this.enableParents = true;   // Always true, not stored in client state
@@ -36,6 +37,8 @@ class DetailBehaviour {
 		
 		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
 		
+		this.sortButtonsWidth = 120;
+		
 		// Root doument for ref mode
 		this.rootDocument = {
 			_id: '',
@@ -44,6 +47,14 @@ class DetailBehaviour {
 		};
 	}
 	
+	/**
+	 * Reset instance
+	 */
+	reset() {
+		this.selectedParent = "";
+		//this.rootItem = null;
+	}
+
 	/**
 	 * Called after docs have been deleted
 	 */
@@ -127,6 +138,24 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Called after the back button in the app header has been pushed.
+	 *
+	appBackButtonPushed() {
+		var e = Notes.getInstance().getCurrentEditor();
+		if (e) {
+			console.log(e.getCurrentId());
+			this.selectParent(e.getCurrentId());
+		}
+	}
+	
+	/**
+	 * Called after the forward button in the app header has been pushed.
+	 *
+	appForwardButtonPushed() {
+		this.appBackButtonPushed();
+	}
+	
+	/**
 	 * Save state info to the passed (already filled) view state object
 	 */
 	saveState(state) {
@@ -152,7 +181,7 @@ class DetailBehaviour {
 			this.selectParent(state.detail.sp);
 		}
 		
-		if (state.detail.sortMode) {
+		if (state.detail.sortModes) {
 			this.sortModes = state.detail.sortModes;
 		}
 		
@@ -208,7 +237,12 @@ class DetailBehaviour {
 		
 		// Search buttons
 		var that = this;
-		$('#' + this.grid.treeRootTopSwitchContainer).append(
+		$('#' + this.grid.treeRootTopSwitchContainer)
+		.on('dblclick', function(event) {
+			// Prevent home navigation when changing sort modes too fast
+			event.stopPropagation();  
+		})
+		.append(
 			// Group by (ref mode only)
 			(this.mode != 'ref') ? null : 
 			$('<div data-toggle="tooltip" title="Group by item category" class="fa fa-layer-group treeDetailTopSwitchbutton" id="sortButtonCategory"></div>')
@@ -325,11 +359,13 @@ class DetailBehaviour {
 	}
 	
 	setNextGroupMode() {
-		if (this.groupBy == 'category') this.groupBy = false;
+		if (this.groupBy == 'category') this.groupBy = 'none';
 		else this.groupBy = 'category';
 		
 		this.updateSortButtons();
 		
+		ClientState.getInstance().saveTreeState();
+
 		this.saveScrollPosition();
 		this.grid.filter();
 	}
@@ -357,6 +393,8 @@ class DetailBehaviour {
 		this.sortModes[this.selectedParent] = s;
 		
 		this.updateSortButtons();
+		
+		ClientState.getInstance().saveTreeState();
 		
 		this.saveScrollPosition();
 		this.grid.filter();
@@ -387,12 +425,28 @@ class DetailBehaviour {
 		// Multiselect
 		$('#multiSelectButton').toggleClass('fas', !!this.multiSelect);
 		$('#multiSelectButton').toggleClass('far', !this.multiSelect);
+		
+		this.updateSortButtonsWidth();
 	}
 	
 	/**
 	 * Called after the grid has been initialized
 	 */
 	afterInit() {
+	}
+
+	/**
+	 * Called after setting tree text size.
+	 */
+	afterSetTreeTextSize(size) {
+		this.updateSortButtonsWidth();
+	}
+
+	/**
+	 * Update the width buffer value for the sort buttons panel.
+	 */
+	updateSortButtonsWidth() {
+		this.sortButtonsWidth = $('#' + this.grid.treeRootTopSwitchContainer).outerWidth(true) + 10;
 	}
 
 	/**
@@ -428,13 +482,17 @@ class DetailBehaviour {
 				
 			const docAmeta = that.getItemRefTypeDescriptor(docA);
 			const docBmeta = that.getItemRefTypeDescriptor(docB);
-				
+
+			//console.log('==================');
+			
 			// Flexible sorting
 			const sortWeight = that.getSortComparisonValue(docA, docB, docAmeta, docBmeta); 
 			const groupWeightA = that.getSortWeight(docA, docAmeta);
 			const groupWeightB = that.getSortWeight(docB, docBmeta);
 			
-			//console.log(sortWeight + '   ' + groupWeightA + '    ' + groupWeightB);
+			//console.log(docA.name + ' vs ' + docB.name + ': ' + sortWeight + '   ' + groupWeightA + '    ' + groupWeightB);
+			//console.log(docAmeta);
+			//console.log(docBmeta);
 			
 			// TODO remove
 			if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
@@ -496,17 +554,10 @@ class DetailBehaviour {
 			return (s.up ? this.getComparisonValue(tsA, tsB) : this.getComparisonValue(tsB, tsA));
 		}
 			
-		// Default: Sort by order as stored on DB
-		if (docA.order && docB.order && (docA.order != docB.order)) {
-			return this.getComparisonValue(docA.order, docB.order);
-		}
-
-		// If orders are identical, use the names again.
-		if (nameAlower == nameBlower) {
-			return 0;
-		} else {
-			return (nameAlower > nameBlower) ? 1 : -1;
-		}
+		// Default: Sort by order as stored on DB or name value hash if no order is existing
+		const cmpValueA = d.getDocDefaultSortValue(docA);
+		const cmpValueB = d.getDocDefaultSortValue(docB);
+		return this.getComparisonValue(cmpValueA, cmpValueB);
 	}
 	
 	/**
@@ -546,18 +597,6 @@ class DetailBehaviour {
 		var d = Notes.getInstance().getData();
 		var selectedDoc = d.getById(this.selectedParent);
 		var d = Notes.getInstance().getData();
-		
-		/*if (!doc) {
-			// Root node
-			return {
-				isSelectedParent: ('' == this.selectedParent),
-				isParentOfSelectedParent: (selectedDoc && ('' == selectedDoc.parent)),
-				isChildOfSelectedParent: false,
-				isBacklinkOfSelected: false, 
-				isReferenceToSelected: false, 
-				isOutgoinglinkOfSelected: false
-			}
-		}*/
 		
 		// Hierarchical mode
 		if (this.mode != 'ref') return {
@@ -628,6 +667,7 @@ class DetailBehaviour {
 		// Root node (only in ref mode)
 		if (this.mode == 'ref') {
 			if (!this.rootItem) {
+				//console.log("Adding root item");
 				this.rootItem = this.grid.createItem(this.rootDocument)[0];
 				
 				this.grid.grid.grid.add([this.rootItem], {
@@ -637,6 +677,7 @@ class DetailBehaviour {
 			}
 		} else {
 			if (this.rootItem) {
+				//console.log("Remove root item");
 				this.grid.grid.grid.remove([this.rootItem], {
 					removeElements: true,
 					layout: false
@@ -759,6 +800,9 @@ class DetailBehaviour {
 
 		// Gather attributes
 		var meta = this.getItemRefTypeDescriptor(doc);
+
+		// During search, all documents are shown as normal items
+		if (searchText.length > 0) meta.isSelectedParent = false;		
 		
 		//var isSelectedParent = (doc._id == this.selectedParent);
 		var isAttachment = (doc.type == 'attachment');
@@ -775,7 +819,7 @@ class DetailBehaviour {
 
 		// Parent shall be small (like font size), the normal items should be larger.
 		itemContent.css('height', meta.isSelectedParent ? '100%' : (this.itemHeight + 'px'));
-		itemContainer.css('width', meta.isSelectedParent ? (this.grid.getContainerWidth() - 120) + 'px' : '100%');
+		itemContainer.css('width', meta.isSelectedParent ? (this.grid.getContainerWidth() - this.sortButtonsWidth) + 'px' : '100%');
 		
 		// Inner container
 		var innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
@@ -1012,12 +1056,13 @@ class DetailBehaviour {
 		}
 		
 		if (this.enableParents) {
-			if (doc.parent) {
+			/*if (doc.parent) {
 				var p = d.getById(doc.parent);
 				if (p) {
 					return true;
 				}
-			}
+			}*/
+			return true;
 		}
 		
 		if (this.enableLinks) {
@@ -1103,10 +1148,11 @@ class DetailBehaviour {
 	 * Called after dopping, before the tree is re-requested.
 	 */
 	afterDrop(docsSrc, docTarget, moveToSubOfTarget) {
-		if (moveToSubOfTarget) {
+		/*if (moveToSubOfTarget) {
 			// If we moved into another item, we also select it
 			this.selectParent(docTarget ? docTarget._id : '');
-		}
+		}*/
+		this.grid.filter(true);
 		
 		if (this.multiSelect) {
 			this.toggleSelectMode();
@@ -1115,6 +1161,14 @@ class DetailBehaviour {
 		return Promise.resolve({
 			ok: true
 		});
+	}
+	
+	supportsLinkEditorToNavigation() {
+		return true;
+	}
+	
+	supportsLinkNavigationToEditor() {
+		return true;
 	}
 	
 	/**
@@ -1502,6 +1556,14 @@ class DetailBehaviour {
 		setTimeout(function() {
 			that.restoreScrollPosition();
 		}, 400);
+		
+		// Open in editor when linked
+		if (ClientState.getInstance().getLinkageMode('editor') == 'on') {
+			var currentId = Notes.getInstance().getCurrentlyShownId();
+			if (id && (currentId != id)) {
+				this.grid.openNode(id); //, true);
+			}
+		}
 	}
 	
 	/**
@@ -1609,13 +1671,13 @@ class DetailBehaviour {
 		if (this.selectedParent == data.id) {
 			if (this.mode == 'ref') {
 				this.grid.setSelected();
-				this.grid.openNode(data.id, true);		
+				this.grid.openNode(data.id) //, true);
 			} else {
 				this.selectParent(doc.parent);
 			}
 		} else {
 			this.grid.setSelected(data.id);
-			this.grid.openNode(data.id, this.mode == 'ref');
+			this.grid.openNode(data.id); //this.mode == 'ref');
 		}
 	}
 	
@@ -1656,7 +1718,7 @@ class DetailBehaviour {
 			
 		} else {
 			this.grid.setSelected(data.id);
-			this.grid.openNode(data.id);
+			this.grid.openNode(data.id); //, true);
 		}
 	}
 	
@@ -1665,12 +1727,6 @@ class DetailBehaviour {
 	 */
 	onNavigationDoubleClick() {
 		this.selectParent("");
-	}
-	
-	/**
-	 * Reset instance
-	 */
-	reset() {
 	}
 }
 	

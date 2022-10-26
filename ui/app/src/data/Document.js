@@ -1878,7 +1878,7 @@ class Document {
 			if (imageDataP.data) {
 				// URL background
 				$(element).css('background-image', gradient + 'url("' + imageDataP.data + '")');
-				
+
 				handleSize(imageDataP);
 				
 				return Promise.resolve({

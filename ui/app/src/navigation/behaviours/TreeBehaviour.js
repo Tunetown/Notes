@@ -32,6 +32,12 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Called after setting tree text size.
+	 */
+	afterSetTreeTextSize(size) {
+	}
+	
+	/**
 	 * Should save the current scroll position.
 	 */
 	saveScrollPosition() {
@@ -69,6 +75,18 @@ class TreeBehaviour {
 	 * Called when the home button of the tree has been pushed, if visible. 
 	 */
 	homeButtonPushed(event) {
+	}
+	
+	/**
+	 * Called after the back button in the app header has been pushed.
+	 *
+	appBackButtonPushed() {
+	}
+	
+	/**
+	 * Called after the forward button in the app header has been pushed.
+	 *
+	appForwardButtonPushed() {
 	}
 	
 	/**
@@ -337,6 +355,14 @@ class TreeBehaviour {
 	focus(id) {
 		var doc = Notes.getInstance().getData().getById(id);
 		this.expander.expandPathTo(doc ? doc.parentDoc : "");
+	}
+	
+	supportsLinkEditorToNavigation() {
+		return false;
+	}
+	
+	supportsLinkNavigationToEditor() {
+		return true;
 	}
 	
 	/**

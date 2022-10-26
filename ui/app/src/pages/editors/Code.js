@@ -477,8 +477,8 @@ class Code {
 		
 		const meta = Linkage.splitLink(link);
 		
-		NoteTree.getInstance().openNode(meta.target);
-		//Notes.getInstance().routing.call(meta.target);
+		//NoteTree.getInstance().openNode(meta.target);
+		Notes.getInstance().routing.call(meta.target);
 	}
 }
 	

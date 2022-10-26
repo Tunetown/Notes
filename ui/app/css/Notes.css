@@ -141,6 +141,21 @@ article {
 	margin: 5px;
 }
 
+.editorLinkButtons {
+	position: absolute;
+	right: 20px;
+	z-index: 99998;	
+}
+
+.editorLinkButton {
+	margin: 5px;
+}
+
+.linkButtonActive {
+	background: #c40cf7;
+	color: white;
+}
+
 .roundedButton {
 	cursor: pointer;
 	background-color: white;

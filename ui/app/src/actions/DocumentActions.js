@@ -576,10 +576,11 @@ class DocumentActions {
 			if (deletedVersions.length) chgData.deletedVersions = deletedVersions;
 			Document.addChangeLogEntry(data, 'edited', chgData);
 
+			// Check if we have to reload the tree because of metadata changes
 			var brokenLinkErrors = [];
 			Document.checkLinkages(data, null, brokenLinkErrors, true);
 			reloadTree = (brokenLinkErrors.length > 0);
-
+			
 			return DocumentAccess.getInstance().saveItem(id);
 		})
 		.then(function (dataResp) {
@@ -608,6 +609,9 @@ class DocumentActions {
 							treeReloaded: true
 						});
 					});
+				} else {
+					// Update sorting
+					NoteTree.getInstance().updateSort();
 				}
 				
 				return Promise.resolve({ 

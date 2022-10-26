@@ -48,7 +48,7 @@ class Settings {
 			treeTextSizeMobile: 22,
 			
 			detailItemHeightDesktop: (18 * 4.4), // Formerly: * 6
-			detailItemHeightMobile: (18 * 4.4), // Formerly: * 6
+			detailItemHeightMobile: (22 * 4.4), // Formerly: * 6
 			
 			// Tile text sizes
 			tileTextSizeDesktop: 18,
@@ -171,6 +171,8 @@ class Settings {
 	load() {
 		var n = Notes.getInstance();
 		var d = Database.getInstance();
+		
+		Database.getInstance().setAutoLoginBlock(true);
 		
 		// Set note name in the header
 		n.setStatusText("Settings"); 

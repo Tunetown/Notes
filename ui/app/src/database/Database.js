@@ -53,10 +53,19 @@ class Database {
 	}
 	
 	/**
+	 * Controls if the login form auto submits if the browser auto completed it.
+	 */
+	setAutoLoginBlock(lock) {
+		this.blockAutoLogin = !!lock;
+	}
+	
+	/**
 	 * Initialize database instance(s). Called only once at launch. 
 	 * Returns a Promise.
 	 */
 	init() {
+		this.blockAutoLogin = false;
+		
 		if (this.isInitialised()) return Promise.resolve({
 			ok: true
 		});
@@ -295,14 +304,16 @@ class Database {
 					$('#loginSubmitButton').focus();
 					
 					// Check if the browser auto completed the fields and submit automatically in this case.
-					setTimeout(function() {
-						var pwdPre = $('#pwdInput').val();
-						var usrPre = $('#username').val();
-						
-						if (pwdPre && usrPre && (pwdPre.length > 0) && (usrPre.length > 0)) {
-							submitLogin();
-						}
-					}, 500);
+					if (!that.blockAutoLogin) {
+						setTimeout(function() {
+							var pwdPre = $('#pwdInput').val();
+							var usrPre = $('#username').val();
+							
+							if (pwdPre && usrPre && (pwdPre.length > 0) && (usrPre.length > 0)) {
+								submitLogin();
+							}
+						}, 500);
+					}
 					
 				}).catch(function(err) {
 					that.notifyOfflineState();

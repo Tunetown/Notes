@@ -278,13 +278,13 @@ class Board {
 										if (Notes.getInstance().hideOptions()) return;										
 										
 										// Focus the document in navigation
-										var d = Notes.getInstance().getData();
+										/*var d = Notes.getInstance().getData();
 										var targetDoc = Document.getTargetDoc(d.getById(data.id));
 										if (d.hasChildren(targetDoc._id)) {
 											NoteTree.getInstance().open(targetDoc._id);											
 										} else {
 											NoteTree.getInstance().focus(targetDoc._id);
-										}
+										}*/
 										
 										// Open the document
 										Notes.getInstance().routing.call(data.id);

@@ -548,8 +548,8 @@ class Editor {
 		const ref = $(event.currentTarget).data('ref');
 		if (!ref) return;
 		
-		NoteTree.getInstance().openNode(ref);
-		//Notes.getInstance().routing.call(ref);
+		//NoteTree.getInstance().openNode(ref);
+		Notes.getInstance().routing.call(ref);
 	}
 }
 

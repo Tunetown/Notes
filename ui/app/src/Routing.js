@@ -387,13 +387,25 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					
+					function triggerLinkNav() {
+						Promise.resolve(data.treePromise).then(function() {
+							NoteTree.getInstance().editorOpened(noteId);
+						})
+					}
+					
 					var doc = Document.getTargetDoc(that.app.getData() ? that.app.getData().getById(noteId) : null);
 					if (Database.getInstance().profileHandler.getCurrentProfile().clone && doc) {
 						// If the data is already there, use it
-						return EditorActions.getInstance().requestEditor(doc);
+						return EditorActions.getInstance().requestEditor(doc)
+						.then(function() {
+							triggerLinkNav();
+						})
 					} else {
 						// If the data is not yet there or we are not in clone mode, load it from DB
-						return DocumentActions.getInstance().request(noteId);
+						return DocumentActions.getInstance().request(noteId)
+						.then(function() {
+							triggerLinkNav();
+						})
 					}
 					
 				})

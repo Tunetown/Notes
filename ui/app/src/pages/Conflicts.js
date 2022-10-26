@@ -45,7 +45,7 @@ class Conflicts {
 						var id = $(this).data().id;
 						var rev = $(this).data().rev;
 						
-						NoteTree.getInstance().focus(id);
+						//NoteTree.getInstance().focus(id);
 						Notes.getInstance().routing.callConflict(id, rev);
 					}),
 						
@@ -71,7 +71,7 @@ class Conflicts {
 							.on('click', function(e) {
 								var id = $(this).data().id;
 								
-								NoteTree.getInstance().focus(id);
+								//NoteTree.getInstance().focus(id);
 								Notes.getInstance().routing.call(id);
 							}),
 							$('<td>' + doc._conflicts[c] + '</td>'),

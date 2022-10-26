@@ -34,6 +34,8 @@ class NoteTree {
 		this.treeRootModeSwitchContainer = "treeRootModeSwitchContainer";
 		this.treeRootSettingsSwitchContainer = "treeRootSettingsSwitchContainer";
 		this.treeRootTopSwitchContainer = "treeRootTopSwitchContainer";
+		
+		this.linkToEditor = 'on';  // Default
 	}
 	
 	/**
@@ -49,6 +51,15 @@ class NoteTree {
 		// will just build up the expanded array, and the filter function will be called later.
 		// Reason why this is called here: The tree width in desktop mode has to be set as early as possible.
 		ClientState.getInstance().restoreTreeState();
+
+		// Linkage modes
+		var linkToEditor = ClientState.getInstance().getLinkageMode('nav');
+		if (linkToEditor) {
+			this.linkToEditor = linkToEditor;
+		}
+		this.updateLinkageButtons();
+
+		Notes.getInstance().restoreEditorLinkage();
 
 		if (!this.grid) {
 			// Clear DOM elements
@@ -198,6 +209,20 @@ class NoteTree {
 		
 		this.unblock();
 	};	
+	
+	/**
+	 * Frequent UI update
+	 *
+	updateUI() {
+		this.updateLinkageButtons();
+	}
+	
+	/**
+	 * Just update sorting.
+	 */
+	updateSort() {
+		this.filter(true);
+	}
 	
 	/**
 	 * Updates the favorites bar
@@ -444,15 +469,16 @@ class NoteTree {
 			onGestureFinishCallback: function(event) {
 				event.stopPropagation();
 
-				var data = $(event.currentTarget).data();
-
 				var d = Notes.getInstance().getData();
+				var data = $(event.currentTarget).data();
 				var targetDoc = Document.getTargetDoc(d.getById(data.id));
+
+				/*
 				if (that.behaviour.hasChildren(targetDoc)) {
 					that.open(targetDoc._id);											
 				} else {
 					that.focus(targetDoc._id);
-				}	
+				}*/	
 
 				Notes.getInstance().routing.call(targetDoc._id);
 				
@@ -716,7 +742,16 @@ class NoteTree {
 						.on('click', function(event) {
 							event.stopPropagation();
 						})
-					)
+					),
+				
+				// Link navigation to editor Button
+				$('<div data-toggle="tooltip" title="" class="fa fa-link treeModeSwitchbutton roundedButton" id="treeLinkButton"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						Notes.getInstance().hideOptions();
+						
+						that.toggleLinkToEditor();
+					})
 			),
 			
 			$('<div id="treeblock"></div>')
@@ -864,6 +899,38 @@ class NoteTree {
 	}
 	
 	/**
+	 * Toggles linkage to the editor.
+	 */
+	toggleLinkToEditor() {
+		this.linkToEditor = ((this.linkToEditor == 'on') ? 'off' : 'on');
+		
+		ClientState.getInstance().setLinkageMode('nav', this.linkToEditor);
+		
+		this.updateLinkageButtons();
+	}
+	
+	updateLinkageButtons() {
+		$('#treeLinkButton').css('display', (Notes.getInstance().isMobile() || (!this.supportsLinkNavigationToEditor())) ? 'none' : 'block');
+		$('#treeLinkButton').css('background-color', (this.linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
+		$('#treeLinkButton').css('color', (this.linkToEditor == 'on') ? '#ffffff' : '#000000');
+		$('#treeLinkButton').attr('title', (this.linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
+	}
+	
+	/**
+	 * Called after the back button in the app header has been pushed.
+	 *
+	appBackButtonPushed() {
+		this.behaviour.appBackButtonPushed();
+	}
+	
+	/**
+	 * Called after the forward button in the app header has been pushed.
+	 *
+	appForwardButtonPushed() {
+		this.behaviour.appForwardButtonPushed();
+	}
+	
+	/**
 	 * Show tree settings at bottom right.
 	 */
 	settingsButtonPushed(event) {
@@ -948,6 +1015,29 @@ class NoteTree {
 		this.setSelected(id);
 	}
 	
+	supportsLinkEditorToNavigation() {
+		if (!this.behaviour) return false;
+		return this.behaviour.supportsLinkEditorToNavigation();
+	}
+	
+	supportsLinkNavigationToEditor() {
+		if (!this.behaviour) return false;
+		return this.behaviour.supportsLinkNavigationToEditor();
+	}
+	
+	/**
+	 * If enabled, navigates to the passed document.
+	 */
+	editorOpened(id) {
+		if (!id) return;
+		if (!this.supportsLinkNavigationToEditor()) return;
+		
+		var linkNavToEditor = ClientState.getInstance().getLinkageMode('nav');
+		if (linkNavToEditor == 'on') {
+			NoteTree.getInstance().focus(id);
+		}
+	}
+	
 	/**
 	 * Opens the given document in the navigation.
 	 */
@@ -961,8 +1051,8 @@ class NoteTree {
 	initBehaviour() {
 		var cs = ClientState.getInstance().getViewSettings();
 		if (!this.behaviour || (cs.navMode != this.navMode)) {
-			this.behaviour = Behaviours.get(cs.navMode, this);
 			this.destroy();
+			this.behaviour = Behaviours.get(cs.navMode, this);
 		} else {
 			this.behaviour.reset();
 		}
@@ -976,6 +1066,7 @@ class NoteTree {
 		if (this.grid) {
 			this.grid.destroy();
 			this.grid = null;
+			this.behaviour = null;
 		}
 	}
 	
@@ -1029,10 +1120,10 @@ class NoteTree {
 	/**
 	 * Opens a document by its id. Called by event handlers etc.
 	 */
-	openNode(id, noFocus) {
+	openNode(id) { //, noFocus) {
 		var n = Notes.getInstance();
 		
-		if (!noFocus) this.behaviour.focus(id);
+		//if (!noFocus) this.behaviour.focus(id);
 		
 		// Open the note/document
 		n.routing.call(id);			
@@ -1113,6 +1204,8 @@ class NoteTree {
 		$('#' + this.treeNavContainerId).css('font-size', size + "px");
 		
 		$('.treeicon').css('min-width', (size * (40/18)) + "px");
+		
+		if (this.behaviour) this.behaviour.afterSetTreeTextSize(size);
 	}
 	
 	/**
@@ -1186,8 +1279,6 @@ class NoteTree {
 		
 		var that = this;
 		this.grid.grid.filter(function (item) {
-			var n = Notes.getInstance();
-			
 			var el = that.getGridItemContent(item);
 			var dt = el.data();
 			
@@ -1196,7 +1287,6 @@ class NoteTree {
 			var doc = that.behaviour.getById(id);
 			var visible = that.behaviour.isItemVisible(doc, searchText); 
 			
-			// Disable dragging for conflicts
 			if (visible) {
 				that.behaviour.setItemStyles(item, doc, $(el).parent(), $(el), searchText);
 			}
@@ -1259,6 +1349,8 @@ class NoteTree {
     	//for(var i=0; i<all.length; ++i) {
     	for(var i in all) {
 			var iid = $(this.getGridItemContent(all[i])).data().id;
+			if (!iid) continue;
+			
 			var childDoc = n.getData().getById(iid);
 			if (childDoc.parent != id) continue;
 			
@@ -1302,7 +1394,7 @@ class NoteTree {
 	 */
 	refreshColors(id, element) {
 		var that = this;
-		
+		var d = Notes.getInstance().getData();
 		var recursive = this.behaviour.enableRecursiveColors();
 
 		// Helpers to get the colors recursively
@@ -1318,28 +1410,34 @@ class NoteTree {
 		}
 
 		// Callback for setting the item colors
-		function setColor(doc, lvl) {
-			var bcol = getBackColor(doc);
+		function setColor(doc/*, lvl*/) {
 			var el = element ? element : that.getItemContent(doc._id);
+			if (!el) return;
+			
+			var bcol = getBackColor(doc);
 			that.behaviour.colorItem(el, doc, bcol, true); 
 		
 			var col = getColor(doc);
-			var el = element ? element : that.getItemContent(doc._id);
 			that.behaviour.colorItem(el, doc, col, false); 
 		}
 		
 		if (element && id) {
-			var doc = Notes.getInstance().getData().getById(id);
+			// Direct call for a given item and document
+			var doc = d.getById(id);
 			setColor(doc, doc.level);
 		} else {
 			if (id) {
-				Notes.getInstance().getData().applyRecursively(id, setColor);
-			} /*else {
-				var children = Notes.getInstance().getData().getChildren('');
+				// Call by ID only: Have to search the document and refresh colors on it and all children
+				d.applyRecursively(id, setColor);
+			} else {
+				// Call for root: Color all documents.
+				element = null;
+
+				var children = d.getChildren('');
 				for(var a in children) {
-					Notes.getInstance().getData().applyRecursively(children[a]._id, setColor);
+					d.applyRecursively(children[a]._id, setColor);
 				}
-			}*/
+			}
 		}
 	}
 }

@@ -27,10 +27,11 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.93.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.93.5';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
+		this.linkEditorToNavigation = 'on';  // Default
 	}
 	
 	/**
@@ -693,6 +694,8 @@ class Notes {
 		}
 		
 		this.update();
+		
+		Database.getInstance().setAutoLoginBlock(false);
 	}
 	
 	/**
@@ -775,7 +778,7 @@ class Notes {
 					// Console
 					$('<div id="console" class="mainPanel"/>'),
 					
-					// Buttons for mobile
+					// Buttons for editor (left side)
 					$('<div id="editorNavButtons" class="editorNavButtons"/>')
 					.append(
 						// Back button used to navigate back to the tree in mobile mode
@@ -791,7 +794,19 @@ class Notes {
 							e.stopPropagation();
 							that.home();
 						})
+					),
+					
+					// Buttons for editor (right side)
+					$('<div id="editorLinkButtons" data-toggle="tooltip" title="" class="editorLinkButtons"/>')
+					.append(
+						// Link page button
+						$('<div id="linkEditorButton" class="editorLinkButton roundedButton fa fa-link"></div>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.toggleEditorLinkage();
+						}),
 					)
+
 				])
 			])
 		]);
@@ -804,7 +819,44 @@ class Notes {
 		
 		// We only do this once ;)
 		this.isDomSetup = true;
-	} 
+	}
+	
+	/**
+	 * Toggle linkage from navigation to editor 
+	 */
+	toggleEditorLinkage() {
+		this.linkEditorToNavigation = this.isMobile() ? false : ((this.linkEditorToNavigation == 'on') ? 'off' : 'on');
+		
+		ClientState.getInstance().setLinkageMode('editor', this.linkEditorToNavigation);
+		
+		this.updateLinkageButtons();
+	}
+
+	/**
+	 * Restore linkage settings for the editor button.
+	 */	
+	restoreEditorLinkage() {
+		if ((!this.isMobile()) && NoteTree.getInstance().supportsLinkEditorToNavigation()) {
+			var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
+			if (linkEditorMode) {
+				this.linkEditorToNavigation = linkEditorMode;
+			}
+		} else {
+			this.linkEditorToNavigation = 'off';
+		}
+		
+		this.updateLinkageButtons();
+	}
+	
+	/**
+	 * Update the linkage button's appearance.
+	 */
+	updateLinkageButtons() {
+		$('#linkEditorButton').css('display', (this.isMobile() || (!NoteTree.getInstance().supportsLinkEditorToNavigation())) ? 'none' : 'block');
+		$('#linkEditorButton').css('background-color', (this.linkEditorToNavigation == 'on') ? '#c40cf7' : '#ffffff');
+		$('#linkEditorButton').css('color', (this.linkEditorToNavigation == 'on') ? '#ffffff' : '#000000');
+		$('#linkEditorButton').attr('title', (this.linkEditorToNavigation == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
+	}
 	
 	/**
 	 * Go home to the navigation root
@@ -1320,12 +1372,17 @@ class Notes {
 		// Align back button 2 (for content panel): Positioning with pure CSS seems not possible here.
 		var contentHeight = $('#article').height();
 		$('#editorNavButtons').css('top', (contentHeight - 20 - $('#editorNavButtons').outerHeight(true)) + "px");
+		$('#editorLinkButtons').css('top', (contentHeight - 20 - $('#editorNavButtons').outerHeight(true)) + "px");
 		
 		// Conflict alert icons
 		$('.conflictMarker').css('display', (this.getData() && this.getData().hasConflicts()) ? 'inline-block' : 'none');
 
 		// Update header size
 		this.updateHeaderSize();
+		
+		this.updateLinkageButtons();
+		
+		//NoteTree.getInstance().updateUI();
 	}
 	
 	/**

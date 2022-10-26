@@ -33,6 +33,7 @@ class ClientState {
 		this.cidLastOpenedUrl = "lo";
 		this.cidFavorites = "fa";
 		this.cidGraphMeta = "gs";
+		this.cidLinkages = "li";
 	}
 	
 	/**
@@ -41,6 +42,25 @@ class ClientState {
 	static getInstance() {
 		if (!ClientState.instance) ClientState.instance = new ClientState();
 		return ClientState.instance;
+	}
+	
+	/**
+	 * Set a linkage mode for a given page.
+	 */
+	setLinkageMode(pageId, mode) {
+		var all = this.getLocal(this.cidLinkages, true);
+		all[pageId] = mode;
+		this.setLocal(this.cidLinkages, all, true);
+	}
+	
+	/**
+	 * Returns the linkage mode for a given page ID, or false if not found.
+	 */
+	getLinkageMode(pageId) {
+		var all = this.getLocal(this.cidLinkages, true);
+		if (!all) return false;
+		if (!all[pageId]) return false;
+		return Notes.getInstance().isMobile() ? 'off' : all[pageId];
 	}
 	
 	/**

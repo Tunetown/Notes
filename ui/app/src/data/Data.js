@@ -84,6 +84,15 @@ class Data {
 	}
 	
 	/**
+	 * Returns the default sort value for a document. This is the order value by default,
+	 * otherwise the last changed timestamp.
+	 */
+	getDocDefaultSortValue(doc) {
+		if (doc.order) return doc.order;
+		return -doc.timestamp;
+	}
+	
+	/**
 	 * Returns a sort criteria which sorts the items correctly in a hierarchical tree manner.
 	 */
 	getSortOrderCriteria(doc) {
@@ -91,7 +100,7 @@ class Data {
 		if (paddedName.length > 5) paddedName = paddedName.substring(0, 5);
 		if (paddedName.length < 5) paddedName = paddedName.padEnd(5, '_');
 
-		var padded = Tools.pad(doc.order ? doc.order : 0, 10) + paddedName;
+		var padded = Tools.pad(/*doc.order ? doc.order : 0*/ this.getDocDefaultSortValue(doc), 10) + paddedName;
 		if (doc.parentDoc) {
 			return this.getSortOrderCriteria(doc.parentDoc) + padded;
 		} else {
@@ -515,13 +524,13 @@ class Data {
 	 * 
 	 * NOTE: Just leave lvl and par unpassed when calling this!
 	 */
-	applyRecursively(id, callback, lvl, par) {
+	applyRecursively(id, callback, lvl, data) {
 		var doc = this.data.get(id);
 		if (!doc) return;
 
 		if (!lvl) lvl = 0;
 		
-		callback(doc, lvl, par);
+		callback(doc, lvl, data);
 		
 		var children = this.getChildren(id);
 		for (var a in children) {

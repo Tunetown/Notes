@@ -31,6 +31,7 @@ class EditorActions {
 	 */
 	requestEditor(doc) {
 		var n = Notes.getInstance();
+		var that = this;
 		
 		if (doc.type == 'reference') {
 			Notes.getInstance().routing.call(doc.ref);
