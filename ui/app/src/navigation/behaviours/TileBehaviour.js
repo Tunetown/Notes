@@ -26,6 +26,27 @@ class TileBehaviour {
 	}
 	
 	/**
+	 * For a given document, this returns the siblings currently visible.
+	 */
+	getParentId(doc) {
+		return doc.parent;
+	}
+	
+	/**
+	 * Returns the item order for the document, as used in this behaviour.
+	 */
+	getInitialItemOrder(doc) {
+		return doc.order ? doc.order : 0;
+	}
+	
+	/**
+	 * Returns if doc is child of parentId.
+	 */
+	isChildOf(doc, parentId) {
+		return doc.parent == parentId;
+	}
+	
+	/**
 	 * Called after docs have been deleted
 	 */
 	afterDelete(docs) {
@@ -190,7 +211,7 @@ class TileBehaviour {
 				if (paddedName.length < 5) paddedName = paddedName.padEnd(5, '_');
 				
 				// Least important criteria: Order as stored persistently with the document.
-				var token = Tools.pad(doc.order ? doc.order : 0, 10) + paddedName;
+				var token = Tools.pad(Document.getRelatedOrder(doc), 18) + paddedName;
 				
 				// Next most important: Is the document expanded?
 				if (that.expander.isExpanded(data.id)) {
@@ -484,7 +505,7 @@ class TileBehaviour {
 	/**
 	 * Sets focus on the given document.
 	 */
-	focus(id) {
+	focus(id, fromLinkage) {
 		var doc = Notes.getInstance().getData().getById(id);
 		
 		this.expander.expandPathTo(doc ? doc.parentDoc : "");

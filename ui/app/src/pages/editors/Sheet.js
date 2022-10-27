@@ -44,9 +44,10 @@ class Sheet {
 		this.setCurrent(doc);
 		
 		n.setCurrentEditor(this);
+		n.setCurrentPage(this);
 
 		var that = this;
-		Tools.getScripts([
+		return Tools.getScripts([
 			'ui/lib/luckysheet/luckysheet.umd.js',
 			//'ui/lib/luckysheet/plugin.js',
 		])

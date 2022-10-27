@@ -31,6 +31,7 @@ class GraphView {
 	 */
 	load() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		n.setStatusText("Graph view");
 		

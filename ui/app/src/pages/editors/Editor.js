@@ -63,6 +63,7 @@ class Editor {
 			
 		this.setCurrent(doc);
 		n.setCurrentEditor(this);
+		n.setCurrentPage(this);
 		
 		$('#contentContainer').hide();
 		$('#editor').show();
@@ -160,6 +161,8 @@ class Editor {
 		this.versionRestoreData = false;
 				
 		this.updateStatus();
+		
+		return Promise.resolve();
 	}
 	
 	getType() {

@@ -29,11 +29,11 @@ class DetailBehaviour {
 
 		// Parameters for ref mode with their defaults
 		this.enableChildren = true;
-		this.enableRefs = true;
-		this.enableParents = true;   // Always true, not stored in client state
-		this.enableLinks = true;
-		this.enableBacklinks = true;
-		this.groupBy = 'category';
+		this.enableRefs = refMode;
+		this.enableParents = refMode;   // Always true, not stored in client state
+		this.enableLinks = refMode;
+		this.enableBacklinks = refMode;
+		this.groupBy = refMode ? 'category' : '';
 		
 		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
 		
@@ -185,28 +185,36 @@ class DetailBehaviour {
 			this.sortModes = state.detail.sortModes;
 		}
 		
-		if (state.detail.enableChildren) {
-			this.enableChildren = (state.detail.enableChildren == 'on');
-		}
-		
-		if (state.detail.enableRefs) {
-			this.enableRefs = (state.detail.enableRefs == 'on');
-		}
-		
-		/*if (state.detail.enableParents) {
-			this.enableParents = (state.detail.enableParents == 'on');
-		}*/
-
-		if (state.detail.enableLinks) {
-			this.enableLinks = (state.detail.enableLinks == 'on');
-		}
-
-		if (state.detail.enableChildren) {
-			this.enableBacklinks = (state.detail.enableBacklinks == 'on');
-		}
-		
-		if (state.detail.groupBy) {
-			this.groupBy = state.detail.groupBy;
+		if (this.mode == 'ref') {
+			if (state.detail.enableChildren) {
+				this.enableChildren = (state.detail.enableChildren == 'on');
+			}
+			
+			if (state.detail.enableRefs) {
+				this.enableRefs = (state.detail.enableRefs == 'on');
+			}
+			
+			/*if (state.detail.enableParents) {
+				this.enableParents = (state.detail.enableParents == 'on');
+			}*/
+	
+			if (state.detail.enableLinks) {
+				this.enableLinks = (state.detail.enableLinks == 'on');
+			}
+	
+			if (state.detail.enableChildren) {
+				this.enableBacklinks = (state.detail.enableBacklinks == 'on');
+			}
+			
+			if (state.detail.groupBy) {
+				this.groupBy = state.detail.groupBy;
+			}
+		} else {
+			this.enableChildren = true;
+			this.enableRefs = false;
+			//this.enableParents = false;   // Always true, not stored in client state
+			this.enableLinks = false;
+			this.enableBacklinks = false;	
 		}
 	}
 	
@@ -494,9 +502,8 @@ class DetailBehaviour {
 			//console.log(docAmeta);
 			//console.log(docBmeta);
 			
-			// TODO remove
-			if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
-			if (sortWeight < -1) console.log("Sort weight out of range: " + sortWeight); 
+			//if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
+			//if (sortWeight < -1) console.log("Sort weight out of range: " + sortWeight); 
 			
 			return sortWeight + groupWeightA - groupWeightB;
 		});
@@ -555,8 +562,10 @@ class DetailBehaviour {
 		}
 			
 		// Default: Sort by order as stored on DB or name value hash if no order is existing
-		const cmpValueA = d.getDocDefaultSortValue(docA);
-		const cmpValueB = d.getDocDefaultSortValue(docB);
+		const cmpValueA = Document.getRelatedOrder(docA, (this.mode == 'ref') ? this.selectedParent : false);
+		const cmpValueB = Document.getRelatedOrder(docB, (this.mode == 'ref') ? this.selectedParent : false);
+		//console.log(cmpValueA + '   ' + cmpValueB);
+		
 		return this.getComparisonValue(cmpValueA, cmpValueB);
 	}
 	
@@ -966,12 +975,22 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * For a given document, this returns the siblings currently visible.
+	 */
+	getParentId(doc) {
+		if (this.mode == 'ref') return this.selectedParent;
+		return doc.parent;
+	}
+	
+	/**
 	 * Returns all documents which are visible in ref mode. So far, only used for statistics.
 	 */
 	getRefEntries(doc, ignoreParent) {
 		var d = Notes.getInstance().getData();
 		
 		var ret = [];
+		if (!doc) return ret;
+		
 		if (this.enableChildren) {
 			var children = d.getChildren(doc ? doc._id : '');
 			for(var i=0; i<children.length; ++i) {
@@ -1174,12 +1193,12 @@ class DetailBehaviour {
 	/**
 	 * Sets focus on the given document.
 	 */
-	focus(id) {
+	focus(id, fromLinkage) {
 		if (this.mode == 'ref') {
-			this.selectParent(id);
+			this.selectParent(id, fromLinkage);
 		} else {
 			var doc = Notes.getInstance().getData().getById(id);
-			this.selectParent(doc ? doc.parent : "");
+			this.selectParent(doc ? doc.parent : "", fromLinkage);
 		}
 	}
 	
@@ -1237,22 +1256,27 @@ class DetailBehaviour {
 		node.parent().addClass(this.getGridParentSelectedClass());
 	}
 	
+	static iconClassBoard = 'fa fa-border-all';
+	static iconClassFolderClosed = 'fa fa-plus';
+	static iconClassFolderOpened = 'fa fa-chevron-left';
+	static iconClassAttachment = 'fa fa-paperclip';
+	static iconClassReference = 'fa fa-long-arrow-alt-right';
+	
 	/**
 	 * Returns the icons for the file (can by glyph classes or any other).
 	 * Receives the document type, returns a string containing the class(es).
 	 */
 	getIconStyleClass(isOpened, docIn) {
-		var d = Notes.getInstance().getData();
 		var doc = Document.getTargetDoc(docIn);
 		
-		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
+		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return DetailBehaviour.iconClassBoard; 
 
 		if (this.mode != 'ref') {
-			if (this.hasChildren(doc)) return isOpened ? 'fa fa-chevron-left' : 'fa fa-plus';			
+			if (this.hasChildren(doc)) return isOpened ? DetailBehaviour.iconClassFolderOpened : DetailBehaviour.iconClassFolderClosed;			
 		}
 		
-		if (doc.type == 'attachment') return 'fa fa-paperclip'; 
-		if (doc.type == 'reference') return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
+		if (doc.type == 'attachment') return DetailBehaviour.iconClassAttachment; 
+		if (doc.type == 'reference') return DetailBehaviour.iconClassReference;   // Should not be called anymore! Refs are shown differently now.
 		return '';
 	}
 	
@@ -1261,11 +1285,11 @@ class DetailBehaviour {
 	 */
 	getAllPossibleIconStyleClasses() {
 		return [
-			'fa fa-border-all',   // TODO const! hier und die funktion davor.
-			'fa fa-chevron-left',
-			'fa fa-plus',
-			'fa fa-paperclip',
-			'fa fa-long-arrow-alt-right',
+			DetailBehaviour.iconClassBoard, 
+			DetailBehaviour.iconClassFolderOpened,
+			DetailBehaviour.iconClassFolderClosed,
+			DetailBehaviour.iconClassAttachment,
+			DetailBehaviour.iconClassReference,
 		]
 	}
 	
@@ -1519,13 +1543,20 @@ class DetailBehaviour {
 		];		
 	}
 	
+	/**
+	 * Returns the item order for the document, as used in this behaviour.
+	 */
+	getInitialItemOrder(doc) {
+		return Document.getRelatedOrder(doc, (this.mode == 'ref') ? this.selectedParent : false);
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * Select a new parent
 	 */
-	selectParent(id) {
+	selectParent(id, fromLinkage) {
 		if (this.selectedParent == id) return;
 		
 		// If we go deeper in the tree, we also reset the scroll position.
@@ -1557,11 +1588,13 @@ class DetailBehaviour {
 			that.restoreScrollPosition();
 		}, 400);
 		
-		// Open in editor when linked
-		if (ClientState.getInstance().getLinkageMode('editor') == 'on') {
-			var currentId = Notes.getInstance().getCurrentlyShownId();
-			if (id && (currentId != id)) {
-				this.grid.openNode(id); //, true);
+		if (!fromLinkage) {
+			// Open in editor when linked
+			if ((!Notes.getInstance().isMobile()) && (ClientState.getInstance().getLinkageMode('editor') == 'on')) {
+				var currentId = this.grid.getCurrentlyShownId();
+				if (id && (currentId != id)) {
+					this.grid.openNodeByNavigation(id);
+				}
 			}
 		}
 	}

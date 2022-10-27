@@ -390,6 +390,7 @@ class Routing {
 					function triggerLinkNav() {
 						Promise.resolve(data.treePromise).then(function() {
 							NoteTree.getInstance().editorOpened(noteId);
+							console.log("editor opened")
 						})
 					}
 					

@@ -26,6 +26,27 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * For a given document, this returns the siblings currently visible.
+	 */
+	getParentId(doc) {
+		return doc.parent;
+	}
+	
+	/**
+	 * Returns the item order for the document, as used in this behaviour.
+	 */
+	getInitialItemOrder(doc) {
+		return doc.order ? doc.order : 0;
+	}
+	
+	/**
+	 * Returns if doc is child of parentId.
+	 */
+	isChildOf(doc, parentId) {
+		return doc.parent == parentId;
+	}
+	
+	/**
 	 * Called after docs have been deleted
 	 */
 	afterDelete(docs) {
@@ -166,7 +187,7 @@ class TreeBehaviour {
 				var data = $(element).find('.' + that.getItemContentClass()).data(); 
 				var doc = d.getById(data.id);
 				
-				return d.getSortOrderCriteria(doc);
+				return Document.getHierarchicalSortOrderCriteria(doc);
 			}
 		}
 	}
@@ -352,7 +373,7 @@ class TreeBehaviour {
 	/**
 	 * Sets focus on the given document.
 	 */
-	focus(id) {
+	focus(id, fromLinkage) {
 		var doc = Notes.getInstance().getData().getById(id);
 		this.expander.expandPathTo(doc ? doc.parentDoc : "");
 	}

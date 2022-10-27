@@ -61,6 +61,7 @@ class NoteTree {
 
 		Notes.getInstance().restoreEditorLinkage();
 
+		var ret = null;  // Promise to return
 		if (!this.grid) {
 			// Clear DOM elements
 			$('#' + this.treeGridElementId).empty();
@@ -182,9 +183,9 @@ class NoteTree {
 			// Callback to the behaviour implementation after initialization
 			this.behaviour.afterInit();
 
-			this.filter(true);
+			ret = this.filter(true);
 		} else {
-			this.filter(noAnimation);
+			ret = this.filter(noAnimation);
 		}
 		
 		Settings.getInstance().apply();
@@ -208,6 +209,8 @@ class NoteTree {
 		Notes.getInstance().update();
 		
 		this.unblock();
+		
+		return ret;
 	};	
 	
 	/**
@@ -545,7 +548,7 @@ class NoteTree {
 					item = that.createItem(doc)[0];
 					
 					that.grid.grid.add([item], {
-						index: doc.order,
+						index: that.behaviour.getInitialItemOrder(doc),
 						layout: false
 					});
 				}
@@ -773,14 +776,14 @@ class NoteTree {
 		]);
 		
 		// Action callbacks
-		Callbacks.getInstance().registerCallback(
+		/*Callbacks.getInstance().registerCallback(
 			'tree',
 			'requestTree',
 			function(data) {
 				that.destroy();
 				that.init();
 			}
-		);
+		);*/
 		Callbacks.getInstance().registerCallback(
 			'tree',
 			'loadDocument',
@@ -811,9 +814,9 @@ class NoteTree {
 				that.init();
 				
 				// NOTE: Without the timeout, the parent is not displayed right.
-				setTimeout(function() {
+				/*setTimeout(function() {
 					that.focus(newIds[0]);
-				}, 0);
+				}, 0);*/
 			}
 		);
 		Callbacks.getInstance().registerCallback(
@@ -904,16 +907,96 @@ class NoteTree {
 	toggleLinkToEditor() {
 		this.linkToEditor = ((this.linkToEditor == 'on') ? 'off' : 'on');
 		
-		ClientState.getInstance().setLinkageMode('nav', this.linkToEditor);
+		ClientState.getInstance().setLinkageMode('nav', this.linkToEditor);			
 		
 		this.updateLinkageButtons();
 	}
 	
 	updateLinkageButtons() {
-		$('#treeLinkButton').css('display', (Notes.getInstance().isMobile() || (!this.supportsLinkNavigationToEditor())) ? 'none' : 'block');
+		$('#treeLinkButton').css('display', (!this.supportsLinkNavigationToEditor()) ? 'none' : 'block');
 		$('#treeLinkButton').css('background-color', (this.linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
 		$('#treeLinkButton').css('color', (this.linkToEditor == 'on') ? '#ffffff' : '#000000');
 		$('#treeLinkButton').attr('title', (this.linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
+	}
+	
+	supportsLinkEditorToNavigation() {
+		if (!this.behaviour) return false;
+		return this.behaviour.supportsLinkEditorToNavigation();
+	}
+	
+	supportsLinkNavigationToEditor() {
+		if (!this.behaviour) return false;
+		return this.behaviour.supportsLinkNavigationToEditor();
+	}
+	
+	/**
+	 * Used by the behaviours to get the currently shown ID (editors only)
+	 */
+	getCurrentlyShownId() {
+		var e = Notes.getInstance().getCurrentEditor();
+		if (e) return e.getCurrentId();	
+		
+		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
+		if (attId) return attId;
+		
+		return false;
+	}
+	
+	/**
+	 * Called to open a document from linkage. Called by the behaviours which support this linkage.
+	 */
+	openNodeByNavigation(id) {
+		if (!id) return;
+		if (!this.supportsLinkEditorToNavigation()) return;
+
+		var n = Notes.getInstance();
+		
+		if (n.getCurrentEditor()) {
+			// If a note editor is loaded, we just redirect to the document. To prevent endless 
+			// re-linking, we also remember the id which has been called by linkage.
+			this.lastOpenedLinkTarget = id;
+
+			//console.log(" -> Opening document " + id + " by linkage from navigation");
+
+			this.openNode(id);
+		} else {
+			// Other pages: Call the respective callback if the page implements it
+			var page = n.getCurrentPage();
+			if (page && 
+			       (typeof page.supportsLinkageFromNavigation == 'function') && 
+			       page.supportsLinkageFromNavigation() &&
+			       (typeof page.updateFromLinkage == 'function')
+			) {
+				this.lastOpenedLinkTarget = id;
+				
+				//console.log(" -> Opening document " + id + " by linkage from navigation (page.updateFromLinkage() used)");
+				
+				page.updateFromLinkage(id);
+			}
+		}
+	}
+	
+	/**
+	 * If enabled, navigates to the passed document. Called by opening a document in the editor.
+	 */
+	editorOpened(id) {
+		if (!id) return;
+		if (!this.supportsLinkNavigationToEditor()) return;
+		
+		// If this is a roundtrip call, return here. Reset the flag anyway.
+		if (this.lastOpenedLinkTarget == id) {
+			this.lastOpenedLinkTarget = false;
+			return;
+		}
+		this.lastOpenedLinkTarget = false;
+		
+		// Focus if linked
+		var linkNavToEditor = ClientState.getInstance().getLinkageMode('nav');
+		if (linkNavToEditor == 'on') {
+			//console.log(" -> Focusing document " + id + " in navigation by linkage from editor");
+			
+			this.focus(id, true);
+		}
 	}
 	
 	/**
@@ -1010,32 +1093,9 @@ class NoteTree {
 	/**
 	 * Sets focus on the given document.
 	 */
-	focus(id) {
-		this.behaviour.focus(id);
+	focus(id, fromLinkage) {
+		this.behaviour.focus(id, fromLinkage);
 		this.setSelected(id);
-	}
-	
-	supportsLinkEditorToNavigation() {
-		if (!this.behaviour) return false;
-		return this.behaviour.supportsLinkEditorToNavigation();
-	}
-	
-	supportsLinkNavigationToEditor() {
-		if (!this.behaviour) return false;
-		return this.behaviour.supportsLinkNavigationToEditor();
-	}
-	
-	/**
-	 * If enabled, navigates to the passed document.
-	 */
-	editorOpened(id) {
-		if (!id) return;
-		if (!this.supportsLinkNavigationToEditor()) return;
-		
-		var linkNavToEditor = ClientState.getInstance().getLinkageMode('nav');
-		if (linkNavToEditor == 'on') {
-			NoteTree.getInstance().focus(id);
-		}
 	}
 	
 	/**
@@ -1278,38 +1338,42 @@ class NoteTree {
 		this.updateDomItems(true);
 		
 		var that = this;
-		this.grid.grid.filter(function (item) {
-			var el = that.getGridItemContent(item);
-			var dt = el.data();
-			
-			var id = dt.id;
-			
-			var doc = that.behaviour.getById(id);
-			var visible = that.behaviour.isItemVisible(doc, searchText); 
-			
-			if (visible) {
-				that.behaviour.setItemStyles(item, doc, $(el).parent(), $(el), searchText);
-			}
-			return visible;
-			
-		}, noAnimations ? {
-			instant: true,
-			layout: "instant",
-			onFinish: function() {
-				that.updateDomItems(false);
-				that.grid.grid.refreshItems();
-				that.grid.refresh();
-				that.behaviour.afterFilter(noAnimations);
-				//that.behaviour.restoreScrollPosition();
-			}
-		} : {
-			onFinish: function() {
-				that.updateDomItems(false);
-				that.grid.grid.refreshItems();
-				that.grid.refresh();
-				that.behaviour.afterFilter(noAnimations);
-				//that.behaviour.restoreScrollPosition();
-			}
+		return new Promise(function(resolve/*, reject*/) {
+			that.grid.grid.filter(function (item) {
+				var el = that.getGridItemContent(item);
+				var dt = el.data();
+				
+				var id = dt.id;
+				
+				var doc = that.behaviour.getById(id);
+				var visible = that.behaviour.isItemVisible(doc, searchText); 
+				
+				if (visible) {
+					that.behaviour.setItemStyles(item, doc, $(el).parent(), $(el), searchText);
+				}
+				return visible;
+				
+			}, noAnimations ? {
+				instant: true,
+				layout: "instant",
+				onFinish: function() {
+					that.updateDomItems(false);
+					that.grid.grid.refreshItems();
+					that.grid.refresh();
+					that.behaviour.afterFilter(noAnimations);
+					//that.behaviour.restoreScrollPosition();
+					resolve();
+				}
+			} : {
+				onFinish: function() {
+					that.updateDomItems(false);
+					that.grid.grid.refreshItems();
+					that.grid.refresh();
+					that.behaviour.afterFilter(noAnimations);
+					//that.behaviour.restoreScrollPosition();
+					resolve();
+				}
+			});
 		});
 	}
 	
@@ -1321,7 +1385,7 @@ class NoteTree {
     	var tarId = tar.data().id;
 
     	var srcName = Notes.getInstance().getData().getById(srcId).name;
-    	var tarName = Notes.getInstance().getData().getById(tarId).name;
+    	var tarName = tarId ? Notes.getInstance().getData().getById(tarId).name : 'Notebook root';
     	
     	var doAsk = Settings.getInstance().settings.askBeforeMoving;
     	if (doAsk && !confirm("Move " + srcName + " to " + tarName + "?")) {
@@ -1339,30 +1403,32 @@ class NoteTree {
 	 * Updates the orders of all visible child items of id in the data model accordingly.
 	 * Returns a list of IDs which have been touched.
 	 */
-	reorderVisibleChildItems(id) {
+	reorderVisibleSiblings(doc, simulate) {
 		var n = Notes.getInstance();
 		
 		var no = 1;
     	var all = this.grid.grid.getItems();
 
     	var ret = [];
-    	//for(var i=0; i<all.length; ++i) {
     	for(var i in all) {
-			var iid = $(this.getGridItemContent(all[i])).data().id;
-			if (!iid) continue;
+			var childId = $(this.getGridItemContent(all[i])).data().id;
+			if (!childId) continue;
 			
-			var childDoc = n.getData().getById(iid);
-			if (childDoc.parent != id) continue;
+			var childDoc = n.getData().getById(childId);
+			if (!this.behaviour.isItemVisible(childDoc, this.getSearchText())) continue; //childDoc.parent != id) continue;
 			
+			var parentId = this.behaviour.getParentId(doc);
+			var oldOrder = Document.getRelatedOrder(childDoc, parentId);
 			var newOrder = no++;
-			if (childDoc.order != newOrder) {
-				Document.addChangeLogEntry(childDoc, 'orderChanged', {
-					from: childDoc.order,
-					to: newOrder
-				});
+			if (oldOrder != newOrder) {
+				/*Document.addChangeLogEntry(childDoc, 'orderChanged', {
+					from: oldOrder,
+					to: newOrder,
+					inRelationTo: parentId
+				});*/
 			
-				childDoc.order = newOrder;
-				ret.push(iid);
+				if (!simulate) Document.setRelatedOrder(childDoc, parentId, newOrder);
+				ret.push(childId);
 			}
 		}
     	

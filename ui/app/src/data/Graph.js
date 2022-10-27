@@ -141,7 +141,7 @@ class Graph {
 					continue;
 				}
 				
-				if (!docNodeId) continue;
+				if (docNodeId == linkNodeId) continue;
 				
 				data.relationships.push({
 					id: this.nextEdgeId++,

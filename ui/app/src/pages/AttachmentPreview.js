@@ -35,10 +35,27 @@ class AttachmentPreview {
 	}
 	
 	/**
+	 * Must return true if linkage from navigation to this page is supported.
+	 * If so, this class must implement an updateFromLinkage(id) instance method!
+	 */
+	supportsLinkageFromNavigation() {
+		return true;
+	}
+	
+	/**
+	 * Update the content from navigation if enabled.
+	 */
+	updateFromLinkage(id) {
+		// In this case, just redirect to the document.
+		Notes.getInstance().routing.call(id);
+	}
+	
+	/**
 	 * Loads the passed version history data into the versions view.
 	 */
 	load(doc, url) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 
 		n.setButtons([ 
 			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-save" onclick="event.stopPropagation();AttachmentPreview.getInstance().download();"></div>'),
@@ -84,6 +101,8 @@ class AttachmentPreview {
 		
 		this.current = doc;
 		this.currentUrl = url;
+		
+		return Promise.resolve();
 	}
 	
 	/**

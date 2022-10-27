@@ -45,9 +45,10 @@ class Code {
 		this.setCurrent(doc);
 		
 		n.setCurrentEditor(this);
+		n.setCurrentPage(this);
 
 		var that = this;
-		Tools.getScripts([
+		return Tools.getScripts([
 			'ui/lib/codemirror/mode/' + that.getEditorLanguage() + '/' + that.getEditorLanguage() + '.js'
 		])
 		.then(function(/*resp*/) {

@@ -151,6 +151,7 @@ class Check {
 	 */
 	load() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		var checkRows = [];
 		for (const [name, check] of this.checks.entries()) {
@@ -159,7 +160,6 @@ class Check {
 			);
 		}
 		
-		var that = this;
 		$('#contentContainer').append(
 			$('<table class="table table-striped table-hover" />').append(
 				[

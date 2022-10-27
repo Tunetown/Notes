@@ -170,6 +170,8 @@ class Settings {
 	 */
 	load() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
+		
 		var d = Database.getInstance();
 		
 		Database.getInstance().setAutoLoginBlock(true);

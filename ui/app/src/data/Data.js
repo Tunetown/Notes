@@ -84,46 +84,6 @@ class Data {
 	}
 	
 	/**
-	 * Returns the default sort value for a document. This is the order value by default,
-	 * otherwise the last changed timestamp.
-	 */
-	getDocDefaultSortValue(doc) {
-		if (doc.order) return doc.order;
-		return -doc.timestamp;
-	}
-	
-	/**
-	 * Returns a sort criteria which sorts the items correctly in a hierarchical tree manner.
-	 */
-	getSortOrderCriteria(doc) {
-		var paddedName = doc.name;
-		if (paddedName.length > 5) paddedName = paddedName.substring(0, 5);
-		if (paddedName.length < 5) paddedName = paddedName.padEnd(5, '_');
-
-		var padded = Tools.pad(/*doc.order ? doc.order : 0*/ this.getDocDefaultSortValue(doc), 10) + paddedName;
-		if (doc.parentDoc) {
-			return this.getSortOrderCriteria(doc.parentDoc) + padded;
-		} else {
-			return padded;
-		}
-	}
-	
-	/**
-	 * Sorts the passed array of documents by getSortOrderCriteria().
-	 */
-	sortByOrder(docs) {
-		var that = this;
-		docs.sort(function(a,b) {
-			var scA = that.getSortOrderCriteria(a);
-			var scB = that.getSortOrderCriteria(b);
-			
-			if (scA == scB) return 0;
-			else if (scA < scB) return -1;
-			else return 1;
-		});
-	}
-	
-	/**
 	 * Add a new document
 	 */
 	add(doc) {

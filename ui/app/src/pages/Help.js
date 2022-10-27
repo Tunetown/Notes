@@ -31,6 +31,7 @@ class Help {
 	 */
 	load(docpage) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		n.setStatusText("Help Pages");
 		

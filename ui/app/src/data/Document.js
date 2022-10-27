@@ -640,6 +640,7 @@ class Document {
 		doc.editorParams = src.editorParams;
 		
 		doc.links = src.links;
+		doc.navRelations = src.navRelations;
 		
 		doc.boardState = src.boardState;
 		
@@ -713,6 +714,7 @@ class Document {
 		doc.editorParams = src.editorParams;
 		
 		doc.links = src.links;
+		doc.navRelations = src.navRelations;
 		
 		doc.boardState = src.boardState;
 		
@@ -767,6 +769,7 @@ class Document {
 						editor: doc.editor,
 						
 						links: doc.links,
+						navRelations: doc.navRelations,
 						
 						boardState: doc.boardState,
 
@@ -1261,6 +1264,30 @@ class Document {
 		} else {
 			if (current.links) {
 				console.log("   -> Links have been removed");
+				return true;
+			}
+		}
+		
+		if (doc.navRelations) {
+			if (!current.navRelations) {
+				console.log("   -> Navigation relations have been added");
+				return true;
+			}
+			
+			if (doc.navRelations.length != current.navRelations.length) {
+				console.log("   -> Navigation relations have been changed");
+				return true;
+			}
+			
+			for(var c in doc.navRelations) {
+				if (JSON.stringify(doc.navRelations[c]) != JSON.stringify(current.navRelations[c])) {
+					console.log("   -> Navigation relation " + c + " changed");
+					return true;
+				}
+			}
+		} else {
+			if (current.navRelations) {
+				console.log("   -> Navigation relations have been removed");
 				return true;
 			}
 		}
@@ -1787,12 +1814,12 @@ class Document {
 		
 		if (depth < options.depth) {
 			var ch = d.getChildren(doc._id);
-			d.sortByOrder(ch);
+			Document.sortHierarchically(ch);
 			
 			var num = 1;
 			for(var c in ch) {
 				var prefix = '';
-				for(var d=0; d<depth; ++d) {
+				for(var dd=0; dd<depth; ++dd) {
 					prefix += options.listSeparator;
 				}
 				if (options.listStyle == 'numbers') {
@@ -1810,6 +1837,108 @@ class Document {
 		}
 
 		return ret;
+	}
+	
+	/**
+	 * Sorts the passed array of documents hierarchically by getHierarchicalSortOrderCriteria().
+	 */
+	static sortHierarchically(docs) {
+		docs.sort(function(a,b) {
+			var scA = Document.getHierarchicalSortOrderCriteria(a);
+			var scB = Document.getHierarchicalSortOrderCriteria(b);
+			
+			if (scA == scB) return 0;
+			else if (scA < scB) return -1;
+			else return 1;
+		});
+	}
+	
+	/**
+	 * Returns a sort criteria which sorts the items correctly in a hierarchical tree manner. 
+	 * Only used in tree behaviour and (indirect) in Board.js (see sortHierarchically()).
+	 */
+	static getHierarchicalSortOrderCriteria(doc) {
+		var paddedName = doc.name;
+		if (paddedName.length > 5) paddedName = paddedName.substring(0, 5);
+		if (paddedName.length < 5) paddedName = paddedName.padEnd(5, '_');
+
+		var padded = Tools.pad(Document.getRelatedOrder(doc), 18) + paddedName;
+		if (doc.parentDoc) {
+			return Document.getHierarchicalSortOrderCriteria(doc.parentDoc) + padded;
+		} else {
+			return padded;
+		}
+	}
+	
+	/**
+	 * Returns the default sort value for a document. This is the order value by default,
+	 * otherwise the last changed timestamp.
+	 */
+	static getRelatedOrder(doc, parentId) {
+		if (!doc) return 0;
+		if (doc._id == parentId) return 0; 
+		
+		function defaultOrder(doc) {
+			if (doc.order) return doc.order;
+			return -doc.timestamp;
+		}
+		
+		if (!parentId) {
+			return defaultOrder(doc);
+		}
+		
+		if (doc.parent == parentId) {
+			return defaultOrder(doc);
+		} else {
+			if (doc.navRelations) {
+				for(var i in doc.navRelations) {
+					var rel = doc.navRelations[i];
+					if (!rel) continue;
+					if (!rel.id) continue;
+					if (rel.id != parentId) continue;
+					
+					if (!rel.order) return -doc.timestamp;
+					return rel.order;
+				}
+			}
+			return -doc.timestamp;
+		}
+	}
+	
+	/**
+	 * Sets the order on a document in relation to a parent.
+	 */
+	static setRelatedOrder(doc, parentId, newOrder) {
+		if (!doc) return;
+
+		function debug(addText) {
+			console.log(' -> Set document order for ' + doc._id + ' in relation to parent ' + parentId + ': (' + addText + ')');
+			console.log(doc.navRelations);
+		}
+		
+		if (doc.parent == parentId) {
+			//debug('Updated doc.order from ' + doc.order + ' to ' + newOrder);
+			doc.order = newOrder;
+		} else {
+			if (!doc.navRelations) doc.navRelations = [];
+			
+			for(var i in doc.navRelations) {
+				var rel = doc.navRelations[i];
+				if (!rel) continue;
+				if (!rel.id) continue;
+				if (rel.id != parentId) continue;
+				
+				//debug('Updated nav relation order from ' + rel.order + ' to ' + newOrder);
+				rel.order = newOrder;
+				return;
+			}
+			
+			//debug('Added new nav relation with order ' + newOrder);
+			doc.navRelations.push({
+				id: parentId,
+				order: newOrder
+			}); 
+		}
 	}
 	
 	/**

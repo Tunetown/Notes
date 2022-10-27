@@ -35,6 +35,7 @@ class VersionView {
 	 */
 	load(id, name, data, doc) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 
 		// Set note name in the header
 		n.setStatusText("Version " + name + " of " + doc.name);

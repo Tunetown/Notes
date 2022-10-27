@@ -31,6 +31,7 @@ class Update {
 	 */
 	load() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		n.triggerUpdateCheck();
 		

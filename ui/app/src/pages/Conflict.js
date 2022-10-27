@@ -31,6 +31,7 @@ class Conflict {
 	 */
 	load(docConflict, docCurrent) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		// Set note name in the header
 		n.setStatusText('Conflict: ' + docConflict.name + ' Revision from ' + new Date(docConflict.timestamp).toLocaleString());

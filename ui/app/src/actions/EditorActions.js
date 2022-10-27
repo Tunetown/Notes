@@ -31,7 +31,6 @@ class EditorActions {
 	 */
 	requestEditor(doc) {
 		var n = Notes.getInstance();
-		var that = this;
 		
 		if (doc.type == 'reference') {
 			Notes.getInstance().routing.call(doc.ref);
@@ -61,8 +60,9 @@ class EditorActions {
 			})
 			.then(function(data) {
 				var url = URL.createObjectURL(data);
-				AttachmentPreview.getInstance().load(doc, url);
-				
+				return AttachmentPreview.getInstance().load(doc, url);
+			})
+			.then(function() {
 				// Execute callbacks
 				Callbacks.getInstance().executeCallbacks('openDocument', doc);
 				
@@ -83,8 +83,9 @@ class EditorActions {
 				}
 				
 				var e = Document.getDocumentEditor(doc);
-				e.load(doc);
-				
+				return e.load(doc);
+			})
+			.then(function() {
 				// Execute callbacks
 				Callbacks.getInstance().executeCallbacks('openDocument', doc);
 				

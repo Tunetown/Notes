@@ -72,4 +72,10 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Internal links in documents: Rich text and Plain text (Code)
     - Renamed code editor to Plain Text
 
+- 0.93.6
+    - Bug fix: Sort modes were not stored properly before
+    - Login Screen: Auto-Submit not active when in settings page
+    - Link auto completion
+    - Visual Graph page
+    - Linkage buttons now available to customize the relation between editor and navigation
     

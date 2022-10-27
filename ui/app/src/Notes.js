@@ -27,11 +27,12 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.93.5';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.93.6';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
 		this.linkEditorToNavigation = 'on';  // Default
+		this.currentPage = null;
 	}
 	
 	/**
@@ -654,6 +655,8 @@ class Notes {
 		GraphView.getInstance().unload();
 		
 		this.setCurrentEditor();
+		this.setCurrentPage();
+		
 		this.setMoveSelector();
 		this.allowViewportScaling(false);
 		this.hideMenu();
@@ -852,7 +855,15 @@ class Notes {
 	 * Update the linkage button's appearance.
 	 */
 	updateLinkageButtons() {
-		$('#linkEditorButton').css('display', (this.isMobile() || (!NoteTree.getInstance().supportsLinkEditorToNavigation())) ? 'none' : 'block');
+		var t = NoteTree.getInstance();
+		
+		var page = this.getCurrentPage();
+		var pageSupport = (!!this.getCurrentEditor()) || (page && 
+		       (typeof page.supportsLinkageFromNavigation == 'function') && 
+		       page.supportsLinkageFromNavigation()
+		);
+		
+		$('#linkEditorButton').css('display', (this.isMobile() || (!t.supportsLinkEditorToNavigation()) || (!pageSupport)) ? 'none' : 'block');
 		$('#linkEditorButton').css('background-color', (this.linkEditorToNavigation == 'on') ? '#c40cf7' : '#ffffff');
 		$('#linkEditorButton').css('color', (this.linkEditorToNavigation == 'on') ? '#ffffff' : '#000000');
 		$('#linkEditorButton').attr('title', (this.linkEditorToNavigation == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
@@ -897,6 +908,20 @@ class Notes {
 		this.currentEditor = e ? e : null;
 	}
 	
+	/**
+	 * Returns the current page instance, if any (editors included).
+	 */
+	getCurrentPage() {
+		return this.currentPage ? this.currentPage : null;
+	}
+	
+	/**
+	 * Sets the passed page instance as current one.
+	 */
+	setCurrentPage(inst) {
+		this.currentPage = inst;
+	}
+
 	/**
 	 * Called by anyone who wants to tell the online sensor that it should 
 	 * check better next time. Normally, the sensor does not do test requests

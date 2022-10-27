@@ -32,13 +32,14 @@ class TreeActions {
 	requestTree() {
 		var db;
 		var that = this; 
+		var t = NoteTree.getInstance();
 		
 		return Database.getInstance().get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.query(Views.getInstance().getViewDocId() + '/toc');
 		})
-		.then(function (data) {
+		.then(function(data) {
 			// For debugging
 			if (data.rows.length > 0) {
 				console.log(' -> TOC Loader: ' + Tools.convertFilesize(JSON.stringify(data).length) + ' loaded in ' + data.rows.length + ' documents');
@@ -50,6 +51,11 @@ class TreeActions {
 			// Execute callbacks
 			Callbacks.getInstance().executeCallbacks('requestTree');
 			
+			// (Re)load tree
+			t.destroy();
+			return t.init();
+		})
+		.then(function() {
 			return Promise.resolve({
 				ok: true
 			});
@@ -66,6 +72,8 @@ class TreeActions {
 	 * Fallback for requestTree in case the TOC views are missing.
 	 */
 	requestTreeFallback() {
+		var t = NoteTree.getInstance();
+		
 		return Database.getInstance().get()
 		.then(function(db) {
 			return db.allDocs({
@@ -83,6 +91,11 @@ class TreeActions {
 			// Execute callbacks
 			Callbacks.getInstance().executeCallbacks('requestTree');
 
+			// (Re)load tree
+			t.destroy();
+			return t.init();
+		})
+		.then(function() {
 			return Promise.resolve({
 				fallback: true,
 				ok: true

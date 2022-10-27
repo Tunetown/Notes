@@ -101,6 +101,7 @@ class Console {
 	 */
 	show() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		// Set note name in the header
 		n.setStatusText(this.title ? this.title : "Console");

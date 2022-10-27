@@ -38,7 +38,6 @@ class DocumentActions {
 		var db;
 		var doc;
 
-		var that = this;
 		return Database.getInstance().get()
 		.then(function(dbRef) {
 			db = dbRef;
@@ -225,7 +224,7 @@ class DocumentActions {
 		var newIds = [];
 		var docs = [];
 		var db;
-		var that = this;
+		//var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#selectTypeContainer').empty();
 			$('#selectTypeContainer').append(
@@ -484,9 +483,9 @@ class DocumentActions {
 			if (data.rows.length == 1) {
 				var doc = data.rows[0].doc;
 				
-				if (!Document.isPartOfBoard(doc)) {
+				/*if (!Document.isPartOfBoard(doc)) {
 					n.routing.call(doc._id);
-				}
+				}*/
 			}
 			
 			for(var d in data.rows) {
@@ -817,6 +816,7 @@ class DocumentActions {
 				name: name,
 				parent: doc.parent,
 				order: doc.order,
+				navRelations: doc.navRelations,
 				ref: doc.ref,
 				timestamp: Date.now(),
 				content: Document.getContent(doc)
@@ -977,6 +977,22 @@ class DocumentActions {
     		docsInvolved.push(parentsChildren[i]);
     	}
     	
+    	if (!moveToSubOfTarget) {
+			for(var s in docsSrc) {
+	    		var siblings = t.reorderVisibleSiblings(docsSrc[s], true);
+	    		for(var i in siblings) {
+					var sibling = n.getData().getById(siblings[i]);
+		    		if (!sibling) {
+		    			return Promise.reject({
+		    				message: 'Document ' + siblings[i] + ' not found',
+							messageThreadId: 'MoveMessages'
+		    			});
+		    		}
+	    			docsInvolved.push(sibling);
+	    		}
+	    	}
+    	}
+
     	var updateIds = [];
     	
     	return DocumentAccess.getInstance().loadDocuments(docsInvolved)
@@ -1010,14 +1026,11 @@ class DocumentActions {
 	    	for(var s in docsSrc) {
 	    		console.log("Moving item " + docsSrc[s].name + (moveToSubOfTarget ? " into " : " beneath ") + (docTarget ? docTarget.name : "Root"));
 	    	
-		    	// Default the order of the moved item to the beginning, just like new documents.
-	    		docsSrc[s].order = 0;
-		    	
 		    	// In case of staying in the same parent, re-oder the children of the new parent accordingly. 
 		    	// We just take the order of items the grid gives us, and even when the items might not all be there, this makes sense as it
 		    	// always resembles the order the user sees (if he sees any).
 		    	if (!moveToSubOfTarget) {
-		    		var ouIds = t.reorderVisibleChildItems(docsSrc[s].parent);
+		    		var ouIds = t.reorderVisibleSiblings(docsSrc[s]);
 		    		for(var i in ouIds) {
 		    			updateIds.push(ouIds[i]);
 		    		}
@@ -1031,7 +1044,7 @@ class DocumentActions {
 				moveToSubOfTarget: moveToSubOfTarget,
 				updateIds: updateIds
 			});
-		
+			
 	    	// Save the new tree structure by updating the metadata of all touched objects.
 	    	return DocumentAccess.getInstance().saveItems(updateIds);
     	})

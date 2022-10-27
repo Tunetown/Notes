@@ -60,7 +60,7 @@ class ClientState {
 		var all = this.getLocal(this.cidLinkages, true);
 		if (!all) return false;
 		if (!all[pageId]) return false;
-		return Notes.getInstance().isMobile() ? 'off' : all[pageId];
+		return all[pageId];
 	}
 	
 	/**

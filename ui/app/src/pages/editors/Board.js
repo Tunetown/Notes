@@ -41,6 +41,7 @@ class Board {
 
 		var n = Notes.getInstance();
 		n.setCurrentEditor(this);
+		n.setCurrentPage(this);
 
 		this.destroy();
 
@@ -205,7 +206,7 @@ class Board {
 		if (mobileWidth > 300) mobileWidth = 300;
 		
 		var lists = n.getData().getChildren(doc._id);
-		n.getData().sortByOrder(lists);
+		Document.sortHierarchically(lists);
 		
 		var boardWidth = 0;		
 		var itemElements = [];
@@ -217,7 +218,7 @@ class Board {
 			// Column items
 			var items = [];
 			var subList = n.getData().getChildren(lists[l]._id);
-			n.getData().sortByOrder(subList);
+			Document.sortHierarchically(subList);
 			
 			for(var i in subList) {
 				if (subList[i]._id == doc.boardBackground) continue;
@@ -737,13 +738,14 @@ class Board {
 			if (!doc) continue;
 			
 			var newOrder = no++;
-			if (doc.order != newOrder) {
-				Document.addChangeLogEntry(doc, 'orderChanged', {
-					from: doc.order,
+			var oldOrder = Document.getRelatedOrder(doc);
+			if (oldOrder != newOrder) {
+				/*Document.addChangeLogEntry(doc, 'orderChanged', {
+					from: oldOrder,
 					to: newOrder
-				});
+				});*/
 				
-				doc.order = newOrder;
+				Document.setRelatedOrder(doc, false, newOrder);
 				ids.push(iid);
 			}
 		}
@@ -762,21 +764,22 @@ class Board {
 				if (!doc) continue;
 				
 				var newOrder = no++;
+				var oldOrder = Document.getRelatedOrder(doc);
 				var push = false;
-				if (doc.order != newOrder) {
-					Document.addChangeLogEntry(doc, 'orderChanged', {
-						from: doc.order,
+				if (oldOrder != newOrder) {
+					/*Document.addChangeLogEntry(doc, 'orderChanged', {
+						from: oldOrder,
 						to: newOrder
-					});
+					});*/
 					
-					doc.order = newOrder;
+					Document.setRelatedOrder(doc, false, newOrder);
 					push = true;
 				}
 				if (doc.parent != colId) {
-					Document.addChangeLogEntry(doc, 'parentChanged', {
+					/*Document.addChangeLogEntry(doc, 'parentChanged', {
 						from: doc.parent,
 						to: colId
-					});
+					});*/
 					
 					d.setParent(iid, colId);
 					push = true;

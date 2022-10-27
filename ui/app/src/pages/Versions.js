@@ -32,6 +32,7 @@ class Versions {
 	load(doc) {
 		var that = this;
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		this.currentId = doc._id;
 		

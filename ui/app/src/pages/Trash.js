@@ -31,6 +31,7 @@ class Trash {
 	 */
 	load(docs) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 				
 		// Build new table from the data
 		var rows = new Array();

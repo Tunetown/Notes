@@ -31,6 +31,7 @@ class Refs {
 	 */
 	load(id) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 				
 		var doc = n.getData().getById(id);
 		if (!doc) {

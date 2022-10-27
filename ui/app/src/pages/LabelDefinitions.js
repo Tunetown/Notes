@@ -31,6 +31,7 @@ class LabelDefinitions {
 	 */
 	load(doc) {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
 		
 		this.current = doc;
 		

@@ -31,6 +31,8 @@ class Profiles {
 	 */
 	load() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
+		
 		var d = Database.getInstance();
 		
 		// Set note name in the header

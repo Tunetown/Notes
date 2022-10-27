@@ -31,6 +31,8 @@ class Conflicts {
 	 */
 	load() {
 		var n = Notes.getInstance();
+		n.setCurrentPage(this);
+		
 		var data = n.getData();
 		
 		// Build new table from the data

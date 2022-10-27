@@ -936,8 +936,8 @@ function Neo4jD3(_selector, _options) {
         var length = Math.sqrt(Math.pow(target.x - source.x, 2) + Math.pow(target.y - source.y, 2)) / Math.sqrt(newLength || 1);
 
         return {
-            x: (target.x - source.x) / length,
-            y: (target.y - source.y) / length,
+            x: length ? ((target.x - source.x) / length) : 0,
+            y: length ? ((target.y - source.y) / length) : 0,
         };
     }
 
