@@ -218,8 +218,8 @@ class Tools {
 	/**
 	 * Generate 8 character uuids.
 	 */
-	static getUuid() {
-		return Date.now().toString(36);
+	static getUuid(seed) {
+		return (Date.now() + (seed ? seed : 0)).toString(36);
 	}
 	
 	/**

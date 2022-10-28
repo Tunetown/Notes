@@ -151,6 +151,9 @@ class Routing {
 			this.get('#/:profile/generate', function(context) {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
+					return Promise.resolve(data.treePromise);
+				})
+				.then(function(data) {
 					that.app.resetPage();
 					Generate.getInstance().load();
 				})

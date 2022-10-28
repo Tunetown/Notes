@@ -803,11 +803,11 @@ class Data {
 	/**
 	 * Get a speaking document id from a string.
 	 */
-	generateIdFrom(str) {
+	generateIdFrom(str, seed) {
 		if (!str) throw new Error('INTERNAL ERROR: Cannot generate ID for root');
 		var s = str.replace(/[^a-zA-Z0-9]/g, "-");
 		if (s.length > 30) s = s.substring(0, 30);
-		var ret = s + '-' + Tools.getUuid();
+		var ret = s + '-' + Tools.getUuid(seed);
 		if (this.getById(ret)) throw new Error('INTERNAL ERROR: Generated ID already exists: ' + ret);
 		return ret;
 	}
