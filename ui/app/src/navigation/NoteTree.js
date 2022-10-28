@@ -1371,7 +1371,6 @@ class NoteTree {
 					.on('click', function(event) {
 						event.stopPropagation();
 						
-						console.log(3);
 						var token = $(this).data('token');
 						that.setSearchText(token);
 					})

@@ -1,5 +1,5 @@
 /**
- * Shows and stores settings
+ * Document Generator
  * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
  * 
@@ -16,153 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Settings {
+class Generate {
 	
 	/**
 	 * Singleton factory
 	 */
 	static getInstance() {
-		if (!Settings.instance) Settings.instance = new Settings();
-		return Settings.instance;
-	}
-	
-	constructor() {
-		this.settings = this.getDefaults();
-	}
-	
-	/**
-	 * Default settings object
-	 */
-	getDefaults() {
-		return {
-			// Theme colors
-			mainColor: "#ff8080",
-			textColor: "#06feab",
-			
-			// Header size
-			headerSizeDesktop: 45,
-			headerSizeMobile: 35,
-
-			// Tree text sizes
-			treeTextSizeDesktop: 18,
-			treeTextSizeMobile: 22,
-			
-			detailItemHeightDesktop: (18 * 4.4), // Formerly: * 6
-			detailItemHeightMobile: (22 * 4.4), // Formerly: * 6
-			
-			// Tile text sizes
-			tileTextSizeDesktop: 18,
-			tileTextSizeMobile: 18,
-			
-			// Option button sizes
-			optionTextSizeDesktop: 18,
-			optionTextSizeMobile: 20,
-			
-			// Database options
-			autoSaveIntervalSecs: 3,
-			dbAccountName: Database.getInstance().profileHandler.getCurrentProfile().url,
-
-			// Editor settings
-			defaultNoteEditor: 'code',
-			defaultCodeLanguage: 'markdown',
-
-			// Div. options
-			askBeforeMoving: false,
-			maxUploadSizeMB: 1,
-			reduceHistory: true,
-			maxSearchResults: 15,
-			navigationAnimationDuration: 60,
-			showAttachedImageAsItemBackground: true
-		};
-	}
-	
-	/**
-	 * Check the passed settings object. Returns the number of settings properties checked.
-	 */
-	checkSettings(settings, errors) {
-		var defs = this.getDefaults();
-		
-		var cnt = 0;
-		for (var p in defs) {
-			if (!defs.hasOwnProperty(p)) continue;
-			if ((p == 'defaultCodeLanguage') && (settings.defaultNoteEditor != 'code')) continue;
-
-			cnt++;
-			if (!settings.hasOwnProperty(p)) {
-				errors.push({
-					message: "Property missing: " + p,
-					id: 'settings',
-					type: 'E'
-				});
-			}
-		}
-		
-		this.checkNumeric(settings, 'headerSizeDesktop', errors);
-		this.checkNumeric(settings, 'headerSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'treeTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'treeTextSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'detailItemHeightDesktop', errors);
-		this.checkNumeric(settings, 'detailItemHeightMobile', errors);
-		
-		this.checkNumeric(settings, 'tileTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'tileTextSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'optionTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'optionTextSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'autoSaveIntervalSecs', errors);
-		this.checkNumeric(settings, 'maxUploadSizeMB', errors);
-		this.checkNumeric(settings, 'maxSearchResults', errors);
-		
-		this.checkNumeric(settings, 'navigationAnimationDuration', errors);
-		
-		if (!Document.isValidEditorMode(settings.defaultNoteEditor)) {
-			errors.push({
-				message: 'Invalid editor mode: ' + settings.defaultNoteEditor,
-				id: 'settings',
-				type: 'E'
-			});		
-		}
-		if (settings.defaultNoteEditor == 'code') {
-			if (!Code.isValidEditorLanguage(settings.defaultCodeLanguage)) {
-				errors.push({
-					message: 'Invalid code editor language: ' + settings.defaultCodeLanguage,
-					id: 'settings',
-					type: 'E'
-				});		
-			}
-		}
-		
-		var ok = errors.length == 0; 
-		if (ok) {
-			errors.push({
-				message: 'All ' + cnt + ' settings found and checked OK',
-				id: 'settings',
-				type: 'S'
-			});
-		}
-		
-		return {
-			numPropsChecked: cnt,
-			ok: ok
-		};
-	}
-	
-	/**
-	 * Helper for checkSettings()
-	 */
-	checkNumeric(settings, propName, errors) {
-		if (!settings.hasOwnProperty(propName)) return;  // This has been checked before
-		
-		if (!Tools.isNumber(settings[propName])) {
-			errors.push({
-				message: "Property is not a number: " + propName + " = " + settings[propName],
-				id: 'settings',
-				type: 'E'
-			});
-		}
+		if (!Generate.instance) Generate.instance = new Generate();
+		return Generate.instance;
 	}
 	
 	/**
@@ -172,23 +33,10 @@ class Settings {
 		var n = Notes.getInstance();
 		n.setCurrentPage(this);
 		
-		var d = Database.getInstance();
-		
-		Database.getInstance().setAutoLoginBlock(true);
-		
 		// Set page name in the header
-		n.setStatusText("Settings"); 
-		
-		// Build list of available remotes
-		var remoteList = [];
-		var profiles = d.profileHandler.getProfiles();
-		var currentP = d.profileHandler.getCurrentProfile().url;
-		remoteList.push($('<option value="new">Add Notebook from CouchDB URL...</option>'));
-		for(var p in profiles) {
-			remoteList.push($('<option value="' + profiles[p].url + '" ' + ((profiles[p].url == currentP) ? 'selected' : '') + '>' + Tools.getBasename(profiles[p].url) + '</option>'));
-		}
-
-		// Build settings page
+		n.setStatusText("Generate Random Documents"); 
+		/*
+		// Build page
 		var that = this;
 		$('#contentContainer').append(
 			$('<table class="table settingsForm"/>').append(
@@ -789,44 +637,6 @@ class Settings {
 							)
 						),
 						
-						/*
-						$('<tr/>').append(
-							$('<td class="w-auto">Tile Text Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.tileTextSizeDesktop) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.tileTextSizeDesktop = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.tileTextSizeMobile) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.tileTextSizeMobile = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							)
-						),*/
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Navigation Animation Time</td>'),
@@ -895,28 +705,7 @@ class Settings {
 								})
 							)
 						),
-						
-						/*
-						$('<tr/>').append(
-							$('<td class="w-auto">Tile Mode: Max. item size</td>'),
-							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().tileMaxSize ? ClientState.getInstance().getViewSettings().tileMaxSize : 220) + '" />')
-								.on('change', function() {
-									var val = parseFloat(this.value);
-									var s = ClientState.getInstance().getViewSettings();
-
-									if (!val) {
-										this.value = (s.tileMaxSize ? s.tileMaxSize : 220);
-										return;
-									}
-									
-									s.tileMaxSize = val;
-									ClientState.getInstance().saveViewSettings(s);
-									
-									Notes.getInstance().routing.call('settings');
-								})
-							)
-						),*/
+					
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Persistent Console logs</td>'),
@@ -1078,128 +867,17 @@ class Settings {
 			$('<br>'),
 			$('<br>'),
 		);
-		
-		d.checkRemoteConnection().then(function(data) {
-			$('#dbcheck').html(data.message);
-			
-			$('#dbAdminLink').empty();
-			$('#dbAdminLink').append(
-				$('<a href="' + Database.getInstance().getAdminLink() + '" target="_blank">Administrate...</a>')
-			);
-		}).catch(function(err) {
-			$('#dbcheck').html('Error: ' + err.message);
-			$('#dbAdminLink').empty();
-		});
-		
-		d.checkRemoteLogin().then(function(data) {
-			$('#loginCheck').html(data.message);
-			
-			if (data.ok) {
-				$('#loginSettingsButton').hide();
-				$('#logoutSettingsButton').show();
-			} else {
-				$('#loginSettingsButton').show();
-				$('#logoutSettingsButton').hide();
-			}
-		}).catch(function(err) {
-			$('#loginCheck').html('Error: ' + err.message);
-			$('#loginSettingsButton').show();
-			$('#logoutSettingsButton').hide();
-		});
-		
+		*/
 		// Build buttons
 		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Save Settings" class="fa fa-save" onclick="event.stopPropagation();Settings.getInstance().saveSettings()"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Generate" class="fa fa-plus" onclick="event.stopPropagation();Generate.getInstance().generate()"></div>'),
 		]);
 	}
 	
 	/**
-	 * Export all documents as internal JSON
+	 * Generate documents
 	 */
-	exportAll(format) {
-		if (!format) {
-			Notes.getInstance().showAlert("No format specified", "E");
-			return;
-		}
-		
-		var children = Notes.getInstance().getData().getChildren("", true);
-		
-		if (!confirm('Export all ' + children.length + ' documents?')) return;
-		
-		var ids = [];
-		for(var d in children) {
-			ids.push(children[d]._id);
-		}
-		
-		if (format == 'json') {
-			DocumentAccess.getInstance().exportDocuments(ids)
-			.then(function(/*data*/) {
-				Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
-			})
-			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
-			});
-		}
-		if (format == 'files') {
-			ObsidianExporter.getInstance().exportDocumentsToObsidian(ids)
-			.then(function(/*data*/) {
-				Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
-			})
-			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
-			});
-		}
-	}
-	
-	/**
-	 * Save settings
-	 */
-	saveSettings() {
-		SettingsActions.getInstance().saveSettings()
-		.then(function(data) {
-			if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert('Error saving settings: ' + err.message, 'E', err.messageThreadId);
-		})
-	}
-	
-	/**
-	 * Apply current settings to the application
-	 */
-	apply() {
-		var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-		
-		n.setMainColor(this.settings.mainColor);
-		n.setTextColor(this.settings.textColor);
-		n.updateHeaderSize();
-		
-		if (ClientState.getInstance().getViewSettings().navMode == Behaviours.modeIdTiles) {
-			t.setTreeTextSize(n.isMobile() ? this.settings.tileTextSizeMobile : this.settings.tileTextSizeDesktop);
-		} else {
-			t.setTreeTextSize(n.isMobile() ? this.settings.treeTextSizeMobile : this.settings.treeTextSizeDesktop);
-		}
-		t.updateFavorites();
-		
-		n.setRoundedButtonSize(n.isMobile() ? this.settings.optionTextSizeMobile : this.settings.optionTextSizeDesktop);
-		
-	}
-	
-	/**
-	 * Set new settings.
-	 */
-	set(data) {
-		if (!data || (Object.keys(data).length === 0)) return;
-		
-		this.settings = data;
-		this.apply();
-	}
-	
-	/**
-	 * Returns the settings as object.
-	 */
-	get() {
-		return this.settings;
+	generate() {
+		// TODO
 	}
 }

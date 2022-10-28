@@ -63,7 +63,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					Help.getInstance().load();
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
@@ -76,7 +75,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					Help.getInstance().load(docpage);
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
@@ -88,9 +86,7 @@ class Routing {
 				that.app.startApp()
 				.then(function(data) {
 					that.app.resetPage();
-					
 					Console.getInstance().show();
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -103,7 +99,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					Update.getInstance().load();
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading update page: ' + err.message, 'E', err.messageThreadId);
@@ -116,7 +111,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage(true);
 					that.app.setStatusText();
-
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -127,7 +121,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage(true);
 					that.app.setStatusText();
-
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -138,16 +131,28 @@ class Routing {
 			this.get('#/:profile/settings', function(context) {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
-					return Promise.resolve(data.settingsPromise).then(function(data) {
+					return Promise.resolve(data.settingsPromise)
+					.then(function(data) {
 						that.app.resetPage();
 						Settings.getInstance().load();
-						
-					}).catch(function(err) {
+					})
+					.catch(function(err) {
 						that.app.resetPage();
 						that.app.setStatusText('No settings found', 'W');
 						Settings.getInstance().load();
 					});
-
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
+			// Generator
+			this.get('#/:profile/generate', function(context) {
+				that.app.startApp(this.params['profile'])
+				.then(function(data) {
+					that.app.resetPage();
+					Generate.getInstance().load();
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -162,11 +167,9 @@ class Routing {
 					
 					return Promise.all([data.treePromise, data.settingsPromise])
 					.then(function(data) {
-						
 						GraphView.getInstance().load();
 						return Promise.resolve();
 					});
-
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -185,7 +188,6 @@ class Routing {
 					.then(function(data) {
 						return TrashActions.getInstance().showTrash();
 					});
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading trash: ' + err.message, 'E', err.messageThreadId);
@@ -197,9 +199,7 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					
 					Check.getInstance().load();
-
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -217,7 +217,6 @@ class Routing {
 					.then(function(data) {
 						return Conflicts.getInstance().load();
 					});
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading conflicts: ' + err.message, 'E', err.messageThreadId);
@@ -235,7 +234,6 @@ class Routing {
 					.then(function(data) {
 						return LabelDefinitions.getInstance().load();
 					});
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading labels: ' + err.message, 'E', err.messageThreadId);
@@ -259,7 +257,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					return HistoryActions.getInstance().requestVersion(noteId, versionName);
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading version: ' + err.message, 'E', err.messageThreadId);
@@ -278,7 +275,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					return HistoryActions.getInstance().showHistory(noteId);
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading history: ' + err.message, 'E', err.messageThreadId);
@@ -301,7 +297,6 @@ class Routing {
 					.then(function(data) {
 						Refs.getInstance().load(noteId);
 					});
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading references: ' + err.message, 'E', err.messageThreadId);
@@ -324,9 +319,7 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					
 					return DocumentActions.getInstance().requestConflict(noteId, revId);
-						
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading conflict: ' + err.message, 'E', err.messageThreadId);
@@ -349,7 +342,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					return LabelActions.getInstance().requestLabelDefinitions(noteId);
-						
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading labels: ' + err.message, 'E', err.messageThreadId);
@@ -368,7 +360,6 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage();
 					return DocumentActions.getInstance().requestRawView(noteId);
-						
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading raw JSOn view: ' + err.message, 'E', err.messageThreadId);
@@ -408,7 +399,6 @@ class Routing {
 							triggerLinkNav();
 						})
 					}
-					
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
