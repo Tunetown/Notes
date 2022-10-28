@@ -214,13 +214,6 @@ class NoteTree {
 	};	
 	
 	/**
-	 * Frequent UI update
-	 *
-	updateUI() {
-		this.updateLinkageButtons();
-	}
-	
-	/**
 	 * Just update sorting.
 	 */
 	updateSort() {

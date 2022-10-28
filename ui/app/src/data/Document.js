@@ -1911,13 +1911,17 @@ class Document {
 	static setRelatedOrder(doc, parentId, newOrder) {
 		if (!doc) return;
 
+		if (!parentId) {
+			parentId = doc.parent;
+		}
+
 		function debug(addText) {
-			console.log(' -> Set document order for ' + doc._id + ' in relation to parent ' + parentId + ': (' + addText + ')');
-			console.log(doc.navRelations);
+			//console.log(' -> Set document order for ' + doc._id + ' in relation to parent ' + parentId + ': (' + addText + ')');
+			//console.log(doc.navRelations);
 		}
 		
 		if (doc.parent == parentId) {
-			//debug('Updated doc.order from ' + doc.order + ' to ' + newOrder);
+			debug('Updated doc.order from ' + doc.order + ' to ' + newOrder);
 			doc.order = newOrder;
 		} else {
 			if (!doc.navRelations) doc.navRelations = [];
@@ -1928,12 +1932,12 @@ class Document {
 				if (!rel.id) continue;
 				if (rel.id != parentId) continue;
 				
-				//debug('Updated nav relation order from ' + rel.order + ' to ' + newOrder);
+				debug('Updated nav relation order from ' + rel.order + ' to ' + newOrder);
 				rel.order = newOrder;
 				return;
 			}
 			
-			//debug('Added new nav relation with order ' + newOrder);
+			debug('Added new nav relation with order ' + newOrder);
 			doc.navRelations.push({
 				id: parentId,
 				order: newOrder

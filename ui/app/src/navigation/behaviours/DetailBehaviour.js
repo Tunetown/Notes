@@ -33,7 +33,7 @@ class DetailBehaviour {
 		this.enableParents = refMode;   // Always true, not stored in client state
 		this.enableLinks = refMode;
 		this.enableBacklinks = refMode;
-		this.groupBy = refMode ? 'category' : '';
+		this.groupBy = {};
 		
 		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
 		
@@ -115,12 +115,20 @@ class DetailBehaviour {
 			return;
 		}
 		
-		if (!this.selectedParent) return;
-		
-		var doc = Notes.getInstance().getData().getById(this.selectedParent);
-		if (!doc) return;
-		
-		this.selectParent(doc.parent);
+		if (this.mode == 'ref') {
+			// Back to last selected
+			if (!this.lastSelectedParent) return;
+			
+			this.selectParent(this.lastSelectedParent);
+		} else {
+			// Back to parent
+			if (!this.selectedParent) return;
+			
+			var doc = Notes.getInstance().getData().getById(this.selectedParent);
+			if (!doc) return;
+			
+			this.selectParent(doc.parent);
+		}
 	}
 	
 	/**
@@ -163,12 +171,15 @@ class DetailBehaviour {
 		
 		state.detail.sp = this.selectedParent;
 		state.detail.sortModes = this.sortModes;
-		state.detail.enableChildren = this.enableChildren ? 'on' : '';
-		state.detail.enableRefs = this.enableRefs ? 'on' : '';
-		//state.detail.enableParents = this.enableParents ? 'on' : '';
-		state.detail.enableLinks = this.enableLinks ? 'on' : '';
-		state.detail.enableBacklinks = this.enableBacklinks ? 'on' : '';
-		state.detail.groupBy = this.groupBy;
+		
+		if (this.mode == 'ref') {
+			state.detail.enableChildren = this.enableChildren ? 'on' : 'off';
+			state.detail.enableRefs = this.enableRefs ? 'on' : '';
+			//state.detail.enableParents = this.enableParents ? 'on' : 'off';
+			state.detail.enableLinks = this.enableLinks ? 'on' : 'off';
+			state.detail.enableBacklinks = this.enableBacklinks ? 'on' : 'off';
+			state.detail.groupBy = this.groupBy;
+		}
 	}
 
 	/**
@@ -239,8 +250,9 @@ class DetailBehaviour {
 	 * Called before the grid is initialized
 	 */
 	beforeInit() {
-		if (this.mode == 'ref') $('#treeBackButton').hide();
-		else $('#treeBackButton').show();
+		//if (this.mode == 'ref') $('#treeBackButton').hide();
+		//else 
+		$('#treeBackButton').show();
 		$('#treeHomeButton').show();
 		
 		// Search buttons
@@ -365,19 +377,7 @@ class DetailBehaviour {
 			up: false
 		};
 	}
-	
-	setNextGroupMode() {
-		if (this.groupBy == 'category') this.groupBy = 'none';
-		else this.groupBy = 'category';
-		
-		this.updateSortButtons();
-		
-		ClientState.getInstance().saveTreeState();
 
-		this.saveScrollPosition();
-		this.grid.filter();
-	}
-	
 	/**
 	 * Sets the next following sort mode, depending on the one passed 
 	 * (which indicates just what button has been clicked, NOT the mode to be set!)
@@ -409,13 +409,47 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Returns the groupBy mode for the currently selected parent.
+	 */
+	getGroupMode() {
+		var ret = this.groupBy[this.selectedParent];
+		if (!ret) return 'category';
+		return ret;
+	}
+	
+	/**
+	 * Sets a group mode for the currently selected parent.
+	 */
+	setGroupMode(mode) {
+		if (!(typeof this.groupBy == 'object')) {
+			this.groupBy = {};
+		}
+		this.groupBy[this.selectedParent] = mode;
+
+		this.updateSortButtons();
+		
+		ClientState.getInstance().saveTreeState();
+
+		this.saveScrollPosition();
+		this.grid.filter();
+	}
+	
+	/**
+	 * Sets the next group mode in rotation.
+	 */
+	setNextGroupMode() {
+		if (this.getGroupMode() == 'category') this.setGroupMode('none');
+		else this.setGroupMode('category');
+	}
+	
+	/**
 	 * Update the state of the sort buttons to the current sort mode and direction.
 	 */
 	updateSortButtons() {
 		// Sort
 		var s = this.getCurrentSortMode();
 		
-		$('#sortButtonCategory').css('color', (this.groupBy == 'category') ? 'black' : 'grey');
+		$('#sortButtonCategory').css('color', (this.getGroupMode() == 'category') ? 'black' : 'grey');
 
 		$('#sortButtonSize').css('color', (s.mode == 'size') ? 'black' : 'grey');
 		$('#sortButtonName').css('color', (s.mode == 'name') ? 'black' : 'grey');
@@ -587,12 +621,12 @@ class DetailBehaviour {
 	 */
 	getSortWeight(doc, docmeta) {
 		if (this.mode != 'ref') return 0;
-		if (this.groupBy != 'category') return 0;
+		if (this.getGroupMode() != 'category') return 0;
 		
 		if (docmeta.isSelectedParent) return DetailBehaviour.groupDistance * 10;
 		if (docmeta.isParentOfSelectedParent) return DetailBehaviour.groupDistance * 20;
-		if (docmeta.isOutgoinglinkOfSelected) return DetailBehaviour.groupDistance * 30;
-		if (docmeta.isChildOfSelectedParent) return DetailBehaviour.groupDistance * 40;
+		if (docmeta.isChildOfSelectedParent) return DetailBehaviour.groupDistance * 30;
+		if (docmeta.isOutgoinglinkOfSelected) return DetailBehaviour.groupDistance * 40;
 		if (docmeta.isBacklinkOfSelected) return DetailBehaviour.groupDistance * 50;
 		if (docmeta.isReferenceToSelected) return DetailBehaviour.groupDistance * 60;
 		
@@ -821,13 +855,14 @@ class DetailBehaviour {
 		var isParentOfSelected = this.enableParents && meta.isParentOfSelectedParent; //(selectedDoc && selectedDoc.parent && (doc._id == selectedDoc.parent));
 		var isReferenceToSelected = this.enableRefs && meta.isReferenceToSelected; //(data.containsReferenceTo(doc, selectedDoc));
 		var isOutgoinglinkOfSelected = this.enableLinks && meta.isOutgoinglinkOfSelected; //(data.hasLinkTo(selectedDoc, doc) == 'link');
+		var isChildOfSelected = (this.selectedParent == doc.parent);
 		var selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
 
 		var previewEl = itemContent.find('.' + this.getItemPreviewClass());
 		var metaEl = itemContent.find('.' + this.getItemMetaClass());
 
 		// Parent shall be small (like font size), the normal items should be larger.
-		itemContent.css('height', meta.isSelectedParent ? '100%' : (this.itemHeight + 'px'));
+		itemContent.css('height', meta.isSelectedParent ? '100%' : ((isParentOfSelected ? (this.treeFontSize * 1.6) : this.itemHeight) + 'px'));
 		itemContainer.css('width', meta.isSelectedParent ? (this.grid.getContainerWidth() - this.sortButtonsWidth) + 'px' : '100%');
 		
 		// Inner container
@@ -835,18 +870,57 @@ class DetailBehaviour {
 		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
 		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
 
-		// Markers at left for outgoing links of the selected doc. and parent of the selected doc.
+		// Category markers
 		var markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
-		markerLeftEl.css('display', (meta.isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isOutgoinglinkOfSelected || isParentOfSelected) ? 'block' : 'none'));
-		markerLeftEl.css('background', isOutgoinglinkOfSelected ? '#b5f7c6' : '#faacac');
-		markerLeftEl.attr('title', isOutgoinglinkOfSelected ? ('Outgoing link from ' + selectedDocName + ' to ' + doc.name) : ('Parent of ' + selectedDocName + ' in the hierarchy'));
-		
-		// Marker at the right for backlinks and and references
 		var markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
-		markerRightEl.css('display', (meta.isSelectedParent || (this.mode != 'ref')) ? 'none' : ((isBacklinkOfSelected || isReferenceToSelected) ? 'block' : 'none'));
-		markerRightEl.css('background', isReferenceToSelected ? '#fff2bf' : '#b5f7c6');
-		markerRightEl.attr('title', isReferenceToSelected ? (doc.name + ' contains a reference to ' + selectedDocName) : ('Link from ' + doc.name + ' to ' + selectedDocName));
-
+		markerLeftEl.css('display', 'none');
+		markerRightEl.css('display', 'none');
+		
+		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
+			if (!isParentOfSelected) {
+				// Marker at the left for backlinks and and references
+				if (isBacklinkOfSelected) {
+					markerLeftEl.css('display', 'block');
+					markerLeftEl.css('background', '#b5f7c6');
+					markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
+				}
+				if (isReferenceToSelected) {
+					markerLeftEl.css('display', 'block');
+					markerLeftEl.css('background', '#fff2bf');
+					markerLeftEl.attr('title', doc.name + ' contains a reference to ' + selectedDocName);
+				}				
+			}
+			
+			// Markers at the right for children, outgoing links of the selected doc. and parent of the selected doc.
+			if (isParentOfSelected) {
+				markerRightEl.css('display', 'block');
+				markerRightEl.css('background', '#faacac');
+				markerRightEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
+			}
+	 		if (isChildOfSelected) {
+				markerRightEl.css('display', 'block');
+				markerRightEl.css('background', '#eeeeee');
+				markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
+			}
+			if (isOutgoinglinkOfSelected) {
+				markerRightEl.css('display', 'block');
+				markerRightEl.css('background', '#b5f7c6');
+				markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
+			}
+			
+			// Highlight last selected
+			const highlightColor = '#fada4d';
+			const highlightLeft = (!isParentOfSelected) && (doc._id == this.lastSelectedParent);
+			const highlightRight = highlightLeft;
+			markerLeftEl.css('border', highlightLeft ? ('2px solid ' + highlightColor) : '');
+			markerLeftEl.css('color', highlightLeft ? highlightColor : 'darkgrey');
+			if (highlightLeft) markerLeftEl.attr('title', markerLeftEl.attr('title') + ', last opened in navigation');
+			
+			markerRightEl.css('border', highlightRight ? ('2px solid ' + highlightColor) : '');
+			markerRightEl.css('color', highlightRight ? highlightColor : 'darkgrey');
+			if (highlightRight) markerRightEl.attr('title', markerRightEl.attr('title') + ', last opened in navigation');
+		}
+		
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
 		var iconEl = itemContent.find('.' + this.getIconClass());
 		iconEl.css('padding-right', (hasChildren || isAttachment || isReference) ? '10px' : '0');
@@ -1433,6 +1507,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableChildren = !!this.getChecked();
+									ClientState.getInstance().saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -1458,6 +1533,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableParents = !!this.getChecked();
+									ClientState.getInstance().saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -1481,6 +1557,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableLinks = !!this.getChecked();
+									ClientState.getInstance().saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -1506,6 +1583,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableBacklinks = !!this.getChecked();
+									ClientState.getInstance().saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -1531,6 +1609,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableRefs = !!this.getChecked();
+									ClientState.getInstance().saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -1570,6 +1649,8 @@ class DetailBehaviour {
 		}
 		
 		var old = this.selectedParent;
+		
+		this.lastSelectedParent = this.selectedParent;
 		
 		this.selectedParent = id;
 		this.grid.filter();
@@ -1709,6 +1790,15 @@ class DetailBehaviour {
 				this.selectParent(doc.parent);
 			}
 		} else {
+			if (this.mode == 'ref') {
+				var selectedDoc = Notes.getInstance().getData().getById(this.selectedParent);
+				if (selectedDoc && selectedDoc.parent && (selectedDoc.parent == data.id)) {
+					// Parent if selected: do not open, navigate back.
+					this.selectParent(data.id);
+					return;
+				}
+			}
+					
 			this.grid.setSelected(data.id);
 			this.grid.openNode(data.id); //this.mode == 'ref');
 		}

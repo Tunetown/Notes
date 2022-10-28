@@ -37,6 +37,11 @@
 	color: lightgreen;
 }
 
+.deprecated {
+	color: orange;
+	font-style: italic;
+}
+
 .doc-label {
 	text-align: center;	
 	border-radius: 100px;

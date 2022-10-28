@@ -199,8 +199,7 @@
 	width: 100%;
 	font-size: 10px;
 	text-align: center;
-	/*transform: translate(0, -50%);*/
-	color: darkgrey;
+	transform: translate(0, -50%);
 }
 
 .treesettingsinfo-detail {

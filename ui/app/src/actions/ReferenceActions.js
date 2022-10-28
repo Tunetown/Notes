@@ -27,7 +27,7 @@ class ReferenceActions {
 	}
 	
 	/**
-	 * Sets a new reference target. id must be a reference.
+	 * Sets (retargets) a new reference target. id must be a reference.
 	 */
 	setReference(id) {
 		var doc = Notes.getInstance().getData().getById(id);
@@ -251,7 +251,7 @@ class ReferenceActions {
 				});
 			});
 			
-			$('#createReferenceDialogText').text('Create reference to ' + doc.name + ' in:');
+			$('#createReferenceDialogText').html('Create reference to ' + doc.name + ' in: <span class="deprecated">References are deprecated, use in-document links instead</span>');
 			$('#createReferenceDialog').modal();
 		});
 	}	
