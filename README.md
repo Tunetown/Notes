@@ -71,6 +71,10 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
 - 0.93.0 
     - Internal links in documents: Rich text and Plain text (Code)
     - Renamed code editor to Plain Text
+    - Setting for item height in navigation
+    - Default editor is now Plain Text
+    - Raw JSON export: Better file name
+    - Added temporary warning to remove sheet documents in near future
 
 - 0.93.6
     - Bug fix: Sort modes were not stored properly before
@@ -78,4 +82,6 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Link auto completion
     - Visual Graph page
     - Linkage buttons now available to customize the relation between editor and navigation
+    - Custom search help proposals
+    - Option to convert references to links (see re-target option)
     
