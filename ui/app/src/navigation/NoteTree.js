@@ -630,32 +630,47 @@ class NoteTree {
 		var that = this;
 		$('#' + this.treeNavContainerId).append(
 			$('<div id="' + this.treeContainerId + '"></div>').append(
+				// Search bar
 				$('<div id="searchBarTree" class="searchBar searchBarTree"></div>').append(
-					$('<input type="text" id="treeSearch" placeholder="Type text to search..." />')
+					// Search input
+					$('<input autocomplete="off" type="text" id="treeSearch" placeholder="Type text to search..." />')
 					.on('focus', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						if (that.behaviour) that.behaviour.saveScrollPosition();
+						that.showSearchProposals(true);
 					})
 					.on('input', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						that.updateSearch();
+						that.showSearchProposals(that.getSearchText().length == 0);
+					})
+					.on('blur', function(event) {
+						event.stopPropagation();
+						setTimeout(function() {
+							that.showSearchProposals(false);
+						}, 250);  // This enables the proposals to be clicked before this removes the whole panel. Should be long enough for all devices.
 					})
 					.on('keydown', function(event) {
 						if(event.which == 27){
 							event.stopPropagation();
 							Notes.getInstance().hideOptions();
 							that.setSearchText('');
+							that.showSearchProposals(false);
 					    }
 					}),
 					
+					// Cancel button for search
 					$('<div id="searchCancelButton" class="searchCancelButton fa fa-times"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						that.setSearchText('');
-					})
+					}),
+					
+					// Search proposals
+					$('<div id="treeSearchProposals"></div>')
 				),
 				
 				$('<div id="favBar" class="favBar favBarTree"></div>'),
@@ -1296,6 +1311,8 @@ class NoteTree {
 			.then(function(resp) {
 				that.filter(true);
 				
+				ClientState.getInstance().addSearchProposal(text);
+					
 				return Promise.resolve({ ok: true });
 			});
 		} else {
@@ -1313,6 +1330,59 @@ class NoteTree {
 	 */
 	getSearchText() {
 		return $('#treeSearch').val();
+	}
+	
+	/**
+	 * Shows the search proposal screen.
+	 */
+	showSearchProposals(doShow) {
+		var cont = $('#treeSearchProposals');
+		cont.empty();
+		
+		var that = this;
+		if (doShow) {
+			// Build DOM for search proposals
+			const helpText =  
+				'All contents, document names and labels are searched by default. ' + 
+				'<br>' + 
+				'<ul>' + 
+					'<li>' +
+						'<b>name:[...]</b> only searches in document names' +  
+					'</li>' + 
+					'<li>' +
+						'<b>type:[...]</b> only searches in document types' +  
+					'</li>' + 
+					'<li>' +
+						'<b>label:[...]</b> only searches for documents with the corresponding label' +  
+					'</li>' + 
+				'</ul>'; 
+
+			cont.append(
+				$('<div class="treeSearchHelpItemPassive"></div>').html(helpText),
+				$('<div class="treeSearchHelpLine"></div>')
+			)
+			
+			var props = ClientState.getInstance().getSearchProposals();
+			for(var i in props) {
+				if (typeof props[i] != 'object') continue;
+				
+				cont.append(
+					$('<div class="treeSearchHelpItem" data-token="' + props[i].token + '"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						
+						console.log(3);
+						var token = $(this).data('token');
+						that.setSearchText(token);
+					})
+					.html(props[i].token)
+				);
+			}
+
+			cont.css('top', ($('#searchBarTree').height() + 12) + 'px');
+		}
+		
+		cont.css('display', doShow ? 'block' : 'none');
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

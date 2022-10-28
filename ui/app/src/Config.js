@@ -71,3 +71,8 @@ Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES = 500 * 1024;
  * Background color for graph view
  */
 Config.graphBackgroundColor = '#555';
+
+/**
+ * Properties for search in navigation
+ */
+Config.maxSearchProposals = 10;

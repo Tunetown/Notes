@@ -631,7 +631,7 @@ class DocumentActions {
 	 * Delete notes by IDs. This does not delete but just set a deleted flag. 
 	 * You have to call deleteItemPermanently to fully delete a note.
 	 */
-	deleteItems(ids) {
+	deleteItems(ids, noConfirm) {
 		var n = Notes.getInstance();
 		
 		var containedRefs = [];
@@ -684,12 +684,14 @@ class DocumentActions {
 		var addstr = children.length ? (' including ' + children.length + ' contained items') : '';
 		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
 		
-		if (!confirm("Really delete " + displayName + addstr + "?")) {
-			return Promise.reject({
-				abort: true,
-				message: "Action canceled.",
-				messageThreadId: 'DeleteMessages'
-			});
+		if (!noConfirm) {
+			if (!confirm("Really delete " + displayName + addstr + "?")) {
+				return Promise.reject({
+					abort: true,
+					message: "Action canceled.",
+					messageThreadId: 'DeleteMessages'
+				});
+			}
 		}
 		
 		// Merge all documents into docs
@@ -697,7 +699,6 @@ class DocumentActions {
 			docs.push(children[l]);
 		}
 		
-		var that = this;
 		return DocumentAccess.getInstance().loadDocuments(docs)
 		.then(function(/*resp*/) {
 			var ids = [];

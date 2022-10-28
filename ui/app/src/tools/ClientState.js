@@ -34,6 +34,7 @@ class ClientState {
 		this.cidFavorites = "fa";
 		this.cidGraphMeta = "gs";
 		this.cidLinkages = "li";
+		this.cidSearchProposals = "sp";
 	}
 	
 	/**
@@ -42,6 +43,85 @@ class ClientState {
 	static getInstance() {
 		if (!ClientState.instance) ClientState.instance = new ClientState();
 		return ClientState.instance;
+	}
+	
+	/**
+	 * Set a linkage mode for a given page.
+	 */
+	addSearchProposal(text) {
+		if (!text) return;
+		
+		var data = this.getLocal(this.cidSearchProposals, true);
+		if (!data) data = {};
+		if (!data.proposals) data.proposals = [];
+		
+		// Check if there is a prefix of the text already in the array, in this case replace the entry.
+		var found = false;
+		for(var i in data.proposals) {
+			// Repair damaged data
+			if (typeof data.proposals[i] != 'object') {
+				console.log('Repair search proposal: ' + data.proposals[i]);
+				data.proposals[i] = { 
+					token: data.proposals[i],
+					timestamp: Date.now() 
+				};
+			}
+			
+			if (text.startsWith(data.proposals[i].token)) {
+				// Extend the token and set on top
+				data.proposals[i].token = text;
+				data.proposals[i].timestamp = Date.now();
+				found = true;
+			} else if (data.proposals[i].token.startsWith(text)) {
+				// Set the token on top
+				data.proposals[i].timestamp = Date.now();
+				found = true;
+			}
+		}
+		
+		// If not found, add new token
+		if (!found) {
+			data.proposals.push({
+				token: text,
+				timestamp: Date.now()
+			})
+		}
+		
+		// Sort by timestamp descending
+		data.proposals.sort(function(a, b) {
+			return b.timestamp - a.timestamp;
+		});
+		
+		// Shorten if too much entries
+		while (data.proposals.length > Config.maxSearchProposals) {
+			data.proposals.pop();
+		}
+		
+		this.setLocal(this.cidSearchProposals, {
+			proposals: data.proposals
+		}, true);
+	}
+	
+	/**
+	 * Returns the linkage mode for a given page ID, or false if not found.
+	 */
+	getSearchProposals() {
+		var data = this.getLocal(this.cidSearchProposals, true);
+		if (!data) return [];
+		if (!data.proposals) return [];
+		
+		// Repair damaged data
+		for(var i in data.proposals) {
+			if (typeof data.proposals[i] != 'object') {
+				console.log('Repair search proposal: ' + data.proposals[i]);
+				data.proposals[i] = { 
+					token: data.proposals[i],
+					timestamp: Date.now() 
+				};
+			}
+		}
+		
+		return data.proposals;
 	}
 	
 	/**

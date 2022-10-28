@@ -49,8 +49,32 @@ class ReferenceActions {
 		var selector = Notes.getInstance().getMoveTargetSelector(existingRefs, true);
 		selector.val(doc.ref);
 		
+		var refDoc = Notes.getInstance().getData().getById(doc.ref);
+		var parentDoc = Notes.getInstance().getData().getById(doc.parent);
+		
+		var that = this;
 		$('#moveTargetSelectorList').empty();
-		$('#moveTargetSelectorList').append(selector);
+		$('#moveTargetSelectorList').append(
+			selector,
+			!parentDoc ? null : $('<hr>'),
+			!parentDoc ? null : $('<div class="deprecated"></div>').html('References are deprecated. You can convert this reference to an in-document link here:'),
+			!parentDoc ? null : $('<br>'),
+			!parentDoc ? null : $('<button></button>').text('Convert to link...')
+			.on('click', function(event) {
+				that.convertRefToLink(doc, refDoc, parentDoc)
+				.then(function(ret) {
+					$('#moveTargetSelector').off('hidden.bs.modal');
+		        	$('#moveTargetSelector').modal('hide');
+
+					if (ret && ret.message) {
+						Notes.getInstance().showAlert(ret.message, 'S');
+					}
+				})
+				.catch(function(err) {
+					if (err && err.message) alert(err.message);
+				});
+			})
+		);
 
 		// Enable searching by text entry
 		selector.selectize({
@@ -118,6 +142,72 @@ class ReferenceActions {
 			$('#moveTargetSelectorText').text('Point ' + doc.name + ' to:');
 			$('#moveTargetSelector').modal();
 		});
+	}
+	
+	/**
+	 * Convert reference to link. Returns if successful.
+	 */
+	convertRefToLink(referenceDoc, referencedDoc, parentDoc) {
+		if (!referencedDoc) {
+			return Promise.reject({
+				message: 'The referenced document (ID: ' + + referenceDoc.ref + ') does not exist.',
+				messageThreadId: 'SetRefMessages' 
+			});
+		}
+
+		if (!confirm('Do you want convert ' + referenceDoc.name + ' to a link?\n\n- The reference ' + referenceDoc.name + ' will be deleted\n- A link to ' + referencedDoc.name + ' will be inserted at the beginning of ' + parentDoc.name)) {
+			return Promise.reject();
+		}
+		
+		if (parentDoc.type != 'note') {
+			return Promise.reject({
+				message: 'The parent document of this reference (ID: ' + parentDoc.name + ') must be a textual note, but is of type ' + parentDoc.type + '. Conversion not possible.',
+				messageThreadId: 'SetRefMessages' 
+			});
+		}
+		
+		if ((parentDoc.editor != 'code') && (parentDoc.editor != 'richtext')) {
+			return Promise.reject({
+				message: 'The parent document of this reference (ID: ' + parentDoc.name + ') has an invalid editor mode: ' + parentDoc.editor + '. Conversion not possible.',
+				messageThreadId: 'SetRefMessages' 
+			});
+		}
+
+		/**
+		 * Returns the content added to the parent at top.
+		 */
+		function getLinkText() {
+			if (parentDoc.editor == 'code') {
+				return Document.composeLinkToDoc(referencedDoc) + '\n\n';
+			}
+			if (parentDoc.editor == 'richtext') {
+				return '<p>' + Document.composeLinkToDoc(referencedDoc) + '</p>';
+			}
+			return '';
+		}
+		
+		return DocumentAccess.getInstance().loadDocuments([referenceDoc, parentDoc])
+    	.then(function(/*data*/) {
+			return DocumentActions.getInstance().save(parentDoc._id, getLinkText() + parentDoc.content);
+		})
+		.then(function(/*data*/) {
+			return DocumentActions.getInstance().deleteItems([referenceDoc._id], true);
+		})
+		.then(function(/*data*/) {
+			if (Notes.getInstance().getCurrentlyShownId() == parentDoc._id) {
+				// Refresh Editor as well
+				Notes.getInstance().routing.call(parentDoc._id);
+			}
+			
+			return TreeActions.getInstance().requestTree();
+		})
+		.then(function(/*data*/) {
+			return Promise.resolve({
+				ok: true,
+				message: 'Successfully converted reference' + referenceDoc.name,
+				messageThreadId: 'SetRefMessages'
+			});
+    	});
 	}
 
 	/**

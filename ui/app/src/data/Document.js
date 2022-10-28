@@ -562,6 +562,14 @@ class Document {
 	} 
 	
 	/**
+	 * Returns a link to the document as string with [[]] syntax.
+	 */
+	static composeLinkToDoc(doc) {
+		if (!doc) return '';
+		return Linkage.composeLink(doc._id, doc.name ? doc.name : null);
+	}
+	
+	/**
 	 * Returns the links array from the given documents content
 	 */
 	static getLinksFromContent(doc) {
