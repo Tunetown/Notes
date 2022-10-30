@@ -648,9 +648,9 @@ class NoteTree {
 					})
 					.on('blur', function(event) {
 						event.stopPropagation();
-						setTimeout(function() {
+						if ($('#treeSearchProposals:hover').length == 0) {
 							that.showSearchProposals(false);
-						}, 250);  // This enables the proposals to be clicked before this removes the whole panel. Should be long enough for all devices.
+						}
 					})
 					.on('keydown', function(event) {
 						if(event.which == 27){
@@ -1373,6 +1373,7 @@ class NoteTree {
 						
 						var token = $(this).data('token');
 						that.setSearchText(token);
+						that.showSearchProposals(false);
 					})
 					.html(props[i].token)
 				);

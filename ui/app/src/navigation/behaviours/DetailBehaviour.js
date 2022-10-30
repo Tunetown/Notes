@@ -359,6 +359,8 @@ class DetailBehaviour {
 	 * Toggles selection for the given ID. Returns the new state.
 	 */
 	toggleSelected(id) {
+		if (!id) return;
+		
 		var input = $('.' + this.getSelectorInputClass() + '[data-id=' + id + ']');
 		if (!input) return;
 		

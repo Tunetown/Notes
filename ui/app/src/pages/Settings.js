@@ -267,10 +267,10 @@ class Settings {
 								.on('click', function(event) {
 									event.stopPropagation();
 									
-									var setting = prompt('URL to a notebook:');
+									var d = Database.getInstance();
+									var setting = prompt('URL to a notebook:', that.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
 									if (!setting) return;
 									
-									var d = Database.getInstance();
 									var n = Notes.getInstance();
 									
 									try {
@@ -1149,6 +1149,15 @@ class Settings {
 				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 			});
 		}
+	}
+	
+	/**
+	 * Removes the database name from an url.
+	 */
+	getDatabaseUrlProposal(url) {
+		if (url == 'local') return '';
+		
+		return url.split('/').slice(0, -1).join('/') + '/';
 	}
 	
 	/**
