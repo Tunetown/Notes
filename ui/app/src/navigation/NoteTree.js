@@ -918,6 +918,11 @@ class NoteTree {
 		ClientState.getInstance().setLinkageMode('nav', this.linkToEditor);			
 		
 		this.updateLinkageButtons();
+		
+		if (this.linkToEditor == 'on') {
+			var id = Notes.getInstance().getCurrentlyShownId();
+			if (id) this.editorOpened(id);	
+		}
 	}
 	
 	updateLinkageButtons() {
