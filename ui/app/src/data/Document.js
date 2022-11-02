@@ -403,7 +403,7 @@ class Document {
 		// Linkages
 		if (doc.type == 'note') {
 			if (cl.hasOwnProperty('links')) {
-				if (!doc.hasOwnProperty('links')) {
+				if ((!doc.hasOwnProperty('links')) || (!doc.links)) {
 					errors.push({
 						message: 'Links buffer does not exist',
 						id: doc._id,
