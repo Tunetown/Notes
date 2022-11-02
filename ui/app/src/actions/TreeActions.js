@@ -65,6 +65,8 @@ class TreeActions {
 				// Use fallback method (slow)
 				return that.requestTreeFallback();
 			}
+			
+			return Promise.reject(err);
 		});
 	}
 	

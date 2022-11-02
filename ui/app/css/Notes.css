@@ -151,9 +151,8 @@ article {
 	margin: 5px;
 }
 
-.linkButtonActive {
-	background: #c40cf7;
-	color: white;
+.editorLinkButton:hover {
+	background: lightgrey !important;
 }
 
 .roundedButton {

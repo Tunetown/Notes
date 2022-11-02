@@ -68,8 +68,19 @@ class Data {
 		var rootChildren = this.getChildren();
 		this.pHasConflicts = false;
 		
+		// Disable root conflict checks for large notebooks.
+		var checkRootConflicts = true;
+		if (this.data.size > Config.dontCheckConflictsGloballyBeyondNumRecords) {
+			console.log('WARNING: No global conflict checks, too much data!');
+			
+			Notes.getInstance().showAlert('The notebook has become very large (' + this.data.size + ' documents). Consider splitting the notebook soon! <br>Some functionality will be disabled.', 'W');
+			
+			checkRootConflicts = false;
+		}
+		
+		// Meta data scan
 		for (var i in rootChildren) {
-			if (!this.pHasConflicts && this.hasConflicts(rootChildren[i]._id, true)) {
+			if (checkRootConflicts && (!this.pHasConflicts) && this.hasConflicts(rootChildren[i]._id, true)) {
 				this.pHasConflicts = true;
 			}
 			
@@ -161,6 +172,7 @@ class Data {
 	containsReferenceTo(doc, targetDoc) {
 		if (!doc) return false;
 		if (!targetDoc) return false;
+
 		var children = this.getChildren(doc._id);
 		
 		for(var c=0; c<children.length; ++c) {
@@ -405,14 +417,19 @@ class Data {
 	 * Returns all direct children of the passed doc ID, as array of documents, unsorted.
 	 */
 	getChildren(id, deep) {
-		if (!id) id = "";
+		var docOrig = null;
 		
-		var docOrig = this.getById(id);
-		if (!docOrig) return [];
-		if (deep) {
-			if (docOrig.childrenDeep) return docOrig.childrenDeep;
+		if (!id) {
+			id = "";
 		} else {
-			if (docOrig.children) return docOrig.children;
+			docOrig = this.getById(id);
+			
+			if (!docOrig) return [];
+			if (deep) {
+				if (docOrig.childrenDeep) return docOrig.childrenDeep;
+			} else {
+				if (docOrig.children) return docOrig.children;
+			}
 		}
 		
 		var ret = [];
@@ -436,10 +453,12 @@ class Data {
 			ret = ret2;
 		}
 		
-		if (deep) {
-			docOrig.childrenDeep = ret;
-		} else {
-			docOrig.children = ret;
+		if (docOrig) {
+			if (deep) {
+				docOrig.childrenDeep = ret;
+			} else {
+				docOrig.children = ret;
+			}
 		}
 
 		return ret;

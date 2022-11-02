@@ -1206,7 +1206,7 @@ class Notes {
 		
 		var doc = this.getData().getById(id);
 		if (!doc) return null;
-		
+
 		if (this.currentMoveTargetId == id) return;
 
 		$('#headerMoveSelectorContainer').empty();
@@ -1981,7 +1981,7 @@ class Notes {
 					}),
 					
 				// Delete favorite entry
-				$('<label id="contextOptionDeleteFavorite" data-toggle="tooltip" title="Delete entry" class="fa fa-times treebutton roundedButton contextOptionDeleteFavorite"></div>')
+				$('<label id="contextOptionDeleteFavorite" data-toggle="tooltip" title="Remove from favorites bar" class="fa fa-times treebutton roundedButton contextOptionDeleteFavorite"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						that.hideOptions();

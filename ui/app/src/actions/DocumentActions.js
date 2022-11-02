@@ -582,7 +582,7 @@ class DocumentActions {
 			Document.checkLinkages(data, null, brokenLinkErrors, true);
 			reloadTree = (brokenLinkErrors.length > 0);
 			
-			return DocumentAccess.getInstance().saveItem(id);
+			return DocumentAccess.getInstance().saveItem(id, true);
 		})
 		.then(function (dataResp) {
 			if (!dataResp.abort) {

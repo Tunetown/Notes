@@ -295,7 +295,7 @@ class DocumentAccess {
 	/**
 	 * Generic function to save an existing document on DB.
 	 */
-	saveItem(id) {
+	saveItem(id, dontResetChildrenBuffers) {
 		if (!id) return Promise.reject({
 			message: 'No ID passed',
 			messageThreadId: 'SaveItemMessages'
@@ -310,7 +310,7 @@ class DocumentAccess {
 		});
 		
 		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		if (!dontResetChildrenBuffers) n.getData().resetChildrenBuffers();
 		
 		return Database.getInstance().get()
 		.then(function(db) {

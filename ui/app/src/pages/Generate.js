@@ -438,6 +438,8 @@ class Generate {
 	#createRandomReferences(docs, options) {
 		if (options.randomReferencesDensity > 0) {
 			for(var i in docs) {
+				if (docs[i].type == 'reference') continue;
+				
 				if (Math.random() < options.randomReferencesDensity) {
 					this.#createReferencesFor(docs[i], docs, options);
 				}

@@ -209,7 +209,7 @@ class Settings {
 								.on('change', function(event) {
 									var url = this.value;
 									if (url == "new") {
-										url = prompt("URL to the CouchDB database: ", "https://");
+										url = prompt("URL to the CouchDB database: ", that.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url)); 
 										if (!url || url == "new") return;
 									}
 									
@@ -263,12 +263,12 @@ class Settings {
 							$('<td>Notebook</td>'),
 							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
 
-								$('<button class="btn btn-secondary settings-button">Open Notebook</button>')
+								$('<button class="btn btn-secondary settings-button">Open Notebook by App Link</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									
 									var d = Database.getInstance();
-									var setting = prompt('URL to a notebook:', that.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
+									var setting = prompt('URL to a notebook:'); 
 									if (!setting) return;
 									
 									var n = Notes.getInstance();

@@ -83,7 +83,7 @@
 }
 
 .treeModeSwitchbutton:hover {
-	background-color: lightgrey;
+	background-color: lightgrey !important;
 }
 
 #treeRootTopSwitchContainer {
