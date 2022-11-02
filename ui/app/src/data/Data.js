@@ -356,7 +356,7 @@ class Data {
 	}
 	
 	/**
-	 * Returns the latest document inside the given doc.
+	 * Returns the last changed document inside the hierarchical children of the given doc.
 	 */
 	getLatest(doc) {
 		if (doc.latestDoc) return doc.latestDoc;
@@ -392,10 +392,28 @@ class Data {
 	}
 	
 	/**
+	 * Reset all children buffers.
+	 */
+	resetChildrenBuffers() {
+		this.each(function(doc) {
+			delete doc.children;
+			delete doc.childrenDeep;
+		});
+	}
+	
+	/**
 	 * Returns all direct children of the passed doc ID, as array of documents, unsorted.
 	 */
 	getChildren(id, deep) {
 		if (!id) id = "";
+		
+		var docOrig = this.getById(id);
+		if (!docOrig) return [];
+		if (deep) {
+			if (docOrig.childrenDeep) return docOrig.childrenDeep;
+		} else {
+			if (docOrig.children) return docOrig.children;
+		}
 		
 		var ret = [];
 		for(var [key, doc] of this.data) {
@@ -416,6 +434,12 @@ class Data {
 				}
 			}
 			ret = ret2;
+		}
+		
+		if (deep) {
+			docOrig.childrenDeep = ret;
+		} else {
+			docOrig.children = ret;
 		}
 
 		return ret;
@@ -740,10 +764,23 @@ class Data {
 	}
 	
 	/**
+	 * Reset all backlink buffers.
+	 */
+	resetBacklinks() {
+		this.each(function(doc) {
+			delete doc.backlinks;
+		});
+	}
+	
+	/**
 	 * Returns all backlings of a document as array of meta objects.
 	 */
 	getBacklinks(doc) {
 		if (!doc) return [];
+		
+		if (doc.backlinks) {
+			return doc.backlinks;
+		}
 		
 		var ret = [];
 		var that = this;
@@ -756,6 +793,9 @@ class Data {
 				});
 			}
 		});
+		
+		doc.backlinks = ret;
+		
 		return ret;
 	}
 	

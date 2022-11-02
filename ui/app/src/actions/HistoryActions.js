@@ -43,9 +43,9 @@ class HistoryActions {
 	}
 	
 	/**
-	 * Request to view a note history version
+	 * Request to view a note history version.
 	 */
-	requestVersion(id, name) { 
+	requestVersion(id, name, callDirectly) { 
 		var db;
 		var doc;
 		
@@ -62,8 +62,15 @@ class HistoryActions {
 			return new Promise(function(resolve, reject) {
 				var reader = new FileReader();
 				reader.onload = function() {
-					// Load data into the version viewer
-					VersionView.getInstance().load(id, name, reader.result, doc);
+					if (callDirectly) {
+						// Directly call the editor in version restore mode.
+						Document.setRestoreData(id, reader.result);
+						
+						Notes.getInstance().routing.call(id);						
+					} else {
+						// Load data into the version viewer
+						VersionView.getInstance().load(id, name, reader.result, doc);
+					}
 					
 					resolve({
 						ok: true

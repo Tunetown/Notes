@@ -216,7 +216,9 @@ class DocumentActions {
 		refSelector.val('');
 		
 		var typeSelector = Document.getAvailableTypeSelect('createTypeInput');
-		
+
+		n.getData().resetChildrenBuffers();
+
 		var type;
 		var name;
 		var refTarget;
@@ -224,7 +226,6 @@ class DocumentActions {
 		var newIds = [];
 		var docs = [];
 		var db;
-		//var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#selectTypeContainer').empty();
 			$('#selectTypeContainer').append(
@@ -285,7 +286,7 @@ class DocumentActions {
 			//$('#createWarnText').html('Name already exists');
 			
 			$('#createNameInput').off('input');
-			$('#createNameInput').on('input', function(e) {
+			$('#createNameInput').on('input', function(/*e*/) {
 				// Warning disabled as we can have identical names since long time.
 				/*var val = $(this).val();
 				
@@ -312,12 +313,12 @@ class DocumentActions {
 			}
 			
 			$('#createDialog').off('shown.bs.modal');
-			$('#createDialog').on('shown.bs.modal', function (e) {
+			$('#createDialog').on('shown.bs.modal', function (/*e*/) {
 				$('#createNameInput').focus();
 				$(document).keypress(createKeyPressed);
 			});
 			$('#createDialog').off('hidden.bs.modal');
-			$('#createDialog').on('hidden.bs.modal', function (e) {
+			$('#createDialog').on('hidden.bs.modal', function (/*e*/) {
 				$(document).unbind('keypress', createKeyPressed);
 				reject({
 					abort: true,
@@ -634,7 +635,7 @@ class DocumentActions {
 	deleteItems(ids, noConfirm) {
 		var n = Notes.getInstance();
 		
-		var containedRefs = [];
+		// Collect docs and children
 		var docs = [];
 		var children = [];
 		for(var i in ids) {
@@ -645,10 +646,11 @@ class DocumentActions {
 			});
 			docs.push(doc);
 
-			var crefs = n.getData().getReferencesTo(doc._id);
+			/*var crefs = n.getData().getReferencesTo(doc._id);
 			for(var o in crefs || []) {
-				containedRefs.push(crefs[o]);
-			}
+				//containedRefs.push(crefs[o]);
+				addContainedRef(crefs[o]);
+			}*/
 			
 			// Unload editor if the item is opened somewhere
 			var e = Document.getDocumentEditor(doc);
@@ -660,20 +662,52 @@ class DocumentActions {
 			for(var c in docChildren) {
 				children.push(docChildren[c]);
 				
-				var crefs = n.getData().getReferencesTo(docChildren[c]._id);
+				/*var crefs = n.getData().getReferencesTo(docChildren[c]._id);
 				for(var o in crefs || []) {
-					containedRefs.push(crefs[o]);
-				}
+					addContainedRef(crefs[o]);
+					//containedRefs.push(crefs[o]);
+				}*/
 			}
 		}
 		
+		// Check references
+		var containedRefs = [];
+		
+		function addContainedRef(refDoc) {
+			for(var i in docs) {
+				if (docs[i]._id == refDoc._id) {
+					return;
+				}
+			}
+			for(var i in children) {
+				if (children[i]._id == refDoc._id) {
+					return;
+				}
+			}
+			containedRefs.push(refDoc);
+		}
+		
+		for(var i in docs) {
+			var doc = docs[i];
+			var crefs = n.getData().getReferencesTo(doc._id);
+			for(var o in crefs || []) {
+				addContainedRef(crefs[o]);
+			}
+		}
+
+		for(var c in children) {
+			var crefs = n.getData().getReferencesTo(children[c]._id);
+			for(var o in crefs || []) {
+				addContainedRef(crefs[o]);
+				//containedRefs.push(crefs[o]);
+			}
+		}
+
 		if (containedRefs.length) { 
 			var str = '';
 			for(var o in containedRefs) {
 				str += n.getData().getReadablePath(containedRefs[o]._id) + '\n';
 			}
-			
-			//alert('The following references still point to the item(s) to be deleted, please delete them first: \n\n' + str);
 			
 			return Promise.reject({
 				message: 'The following references still point to the item(s) to be deleted, please delete them first: <br><br>' + str,
@@ -745,7 +779,6 @@ class DocumentActions {
 			});
 		}
 
-		var that = this;
 		return DocumentAccess.getInstance().loadDocuments([doc])
 		.then(function(/*resp*/) {
 			Document.addChangeLogEntry(doc, 'renamed', {
@@ -784,6 +817,9 @@ class DocumentActions {
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'CopyMessages'
 		});
+		
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
 		
 		var db;
 		var newDoc;
@@ -1124,6 +1160,9 @@ class DocumentActions {
 		
 		var n = Notes.getInstance();
 		
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
+		
 		var doc = null;
 		var that = this;
 		return Database.getInstance().get()
@@ -1217,6 +1256,9 @@ class DocumentActions {
 		
 		var db;
 		var doc;
+		
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
 		
 		return Database.getInstance().get()
 		.then(function(dbRef) {

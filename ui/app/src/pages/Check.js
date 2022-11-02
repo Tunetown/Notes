@@ -226,7 +226,7 @@ class Check {
 				
 				$('#checkButton_' + check.name).css('display', 'block');
 				$('#listButton_' + check.name).css('display', (messages && messages.length) ? 'block' : 'none');
-				$('#solveButton_' + check.name).css('display', check.solver ? 'block' : 'none');
+				$('#solveButton_' + check.name).css('display', 'block'); //check.solver ? 'block' : 'none');
 				
 				that.checks.get(check.name).messages = messages;
 				
@@ -430,7 +430,7 @@ class Check {
 	 */
 	getSolveOption(check) {
 		var that = this;
-		if (!check.solver) return null;
+		//if (!check.solver) return null;
 		
 		return $('<div data-toggle="tooltip" title="Solve problems" class="fa fa-syringe versionButton" style="display: none;" id="solveButton_' + check.name + '"/>')
 		.on('click', function(e) {
@@ -441,10 +441,41 @@ class Check {
 	}
 	
 	/**
-	 * Call the check's solver
+	 * Solve problems.
 	 */
 	solve(check) {
-		if (!check.solver) return;
+		// Global solver, if any
+		if (check.solver) return this.solveGlobal(check);
+		
+		if (!confirm('Try to solve problems?\n\n')) return Promise.reject();
+		
+		// Run individula solvers
+		console.log('Running individual solvers for check ' + check.description);
+		
+		var promises = [];
+		for(var m in check.messages) {
+			promises.push(DocumentChecks.getInstance().solveDocumentErrors([check.messages[m]]));
+		}
+		
+		return Promise.all(promises) 
+		.then(function() {
+			return TreeActions.getInstance().requestTree();
+		})
+		.then(function() {
+			Notes.getInstance().showAlert('Solved ' + promises.length + ' problems.', 'I');
+		})
+		.catch(function(err) {
+			Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Call the check's solver
+	 */
+	solveGlobal(check) {
+		if (!check.solver) return Promise.reject();
+		
+		console.log('Running global solver for check ' + check.description);
 		
 		var ids = [];
 		for(var m in check.messages) {
@@ -459,23 +490,23 @@ class Check {
 
 		if (ids.length == 0) {
 			Notes.getInstance().showAlert('No documents to solve.');
-			return;
+			return Promise.resolve();
 		}
 		
 		var docsList = '';
 		for(var i in ids) {
 			docsList += ids[i] + '\n';
 		}
-		if (!confirm('Try to solve problems with ' + ids.length + ' documents?\n\n' + docsList)) return;
+		if (!confirm('Try to solve problems with ' + ids.length + ' documents?\n\n' + docsList)) return Promise.reject();
 		
 		var that = this;
-		check.solver(ids, check.messages)
+		return check.solver(ids, check.messages)
 		.then(function(data) {
 			Notes.getInstance().showAlert((data && data.message) ? data.message : 'Solving finished.', 'S');
 			if (data.dontRunCheck) return Promise.resolve();
 			return that.runCheck(check);
 		})
-		.then(function(data) {
+		.then(function() {
 			return TreeActions.getInstance().requestTree();
 		})
 		.catch(function(err) {

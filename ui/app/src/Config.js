@@ -76,3 +76,11 @@ Config.graphBackgroundColor = '#555';
  * Properties for search in navigation
  */
 Config.maxSearchProposals = 10;
+
+/**
+ * Version options
+ */
+Config.versionRestoreImmediately = true;     // When selecting a version in history view, immediately load it into the editor if the editor supports restoring versions.
+
+
+

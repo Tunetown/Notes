@@ -335,7 +335,9 @@ class DocumentChecks {
 					}
 				}
 				
-				that.checkHasRoot(allDocs.rows, doc, errors, doc._id);
+				if (!doc.deleted) {
+					that.checkHasRoot(allDocs.rows, doc, errors, doc._id);
+				}
 			}
 			
 			var ok = errors.length == 0;
@@ -408,6 +410,8 @@ class DocumentChecks {
 		}
 		
 		for(var i in docs) {
+			if (docs[i].doc.deleted) continue;
+			
 			if (docs[i].doc._id == doc.parent) {
 				return this.checkHasRoot(docs, docs[i].doc, errors, docId);
 			}
@@ -417,7 +421,12 @@ class DocumentChecks {
 			message: 'Document has no root: (lost at ' + doc._id + ')',
 			messageThreadId: 'CheckHasRootMessages',
 			id: docId,
-			type: 'E'
+			type: 'E',
+			solverReceipt: [{
+				action: 'setProperty',
+				propertyName: 'parent',
+				propertyValue: ''
+			}]
 		});
 		
 		return false;

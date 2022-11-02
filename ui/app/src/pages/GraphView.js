@@ -76,6 +76,12 @@ class GraphView {
 		d.each(function(doc) {
 			docs.push(doc);
 		});
+		
+		if (docs.length > 1000) {
+			if (!confirm('The graph will contain ' + docs.length + ' documents, this migh be slow. Continue?')) {
+				return;
+			}
+		}
 			
 		this.graph.addDocuments(docs);
 	}

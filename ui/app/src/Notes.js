@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.93.7';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.93.8';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -629,12 +629,24 @@ class Notes {
 	}
 
 	/**
+	 * Returns if the current editor is in restore mode.
+	 */
+	editorInRestoreMode() {
+		var e = this.getCurrentEditor();
+		if (!e) return false;
+		
+		if (typeof e.getRestoreMode != 'function') return false;
+		
+		return e.getRestoreMode();
+	}
+
+	/**
 	 * Resets the page content elements.
 	 */
 	resetPage(treePage) {
 		var e = this.getCurrentEditor();
 		if (e) {
-			if (e.isDirty()) {
+			if (e.isDirty() && (!this.editorInRestoreMode())) {
 				var that = this;
 				DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
 				.then(function(data) {
@@ -1247,7 +1259,7 @@ class Notes {
 
 		var that = this;
 		this.getData().each(function(d) {
-			for(var e in excludeIds) {
+			for(var e in excludeIds || []) {
 				if (that.getData().isChildOf(d._id, excludeIds[e])) return;
 			}
 			
@@ -1332,6 +1344,8 @@ class Notes {
 		
 		// Add custom buttons.
 		for(var i in arr || []) {
+			if (!arr[i]) continue;
+			
 			$('#headerRight').append(
 				this.setHeaderButtonSize(arr[i].addClass("headerButton"), size)
 			);

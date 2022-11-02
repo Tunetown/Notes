@@ -85,4 +85,8 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Custom search help proposals
     - Option to convert references to links (see re-target option)
     - Small improvements in the Settings dialog
+    - Select all option
+    - Runtime optimizations (added Document generator for testing)
+    - Version restore now more convenient
+    
     

@@ -804,7 +804,7 @@ function Neo4jD3(_selector, _options) {
 			});*/
 	
             node.attr('transform', function(d) {
-                return 'translate(' + d.x + ', ' + d.y + ')';
+                return 'translate(' + Math.floor(d.x) + ', ' + Math.floor(d.y) + ')';
             });
         }
     }
@@ -862,17 +862,17 @@ function Neo4jD3(_selector, _options) {
                     rotatedPointF2 = rotatePoint(center, { x: d.target.x - d.source.x - (nodeRad + 1) * u.x - u.x * options.arrowSize, y: d.target.y - d.source.y - (nodeRad + 1) * u.y - u.y * options.arrowSize }, angle),
                     rotatedPointG2 = rotatePoint(center, { x: d.target.x - d.source.x - textMargin.x, y: d.target.y - d.source.y - textMargin.y }, angle);
 
-                return 'M ' + rotatedPointA1.x + ' ' + rotatedPointA1.y +
-                       ' L ' + rotatedPointB1.x + ' ' + rotatedPointB1.y +
-                       ' L ' + rotatedPointC1.x + ' ' + rotatedPointC1.y +
-                       ' L ' + rotatedPointD1.x + ' ' + rotatedPointD1.y +
-                       ' Z M ' + rotatedPointA2.x + ' ' + rotatedPointA2.y +
-                       ' L ' + rotatedPointB2.x + ' ' + rotatedPointB2.y +
-                       ' L ' + rotatedPointC2.x + ' ' + rotatedPointC2.y +
-                       ' L ' + rotatedPointD2.x + ' ' + rotatedPointD2.y +
-                       ' L ' + rotatedPointE2.x + ' ' + rotatedPointE2.y +
-                       ' L ' + rotatedPointF2.x + ' ' + rotatedPointF2.y +
-                       ' L ' + rotatedPointG2.x + ' ' + rotatedPointG2.y +
+                return 'M ' + Math.floor(rotatedPointA1.x) + ' ' + Math.floor(rotatedPointA1.y) +
+                       ' L ' + Math.floor(rotatedPointB1.x) + ' ' + Math.floor(rotatedPointB1.y) +
+                       ' L ' + Math.floor(rotatedPointC1.x) + ' ' + Math.floor(rotatedPointC1.y) +
+                       ' L ' + Math.floor(rotatedPointD1.x) + ' ' + Math.floor(rotatedPointD1.y) +
+                       ' Z M ' + Math.floor(rotatedPointA2.x) + ' ' + Math.floor(rotatedPointA2.y) +
+                       ' L ' + Math.floor(rotatedPointB2.x) + ' ' + Math.floor(rotatedPointB2.y) +
+                       ' L ' + Math.floor(rotatedPointC2.x) + ' ' + Math.floor(rotatedPointC2.y) +
+                       ' L ' + Math.floor(rotatedPointD2.x) + ' ' + Math.floor(rotatedPointD2.y) +
+                       ' L ' + Math.floor(rotatedPointE2.x) + ' ' + Math.floor(rotatedPointE2.y) +
+                       ' L ' + Math.floor(rotatedPointF2.x) + ' ' + Math.floor(rotatedPointF2.y) +
+                       ' L ' + Math.floor(rotatedPointG2.x) + ' ' + Math.floor(rotatedPointG2.y) +
                        ' Z';
             });
         });
@@ -889,10 +889,10 @@ function Neo4jD3(_selector, _options) {
                 rotatedPointC = rotatePoint(center, { x: d.target.x - d.source.x + n.x - n1.x, y: d.target.y - d.source.y + n.y - n1.y }, angle),
                 rotatedPointD = rotatePoint(center, { x: 0 + n.x - n1.x, y: 0 + n.y - n1.y }, angle);
 
-            return 'M ' + rotatedPointA.x + ' ' + rotatedPointA.y +
-                   ' L ' + rotatedPointB.x + ' ' + rotatedPointB.y +
-                   ' L ' + rotatedPointC.x + ' ' + rotatedPointC.y +
-                   ' L ' + rotatedPointD.x + ' ' + rotatedPointD.y +
+            return 'M ' + Math.floor(rotatedPointA.x) + ' ' + Math.floor(rotatedPointA.y) +
+                   ' L ' + Math.floor(rotatedPointB.x) + ' ' + Math.floor(rotatedPointB.y) +
+                   ' L ' + Math.floor(rotatedPointC.x) + ' ' + Math.floor(rotatedPointC.y) +
+                   ' L ' + Math.floor(rotatedPointD.x) + ' ' + Math.floor(rotatedPointD.y) +
                    ' Z';
         });
     }

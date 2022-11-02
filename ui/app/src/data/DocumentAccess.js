@@ -238,6 +238,10 @@ class DocumentAccess {
 	 * Deletion of raw documents (for check solvers)
 	 */
 	deleteDbDocument(id) {
+		var n = Notes.getInstance();
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
+		
 		var db;
 		return Database.getInstance().get()
 		.then(function(dbRef) {
@@ -266,6 +270,10 @@ class DocumentAccess {
 	 * Save raw document (for check solvers)
 	 */
 	saveDbDocument(doc) {
+		var n = Notes.getInstance();
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
+		
 		var db;
 		return Database.getInstance().get()
 		.then(function(dbRef) {
@@ -300,6 +308,9 @@ class DocumentAccess {
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveItemMessages'
 		});
+		
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
 		
 		return Database.getInstance().get()
 		.then(function(db) {
@@ -338,6 +349,9 @@ class DocumentAccess {
 			messageThreadId: 'SaveItemsMessages'
 		});
 		var n = Notes.getInstance();
+			
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
 			
 		// Remove duplicates
 		ids = Tools.removeDuplicates(ids);

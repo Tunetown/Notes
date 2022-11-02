@@ -86,7 +86,11 @@ class Versions {
 						
 						var v = Versions.getInstance();
 						
-						Notes.getInstance().routing.call("history/" + v.currentId + "/" + name);
+						if (Config.versionRestoreImmediately && Document.canRestore(v.currentId)) {
+							HistoryActions.getInstance().requestVersion(v.currentId, name, true);
+						} else {
+							Notes.getInstance().routing.call("history/" + v.currentId + "/" + name);
+						}
 					}),
 					$('<div data-toggle="tooltip" title="Delete Version" class="fa fa-trash versionButton" id="vref_' + attachments[i].name + '"/>')
 					.on('click', function(e) {

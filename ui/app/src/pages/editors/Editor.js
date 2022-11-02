@@ -147,11 +147,13 @@ class Editor {
 
 		// Build buttons
 		if (this.versionRestoreData) {
+			this.versionRestoreMode = true;
 			n.setButtons([ 
 				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Editor.getInstance().saveNote();"></div>'),
 				$('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" id="discardButton" class="fa fa-times" onclick="event.stopPropagation();Editor.getInstance().discard(true);"></div>'),
 			]);
 		} else {
+			this.versionRestoreMode = false;
 			n.setButtons([ 
 				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Editor.getInstance().saveNote();"></div>'), 
 				$('<div type="button" data-toggle="tooltip" title="Note options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();Editor.getInstance().callOptions(event);"></div>'), 
@@ -272,9 +274,14 @@ class Editor {
 			var n = Notes.getInstance();
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
+			var that = this;
 			return DocumentActions.getInstance().save(this.current._id, this.convertPlainLinks(this.getContent()))
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
+
+				if (that.versionRestoreMode) {
+					n.routing.refresh();
+				}
         	})
 			.catch(function(err) {
         		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
@@ -300,9 +307,11 @@ class Editor {
 		
 		if (removeButton) $('#discardButton').css("display", "none");
 		
-		Notes.getInstance().showAlert("Action cancelled.", "I");
+		var n = Notes.getInstance();
+		n.showAlert("Action cancelled.", "I");
 
-		location.reload();
+		//location.reload();
+		n.routing.call("history/" + this.getCurrentId());
 	}
 	
 	/**
@@ -310,6 +319,13 @@ class Editor {
 	 */
 	setVersionRestoreData(data) {
 		this.versionRestoreData = data;
+	}
+	
+	/**
+	 * Returns if the editor is in restore mode.
+	 */
+	getRestoreMode() {
+		return !!this.versionRestoreMode;
 	}
 	
 	/**

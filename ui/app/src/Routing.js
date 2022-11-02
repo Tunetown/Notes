@@ -259,7 +259,11 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					return HistoryActions.getInstance().requestVersion(noteId, versionName);
+					
+					return Promise.resolve(data.treePromise)
+					.then(function(data) {
+						return HistoryActions.getInstance().requestVersion(noteId, versionName);
+					});
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading version: ' + err.message, 'E', err.messageThreadId);
@@ -277,7 +281,11 @@ class Routing {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
 					that.app.resetPage();
-					return HistoryActions.getInstance().showHistory(noteId);
+					
+					return Promise.resolve(data.treePromise)
+					.then(function(data) {
+						return HistoryActions.getInstance().showHistory(noteId);
+					});
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading history: ' + err.message, 'E', err.messageThreadId);
@@ -384,7 +392,6 @@ class Routing {
 					function triggerLinkNav() {
 						Promise.resolve(data.treePromise).then(function() {
 							NoteTree.getInstance().editorOpened(noteId);
-							console.log("editor opened")
 						})
 					}
 					

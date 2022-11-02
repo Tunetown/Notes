@@ -57,9 +57,12 @@ class Code {
 			var ec = {};
 			ec["'" + Linkage.startChar + "'"] = function(cm, pred) { return that.triggerAutocomplete(cm, pred); };
 			
+			var content = Document.getContent(doc);
+			if (that.versionRestoreData) content = that.versionRestoreData;
+			
 			// Create the editor instance
 			that.editor = CodeMirror($('#contentContainer')[0], {
-				value: Document.getContent(doc),
+				value: content,
 				mode: that.getEditorLanguage(),
 				extraKeys: ec,
 				hintOptions: {
@@ -79,15 +82,30 @@ class Code {
 			});
 			
 			// Build buttons
-			n.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Code.getInstance().saveCode();"></div>'), 
-				$('<div type="button" data-toggle="tooltip" title="Undo" id="undoButton" class="fa fa-undo" onclick="event.stopPropagation();Code.getInstance().undo();"></div>'), 
-				$('<div type="button" data-toggle="tooltip" title="Redo" id="redoButton" class="fa fa-redo" onclick="event.stopPropagation();Code.getInstance().redo();"></div>'), 
-				$('<div type="button" data-toggle="tooltip" title="Note options..." id="codeOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();Code.getInstance().callOptions(event);"></div>'), 
-			]);			
+			if (that.versionRestoreData) {
+				that.versionRestoreMode = true;
+				n.setButtons([ 
+					$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Code.getInstance().saveCode();"></div>'), 
+					$('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" id="discardButton" class="fa fa-times" onclick="event.stopPropagation();Code.getInstance().discard(true);"></div>'), 
+				]);
+			} else {
+				that.versionRestoreMode = false;
+				n.setButtons([ 
+					$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Code.getInstance().saveCode();"></div>'), 
+					$('<div type="button" data-toggle="tooltip" title="Undo" id="undoButton" class="fa fa-undo" onclick="event.stopPropagation();Code.getInstance().undo();"></div>'), 
+					$('<div type="button" data-toggle="tooltip" title="Redo" id="redoButton" class="fa fa-redo" onclick="event.stopPropagation();Code.getInstance().redo();"></div>'), 
+					$('<div type="button" data-toggle="tooltip" title="Note options..." id="codeOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();Code.getInstance().callOptions(event);"></div>'), 
+				]);
+			}
 
 			that.updateStatus();
 			that.updateLinkClickHandlers();
+			
+			if (that.versionRestoreData) {
+				that.setDirty();
+			}
+			
+			that.versionRestoreData = false;
 		})
 		.catch(function(err) {
 			n.showAlert(err.message, 'E', err.messageThreadId);
@@ -259,9 +277,14 @@ class Code {
 			var n = Notes.getInstance();
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
+			var that = this;
 			DocumentActions.getInstance().save(this.getCurrentId(), this.getContent())
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
+
+				if (that.versionRestoreMode) {
+					n.routing.refresh();
+				}
         	})
         	.catch(function(err) {
         		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
@@ -287,10 +310,40 @@ class Code {
 	}
 	
 	/**
+	 * Reloads the content from the server, discarding the contents.
+	 */
+	discard(removeButton) {
+		this.setVersionRestoreData(false);
+		
+		if (removeButton) $('#discardButton').css("display", "none");
+		
+		var n = Notes.getInstance();
+		n.showAlert("Action cancelled.", "I");
+
+		n.routing.call("history/" + this.getCurrentId());
+		//location.reload();
+	}
+	
+	/**
+	 * Sets data to be loaded into the editor instead of the passed data in load().
+	 */
+	setVersionRestoreData(data) {
+		this.versionRestoreData = data;
+	}
+	
+	/**
+	 * Returns if the editor is in restore mode.
+	 */
+	getRestoreMode() {
+		return !!this.versionRestoreMode;
+	}
+	
+	/**
 	 * Unloads the editor
 	 */
 	unload() {
 		this.setCurrent();
+		this.setVersionRestoreData(false);
 		this.resetDirtyState();
 
 		$('#contentContainer').empty();

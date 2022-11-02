@@ -660,6 +660,9 @@ class Document {
 		doc.preview = src.preview;
 		
 		delete doc.latestDoc;
+		delete doc.backlinks;
+		delete doc.children;
+		delete doc.childrenDeep;
 		//Document.strip(doc);
 				
 		var d = Notes.getInstance().getData();
@@ -682,6 +685,9 @@ class Document {
 		delete doc.parentDoc;
 		delete doc.level;
 		delete doc.lock;
+		delete doc.backlinks;
+		delete doc.children;
+		delete doc.childrenDeep;
 		
 		if (doc.backImage) {
 			delete doc.backImage.stub;
@@ -917,6 +923,30 @@ class Document {
 		
 		// NOTE: Attachments are handled directly in DocumentActions.request().
 		return null;
+	}
+	
+	/**
+	 * Returns if the passed document can be directly restored in its editor.
+	 */
+	static canRestore(id) {
+		var n = Notes.getInstance();
+		var doc = n.getData().getById(id);
+		var e = Document.getDocumentEditor(doc);
+		
+		return (typeof e.setVersionRestoreData == 'function');
+	}
+	
+	/**
+	 * Sets version restore data if the editor supports it
+	 */
+	static setRestoreData(id, content) {
+		var n = Notes.getInstance();
+		var doc = n.getData().getById(id);
+		var e = Document.getDocumentEditor(doc);
+		
+		if (typeof e.setVersionRestoreData != 'function') throw new Error('Editor cannot restore: ' + id);
+		
+		e.setVersionRestoreData(content);
 	}
 	
 	/**

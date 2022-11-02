@@ -52,18 +52,18 @@ class VersionView {
 		}
 
 		// Clear restore data
-		Editor.getInstance().setVersionRestoreData(false);
-		
-		// Build buttons
-		n.setButtons([ 
-			//$('<div type="button" data-toggle="tooltip" title="Restore Version" class="fa fa-redo" onclick="event.stopPropagation();VersionView.getInstance().restore();"></div>'),
-			$('<div type="button" data-toggle="tooltip" title="Back to History" class="fa fa-times" onclick="event.stopPropagation();VersionView.getInstance().leave();"></div>'),
-		]);
+		//Editor.getInstance().setVersionRestoreData(false);
 		
 		// Remember properties
 		this.versionId = id;
 		this.versionName = name;
 		this.versionContent = data;
+
+		// Build buttons
+		n.setButtons([ 
+			!Document.canRestore(this.versionId) ? null : $('<div type="button" data-toggle="tooltip" title="Restore Version" class="fa fa-redo" onclick="event.stopPropagation();VersionView.getInstance().restore();"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Back to History" class="fa fa-times" onclick="event.stopPropagation();VersionView.getInstance().leave();"></div>'),
+		]);
 	}
 	
 	/**
@@ -76,19 +76,16 @@ class VersionView {
 		this.versionName = false;
 	}
 	
-	/**
-	 * Switch to editor, load the current note and set the restored content from it.
-	 *
 	restore() {
-		if (!this.current) return;
-		Editor.getInstance().setVersionRestoreData(this.versionContent);
+		if (!this.versionId) return;
+		
+		Document.setRestoreData(this.versionId, this.versionContent);
 		
 		// Request the note. This loads the note into the editor freshly, and because the restoreData 
 		// is filled, the editor will show this data in its load() method, in dirty state but without autosaving.
-		Notes.getInstance().routing.call(this.versionId);
+		n.routing.call(this.versionId);
 		
 		this.versionId = false;
 		this.versionName = false;
 	}
-	*/
 }

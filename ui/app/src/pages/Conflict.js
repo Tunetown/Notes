@@ -87,7 +87,7 @@ class Conflict {
 		);
 		
 		// Clear restore data
-		Editor.getInstance().setVersionRestoreData(false);
+		Document.setRestoreData(docConflict._id);
 		
 		n.setButtons([ 
 			$('<div type="button" data-toggle="tooltip" title="Set as winner" class="fa fa-redo" onclick="event.stopPropagation();Conflict.getInstance().setAsWinner();"></div>'),
@@ -101,7 +101,7 @@ class Conflict {
 	setAsWinner() {
 		if (!this.current || !this.current._id || !this.current._rev) return;
 
-		Editor.getInstance().setVersionRestoreData(Document.getContent(this.current));
+		Document.setRestoreData(this.current._id, Document.getContent(this.current));
 		
 		// Request the note. This loads the note into the editor freshly, and because the restoreData 
 		// is filled, the editor will show this data in its load() method, in dirty state but without autosaving.

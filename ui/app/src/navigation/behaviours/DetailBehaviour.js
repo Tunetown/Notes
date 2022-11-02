@@ -342,12 +342,17 @@ class DetailBehaviour {
 			return ret;
 		}
 		
+		var that = this;
 		$('.' + this.getSelectorInputClass() + ':checkbox:checked')
 		.each(function() {
 			var data = $(this).data();
 			if (!data) return;
 			var id = data.id;
 			if (!id) return;
+			if (id == that.selectedParent) return;
+			
+			var selectedDoc = Notes.getInstance().getData().getById(that.selectedParent);
+			if (selectedDoc && (id == selectedDoc.parent)) return;
 			
 			ret.push(id);
 		});
@@ -366,6 +371,9 @@ class DetailBehaviour {
 		
 		var ret = input.prop('checked');
 		input.prop('checked', !ret);
+		
+		this.updateSelectAllState();
+		
 		return ret;
 	}
 	
@@ -748,7 +756,7 @@ class DetailBehaviour {
 			$('<div class="' + this.getItemInnerContainerClass() + '">').append([
 				// We use a container holding all item content inside the content div.
 				$('<div class="' + this.getItemHeadlineClass() + '">').append([
-					// Selector
+					// Selector for multi selection
 					$('<div class="' + this.getSelectorClass() + '"></div>').append(
 						$('<input class="' + this.getSelectorInputClass() + '" type="checkbox" data-id="' + doc._id + '" />')
 					),
@@ -849,7 +857,6 @@ class DetailBehaviour {
 		// During search, all documents are shown as normal items
 		if (searchText.length > 0) meta.isSelectedParent = false;		
 		
-		//var isSelectedParent = (doc._id == this.selectedParent);
 		var isAttachment = (doc.type == 'attachment');
 		var isReference = (doc.type == 'reference');
 		var hasChildren = this.hasChildren(doc);
@@ -879,35 +886,35 @@ class DetailBehaviour {
 		markerRightEl.css('display', 'none');
 		
 		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
-			if (!isParentOfSelected) {
-				// Marker at the left for backlinks and and references
-				if (isBacklinkOfSelected) {
-					markerLeftEl.css('display', 'block');
-					markerLeftEl.css('background', '#b5f7c6');
-					markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
-				}
-				if (isReferenceToSelected) {
-					markerLeftEl.css('display', 'block');
-					markerLeftEl.css('background', '#fff2bf');
-					markerLeftEl.attr('title', doc.name + ' contains a reference to ' + selectedDocName);
-				}				
+			// Marker at the left for backlinks and and references
+			if (isBacklinkOfSelected) {
+				markerLeftEl.css('display', 'block');
+				markerLeftEl.css('background', '#b5f7c6');
+				markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
 			}
-			
-			// Markers at the right for children, outgoing links of the selected doc. and parent of the selected doc.
+			if (isReferenceToSelected) {
+				markerLeftEl.css('display', 'block');
+				markerLeftEl.css('background', '#fff2bf');
+				markerLeftEl.attr('title', doc.name + ' contains a reference to ' + selectedDocName);
+			}				
 			if (isParentOfSelected) {
-				markerRightEl.css('display', 'block');
-				markerRightEl.css('background', '#faacac');
-				markerRightEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
+				markerLeftEl.css('display', 'block');
+				markerLeftEl.css('background', '#faacac');
+				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
 			}
-	 		if (isChildOfSelected) {
-				markerRightEl.css('display', 'block');
-				markerRightEl.css('background', '#eeeeee');
-				markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
-			}
-			if (isOutgoinglinkOfSelected) {
-				markerRightEl.css('display', 'block');
-				markerRightEl.css('background', '#b5f7c6');
-				markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
+						
+			// Markers at the right for children, outgoing links of the selected doc. and parent of the selected doc.
+	 		if (!isParentOfSelected) {
+				if (isChildOfSelected) {
+					markerRightEl.css('display', 'block');
+					markerRightEl.css('background', '#eeeeee');
+					markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
+				}
+				if (isOutgoinglinkOfSelected) {
+					markerRightEl.css('display', 'block');
+					markerRightEl.css('background', '#b5f7c6');
+					markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
+				}
 			}
 			
 			// Highlight last selected
@@ -973,7 +980,8 @@ class DetailBehaviour {
 		
 		this.setItemLabelAlignment(itemContent, !meta.isSelectedParent);
 		
-		itemContent.find('.' + this.getSelectorClass()).css('display', this.multiSelect ? 'inline-block' : 'none');
+		const showSelector = this.multiSelect && (!meta.isParentOfSelectedParent);
+		itemContent.find('.' + this.getSelectorClass()).css('display', showSelector ? 'inline-block' : 'none');
 	}
 	
 	/**
@@ -1696,6 +1704,8 @@ class DetailBehaviour {
 				},
 				
 				delayedHoldCallback: function(event) {
+					if (that.multiSelect) return;
+					
 					var data = $(event.currentTarget).parent().data();
 					
 					that.callOptionsWithId([data.id], Tools.extractX(event), Tools.extractY(event));
@@ -1712,6 +1722,8 @@ class DetailBehaviour {
 				},
 				
 				delayedHoldCallback: function(event) {
+					if (that.multiSelect) return;
+					
 					var data = $(event.currentTarget).parent().parent().data();
 					
 					that.callOptionsWithId([data.id], Tools.extractX(event), Tools.extractY(event));
@@ -1724,14 +1736,46 @@ class DetailBehaviour {
 		itemElement.find('.' + this.getSelectorInputClass()).each(function(i) {
 			$(this).on('click', function(e) {
 				if (that.multiSelect) {
+					e.stopPropagation();
+					
 					var data = $(e.currentTarget).parent().parent().parent().parent().data();
-					if (data.id) {
-						that.toggleSelected(data.id);
-						that.callOptionsWithId(that.getSelectedIds(), Tools.extractX(e), Tools.extractY(e));
+					if (data.id == that.selectedParent) {
+						that.selectAllVisibleItems(this.checked);
+					} else {
+						that.updateSelectAllState();
 					}
+
+					that.callOptionsWithId(that.getSelectedIds(), Tools.extractX(e), Tools.extractY(e));
 				}
 			});
 		});
+	}
+	
+	selectAllVisibleItems(doSelect) {
+		$('.' + this.getSelectorInputClass())
+		.each(function() {
+			this.checked = doSelect;
+			/*var data = $(this).data();
+			if (!data) return;
+			var id = data.id;
+			if (!id) return;
+			
+			ret.push(id);
+			*/
+		});
+	}
+	
+	updateSelectAllState() {
+		var that = this;
+		$('.' + this.getSelectorInputClass())
+		.each(function() {
+			var data = $(this).data();
+			if (!data) return;
+			
+			if (data.id == that.selectedParent) {
+				this.checked = false;
+			}
+		})
 	}
 	
 	/**
