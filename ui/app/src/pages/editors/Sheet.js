@@ -137,7 +137,7 @@ class Sheet {
 		
 		n.showMenu('editorOptions', function(cont) {
 			cont.append(
-				Document.getEditorOptionMenuItems(that, {
+				PageMenu.get(that, {
 					noDownload: true
 				})
 			);

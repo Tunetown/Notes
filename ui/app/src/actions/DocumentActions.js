@@ -646,12 +646,6 @@ class DocumentActions {
 			});
 			docs.push(doc);
 
-			/*var crefs = n.getData().getReferencesTo(doc._id);
-			for(var o in crefs || []) {
-				//containedRefs.push(crefs[o]);
-				addContainedRef(crefs[o]);
-			}*/
-			
 			// Unload editor if the item is opened somewhere
 			var e = Document.getDocumentEditor(doc);
 			if (e && (ids[i] == e.getCurrentId())) {
@@ -661,12 +655,6 @@ class DocumentActions {
 			var docChildren = n.getData().getChildren(ids[i], true);
 			for(var c in docChildren) {
 				children.push(docChildren[c]);
-				
-				/*var crefs = n.getData().getReferencesTo(docChildren[c]._id);
-				for(var o in crefs || []) {
-					addContainedRef(crefs[o]);
-					//containedRefs.push(crefs[o]);
-				}*/
 			}
 		}
 		
@@ -699,7 +687,6 @@ class DocumentActions {
 			var crefs = n.getData().getReferencesTo(children[c]._id);
 			for(var o in crefs || []) {
 				addContainedRef(crefs[o]);
-				//containedRefs.push(crefs[o]);
 			}
 		}
 
@@ -1102,6 +1089,43 @@ class DocumentActions {
 
     		return Promise.resolve({ ok: true });
     	});
+	}
+	
+	/**
+	 * Sets the star flag of an item.
+	 */
+	setStarFlag(id, flagActive) {
+		var n = Notes.getInstance();
+		
+		var doc = n.getData().getById(id);
+		if (!doc) return Promise.reject({
+			message: 'Item ' + id + ' not found',
+			messageThreadId: 'StarMessages'
+		});
+		
+		if (doc.star == !!flagActive) {
+			return Promise.resolve({
+				ok: true,
+				nothingChanged: true
+			});
+		}
+			
+		return DocumentAccess.getInstance().loadDocuments([doc])
+		.then(function(/*resp*/) {
+			doc.star = !!flagActive;
+				
+			return DocumentAccess.getInstance().saveItem(id)
+		})
+		.then(function (data) {
+			// Execute callbacks
+			Callbacks.getInstance().executeCallbacks('setStar', doc);
+			
+			return Promise.resolve({
+				ok: true,
+				//message: "Successfully set star flag.",
+				//messageThreadId: 'StarMessages'
+			});
+		});
 	}
 	
 	/**

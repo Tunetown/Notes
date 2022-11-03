@@ -27,11 +27,10 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.93.8';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.93.9';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
-		this.linkEditorToNavigation = 'on';  // Default
 		this.currentPage = null;
 	}
 	
@@ -766,7 +765,7 @@ class Notes {
 				e.preventDefault();
 
 				// Show user menu
-				that.showUserMenu('user');
+				that.showUserMenu();
 			}),
 			/*.on('dblclick', function(e) {
 				e.stopPropagation();
@@ -830,7 +829,7 @@ class Notes {
 		NoteTree.getInstance().setupDom();
 	
 		// Setup the generically reused option buttons
-		this.setupOptionButtons();
+		ContextMenu.setupItemOptions(this.optionsMasterContainer);
 		
 		// We only do this once ;)
 		this.isDomSetup = true;
@@ -840,9 +839,11 @@ class Notes {
 	 * Toggle linkage from navigation to editor 
 	 */
 	toggleEditorLinkage() {
-		this.linkEditorToNavigation = this.isMobile() ? false : ((this.linkEditorToNavigation == 'on') ? 'off' : 'on');
+		var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
 		
-		ClientState.getInstance().setLinkageMode('editor', this.linkEditorToNavigation);
+		linkEditorMode = this.isMobile() ? 'off' : ((linkEditorMode == 'on') ? 'off' : 'on');
+		
+		ClientState.getInstance().setLinkageMode('editor', linkEditorMode);
 		
 		this.updateLinkageButtons();
 	}
@@ -851,14 +852,14 @@ class Notes {
 	 * Restore linkage settings for the editor button.
 	 */	
 	restoreEditorLinkage() {
-		if ((!this.isMobile()) && NoteTree.getInstance().supportsLinkEditorToNavigation()) {
+		/*if ((!this.isMobile()) && NoteTree.getInstance().supportsLinkEditorToNavigation()) {
 			var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
 			if (linkEditorMode) {
 				this.linkEditorToNavigation = linkEditorMode;
 			}
 		} else {
 			this.linkEditorToNavigation = 'off';
-		}
+		}*/
 		
 		this.updateLinkageButtons();
 	}
@@ -875,10 +876,12 @@ class Notes {
 		       page.supportsLinkageFromNavigation()
 		);
 		
+		var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
+		
 		$('#linkEditorButton').css('display', (this.isMobile() || (!t.supportsLinkEditorToNavigation()) || (!pageSupport)) ? 'none' : 'block');
-		$('#linkEditorButton').css('background-color', (this.linkEditorToNavigation == 'on') ? '#c40cf7' : '#ffffff');
-		$('#linkEditorButton').css('color', (this.linkEditorToNavigation == 'on') ? '#ffffff' : '#000000');
-		$('#linkEditorButton').attr('title', (this.linkEditorToNavigation == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
+		$('#linkEditorButton').css('background-color', (linkEditorMode == 'on') ? '#c40cf7' : '#ffffff');
+		$('#linkEditorButton').css('color', (linkEditorMode == 'on') ? '#ffffff' : '#000000');
+		$('#linkEditorButton').attr('title', (linkEditorMode == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
 	}
 	
 	/**
@@ -1045,10 +1048,9 @@ class Notes {
 	/**
 	 * Shows the user main menu.
 	 */
-	showUserMenu(show) {
+	showUserMenu() {
 		this.hideOptions();
 		
-		var that = this;
 		this.showMenu('user', function(cont) {
 			cont.append([
 				$('<div class="userbuttonPassive"><div class="fa fa-user userbuttonIcon"></div>' + (Settings.getInstance().settings.dbAccountName ? Settings.getInstance().settings.dbAccountName : Database.getInstance().profileHandler.getCurrentProfile().url) + '</div>'),
@@ -1645,7 +1647,8 @@ class Notes {
 				noLabels: false,
 				noBgImage: false,
 				showDeleteFavorite: false,
-				showClearFavorites: false
+				showClearFavorites: false,
+				//showStarToggle: true,
 			};
 		}
 		
@@ -1653,6 +1656,7 @@ class Notes {
 		if (!ids.length) return;
 		
 		this.optionsIds = Tools.removeDuplicates(ids);
+		this.optionOptions = options;
 		
 		var x = (this.isMobile() ? pageX - $('#treebuttons').width() : pageX) + Config.CONTEXT_OPTIONS_XOFFSET;
 		if (x < 0) x = 0;
@@ -1664,15 +1668,27 @@ class Notes {
 			left: x,
 			top: y
 		});
-
-		// Select the available options for single or multiple selection
-		$('.contextOptionSingle').css('display', (ids.length == 1) ? 'inline-block' : 'none');
 		
-		if (ids.length <= 1) {
-			// Options for a single document
-			var doc = this.getData().getById(ids[0]);
+		this.updateOptionStyles();
+		
+		// Add global removal handler
+		$(document).on('click', this.hideOptionsHandler);
+	}
 	
-			//if (Document.hasBackImage(doc)) options.noBgColor = true;
+	/**
+	 * Updates the options styles.
+	 */
+	updateOptionStyles() {
+		var options = this.optionOptions;
+		
+		if (!this.optionsIds) return;
+		
+		// Select the available options for single or multiple selection
+		$('.contextOptionSingle').css('display', (this.optionsIds.length == 1) ? 'inline-block' : 'none');
+		
+		if (this.optionsIds.length <= 1) {
+			// Options for a single document
+			var doc = this.getData().getById(this.optionsIds[0]);
 	
 			// Options: Show in Navigation (default: hidden)
 			$('.contextOptionRename').css('display', options.noRename ? 'none' : 'inline-block');
@@ -1692,13 +1708,20 @@ class Notes {
 				
 			$('.contextOptionReReference').css('display', isref ? 'inline-block' : 'none');
 			$('#contextOptionCreate').css('display', (isref || options.noCreate) ? 'none' : 'inline-block');
+			
+			// Starring
+			$('.contextOptionToggleStar').css('display', 'inline-block'); //options.showStarToggle ? 'inline-block' : 'none');
+			
+			//if (options.showStarToggle) {
+			var isStarred = (doc && doc.star);
+			$('.contextOptionToggleStar').css('background-color', isStarred ? '#c40cf7' : '#ffffff');
+			$('.contextOptionToggleStar').css('color', isStarred ? '#ffffff' : '#000000');
+			//}
 		} else {
 			// Options for multiple documents
 			$('.contextOptionReReference').css('display', 'none');
+			$('.contextOptionToggleStar').css('display', 'none');
 		}
-		
-		// Add global removal handler
-		$(document).on('click', this.hideOptionsHandler);
 	}
 	
 	/**
@@ -1740,269 +1763,6 @@ class Notes {
 		Notes.getInstance().hideOptions();
 	}
 
-	/**
-	 * Set up the options buttons popup
-	 */
-	setupOptionButtons() {
-		$('#' + this.optionsMasterContainer).empty();
-		
-		var that = this;
-		$('#' + this.optionsMasterContainer).append(
-			$('<div class="treebuttons" id="treebuttons"/>').append([
-				// Create note
-				$('<div id="contextOptionCreate" data-toggle="tooltip" title="Create Document" class="contextOptionSingle fa fa-plus treebutton roundedButton contextOptionCreate"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (that.optionsIds.length != 1) return;
-						
-						NoteTree.getInstance().block();
-						DocumentActions.getInstance().create(that.optionsIds[0])
-						.then(function(data) {
-							NoteTree.getInstance().unblock();
-							
-							if (data.ok) {
-								that.showAlert("Successfully created document.", "S");
-							}
-						})
-						.catch(function(err) {
-							NoteTree.getInstance().unblock();
-							that.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-						});
-					}),
-					
-				// Rename
-				$('<div id="contextOptionRename" data-toggle="tooltip" title="Rename item" class="contextOptionSingle fa fa-pencil-alt treebutton roundedButton contextOptionRename"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (that.optionsIds.length != 1) return;
-						
-						NoteTree.getInstance().block();
-						DocumentActions.getInstance().renameItem(that.optionsIds[0])
-						.then(function(data) {
-							NoteTree.getInstance().unblock();
-							
-							if (data.message) {
-								that.showAlert(data.message, "S", data.messageThreadId);
-							}
-						})
-						.catch(function(err) {
-							NoteTree.getInstance().unblock();
-							that.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-						});
-					}),
-					
-				// Show in navigation
-				$('<div id="contextOptionShowInNavigation" data-toggle="tooltip" title="Show in Navigation" class="fa fa-angle-left treebutton roundedButton contextOptionShowInNavigation"></div>')
-			        .on('click', function(event) {
-			        	event.stopPropagation();
-			        	that.hideOptions();
-			        	if (that.optionsIds.length != 1) return;
-			        	
-						NoteTree.getInstance().focus(that.optionsIds[0]);
-						//Notes.getInstance().routing.call(that.optionsIds[0]);
-			        }),
-
-				// Relocate reference
-				$('<div id="contextOptionReReference" data-toggle="tooltip" title="Set target" class="fa fa-bullseye treebutton roundedButton contextOptionReReference"></div>')
-			        .on('click', function(event) {
-			        	event.stopPropagation();
-			        	that.hideOptions();
-			        	if (that.optionsIds.length != 1) return;
-			        	
-			        	ReferenceActions.getInstance().setReference(that.optionsIds[0])
-			        	.then(function(data) {
-							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
-						})
-						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
-						});
-			        }),
-					
-				// Move
-				$('<div id="contextOptionMove" data-toggle="tooltip" title="Move Note" class="fa fa-arrows-alt treebutton roundedButton contextOptionMove"></div>')
-			        .on('click', function(event) {
-			        	event.stopPropagation();
-			        	that.hideOptions();
-			        	if (!that.optionsIds.length) return;
-			        	
-			        	DocumentActions.getInstance().moveItems(that.optionsIds)
-			        	.then(function(data) {
-							that.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
-						})
-						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
-						});
-			        }),
-			       
-		    	// Copy
-				$('<div id="contextOptionCopy" data-toggle="tooltip" title="Copy Note" class="contextOptionSingle fa fa-copy treebutton roundedButton contextOptionCopy"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (that.optionsIds.length != 1) return;
-						
-						DocumentActions.getInstance().copyItem(that.optionsIds[0])
-						.then(function(/*data*/) {
-							that.showAlert('Successfully copied item', 'S');
-						})
-						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error copying item.', err.abort ? 'I' : 'E', err.messageThreadId);
-						});
-					}),
-							
-				// Delete
-				$('<div id="contextOptionDelete" data-toggle="tooltip" title="Delete item" class="fa fa-trash treebutton roundedButton contextOptionDelete"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (!that.optionsIds.length) return;
-						
-						NoteTree.getInstance().block();
-						
-						that.showAlert("Preparing to delete items...", 'I', 'DeleteMessages');
-						
-						DocumentActions.getInstance().deleteItems(that.optionsIds).then(function(data) {
-							NoteTree.getInstance().unblock();
-							
-							if (data.message) {
-								that.showAlert(data.message, "S", data.messageThreadId);
-							}
-							
-						}).catch(function(err) {
-							NoteTree.getInstance().unblock();
-							
-							that.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-						});
-					}),
-					
-				// Labels
-				$('<div id="contextOptionLabels" data-toggle="tooltip" title="Labels..." class="contextOptionSingle fa fa-tags treebutton roundedButton contextOptionLabels"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (that.optionsIds.length != 1) return;
-
-						var doc = Notes.getInstance().getData().getById(that.optionsIds[0]);
-						if (!doc) return;
-						
-						that.routing.callLabelDefinitions(that.optionsIds[0]);
-					}),
-					
-				// History
-				/*$('<div id="contextOptionHistory" data-toggle="tooltip" title="Note History..." class="contextOptionSingle fa fa-history treebutton roundedButton contextOptionHistory"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (that.optionsIds.length != 1) return;
-
-						var doc = Notes.getInstance().getData().getById(that.optionsIds[0]);
-						if (!doc) return;
-						
-						if (!Document.hasTypeHistory(doc.type)) {
-							that.showAlert('No history available for this type of item.', 'I');
-							return;
-						}
-						
-						that.routing.call("history/" + that.optionsIds[0]);
-					}),*/
-					
-				// Text Color
-		        $('<label id="contextOptionColor" data-toggle="tooltip" title="Set Text Color" class="fa fa-palette treebutton roundedButton contextOptionColor"></div>')
-		    		.on('click', function(event) {
-		    			event.stopPropagation();
-		    		})
-		            .append(
-		            	$('<input type="color" class="colorinput" style="display: block; width: 1px; height: 1px; display: none;">')
-				            .on('click', function(event) {
-				            	event.stopPropagation();
-				            	if (!that.optionsIds.length) return;
-				            	that.prepareColorPicker(that.optionsIds, this, false);
-				            })
-				            .on('change', function(event) {
-				            	event.stopPropagation();
-				            	if (!that.optionsIds.length) return;
-				            	that.setColorPreview(that.optionsIds, this, false)
-				            })
-				            .on('blur', function(event) {
-				            	event.stopPropagation();
-				            	if (!that.optionsIds.length) return;
-				            	that.setColor(that.optionsIds, this, false)
-				            })
-				            .on('input', function(event) {
-				            	if (!that.optionsIds.length) return;
-				            	that.setColorPreview(that.optionsIds, this, false)
-				            })
-		            ),
-
-				// BG Color
-				$('<label id="contextOptionBgColor" data-toggle="tooltip" title="Set Background Color" class="fa fa-fill-drip treebutton roundedButton contextOptionBgColor"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-					})
-			        .append(
-			        	$('<input type="color" class="colorinput" style="display: block; width: 1px; height: 1px; display: none;">')
-					        .on('click', function(event) {
-					        	event.stopPropagation();
-					        	if (!that.optionsIds.length) return;
-					        	that.prepareColorPicker(that.optionsIds, this, true);
-					        })
-					        .on('change', function(event) {
-					        	event.stopPropagation();
-					        	if (!that.optionsIds.length) return;
-					        	that.setColorPreview(that.optionsIds, this, true)
-					        })
-					        .on('blur', function(event) {
-					        	event.stopPropagation();
-					        	if (!that.optionsIds.length) return;
-					        	that.setColor(that.optionsIds, this, true)
-					        })
-					        .on('input', function(event) {
-					        	if (!that.optionsIds.length) return;
-					        	that.setColorPreview(that.optionsIds, this, true)
-					        })
-			        ),
-
-				// BG Image
-				$('<label id="contextOptionBgImage" data-toggle="tooltip" title="Set background image..." class="fa fa-image treebutton roundedButton contextOptionBgImage"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-						if (!that.optionsIds.length) return;
-						
-						DocumentActions.getInstance().setItemBackgroundImage(that.optionsIds)
-						.then(function(data) {
-							if (data.message) that.showAlert(data.message, 'S', data.messageThreadId);
-						})
-						.catch(function(err) {
-							that.showAlert(err.message ? err.message : 'Error setting background image for item.', err.abort ? 'I' : 'E', err.messageThreadId);
-						});
-					}),
-					
-				// Delete favorite entry
-				$('<label id="contextOptionDeleteFavorite" data-toggle="tooltip" title="Remove from favorites bar" class="fa fa-times treebutton roundedButton contextOptionDeleteFavorite"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-					
-						if (!that.optionsIds.length) return;
-						
-						that.removeFavorite(that.optionsIds[0]);
-					}),
-					
-				// Clear favorites history...
-				$('<label id="contextOptionClearFavorites" data-toggle="tooltip" title="Clear favorites..." class="fa fa-trash-alt treebutton roundedButton contextOptionClearFavorites"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.hideOptions();
-					
-						that.clearFavorites();
-					})
-			])
-		);
-	}
-	
 	/**
 	 * Color changes can have aftermath in multiple places where an item is shown. This
 	 * registers a callback for the given callback ID. Set the callbacks to null to disable.

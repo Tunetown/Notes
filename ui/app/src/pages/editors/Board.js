@@ -905,7 +905,7 @@ class Board {
 			);
 			
 			cont.append(
-				Document.getEditorOptionMenuItems(that)
+				PageMenu.get(that)
 			);
 		});
 	}

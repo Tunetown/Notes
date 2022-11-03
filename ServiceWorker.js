@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.93.8.a';
+const PRECACHE = 'notes_precache-v0.93.9.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -125,6 +125,8 @@ const PRECACHE_URLS = [
   './ui/app/src/navigation/MuuriGrid.js',
   './ui/app/src/navigation/ExpandedState.js',
   './ui/app/src/navigation/ScrollState.js',
+  './ui/app/src/menus/PageMenu.js',
+  './ui/app/src/menus/ContextMenu.js',
   './ui/app/src/pages/editors/Editor.js',
   './ui/app/src/pages/editors/Sheet.js',
   './ui/app/src/pages/editors/Board.js',

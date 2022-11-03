@@ -90,5 +90,7 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Version restore now more convenient
     - Performance optimizations (up to 6000 documents easily possible)
     
+- 0.94.0
+    - Added: Pin/Unpin documents to/from favorites
     
     

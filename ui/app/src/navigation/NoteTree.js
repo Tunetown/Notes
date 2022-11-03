@@ -34,8 +34,6 @@ class NoteTree {
 		this.treeRootModeSwitchContainer = "treeRootModeSwitchContainer";
 		this.treeRootSettingsSwitchContainer = "treeRootSettingsSwitchContainer";
 		this.treeRootTopSwitchContainer = "treeRootTopSwitchContainer";
-		
-		this.linkToEditor = 'on';  // Default
 	}
 	
 	/**
@@ -53,10 +51,6 @@ class NoteTree {
 		ClientState.getInstance().restoreTreeState();
 
 		// Linkage modes
-		var linkToEditor = ClientState.getInstance().getLinkageMode('nav');
-		if (linkToEditor) {
-			this.linkToEditor = linkToEditor;
-		}
 		this.updateLinkageButtons();
 
 		Notes.getInstance().restoreEditorLinkage();
@@ -237,39 +231,17 @@ class NoteTree {
 			that.showFavorites(false);
 		}
 		
+		var n = Notes.getInstance();
+		var d = n.getData();
+		if (!d) {
+			clear();			
+			return;
+		}
+		
 		// No favorites: Dont show anything
 		var favorites = c.getFavorites();
 		if (!favorites) {
 			clear();			
-			return;
-		}
-
-		// Should the currently opened document be shown?
-		var currentId = Notes.getInstance().getCurrentlyShownId(true);
-		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
-		if (showCurrentInFavorites) currentId = false;
-
-		// Get favorites as array and sort it
-		var favsSorted = [];
-		for (var prop in favorites) {
-		    if (favorites.hasOwnProperty(prop)) {
-		        var fav = favorites[prop];
-				if (!fav) continue;
-				if (currentId && (currentId == fav.id)) continue;
-				if (!Notes.getInstance().getData()) continue;
-
-				var doc = Notes.getInstance().getData().getById(fav.id);
-				if (!doc) continue;
-				
-				if (doc.deleted) continue;
-				
-				favsSorted.push(fav);
-		    }
-		}
-		
-		favsSorted.sort(function(b, a){return (a.rank ? a.rank : 0) - (b.rank ? b.rank : 0); });
-		if (favsSorted.length == 0) {
-			clear();				
 			return;
 		}
 
@@ -279,9 +251,61 @@ class NoteTree {
 			clear();				
 			return;
 		}
+
+		// Should the currently opened document be shown?
+		var currentId = n.getCurrentlyShownId(true);
+		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
+		if (showCurrentInFavorites) currentId = false;
+
+		// Add starred documents with ranks higher than the normal favs, last changed first.
+		var starred = d.getStarredDocs();
+		var starredSorted = [];
+		for (var s in starred) {
+		    starredSorted.push({
+				id: starred[s]._id,
+				rank: starred[s].timestamp || 0,
+			});
+		}
+
+		// Get favorites as array
+		var favsSorted = [];
+		for (var prop in favorites) {
+		    if (favorites.hasOwnProperty(prop)) {
+		        var fav = favorites[prop];
+				if (!fav) continue;
+				if (currentId && (currentId == fav.id)) continue;
+
+				var doc = d.getById(fav.id);
+				if (!doc) continue;
+				if (doc.deleted) continue;
+				
+				var found = false;
+				for(var i in starredSorted) {
+					if (starredSorted[i].id == fav.id) {
+						// Already listed in the starred array
+						found = true;
+						break;
+					}
+				}
+				
+				if (!found)	favsSorted.push(fav);
+		    }
+		}
+
+		if ((favsSorted.length == 0) && (starredSorted.length == 0)) {
+			clear();				
+			return;
+		}
+		
+		// Sort favorites
+		function compareFavs(b, a) {
+			return (a.rank ? a.rank : 0) - (b.rank ? b.rank : 0); 
+		}
+		favsSorted.sort(compareFavs);
+		starredSorted.sort(compareFavs);
 		
 		// Check if there have been changes
-		var cmp = Tools.hashCode(JSON.stringify(favsSorted));
+		var cmp = Tools.hashCode(JSON.stringify(favsSorted) + '-' + JSON.stringify(starredSorted));
 		if (this.lastRenderedFavs == cmp) {
 			return;
 		}
@@ -344,6 +368,9 @@ class NoteTree {
 		if (!favoritesNum) favoritesNum = 10;
 
 		// Add the favorites to the bar
+		for(var i=0; i<starredSorted.length; ++i) {
+			this.addFavoriteToBar(cont, starredSorted[i]);
+		}
 		for(var i=0; i<favsSorted.length && i<favoritesNum; ++i) {
 			this.addFavoriteToBar(cont, favsSorted[i]);
 		}
@@ -423,17 +450,23 @@ class NoteTree {
 		
 		var nameHtml = this.getFavoriteText(doc);
 		
-		var that = this;
 		var el = $('<div class="favoriteItem"></div>')
 			.css('width', favSize + 'px')
 			.css('height', favSize + 'px')
 			.css('margin', '2px')
 			.data('id', favEntry.id)
 			.append(
+				// Text
 				$('<div class="favoriteItemText"></div>')
 				.css('font-size', (this.getTreeTextSize() * 0.7) + 'px')
 				.html(nameHtml),
 				
+				// Star
+				!doc.star ? null : $('<div class="starredFavorite fa fa-star"></div>')
+				.css('color', doc.color ? doc.color : 'black')
+				.css('font-size', (favSize / 10) + 'px'),
+				
+				// Selection overlay
 				$('<div class="selectedFavorite"></div>')
 			)
 			
@@ -794,6 +827,13 @@ class NoteTree {
 		);*/
 		Callbacks.getInstance().registerCallback(
 			'tree',
+			'setStar',
+			function(doc) {
+				that.updateFavorites();
+			}
+		);
+		Callbacks.getInstance().registerCallback(
+			'tree',
 			'loadDocument',
 			function(docs) {
 				that.updateSelectedState(true);
@@ -913,23 +953,26 @@ class NoteTree {
 	 * Toggles linkage to the editor.
 	 */
 	toggleLinkToEditor() {
-		this.linkToEditor = ((this.linkToEditor == 'on') ? 'off' : 'on');
+		var linkToEditor = ClientState.getInstance().getLinkageMode('nav');
 		
-		ClientState.getInstance().setLinkageMode('nav', this.linkToEditor);			
+		linkToEditor = ((linkToEditor == 'on') ? 'off' : 'on');
+		
+		ClientState.getInstance().setLinkageMode('nav', linkToEditor);			
 		
 		this.updateLinkageButtons();
 		
-		if (this.linkToEditor == 'on') {
+		if (linkToEditor == 'on') {
 			var id = Notes.getInstance().getCurrentlyShownId();
 			if (id) this.editorOpened(id);	
 		}
 	}
 	
 	updateLinkageButtons() {
+		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
 		$('#treeLinkButton').css('display', (!this.supportsLinkNavigationToEditor()) ? 'none' : 'block');
-		$('#treeLinkButton').css('background-color', (this.linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
-		$('#treeLinkButton').css('color', (this.linkToEditor == 'on') ? '#ffffff' : '#000000');
-		$('#treeLinkButton').attr('title', (this.linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
+		$('#treeLinkButton').css('background-color', (linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
+		$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#ffffff' : '#000000');
+		$('#treeLinkButton').attr('title', (linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
 	}
 	
 	supportsLinkEditorToNavigation() {
@@ -969,8 +1012,6 @@ class NoteTree {
 			// re-linking, we also remember the id which has been called by linkage.
 			this.lastOpenedLinkTarget = id;
 
-			//console.log(" -> Opening document " + id + " by linkage from navigation");
-
 			this.openNode(id);
 		} else {
 			// Other pages: Call the respective callback if the page implements it
@@ -981,8 +1022,6 @@ class NoteTree {
 			       (typeof page.updateFromLinkage == 'function')
 			) {
 				this.lastOpenedLinkTarget = id;
-				
-				//console.log(" -> Opening document " + id + " by linkage from navigation (page.updateFromLinkage() used)");
 				
 				page.updateFromLinkage(id);
 			}
@@ -1004,10 +1043,8 @@ class NoteTree {
 		this.lastOpenedLinkTarget = false;
 		
 		// Focus if linked
-		var linkNavToEditor = ClientState.getInstance().getLinkageMode('nav');
-		if (linkNavToEditor == 'on') {
-			//console.log(" -> Focusing document " + id + " in navigation by linkage from editor");
-			
+		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
+		if (linkToEditor == 'on') {
 			this.focus(id, true);
 		}
 	}
@@ -1359,6 +1396,9 @@ class NoteTree {
 					'</li>' + 
 					'<li>' +
 						'<b>label:[...]</b> only searches for documents with the corresponding label' +  
+					'</li>' + 
+					'<li>' +
+						'<b>fav:[...]</b> only searches in the contents of documents which are pinned to the favorites list' +  
 					'</li>' + 
 				'</ul>'; 
 

@@ -144,7 +144,7 @@ class ClientState {
 	}
 	
 	/**
-	 * Saves the passed favorites list.
+	 * Saves the passed graph meta data for the passed ID.
 	 */
 	saveGraphMeta(id, data) {
 		var all = this.getLocal(this.cidGraphMeta);
@@ -168,7 +168,7 @@ class ClientState {
 	}
 	
 	/**
-	 * Saves the passed favorites list.
+	 * Saves the passed global graph meta data.
 	 */
 	saveGlobalGraphMeta(data) {
 		var all = this.getLocal(this.cidGraphMeta);
@@ -177,7 +177,7 @@ class ClientState {
 	}
 	
 	/**
-	 * Returns the passed favorites list.
+	 * Returns graph meta data for the passed ID.
 	 */
 	getGraphMeta(id) {
 		var all = this.getLocal(this.cidGraphMeta);
@@ -192,7 +192,7 @@ class ClientState {
 	}
 	
 	/**
-	 * Returns the passed favorites list.
+	 * Returns global graph meta data.
 	 */
 	getGlobalGraphMeta(id) {
 		var all = this.getLocal(this.cidGraphMeta);

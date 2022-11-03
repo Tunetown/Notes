@@ -127,7 +127,7 @@
 	color: red;
 }
 .treebutton:hover {
-	background-color: lightgrey;
+	background-color: lightgrey !important;
 } 
 
 /** 

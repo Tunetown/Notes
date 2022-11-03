@@ -469,11 +469,11 @@ class Document {
 				Notes.getInstance().showAlert(
 					'Broken metadata (' + errors.length + ' errors) in document ' + doc._id + ', please re-save it or repair in Settings.', 
 					'E', 
-					false, 
+					'brokenMetaMessages' /*, 
 					false, 
 					function(msgCont, event) {
 						Notes.getInstance().routing.call(doc._id);
-					}
+					}*/
 				);
 			}
 		}, 500);
@@ -503,7 +503,8 @@ class Document {
 			if (cnt > 0) {
 				Notes.getInstance().showAlert(
 					cnt + ' broken link(s) detected in this document: ' + bl + ((cnt > 1) ? ' ...' : ''), 
-					'W'
+					'W',
+					'brokenLinksMessages'
 				);
 			}
 		}, 500);
@@ -650,6 +651,8 @@ class Document {
 		doc.links = src.links;
 		doc.navRelations = src.navRelations;
 		
+		doc.star = src.star;
+		
 		doc.boardState = src.boardState;
 		
 		doc.attachmentSize = src.attachmentSize;
@@ -730,6 +733,8 @@ class Document {
 		doc.links = src.links;
 		doc.navRelations = src.navRelations;
 		
+		doc.star = src.star;
+		
 		doc.boardState = src.boardState;
 		
 		doc.attachmentSize = src.attachmentSize;
@@ -784,6 +789,8 @@ class Document {
 						
 						links: doc.links,
 						navRelations: doc.navRelations,
+						
+						star: doc.star,
 						
 						boardState: doc.boardState,
 
@@ -988,8 +995,7 @@ class Document {
 			
 			// Get the time distance between the last and the current document. 
 			const diffMillis = (last - data.ts);
-			const diffHours = diffMillis / 1000 / 3600;
-			
+
 			// Get time distance of the version to the reference time stamp (to determine which versioning interval should be applied)
 			const diffRefMillis = (refTimestamp - data.ts);
 			const interval = Document.getVersioningInterval(diffRefMillis);
@@ -1040,7 +1046,6 @@ class Document {
 	 * Returns if the passed type is valid.
 	 */
 	static isTypeValid(type) {
-		var found = false;
 		var types = Document.getValidDocTypes();
 		for(var t in types) {
 			if (types[t] == type) return true;
@@ -1263,6 +1268,11 @@ class Document {
 			return true;
 		}
 		
+		if (doc.star != current.star) {
+			console.log("   -> Star flag changed");
+			return true;
+		}
+		
 		// Node exists in the tree: Perhaps something relevant for the tree has been changed.
 		if ((doc.labelDefinitions && !current.labelDefinitions) || (!doc.labelDefinitions && current.labelDefinitions)) {
 			console.log("   -> Label definitions changed");
@@ -1433,242 +1443,6 @@ class Document {
 
 		// We do not look deeper
 		return false;
-	}
-	
-	/**
-	 * Generates the options for the different editors. Returns an array holding the options divs.
-	 */
-	static getEditorOptionMenuItems(editor, options) {
-		var n = Notes.getInstance();
-		
-		if (!options) options = {};
-		
-		if (Notes.getInstance().isMobile()) options.noOpenInNavigation = true;
-		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;
-		
-		var openedDoc = editor.current;
-		
-		return [
-			// Editor mode
-			options.noEditorModeSwitch ? null : $('<div class="userbutton"></div>').append(
-				Document.getEditorModeSelector(editor.getEditorMode(), {
-					prefix: 'Editor: ',
-					cssClass: 'userbuttonselect'
-				})
-				.on('change', function(event) {
-					event.stopPropagation();
-					editor.hideOptions();
-					
-					// Change board mode
-					EditorActions.getInstance().saveEditorMode(editor.getCurrentId(), this.value)
-					.then(function(data) {
-						n.routing.call(editor.getCurrentId());
-					})
-					.catch(function(err) {
-						Notes.getInstance().showAlert('Error: '+ err.message, "E", err.messageThreadId);
-					});
-				})
-				.on('click', function(event) {
-					event.stopPropagation();
-				})
-			),
-			
-			$('<div class="userbuttonLine"></div>'),
-			
-			// Share
-			options.noShare ? null : $('<div class="userbutton"><div class="fa fa-share-square userbuttonIcon"></div>Share</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();
-				
-				try {
-					navigator.share({
-						title: editor.current.name,
-						url: location.href
-					});
-  
-  				} catch (err) {
-  					n.showAlert('Error sharing content, perhaps your browser does not support this feature yet.', 'W');
-  				}
-			}),
-			
-			// Create
-			options.noCreate ? null : $('<div class="userbutton"><div class="fa fa-plus userbuttonIcon"></div>Create</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				DocumentActions.getInstance().create(editor.getCurrentId())
-				.then(function(data) {
-					if (data.message) {
-						n.showAlert(data.message, "S", data.messageThreadId);
-					}
-				})
-				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-				});
-			}),
-			
-			// Rename
-			options.noRename ? null : $('<div class="userbutton"><div class="fa fa-pencil-alt userbuttonIcon"></div>Rename</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				DocumentActions.getInstance().renameItem(editor.getCurrentId())
-				.then(function(data) {
-					if (data.message) {
-						n.showAlert(data.message, "S", data.messageThreadId);
-					}
-					n.routing.call(editor.getCurrentId());
-				})
-				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-				});
-			}),
-			
-			// Move
-			options.noMove ? null : $('<div class="userbutton"><div class="fa fa-arrows-alt userbuttonIcon"></div>Move</div>')
-	        .on('click', function(event) {
-	        	event.stopPropagation();
-	        	editor.hideOptions();
-	        	
-	        	DocumentActions.getInstance().moveItems([editor.getCurrentId()])
-	        	.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-				});
-	        }),
-	        
-	        // Copy
-	        options.noCopy ? null : $('<div class="userbutton"><div class="fa fa-copy userbuttonIcon"></div>Copy</div>')
-	        .on('click', function(event) {
-	        	event.stopPropagation();
-	        	editor.hideOptions();
-	        	
-	        	DocumentActions.getInstance().copyItem(editor.getCurrentId())
-	        	.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-				});
-	        }),
-	        
-	        // Delete
-	        options.noDelete ? null : $('<div class="userbutton"><div class="fa fa-trash userbuttonIcon"></div>Delete</div>')
-	        .on('click', function(event) {
-	        	event.stopPropagation();
-	        	editor.hideOptions();	
-	        	
-	        	var delId = editor.getCurrentId();
-	        	
-	        	n.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
-	        	DocumentActions.getInstance().deleteItems([delId])
-				.then(function(data) {
-	        		if (data.message) {
-	        			n.showAlert(data.message, "S", data.messageThreadId);
-	        		}
-	        		n.routing.call();
-	        	})
-				.catch(function(err) {
-	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-	        		n.routing.call(delId);
-	        	});
-	        }),
-	        
-	        $('<div class="userbuttonLine"></div>'),
-	        
-	        // Labels
-	        options.noLabelDefinitions ? null : $('<div class="userbutton"><div class="fa fa-tags userbuttonIcon"></div>Labels</div>')
-	        .append(
-	        	!openedDoc ? null : Document.getLabelElements(openedDoc, 'doc-label-menuoption')
-	        )
-	        .on('click', function(event) {
-	        	event.stopPropagation();
-	        	editor.hideOptions();
-	        	
-	        	n.routing.callLabelDefinitions(editor.getCurrentId());
-	        }),
-
-			// Create Reference
-			options.noCreateReference ? null : $('<div class="userbutton"><div class="fa fa-sitemap userbuttonIcon"></div>Create Reference</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				var id = editor.getCurrentId();
-				
-				ReferenceActions.getInstance().createReference(id)
-				.then(function(data) {
-	        		if (data.message) {
-	        			n.showAlert(data.message, "S", data.messageThreadId);
-	        		}
-					if (data.newIds && (data.newIds.length > 0)) {
-						NoteTree.getInstance().focus(data.newIds[0]);
-					}	        		
-	        	})
-				.catch(function(err) {
-	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-	        	});
-			}),
-	        
-	        // References
-			options.noRefs ? null : $('<div class="userbutton"><div class="fa fa-long-arrow-alt-right userbuttonIcon"></div>References</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				n.routing.call('refs/' + editor.getCurrentId());
-			}),
-	        
-	        // History
-	        options.noHistory ? null : $('<div class="userbutton"><div class="fa fa-history userbuttonIcon"></div>History</div>')
-	        .on('click', function(event) {
-	        	event.stopPropagation();
-	        	editor.hideOptions();
-	        	
-	        	n.routing.call("history/" + editor.getCurrentId());
-	        }),
-	        
-			// Download
-			options.noDownload ? null : $('<div class="userbutton"><div class="fa fa-download userbuttonIcon"></div>Download</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				Document.downloadDocumentDialog(editor.getCurrentId())
-				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-				});
-			}),
-			
-	        // Show in navigation
-			options.noOpenInNavigation ? null : $('<div class="userbutton"><div class="fa fa-sitemap userbuttonIcon"></div>Show in Navigation</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				NoteTree.getInstance().focus(editor.getCurrentId());
-				
-				n.routing.call(editor.getCurrentId());
-			}),
-			
-			$('<div class="userbuttonLine"></div>'),
-			
-			 // Raw JSON view
-			options.noRawView ? null : $('<div class="userbutton"><div class="fa fa-code userbuttonIcon"></div>Raw JSON</div>')
-			.on('click', function(event) {
-				event.stopPropagation();
-				editor.hideOptions();	
-				
-				n.routing.callRawView(editor.getCurrentId());
-			}),
-			
-			!openedDoc ? null : $('<div class="userbuttonLine"></div>'),
-			
-			!openedDoc ? null : $('<div class="userbuttonPassive"></div>')
-			.html('ID: ' + openedDoc._id)
-			.on('click', function(event) {
-				event.stopPropagation();
-			}),
-		];
 	}
 	
 	/**

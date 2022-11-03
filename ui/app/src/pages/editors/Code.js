@@ -233,7 +233,7 @@ class Code {
 				),
 			)
 			.append(
-				Document.getEditorOptionMenuItems(that, {
+				PageMenu.get(that, {
 					//downloadMimeType: 'text/plain',
 					//downloadFilename: that.current.name + '.txt' 
 				})

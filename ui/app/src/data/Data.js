@@ -603,6 +603,17 @@ class Data {
 			}
 			return false;
 		}
+		
+		// Only search in starred docs
+		if (token.startsWith('fav:')) {
+			if (!doc.star) return false;
+			
+			tokenLowercase = tokenLowercase.substring('fav:'.length);
+			if (doc.content.toLowerCase().search(tokenLowercase) != -1) {
+				return true;
+			}
+			return false;
+		}
 
 		// Search in all fields //////////////////////////////////////////////////////
 		
@@ -857,6 +868,20 @@ class Data {
 		}
 		
 		return false;
+	}
+	
+	/**
+	 * Returns an array holding all non-deleted starred documents.
+	 */
+	getStarredDocs() {
+		var ret = [];
+		
+		this.each(function(doc) {
+			if (doc.deleted) return;
+			if (doc.star) ret.push(doc);
+		});
+		
+		return ret;
 	}
 	
 	/**

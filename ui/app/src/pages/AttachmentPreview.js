@@ -172,7 +172,7 @@ class AttachmentPreview {
 			);
 			
 			cont.append(
-				Document.getEditorOptionMenuItems(that, {
+				PageMenu.get(that, {
 					noHistory: true,
 					noCopy: true,
 					noDownload: true
