@@ -747,7 +747,7 @@ class DetailBehaviour {
 	setupItemContent(itemContent, doc, additionalTextBefore, additionalTextAfter) {
 		// Set up item DOM
 		itemContent.append(
-			// Links Bar at the left
+			// Marker Bar at the left
 			$('<div data-toggle="tooltip" title="..." class="' + this.getItemLeftMarkerClass() + '">').append(
 				$('<span class="' + this.getMarkerIconClass() + ' fa fa-chevron-right"></span>')
 			),
@@ -767,6 +767,8 @@ class DetailBehaviour {
 					// Text
 					$('<div class="' + this.getItemTextClass() + '"><div class="treeitemtext-detail-text">' + additionalTextBefore + doc.name + additionalTextAfter + '</div></div>').append(
 						// Labels
+						$('<div class="doc-label doc-label-detail-star fa fa-star"></div>'),
+						
 						Document.getLabelElements(doc, 'doc-label-detail')
 					),
 				]),
@@ -780,7 +782,7 @@ class DetailBehaviour {
 				),
 			]),
 			
-			// Links Bar at the left
+			// Marker Bar at the right
 			$('<div data-toggle="tooltip" title="..." class="' + this.getItemRightMarkerClass() + '">').append(
 				$('<span class="' + this.getMarkerIconClass() + ' fa fa-chevron-right"></span>')
 			),
@@ -874,44 +876,53 @@ class DetailBehaviour {
 		itemContent.css('height', meta.isSelectedParent ? '100%' : ((isParentOfSelected ? (this.treeFontSize * 1.6) : this.itemHeight) + 'px'));
 		itemContainer.css('width', meta.isSelectedParent ? (this.grid.getContainerWidth() - this.sortButtonsWidth) + 'px' : '100%');
 		
-		// Inner container
-		var innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
-		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
-		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
-
 		// Category markers
 		var markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
 		var markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
 		markerLeftEl.css('display', 'none');
 		markerRightEl.css('display', 'none');
 		
+		var rightMarkerShown = false;
 		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
 			// Marker at the left for backlinks and and references
+			var markerLeftElIcon = markerLeftEl.find('.' + this.getMarkerIconClass());
+			
 			if (isBacklinkOfSelected) {
 				markerLeftEl.css('display', 'block');
 				markerLeftEl.css('background', '#b5f7c6');
 				markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
+				
+				markerLeftElIcon.removeClass('fa-chevron-left');
+				markerLeftElIcon.addClass('fa-chevron-right');
 			}
 			if (isReferenceToSelected) {
 				markerLeftEl.css('display', 'block');
 				markerLeftEl.css('background', '#fff2bf');
 				markerLeftEl.attr('title', doc.name + ' contains a reference to ' + selectedDocName);
+				
+				markerLeftElIcon.removeClass('fa-chevron-left');
+				markerLeftElIcon.addClass('fa-chevron-right');
 			}				
 			if (isParentOfSelected) {
 				markerLeftEl.css('display', 'block');
 				markerLeftEl.css('background', '#faacac');
 				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
+				
+				markerLeftElIcon.removeClass('fa-chevron-right');
+				markerLeftElIcon.addClass('fa-chevron-left');
 			}
 						
 			// Markers at the right for children, outgoing links of the selected doc. and parent of the selected doc.
 	 		if (!isParentOfSelected) {
 				if (isChildOfSelected) {
 					markerRightEl.css('display', 'block');
+					rightMarkerShown = true;
 					markerRightEl.css('background', '#eeeeee');
 					markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
 				}
 				if (isOutgoinglinkOfSelected) {
 					markerRightEl.css('display', 'block');
+					rightMarkerShown = true;
 					markerRightEl.css('background', '#b5f7c6');
 					markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
 				}
@@ -929,6 +940,12 @@ class DetailBehaviour {
 			markerRightEl.css('color', highlightRight ? highlightColor : 'darkgrey');
 			if (highlightRight) markerRightEl.attr('title', markerRightEl.attr('title') + ', last opened in navigation');
 		}
+		
+		// Inner container
+		var innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
+		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
+		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
+		innerContainer.css('width', meta.isSelectedParent ? '100%' : (rightMarkerShown ? ((this.grid.getContainerWidth() - 32) + 'px') : ''));
 		
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
 		var iconEl = itemContent.find('.' + this.getIconClass());
@@ -959,6 +976,14 @@ class DetailBehaviour {
 			// Set preview / meta font size
 			previewEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
 			metaEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
+		}
+		
+		// Star
+		var starEl = innerContainer.find('.doc-label-detail-star');
+		starEl.css('display', doc.star ? 'block' : 'none');
+		if (doc.star) {
+			starEl.css('color', doc.color ? doc.color : 'black');
+			starEl.css('font-size', (this.treeFontSize - 2) + 'px');
 		}
 		
 		this.updateItemMeta(doc, itemContent);

@@ -513,6 +513,9 @@ class Code {
 			for (var i=0; i<links.length; ++i) {
 				links[i].removeEventListener("click", that.onLinkClick);
 				links[i].addEventListener("click", that.onLinkClick);
+				
+				links[i].removeEventListener("touchstart", that.onLinkClick);
+				links[i].addEventListener("touchstart", that.onLinkClick);
 			}
 		}, 0);
 	}

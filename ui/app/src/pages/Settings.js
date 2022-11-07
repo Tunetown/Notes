@@ -892,6 +892,7 @@ class Settings {
 									if (Notes.getInstance().isMobile()) return;
 									NoteTree.getInstance().setContainerWidth(parseInt(this.value));
 									ClientState.getInstance().saveTreeState();
+									NoteTree.getInstance().refresh();
 								})
 							)
 						),

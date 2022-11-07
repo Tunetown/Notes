@@ -865,7 +865,7 @@ class Document {
 		return $('<select id="' + elementId + '">').append([
 			$('<option value="note" selected>Note</option>'),
 			$('<option value="reference">Reference</option>'),
-			$('<option value="sheet">Spreadsheet</option>'),
+			//$('<option value="sheet">Spreadsheet</option>'),
 			$('<option value="attachment">Attachment</option>'),
 		]);
 	}

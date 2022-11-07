@@ -341,7 +341,7 @@ class ReferenceActions {
 				});
 			});
 			
-			$('#createReferenceDialogText').html('Create reference to ' + doc.name + ' in: <span class="deprecated">References are deprecated, use in-document links instead</span>');
+			$('#createReferenceDialogText').html('Create reference to ' + doc.name + ' in: '); //<span class="deprecated">References are deprecated, use in-document links instead</span>');
 			$('#createReferenceDialog').modal();
 		});
 	}	

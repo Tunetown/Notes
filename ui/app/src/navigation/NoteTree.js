@@ -829,7 +829,7 @@ class NoteTree {
 			'tree',
 			'setStar',
 			function(doc) {
-				that.updateFavorites();
+				that.refresh(); //updateFavorites();
 			}
 		);
 		Callbacks.getInstance().registerCallback(
@@ -1329,7 +1329,7 @@ class NoteTree {
 	 * Set the width of the tree container.
 	 */
 	setContainerWidth(w) {
-		$('#' + this.treeNavContainerId).css('width', w + 'px'); 
+		$('#' + this.treeNavContainerId).css('width', w + 'px');
 	}
 	
 	/**

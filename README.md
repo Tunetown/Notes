@@ -93,4 +93,9 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
 - 0.94.0
     - Added: Pin/Unpin documents to/from favorites
     
+- 0.94.1
+    - Bug fixes and small optimizations in appearance
+    - Removed sheet type from create note dialog
+    
+    
     
