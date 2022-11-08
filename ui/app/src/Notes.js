@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.94.3';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.95.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1063,6 +1063,7 @@ class Notes {
 				
 				$('<div class="userbutton" id="syncMenuButton" onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();"><div class="fa fa-sync userbuttonIcon"></div>Synchronize</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callSettings()"><div class="fa fa-cog userbuttonIcon"></div>Settings</div>'),
+				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callHashtags()"><div class="fa fa-hashtag userbuttonIcon"></div>All Hashtags</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callLabelDefinitions()"><div class="fa fa-tags userbuttonIcon"></div>All Labels</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callConsole()"><div class="fa fa-terminal userbuttonIcon"></div>Console</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callTrash()"><div class="fa fa-trash userbuttonIcon"></div>Trash</div>'),

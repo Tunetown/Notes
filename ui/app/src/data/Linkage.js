@@ -89,8 +89,8 @@ class Linkage {
 						hadQuote = false;
 					}
 				}
-				
 			}
+
 			if (capturing && (cc == Linkage.endTag)) {
 				capturing = false;
 				end = i;

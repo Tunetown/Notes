@@ -1136,6 +1136,7 @@ class NoteTree {
 			$('#favBar').show();
 		} else {
 			$('#favBar').hide();
+			this.resetFavoriteBuffers();
 		}
 	}
 	
@@ -1347,7 +1348,7 @@ class NoteTree {
 	}
 	
 	/**
-	 * Update search (delayed). 
+	 * Update search. 
 	 */
 	updateSearch() {
 		var text = this.getSearchText();
@@ -1355,17 +1356,16 @@ class NoteTree {
 		var that = this;
 		if (text && (text.length > 0)) {
 			// Load all documents
-			return DocumentAccess.getInstance().loadAllDocuments()
-			.then(function(resp) {
+			return new Promise(function(resolve) {
 				that.filter(true);
 				
 				ClientState.getInstance().addSearchProposal(text);
 					
-				return Promise.resolve({ ok: true });
+				resolve({ ok: true });
 			});
 		} else {
 			// Just filter
-			return new Promise(function(resolve, reject) {
+			return new Promise(function(resolve) {
 				that.filter(true);
 				
 				resolve({ ok: true });
@@ -1398,13 +1398,16 @@ class NoteTree {
 						'<b>name:[...]</b> only searches in document names' +  
 					'</li>' + 
 					'<li>' +
-						'<b>type:[...]</b> only searches in document types' +  
+						'<b>type:[...]</b> only searches in document type' +  
+					'</li>' + 
+					'<li>' +
+						'<b>tag:[...]</b> only searches for documents with the corresponding hash tag' +  
 					'</li>' + 
 					'<li>' +
 						'<b>label:[...]</b> only searches for documents with the corresponding label' +  
 					'</li>' + 
 					'<li>' +
-						'<b>fav:[...]</b> only searches in the contents of documents which are pinned to the favorites list' +  
+						'<b>star:[...]</b> only searches in the contents and names of documents which are pinned to the favorites list' +  
 					'</li>' + 
 				'</ul>'; 
 
@@ -1449,10 +1452,8 @@ class NoteTree {
 		
 		var searchText = this.getSearchText();
 
-		this.updateDomItems(true);
-		
 		var that = this;
-		return new Promise(function(resolve/*, reject*/) {
+		function doFilter(resolve/*, reject*/) {
 			that.grid.grid.filter(function (item) {
 				var el = that.getGridItemContent(item);
 				var dt = el.data();
@@ -1488,7 +1489,24 @@ class NoteTree {
 					resolve();
 				}
 			});
-		});
+		}
+		
+		if (searchText.length > 0) {
+			return DocumentAccess.getInstance().loadAllDocuments()
+			.then(function() { 
+				return new Promise(function(resolve/*, reject*/) {
+					that.updateDomItems(true);
+					
+					doFilter(resolve);
+				});
+			});
+		} else {
+			return new Promise(function(resolve/*, reject*/) {
+				that.updateDomItems(true);
+				
+				doFilter(resolve);
+			});
+		}
 	}
 	
 	/**

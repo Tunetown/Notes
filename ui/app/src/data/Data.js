@@ -609,10 +609,21 @@ class Data {
 			return false;
 		}
 		
+		// Hashtag only search
+		if (token.startsWith('tag:')) {
+			tokenLowercase = tokenLowercase.substring('tag:'.length);
+			for (var l in doc.tags || []) {
+				if (doc.tags[l].toLowerCase().search(tokenLowercase) != -1) {
+					return true;
+				}
+			}
+			return false;
+		}
+		
 		// Name only search
 		if (token.startsWith('name:')) {
 			tokenLowercase = tokenLowercase.substring('name:'.length);
-			if (doc.name.toLowerCase().search(tokenLowercase) != -1) {
+			if (doc.name && (doc.name.toLowerCase().search(tokenLowercase) != -1)) {
 				return true;
 			}
 			return false;
@@ -621,18 +632,21 @@ class Data {
 		// Type only search
 		if (token.startsWith('type:')) {
 			tokenLowercase = tokenLowercase.substring('type:'.length);
-			if (doc.type.toLowerCase().search(tokenLowercase) != -1) {
+			if (doc.type && (doc.type.toLowerCase().search(tokenLowercase) != -1)) {
 				return true;
 			}
 			return false;
 		}
 		
-		// Only search in starred docs
-		if (token.startsWith('fav:')) {
+		// Only search in starred docs (content and name)
+		if (token.startsWith('star:')) {
 			if (!doc.star) return false;
 			
 			tokenLowercase = tokenLowercase.substring('fav:'.length);
-			if (doc.content.toLowerCase().search(tokenLowercase) != -1) {
+			if (doc.content && (doc.content.toLowerCase().search(tokenLowercase) != -1)) {
+				return true;
+			}
+			if (doc.name && (doc.name.toLowerCase().search(tokenLowercase) != -1)) {
 				return true;
 			}
 			return false;
@@ -641,7 +655,7 @@ class Data {
 		// Search in all fields //////////////////////////////////////////////////////
 		
 		// Name
-		if (doc.name.toLowerCase().search(tokenLowercase) != -1) {
+		if (doc.name && (doc.name.toLowerCase().search(tokenLowercase) != -1)) {
 			return true;
 		}
 		
@@ -751,7 +765,8 @@ class Data {
 	 * Returns a list of all documents in the notebook which contain the passed token in their readable paths. 
 	 * The list contains meta objects, and does not include root.
 	 */
-	getAutocompleteList(token) {
+	getLinkAutocompleteList(token) {
+		if (!token) token = '';
 		var that = this;
 		var ret = [];
 		var tokenL = token.toLowerCase();
@@ -776,6 +791,58 @@ class Data {
 		});
 
 		return ret;		
+	}
+	
+	/**
+	 * Returns a list of all available hash tags in the notebook which contain the passed token.
+	 */
+	getTagAutocompleteList(token) {
+		if (!token) token = '';
+		var ret = [];
+		var tokenL = token.toLowerCase();
+		
+		this.each(function(doc) {
+			if (doc.tags) {
+				for(var i in doc.tags) {
+					if (doc.tags[i].toLowerCase().indexOf(tokenL) < 0) continue;
+					
+					ret.push({
+						text: doc.tags[i],
+						id: doc.tags[i],
+					});
+				}
+			}
+		});
+		
+		var uniqueRet = ret.filter(function(a, pos) {
+	    	return ret.findIndex(function(b) {
+				return (b.id == a.id);
+			}) == pos;
+		})
+		
+		return uniqueRet;
+	}
+	
+	/**
+	 * Returns an array with all documents featuring the passed tag.
+	 */
+	getDocumentsWithTag(tagname) {
+		if (!tagname) return [];
+		var ret = [];
+		
+		this.each(function(doc) {
+			if (doc.tags) {
+				for(var i in doc.tags) {
+					if (doc.tags[i] != tagname) continue;
+					
+					ret.push(doc);
+					
+					break;
+				}
+			}
+		});
+		
+		return ret;
 	}
 	
 	/**

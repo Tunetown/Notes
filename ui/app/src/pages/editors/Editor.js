@@ -27,6 +27,7 @@ class Editor {
 	}
 	
 	static linkClass = 'notesTMCELink';       ///< Class for the internal links
+	static tagClass = 'notesTMCETag';         ///< Class for the hashtags
 	
 	constructor() {
 		this.editorId = "editorContent";
@@ -59,7 +60,7 @@ class Editor {
 		
 		var content = '';
 		if (Document.getContent(doc)) content = Document.getContent(doc);
-		content = this.convertPlainLinks(content);
+		content = this.convertPlainLinksAndTags(content);
 			
 		this.setCurrent(doc);
 		n.setCurrentEditor(this);
@@ -114,7 +115,7 @@ class Editor {
 					that.updateLinkClickHandlers(editor);
 	            },
 				plugins: 
-					"code table image lists advlist charmap codesample emoticons fullscreen hr imagetools link media print searchreplace textpattern toc",
+					"code table image lists advlist charmap codesample emoticons fullscreen hr imagetools link media print searchreplace toc",  // textpattern
 				toolbar: 
 					'undo redo | forecolor backcolor removeformat | bold italic underline strikethrough | outdent indent | numlist bullist | formatselect | ' + 
 					'alignleft aligncenter alignright alignjustify | pagebreak | fontselect fontsizeselect | emoticons charmap | ' + 
@@ -275,7 +276,7 @@ class Editor {
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
 			var that = this;
-			return DocumentActions.getInstance().save(this.current._id, this.convertPlainLinks(this.getContent()))
+			return DocumentActions.getInstance().save(this.current._id, this.convertPlainLinksAndTags(this.getContent()))
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
 
@@ -392,7 +393,7 @@ class Editor {
 		this.timeoutHandle = setTimeout(function(){
 			if (!tinymce.get(that.editorId).isDirty()) return;
 			
-			DocumentActions.getInstance().save(that.getCurrentId(), that.convertPlainLinks(that.getContent()))
+			DocumentActions.getInstance().save(that.getCurrentId(), that.convertPlainLinksAndTags(that.getContent()))
 			.catch(function(err) {
         		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
@@ -413,8 +414,7 @@ class Editor {
 		var that = this;
 		
 		/**
-	     * An autocompleter that allows you to insert special characters.
-	     * Items are built using the CardMenuItem.
+	     * Auto completer for in-document links to other documents.
 	     */
 	    editor.ui.registry.addAutocompleter('addlink', {
 			ch: Linkage.startChar,
@@ -422,13 +422,32 @@ class Editor {
 			columns: 1,
 			highlightOn: ['char_name'],
 			onAction: function(autocompleteApi, rng, value) {
-				that.onLinkAutoCompleteAction(editor, autocompleteApi, rng, value);
+				that.onAutoCompleteAction(editor, autocompleteApi, rng, value);
 			},
 			fetch: function (pattern) {
 				return that.fetchLinkAutoCompletion(editor, pattern);
 			},
 			matches: function(rng, text, pattern) {
 				return that.doTriggerLinkAutoCompletion(editor, rng, text, pattern);
+			}
+		});
+
+		/**
+	     * Auto completer for hash tags
+	     */
+	    editor.ui.registry.addAutocompleter('addHashtag', {
+			ch: Hashtag.startChar,
+			minChars: 0,
+			columns: 1,
+			highlightOn: ['char_name'],
+			onAction: function(autocompleteApi, rng, value) {
+				that.onAutoCompleteAction(editor, autocompleteApi, rng, value);
+			},
+			fetch: function (pattern) {
+				return that.fetchTagAutoCompletion(editor, pattern);
+			},
+			matches: function(rng, text, pattern) {
+				return that.doTriggerTagAutoCompletion(editor, rng, text, pattern);
 			}
 		});
 	}
@@ -439,6 +458,13 @@ class Editor {
 	doTriggerLinkAutoCompletion(editor, rng, text, pattern) {
 		var lastChar = text.substring(rng.startOffset-1, rng.startOffset);
 		return (lastChar == Linkage.startChar);
+	}
+	
+	/**
+	 * Returns if the auto completion shall be triggered. This is the case if the last char before the trigger char is [.
+	 */
+	doTriggerTagAutoCompletion(editor, rng, text, pattern) {
+		return true;
 	}
 	
 	/**
@@ -472,9 +498,39 @@ class Editor {
 	}
 	
 	/**
-	 * Called to perform the text replacement when the user chooses an auto complete option.
+	 * Returns a TinyMCE Promise wchich returns the list in the TinyMCE auto completer format.
 	 */
-	onLinkAutoCompleteAction(editor, autocompleteApi, rng, value) {
+	fetchTagAutoCompletion(editor, pattern) {
+		var that = this;
+		
+		return new tinymce.util.Promise(function (resolve) {
+			resolve(that.getTagAutocompleteMatchedChars(editor, pattern).map(function (char) {
+				return {
+					type: 'cardmenuitem',
+					value: Hashtag.startChar + char.id + ' ',
+					label: char.text,
+					items: [
+						{
+							type: 'cardcontainer',
+							direction: 'vertical',
+							items: [
+								{
+									type: 'cardtext',
+									text: char.text,
+									name: 'char_name'
+								}
+							]
+						}
+					]
+				}
+			}));
+		});
+	}
+	
+	/**
+	 * Called to perform the text replacement when the user chooses an auto complete option (links).
+	 */
+	onAutoCompleteAction(editor, autocompleteApi, rng, value) {
 		// Insert the text
 		editor.selection.setRng(rng);
 		editor.insertContent(value);
@@ -483,20 +539,36 @@ class Editor {
 		autocompleteApi.hide();
 		
 		// Convert all links to spans
-		tinymce.get(this.editorId).setContent(this.convertPlainLinks(this.getContent()));		
+		tinymce.get(this.editorId).setContent(this.convertPlainLinksAndTags(this.getContent()));		
 		
 		// Update click handlers
 		this.updateLinkClickHandlers(editor);
 	}
 	
 	/**
-	 * Returns the list of proposals for link aut completion.
+	 * Returns the list of proposals for link auto completion.
 	 */
-	getLinkAutocompleteMatchedChars(editor, pattern) {
-		return Notes.getInstance().getData().getAutocompleteList(pattern);
+	getLinkAutocompleteMatchedChars(editor, pattern) {	
+		return Notes.getInstance().getData().getLinkAutocompleteList(pattern);
+	}
+	
+	/**
+	 * Returns the list of proposals for link auto completion.
+	 */
+	getTagAutocompleteMatchedChars(editor, pattern) {
+		return Notes.getInstance().getData().getTagAutocompleteList(pattern);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Replaces all plain links ([[]]) and hashtags to HTML with click handlers, if not yet converted.
+	 */
+	convertPlainLinksAndTags(content) {
+		content = this.convertPlainLinks(content);
+		content = this.convertPlainTags(content);
+		return content;
+	}
 	
 	/**
 	 * Replaces all plain links ([[]]) to HTML with click handlers, if not yet converted. If
@@ -535,6 +607,37 @@ class Editor {
 	}
 	
 	/**
+	 * Replaces all plain hashtags (#) to HTML with click handlers, if not yet converted. If
+	 * an already converted tag is found, it will be checked for correctness and updated to match
+	 * the data-tag tag again, if necessary.
+	 *    
+	 * Hashtag format is: 
+	 *    
+	 *   #Tagname 
+	 *    
+	 * is converted to 
+	 *    
+	 *   <span class="notesTMCETag">#Tagname</span>
+	 *
+	 */
+	convertPlainTags(content) {
+		const coll = Hashtag.parse(content, '>', '<');
+		
+		if (coll.length == 0) return content;
+		
+		console.log(' -> Replacing ' + coll.length + ' raw hashtags with HTML');
+		
+		for(var c=0; c<coll.length; ++c) {
+			const co = coll[c];
+			const tag = this.createTagElement(co.tag);
+			
+			content = content.replaceAll(Hashtag.startChar + co.tag, tag);
+		}
+		
+		return content;
+	}
+	
+	/**
 	 * Re-sets all onclick handlers for the internal links.
 	 */
 	updateLinkClickHandlers(editor) {
@@ -545,6 +648,12 @@ class Editor {
 				links[i].removeEventListener("click", that.onLinkClick);
 				links[i].addEventListener("click", that.onLinkClick);
 			}
+			
+			const tags = editor.contentDocument.getElementsByClassName(Editor.tagClass);
+			for (var i=0; i<tags.length; ++i) {
+				tags[i].removeEventListener("click", that.onTagClick);
+				tags[i].addEventListener("click", that.onTagClick);
+			}
 		}, 0);
 	}
 
@@ -553,6 +662,13 @@ class Editor {
 	 */
 	createLinkElement(target, text) {
 		return '<span class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>';
+	}
+	
+	/**
+	 * Generates a tag span HTML. Returns a string.
+	 */
+	createTagElement(target) {
+		return '<span class="' + Editor.tagClass + '">' + Hashtag.startChar + target + '</span>';
 	}
 	
 	/**
@@ -569,6 +685,21 @@ class Editor {
 		
 		//NoteTree.getInstance().openNode(ref);
 		Notes.getInstance().routing.call(ref);
+	}
+	
+	/**
+	 * Click handler for hashtags.
+	 */
+	onTagClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+		
+		if (!event.currentTarget) return;
+		
+		const tag = $(event.currentTarget).text().substring(Hashtag.startChar.length);
+		if (!tag) return;
+		
+		NoteTree.getInstance().setSearchText('tag:' + tag);
 	}
 }
 

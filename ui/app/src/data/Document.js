@@ -57,9 +57,10 @@ class Document {
 			doc.preview = Document.createPreview(doc, 1000);
 		}
 		
-		// Links
+		// Links and Tags
 		if (doc.type == 'note') {
 			doc.links = Document.getLinksFromContent(doc);
+			doc.tags = Document.getTagsFromContent(doc);
 		}
 	}
 	
@@ -390,6 +391,7 @@ class Document {
 		}
 		
 		Document.checkLinkages(doc, cl, errors);
+		Document.checkTags(doc, cl, errors);
 	}
 	
 	static checkLinkages(doc, cl, errors, ignoreBrokenLinksInContent) {
@@ -454,6 +456,55 @@ class Document {
 		}
 	}
 	
+	static checkTags(doc, cl, errors) {
+		var d = Notes.getInstance().getData();
+		
+		if (!cl) {
+			cl = Document.clone(doc);
+			Document.updateMeta(cl);
+		}
+		
+		// Linkages
+		if (doc.type == 'note') {
+			if (cl.hasOwnProperty('tags')) {
+				if ((!doc.hasOwnProperty('tags')) || (!doc.tags)) {
+					errors.push({
+						message: 'Tags buffer does not exist',
+						id: doc._id,
+						type: 'E'
+					});
+				} else {
+					if (cl.tags.length != doc.tags.length) {
+						errors.push({
+							message: 'Tags buffer do not match',
+							id: doc._id,
+							type: 'E'
+						});
+					} else {
+						// Compare tags
+						for(var c=0; c<cl.tags.length; ++c) {
+							var found = false;
+							for(var dd=0; dd<doc.tags.length; ++dd) {
+								if (doc.tags[dd] == cl.tags[c]) {
+									found = true;
+									break;
+								}
+							}
+							
+							if (!found) {
+								errors.push({
+									message: 'Tag buffer invalid',
+									id: doc._id,
+									type: 'E'
+								});
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
 	/**
 	 * Check the documents link buffer and warn the user if anything is wrong.
 	 */
@@ -464,6 +515,7 @@ class Document {
 			
 			// Just check if the links buffers are up to date
 			Document.checkLinkages(doc, null, errors, true);
+			Document.checkTags(doc, null, errors);
 			
 			if (errors.length > 0) {
 				Notes.getInstance().showAlert(
@@ -594,6 +646,22 @@ class Document {
 	}
 	
 	/**
+	 * Returns the tags array from the given documents content
+	 */
+	static getTagsFromContent(doc) {
+		if (!doc) return [];
+		if (!doc.content) return [];
+	
+		const tags = Hashtag.parse(doc.content);
+	
+		var ret = [];
+		for(var i=0; i<tags.length; ++i) {
+			ret.push(tags[i].tag);	
+		}
+		return ret;
+	}
+
+	/**
 	 * Sets a lock for the given ID (scope is the instance). If the document is locked,
 	 * it waits until the lock is free again.
 	 */
@@ -651,6 +719,7 @@ class Document {
 		doc.editorParams = src.editorParams;
 		
 		doc.links = src.links;
+		doc.tags = src.tags;
 		doc.navRelations = src.navRelations;
 		
 		doc.star = src.star;
@@ -733,6 +802,7 @@ class Document {
 		doc.editorParams = src.editorParams;
 		
 		doc.links = src.links;
+		doc.tags = src.tags;
 		doc.navRelations = src.navRelations;
 		
 		doc.star = src.star;
@@ -790,6 +860,7 @@ class Document {
 						editor: doc.editor,
 						
 						links: doc.links,
+						tags: doc.tags,
 						navRelations: doc.navRelations,
 						
 						star: doc.star,
@@ -1314,6 +1385,30 @@ class Document {
 		} else {
 			if (current.links) {
 				console.log("   -> Links have been removed");
+				return true;
+			}
+		}
+		
+		if (doc.tags) {
+			if (!current.tags) {
+				console.log("   -> Tags have been added");
+				return true;
+			}
+			
+			if (doc.tags.length != current.tags.length) {
+				console.log("   -> Tags have been changed");
+				return true;
+			}
+			
+			for(var c in doc.tags) {
+				if (doc.tags[c] != current.tags[c]) {
+					console.log("   -> Tag " + c + " changed");
+					return true;
+				}
+			}
+		} else {
+			if (current.tags) {
+				console.log("   -> Tags have been removed");
 				return true;
 			}
 		}

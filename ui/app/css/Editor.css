@@ -23,6 +23,14 @@
    cursor: pointer; 
 }
 
+.notesTMCETag {
+   color: white; 
+   background: darkgreen;
+   cursor: pointer; 
+   padding: 3px;
+   border-radius: 4px;
+}
+
 body {
 	line-height: 1.4;
 }

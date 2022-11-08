@@ -226,6 +226,22 @@ class Routing {
 				});
 			});
 			
+			// All hashtags
+			this.get('#/:profile/tags', function(context) {
+				that.app.startApp(this.params['profile'])
+				.then(function(data) {
+					that.app.resetPage();
+					
+					return Promise.resolve(data.treePromise)
+					.then(function(data) {
+						return Hashtags.getInstance().load();
+					});
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading tags overview: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
 			// All labels
 			this.get('#/:profile/labels', function(context) {
 				that.app.startApp(this.params['profile'])
@@ -519,6 +535,13 @@ class Routing {
 		} else {
 			this.call('ld/' + id);
 		}
+	}
+	
+	/**
+	 * Call hashtags overview
+	 */
+	callHashtags() {
+		this.call('tags');
 	}
 	
 	/**

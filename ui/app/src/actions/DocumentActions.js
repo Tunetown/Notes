@@ -580,6 +580,7 @@ class DocumentActions {
 			// Check if we have to reload the tree because of metadata changes
 			var brokenLinkErrors = [];
 			Document.checkLinkages(data, null, brokenLinkErrors, true);
+			Document.checkTags(data, null, brokenLinkErrors);
 			reloadTree = (brokenLinkErrors.length > 0);
 			
 			return DocumentAccess.getInstance().saveItem(id, true);

@@ -56,6 +56,7 @@ class Code {
 			
 			var ec = {};
 			ec["'" + Linkage.startChar + "'"] = function(cm, pred) { return that.triggerAutocomplete(cm, pred); };
+			ec["'" + Hashtag.startChar + "'"] = function(cm, pred) { return that.triggerAutocomplete(cm, pred); };
 			
 			var content = Document.getContent(doc);
 			if (that.versionRestoreData) content = that.versionRestoreData;
@@ -442,6 +443,13 @@ class Code {
 				}
 			}, 0);
 		}
+		
+		// Trigger autocomplete if the user is entering #
+		if (!pred || pred()) setTimeout(function() {
+			if (!cm.state.completionActive) {
+				cm.showHint();
+			}
+		}, 0);
 
         return CodeMirror.Pass;
 	}
@@ -465,10 +473,19 @@ class Code {
 				while (end < line.length && /\w/.test(line.charAt(end))) ++end;
 				
 				var typedToken = line.substring(start, end);
+				var startToken = line.substring(start-1, start);
 
-				// Let getAutocompleteOptions() generate a list of completions
-				var data = that.getAutocompleteOptions(cm, option, typedToken, start, end);
-				
+				var data = {};
+				if (startToken == Linkage.startChar) {
+					data = that.getLinkAutocompleteOptions(cm, option, typedToken, start, end);
+				}
+
+				if (startToken == Hashtag.startChar) {
+					data = that.getTagAutocompleteOptions(cm, option, typedToken, start, end);
+				}
+
+				if (!data.list) data.list = [];
+
 				return accept({
 					list: data.list,
 					selectedHint: data.selectedHint,
@@ -484,12 +501,31 @@ class Code {
 	/**
 	 * This actually composes the autocomplete list.
 	 */
-	getAutocompleteOptions(cm, option, typedToken, start, end) {
-		var proposals = Notes.getInstance().getData().getAutocompleteList(typedToken);
+	getLinkAutocompleteOptions(cm, option, typedToken, start, end) {
+		var proposals = Notes.getInstance().getData().getLinkAutocompleteList(typedToken);
 		var list = [];
 		for(var i in proposals) {
 			list.push({
 				text: proposals[i].id + Linkage.separator + Code.linkTextPrefix + proposals[i].displayText + Linkage.endTag,
+				displayText: proposals[i].text
+			});
+		}
+		
+		return {
+			list: list,
+			selectedHint: 0
+		};
+	}
+	
+	/**
+	 * This actually composes the autocomplete list.
+	 */
+	getTagAutocompleteOptions(cm, option, typedToken, start, end) {
+		var proposals = Notes.getInstance().getData().getTagAutocompleteList(typedToken);
+		var list = [];
+		for(var i in proposals) {
+			list.push({
+				text: proposals[i].id + ' ',
 				displayText: proposals[i].text
 			});
 		}
