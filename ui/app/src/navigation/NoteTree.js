@@ -391,6 +391,13 @@ class NoteTree {
 	}
 	
 	/**
+	 * Reset all buffers of favorites rendering.
+	 */
+	resetFavoriteBuffers() {
+		this.lastRenderedFavs = false;
+	}
+	
+	/**
 	 * Gets the text to show (including <br> breaks)
 	 */
 	getFavoriteText(doc) {
@@ -776,9 +783,16 @@ class NoteTree {
 				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog treeModeSwitchbutton roundedButton" id="treeSettingsButton"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
+						
+						var newState = !that.isSettingsPanelVisible();
 						Notes.getInstance().hideOptions();
 						
-						that.settingsButtonPushed(event);
+						if (newState) {
+							that.buildSettingsPanel();
+							that.showSettingsPanel(true);
+						} else {
+							that.showSettingsPanel(false);
+						}
 					})
 					.append(
 						// Settings panel
@@ -1061,14 +1075,6 @@ class NoteTree {
 	 *
 	appForwardButtonPushed() {
 		this.behaviour.appForwardButtonPushed();
-	}
-	
-	/**
-	 * Show tree settings at bottom right.
-	 */
-	settingsButtonPushed(event) {
-		this.buildSettingsPanel();
-		this.showSettingsPanel(true); //!this.isSettingsPanelVisible());
 	}
 	
 	/**

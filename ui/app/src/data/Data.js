@@ -479,6 +479,29 @@ class Data {
 	}
 	
 	/**
+	 * Returns the siblings of the passed document ID (excluding the document itself).
+	 */
+	getSiblings(id) {
+		if (!id) {
+			return [];
+		} 
+		
+		var docOrig = this.getById(id);
+		if (!docOrig) return [];
+		
+		var ret = [];
+		var all = this.getChildren(docOrig.parent);
+		for(var i in all) {
+			if (all[i]._id == id) continue;
+			if (all[i].deleted) continue;
+				
+			ret.push(all[i]);
+		}
+		
+		return ret;
+	}
+	
+	/**
 	 * Returns if the document has conflicts. If includeChildren is set, also
 	 * all deep children of the document will be scanned and true will be returned if
 	 * any conflicts exist among them.

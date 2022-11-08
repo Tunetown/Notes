@@ -58,7 +58,7 @@ class AttachmentPreview {
 		n.setCurrentPage(this);
 
 		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-save" onclick="event.stopPropagation();AttachmentPreview.getInstance().download();"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-download" onclick="event.stopPropagation();AttachmentPreview.getInstance().download();"></div>'),
 			$('<div type="button" data-toggle="tooltip" title="Options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();AttachmentPreview.getInstance().callOptions(event);"></div>'),
 		]);		
 		

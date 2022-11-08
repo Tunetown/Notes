@@ -483,6 +483,8 @@ class Document {
 	 * Check the documents link buffer and warn the user if anything is wrong.
 	 */
 	static brokenLinksWarning(doc) {
+		Document.invalidMetaWarning(doc);
+		/*
 		// Sanity check
 		setTimeout(function() {
 			var errors = [];
@@ -507,7 +509,7 @@ class Document {
 					'brokenLinksMessages'
 				);
 			}
-		}, 500);
+		}, 500);*/
 	}
 	
 	/**

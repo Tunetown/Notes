@@ -1003,6 +1003,8 @@ class Settings {
 												var cs = ClientState.getInstance().getViewSettings();
 												cs.dontShowFavorites = !this.getChecked();
 												ClientState.getInstance().saveViewSettings(cs);
+												
+												NoteTree.getInstance().resetFavoriteBuffers();
 												NoteTree.getInstance().refresh();
 											}
 										});
@@ -1015,8 +1017,8 @@ class Settings {
 								.on('click', function(event) {
 									event.stopPropagation();
 									
+									NoteTree.getInstance().resetFavoriteBuffers();
 									Notes.getInstance().clearFavorites();
-									
 								})
 							)
 						),
@@ -1031,6 +1033,7 @@ class Settings {
 									cs.favoritesSize = parseInt(this.value);
 									ClientState.getInstance().saveViewSettings(cs);
 									
+									NoteTree.getInstance().resetFavoriteBuffers();
 									NoteTree.getInstance().refresh();
 								})
 							)
@@ -1046,6 +1049,7 @@ class Settings {
 									cs.favoritesNum = parseInt(this.value);
 									ClientState.getInstance().saveViewSettings(cs);
 									
+									NoteTree.getInstance().resetFavoriteBuffers();
 									NoteTree.getInstance().refresh();
 								})
 							)
@@ -1065,6 +1069,8 @@ class Settings {
 												var cs = ClientState.getInstance().getViewSettings();
 												cs.dontShowCurrentInFavorites = !this.getChecked();
 												ClientState.getInstance().saveViewSettings(cs);
+												
+												NoteTree.getInstance().resetFavoriteBuffers();
 												NoteTree.getInstance().refresh();
 											}
 										});

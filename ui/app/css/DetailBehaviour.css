@@ -161,13 +161,17 @@
 }
 
 .doc-label-detail {
-	margin-top: 2px;
+	position: relative;
+	top: 50%;
+	transform: translate(0, -50%);
 	margin-left: 2px;
 	flex: 0 0 auto;
 }
 
 .doc-label-detail-star {
-	margin-top: 2px;
+	position: relative;
+	top: 50%;
+	transform: translate(0, -50%);
 	margin-left: 2px;
 	flex: 0 0 auto;
 }
@@ -211,4 +215,15 @@
 .treesettingsinfo-detail {
 	margin-left: 10px;
 	color: darkgray;
+}
+
+.treeitem-detail-group-marker {
+	position: absolute;
+	z-index: 10;
+	height: 2px;
+	width: 100%;
+	background: #888;
+	display: none;
+	position: relative;
+	left: -5px;
 }

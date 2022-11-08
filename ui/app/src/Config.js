@@ -88,4 +88,3 @@ Config.versionRestoreImmediately = true;     // When selecting a version in hist
 Config.dontCheckConflictsGloballyBeyondNumRecords = 6000;  // When the notebook contains more than this amount of documents, no global conflict checking will be done. 
                                                            // In this case, no warning is shown at the user menu icon and in navigation, you have to call the conflicts 
                                                            // page to view the conflicts in the notebook manually.
-
