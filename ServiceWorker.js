@@ -107,6 +107,7 @@ const PRECACHE_URLS = [
   './ui/app/src/actions/SettingsActions.js',
   './ui/app/src/actions/TrashActions.js',
   './ui/app/src/actions/TreeActions.js',
+  './ui/app/src/actions/MetaActions.js',
   './ui/app/src/database/Database.js',
   './ui/app/src/database/DatabaseSync.js',
   './ui/app/src/database/ProfileHandler.js',

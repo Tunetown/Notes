@@ -43,7 +43,7 @@ class Hashtags {
 
 		// Build new table from the data
 		var rows = new Array();
-		var that = this;
+		//var that = this;
 		for(var i in tags || []) {
 			var tag = tags[i];
 			if (!tag.id) continue;
