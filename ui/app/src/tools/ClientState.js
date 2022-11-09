@@ -27,6 +27,7 @@ class ClientState {
 		this.cidProfiles = "pr";	
 		this.cidConsoleSettings = "cs";	
 		this.cidViewSettings = "vs";	
+		this.cidEditorSettings = "es";	
 		this.cidViewState = "vt";
 		this.cidBoardState = "bt";
 		this.cidMobileOverride = "mo";
@@ -319,6 +320,21 @@ class ClientState {
 	 */
 	saveViewSettings(p) {
 		this.setLocal(this.cidViewSettings, p);
+	}
+	
+	/**
+	 * Returns stored local editor settings
+	 */
+	getEditorSettings() {
+		var ret = this.getLocal(this.cidEditorSettings);
+		return ret;
+	}
+	
+	/**
+	 * Saves the passed editor settings
+	 */
+	saveEditorSettings(p) {
+		this.setLocal(this.cidEditorSettings, p);
 	}
 	
 	/**

@@ -214,7 +214,8 @@ class Settings {
 									}
 									
 									Database.getInstance().reset();
-									Notes.getInstance().showAlert("Switching profiles, please wait...", 'I');
+									//Notes.getInstance().showAlert("Switching notebooks, please wait...", 'I');
+									console.log('Switching to notebook at ' + url);
 									Notes.getInstance().routing.call('settings', url);
 								}),
 								$('<br>'),
@@ -1072,6 +1073,50 @@ class Settings {
 												
 												NoteTree.getInstance().resetFavoriteBuffers();
 												NoteTree.getInstance().refresh();
+											}
+										});
+									}, 0);
+								})
+							)
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Rich Text Editor: Auto-Format links</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getEditorSettings().dontReplaceLinksInRTEditor ? '' : 'checked') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												var cs = ClientState.getInstance().getEditorSettings();
+												cs.dontReplaceLinksInRTEditor = !this.getChecked();
+												ClientState.getInstance().saveEditorSettings(cs);
+											}
+										});
+									}, 0);
+								})
+							)
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Rich Text Editor: Auto-Format hashtags</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getEditorSettings().dontReplaceTagsInRTEditor ? '' : 'checked') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												var cs = ClientState.getInstance().getEditorSettings();
+												cs.dontReplaceTagsInRTEditor = !this.getChecked();
+												ClientState.getInstance().saveEditorSettings(cs);
 											}
 										});
 									}, 0);

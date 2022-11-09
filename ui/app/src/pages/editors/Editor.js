@@ -565,8 +565,9 @@ class Editor {
 	 * Replaces all plain links ([[]]) and hashtags to HTML with click handlers, if not yet converted.
 	 */
 	convertPlainLinksAndTags(content) {
-		content = this.convertPlainLinks(content);
-		content = this.convertPlainTags(content);
+		Hashtag.parse(content);
+		if (!ClientState.getInstance().getEditorSettings().dontReplaceLinksInRTEditor) content = this.convertPlainLinks(content);
+		if (!ClientState.getInstance().getEditorSettings().dontReplaceTagsInRTEditor) content = this.convertPlainTags(content);
 		return content;
 	}
 	
@@ -621,7 +622,7 @@ class Editor {
 	 *
 	 */
 	convertPlainTags(content) {
-		const coll = Hashtag.parse(content, '>', '<');
+		const coll = Hashtag.parse(content);
 		
 		if (coll.length == 0) return content;
 		

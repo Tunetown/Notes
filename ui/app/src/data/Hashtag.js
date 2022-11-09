@@ -25,14 +25,15 @@ class Hashtag {
 	 * Parses the passed string and returns an array of metadata about all 
 	 * hashtags contained (may contain duplicates!).
 	 *
-	 * If ignoreSurroundedBy is given, all occurrences which are surrounded by this character will be ignored.
+	 * Hashtags must end with either a space, newline, carriage return or tab, or < and & signs to include HTML entities but exclude colors etc.,
+	 * and start with nothing, a new line, carriagne return, > sign or space or tab. 
 	 */
-	static parse(content, ignoreStartedBy, ignoreEndedBy) {
+	static parse(content) {
 		var capturing = false;
 		var start = -1;
 		var end = -1;
 		var coll = [];
-		var hadQuote = false;
+		var startingChar = false;
 		for(var i=0; i<content.length; ++i) {
 			const c = content[i];
 			
@@ -40,13 +41,17 @@ class Hashtag {
 				capturing = false;
 				end = i;
 
-				if (ignoreStartedBy && ignoreEndedBy) {
-					if (hadQuote && (c == ignoreEndedBy)) {
-						continue;
-					}
-				}
-				
 				if (start != end) {
+					const s = startingChar;
+					if (
+						(!(
+							(c == ' ') || (c == '	') || (c == '\n') || (c == '\r') || (c == '<') || (c == '&')
+						)) ||
+						(!(
+							(s == ' ') || (s == '	') || (s == '\n') || (s == '\r') || (s == '>') // || (s == '&')
+						))
+					) continue;
+
 					coll.push({
 						start: start,
 						end: end,
@@ -59,15 +64,13 @@ class Hashtag {
 				capturing = true;
 				start = i+1;
 				
-				if (ignoreStartedBy && ignoreEndedBy) {
-					if ((i > 0) && (content[i-1] == ignoreStartedBy)) {
-						hadQuote = true;
-					} else {
-						hadQuote = false;
-					}
+				startingChar = false;
+				if (i > 0) {
+					startingChar = content[i-1];
 				}
 			}
 		}
+		console.log(coll)
 		return coll;
 	}
 }

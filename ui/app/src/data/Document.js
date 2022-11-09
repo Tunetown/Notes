@@ -406,11 +406,13 @@ class Document {
 		if (doc.type == 'note') {
 			if (cl.hasOwnProperty('links')) {
 				if ((!doc.hasOwnProperty('links')) || (!doc.links)) {
-					errors.push({
-						message: 'Links buffer does not exist',
-						id: doc._id,
-						type: 'E'
-					});
+					if (cl.links.length > 0) {
+						errors.push({
+							message: 'Links buffer does not exist',
+							id: doc._id,
+							type: 'E'
+						});
+					}
 				} else {
 					if (cl.links.length != doc.links.length) {
 						errors.push({
@@ -457,8 +459,6 @@ class Document {
 	}
 	
 	static checkTags(doc, cl, errors) {
-		var d = Notes.getInstance().getData();
-		
 		if (!cl) {
 			cl = Document.clone(doc);
 			Document.updateMeta(cl);
@@ -468,11 +468,13 @@ class Document {
 		if (doc.type == 'note') {
 			if (cl.hasOwnProperty('tags')) {
 				if ((!doc.hasOwnProperty('tags')) || (!doc.tags)) {
-					errors.push({
-						message: 'Tags buffer does not exist',
-						id: doc._id,
-						type: 'E'
-					});
+					if (cl.tags.length > 0) {
+						errors.push({
+							message: 'Tags buffer does not exist',
+							id: doc._id,
+							type: 'E'
+						});
+					}
 				} else {
 					if (cl.tags.length != doc.tags.length) {
 						errors.push({
@@ -1866,7 +1868,8 @@ class Document {
 				that.setBackground(backImageData, overrideBackColor ? overrideBackColor : doc.backColor, element);		
 			})
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error determining specific background image', 'E', err.messageThreadId);
+				//Notes.getInstance().showAlert(err.message ? err.message : 'Error determining specific background image', 'E', err.messageThreadId);
+				console.log('Error determining specific background image: ' + ((err && err.message) ? err.message : ''));
 			});
 
 		} else if (Document.isImage(doc) && Settings.getInstance().settings.showAttachedImageAsItemBackground) {

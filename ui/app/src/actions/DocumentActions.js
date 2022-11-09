@@ -1473,7 +1473,7 @@ class DocumentActions {
 		}
 		
 		// Check if we already have the image data
-		if (!doc.stub) {
+		if ((!doc.stub) && (!jQuery.isEmptyObject(doc.backImage)) && (!doc.backImage.stub)) {
 			return Promise.resolve(doc.backImage);
 		}
 
