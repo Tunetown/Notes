@@ -575,7 +575,7 @@ class Editor {
 		
 		console.log(" -> Converted links and tags.")
 		
-		//var bookmark = tinymce.get(this.editorId).selection.getBookmark();
+		var bookmark = tinymce.get(this.editorId).selection.getBookmark();
 		//console.log(bookmark);
 		tinymce.get(this.editorId).setContent(converted);		
 		
@@ -650,28 +650,6 @@ class Editor {
 		if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw links with HTML');
 		
 		return dom.html();
-		
-		/*
-		const coll = Linkage.parse(content, '"');
-		
-		if (coll.length == 0) return content;
-		
-		console.log(' -> Replacing ' + coll.length + ' raw links with HTML');
-		
-		for(var c=0; c<coll.length; ++c) {
-			const co = coll[c];
-			const meta = Linkage.splitLink(co.link);
-			if (!meta) {
-				console.log("Invalid link ignored: " + co.link);
-				continue;	
-			}
-			const link = this.createLinkElement(meta.target, meta.text);
-			
-			content = content.replaceAll(Linkage.startTag + co.link + Linkage.endTag, link);
-		}
-		
-		return content;
-		*/
 	}
 	
 	/**
