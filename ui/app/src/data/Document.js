@@ -416,7 +416,7 @@ class Document {
 				} else {
 					if (cl.links.length != doc.links.length) {
 						errors.push({
-							message: 'Links buffer do not match',
+							message: 'Links buffer size mismatch: Should have ' + cl.links.length + ' entries, but has ' + doc.links.length,
 							id: doc._id,
 							type: 'E'
 						});
@@ -433,7 +433,7 @@ class Document {
 							
 							if (!found) {
 								errors.push({
-									message: 'Link buffer invalid',
+									message: 'Link buffer invalid: Link ' + cl.links[c] + ' not found',
 									id: doc._id,
 									type: 'E'
 								});
@@ -444,7 +444,7 @@ class Document {
 								var link = doc.links[c];
 								if (d && (!d.getById(link))) {
 									errors.push({
-										message: 'Broken link: ' + link,
+										message: 'Broken link (target document does not exist): ' + link,
 										id: doc._id,
 										brokenLink: link,
 										type: 'W'
@@ -478,7 +478,7 @@ class Document {
 				} else {
 					if (cl.tags.length != doc.tags.length) {
 						errors.push({
-							message: 'Tags buffer do not match',
+							message: 'Tags buffer size mismatch: Should have ' + cl.tags.length + ' entries, but has ' + doc.tags.length,
 							id: doc._id,
 							type: 'E'
 						});
@@ -495,7 +495,7 @@ class Document {
 							
 							if (!found) {
 								errors.push({
-									message: 'Tag buffer invalid',
+									message: 'Tag buffer invalid: Tag ' + cl.tags[c] + ' not found',
 									id: doc._id,
 									type: 'E'
 								});
@@ -521,7 +521,7 @@ class Document {
 			
 			if (errors.length > 0) {
 				Notes.getInstance().showAlert(
-					'Broken metadata (' + errors.length + ' errors) in document ' + doc._id + ', please re-save it or repair in Settings.', 
+					'Broken metadata (' + errors.length + ' errors) in document ' + doc.name + ' (' + doc._id + '), please re-save it or repair in Settings.', 
 					'E', 
 					'brokenMetaMessages' /*, 
 					false, 

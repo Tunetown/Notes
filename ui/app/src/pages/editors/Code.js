@@ -73,6 +73,9 @@ class Code {
 				},
 			});
 			
+			that.editor.removeOverlay(that.highlightOverlay);
+			that.editor.addOverlay(that.highlightOverlay);
+			
 			that.editor.on('change', function(/*obj*/) {
 				that.setDirty();
 				that.updateLinkClickHandlers();
@@ -127,6 +130,36 @@ class Code {
 	
 	redo() {
 		this.editor.redo();
+	}
+	
+	/**
+	 * CM Overlay object for highlighting.
+	 */
+	highlightOverlay = {
+		token: function(stream /*, state*/) {
+			if (stream.eol()) return null;
+				
+			if (!Code.getInstance().highlightState || stream.sol()) Code.getInstance().highlightState = {};
+			var state = Code.getInstance().highlightState; 
+							
+			var pos = stream.pos;
+			var ch = stream.next();
+
+			Hashtag.parseChar(ch, pos, state, stream.eol());
+			while (!stream.eol() && Hashtag.isCapturing(state)) {
+				pos = stream.pos;
+				ch = stream.next();
+			
+				var token = Hashtag.parseChar(ch, pos, state, stream.eol());
+				if (token) {
+					if (!stream.sol() && !stream.eol()) stream.backUp(1);
+				
+					return Code.tagClassPostfix;
+				}
+			}
+
+			return null;
+		}
 	}
 	
 	/**
@@ -257,7 +290,7 @@ class Code {
 	 * Returns current language
 	 */
 	getEditorLanguage() {
-		return (this.current && this.current.editorParams && this.current.editorParams.language) ? this.current.editorParams.language : 'markdown';
+		return (this.current && this.current.editorParams && this.current.editorParams.language) ? this.current.editorParams.language  : 'markdown'; 
 	}
 	
 	/**
@@ -538,6 +571,9 @@ class Code {
 	
 	static linkClass = 'cm-link';
 	
+	static tagClassPostfix = 'notestag';
+	static tagClass = 'cm-' + Code.tagClassPostfix;
+	
 	/**
 	 * Re-sets all onclick handlers for the internal links.
 	 */
@@ -552,6 +588,17 @@ class Code {
 				
 				links[i].removeEventListener("touchstart", that.onLinkClick);
 				links[i].addEventListener("touchstart", that.onLinkClick);
+			}
+		}, 0);
+		
+		setTimeout(function() {
+			const tags = document.getElementsByClassName(Code.tagClass);
+			for (var i=0; i<tags.length; ++i) {
+				tags[i].removeEventListener("click", that.onTagClick);
+				tags[i].addEventListener("click", that.onTagClick);
+				
+				tags[i].removeEventListener("touchstart", that.onTagClick);
+				tags[i].addEventListener("touchstart", that.onTagClick);
 			}
 		}, 0);
 	}
@@ -572,6 +619,21 @@ class Code {
 		
 		//NoteTree.getInstance().openNode(meta.target);
 		Notes.getInstance().routing.call(meta.target);
+	}
+	
+	/**
+	 * Click handler for hashtags.
+	 */
+	onTagClick(event) {
+		event.preventDefault();
+		event.stopPropagation();
+		
+		if (!event.currentTarget) return;
+		
+		const tag = $(event.currentTarget).text().substring(Hashtag.startChar.length);
+		if (!tag) return;
+		
+		NoteTree.getInstance().setSearchText('tag:' + Hashtag.trim(tag));
 	}
 }
 	

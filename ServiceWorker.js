@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.95.2.a';
+const PRECACHE = 'notes_precache-v0.95.4.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -91,6 +91,7 @@ const PRECACHE_URLS = [
   './ui/lib/codemirror/mode/shell/shell.js',
   './ui/lib/codemirror/mode/sql/sql.js',
   './ui/lib/codemirror/addon/hint/show-hint.js',
+  './ui/lib/codemirror/addon/mode/overlay.js',
 
   './ui/app/doc/index.html',
   './ui/app/doc/overview.html',

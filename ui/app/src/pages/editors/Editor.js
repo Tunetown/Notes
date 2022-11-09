@@ -275,8 +275,10 @@ class Editor {
 			var n = Notes.getInstance();
 			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
 			
+			this.convertContentLinksAndTags();
+			
 			var that = this;
-			return DocumentActions.getInstance().save(this.current._id, this.convertPlainLinksAndTags(this.getContent()))
+			return DocumentActions.getInstance().save(this.current._id, this.getContent())
 			.then(function(data) {
         		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
 
@@ -393,7 +395,9 @@ class Editor {
 		this.timeoutHandle = setTimeout(function(){
 			if (!tinymce.get(that.editorId).isDirty()) return;
 			
-			DocumentActions.getInstance().save(that.getCurrentId(), that.convertPlainLinksAndTags(that.getContent()))
+			that.convertContentLinksAndTags();
+			
+			DocumentActions.getInstance().save(that.getCurrentId(), that.getContent())
 			.catch(function(err) {
         		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
@@ -539,7 +543,7 @@ class Editor {
 		autocompleteApi.hide();
 		
 		// Convert all links to spans
-		tinymce.get(this.editorId).setContent(this.convertPlainLinksAndTags(this.getContent()));		
+		this.convertContentLinksAndTags();		
 		
 		// Update click handlers
 		this.updateLinkClickHandlers(editor);
@@ -560,6 +564,23 @@ class Editor {
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * updates the content replacing all links and tags.
+	 */
+	convertContentLinksAndTags() {
+		var content = this.getContent();
+		var converted = this.convertPlainLinksAndTags(content);
+		if (content == converted) return;
+		
+		console.log(" -> Converted links and tags.")
+		
+		//var bookmark = tinymce.get(this.editorId).selection.getBookmark();
+		//console.log(bookmark);
+		tinymce.get(this.editorId).setContent(converted);		
+		
+		//tinymce.get(this.editorId).selection.moveToBookmark(bookmark);
+	}
 	
 	/**
 	 * Replaces all plain links ([[]]) and hashtags to HTML with click handlers, if not yet converted.
@@ -586,6 +607,51 @@ class Editor {
 	 *
 	 */
 	convertPlainLinks(content) {
+		var dom = $('<div>' + content + '</div>');
+		var that = this;
+		var cnt = 0;
+		dom.find('*').not('span.' + Editor.linkClass).each(function() {
+			var el = $(this);
+			
+			var repl = [];
+			el.contents().filter(function(){ 
+				return this.nodeType == 3; 
+			}).each(function() {
+				var textNode = this;
+				var text = textNode.nodeValue;
+				const coll = Linkage.parse(text);
+				//console.log(text + ' ' + coll.length);
+				if (coll.length == 0) return;
+			
+				for(var c=0; c<coll.length; ++c) {
+					repl.push(coll[c]);
+				}
+			});
+
+			if (repl.length == 0) return;
+
+			var html = el.html();
+			for(var c=0; c<repl.length; ++c) {
+				const co = repl[c];
+				const meta = Linkage.splitLink(co.link);
+				if (!meta) {
+					console.log("Invalid link ignored: " + co.link);
+					continue;	
+				}
+				const link = that.createLinkElement(meta.target, meta.text);
+				
+				html = html.replaceAll(co.orig, link);
+				cnt++;
+				//console.log('   -> Replaced ' + co.orig + ' with ' + tag);
+			}
+			$(this).html(html);
+		});
+		
+		if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw links with HTML');
+		
+		return dom.html();
+		
+		/*
 		const coll = Linkage.parse(content, '"');
 		
 		if (coll.length == 0) return content;
@@ -605,6 +671,7 @@ class Editor {
 		}
 		
 		return content;
+		*/
 	}
 	
 	/**
@@ -622,20 +689,43 @@ class Editor {
 	 *
 	 */
 	convertPlainTags(content) {
-		const coll = Hashtag.parse(content);
-		
-		if (coll.length == 0) return content;
-		
-		console.log(' -> Replacing ' + coll.length + ' raw hashtags with HTML');
-		
-		for(var c=0; c<coll.length; ++c) {
-			const co = coll[c];
-			const tag = this.createTagElement(co.tag);
+		var dom = $('<div>' + content + '</div>');
+		var that = this;
+		var cnt = 0;
+		dom.find('*').not('span.' + Editor.tagClass).each(function() {
+			var el = $(this);
 			
-			content = content.replaceAll(Hashtag.startChar + co.tag, tag);
-		}
+			var repl = [];
+			el.contents().filter(function(){ 
+				return this.nodeType == 3; 
+			}).each(function() {
+				var textNode = this;
+				var text = textNode.nodeValue;
+				const coll = Hashtag.parse(text);
+				//console.log(text + ' ' + coll.length);
+				if (coll.length == 0) return;
+			
+				for(var c=0; c<coll.length; ++c) {
+					repl.push(coll[c]);
+				}
+			});
+
+			if (repl.length == 0) return;
+
+			var html = el.html();
+			for(var c=0; c<repl.length; ++c) {
+				const co = repl[c];
+				const tag = that.createTagElement(co.tag);
+				html = html.replaceAll(co.orig, tag);
+				cnt++;
+				//console.log('   -> Replaced ' + co.orig + ' with ' + tag);
+			}
+			$(this).html(html);
+		});
 		
-		return content;
+		if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw hashtags with HTML');
+		
+		return dom.html();
 	}
 	
 	/**
@@ -685,7 +775,7 @@ class Editor {
 		if (!ref) return;
 		
 		//NoteTree.getInstance().openNode(ref);
-		Notes.getInstance().routing.call(ref);
+		Notes.getInstance().routing.call(ref.trim());
 	}
 	
 	/**
@@ -700,7 +790,7 @@ class Editor {
 		const tag = $(event.currentTarget).text().substring(Hashtag.startChar.length);
 		if (!tag) return;
 		
-		NoteTree.getInstance().setSearchText('tag:' + tag);
+		NoteTree.getInstance().setSearchText('tag:' + Hashtag.trim(tag));
 	}
 }
 
