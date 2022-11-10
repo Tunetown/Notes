@@ -469,6 +469,10 @@ class DetailBehaviour {
 		else this.setGroupMode('category');
 	}
 	
+	getSelectedItemHeight() {
+		return this.treeFontSize * 2;
+	}
+	
 	/**
 	 * Update the state of the sort buttons to the current sort mode and direction.
 	 */
@@ -478,7 +482,12 @@ class DetailBehaviour {
 			this.updateSortButtonsWidth();
 			return;
 		}
-		$('#' + this.grid.treeRootTopSwitchContainer).css('display', 'block');
+		
+		const selectedHeight = this.getSelectedItemHeight();
+		
+		$('#' + this.grid.treeRootTopSwitchContainer)
+		.css('display', 'block')
+		.css('height', selectedHeight + 'px');
 		
 		// Sort
 		var s = this.getCurrentSortMode();
@@ -530,6 +539,9 @@ class DetailBehaviour {
 	 */
 	beforeFilter(noAnimations) {
 		this.treeFontSize = this.grid.getTreeTextSize();
+		
+		$('#' + this.grid.treeRootTopSwitchContainer)
+		.css('height', this.getSelectedItemHeight() + 'px');
 		
 		var settings = Settings.getInstance().settings;
 		var iH = Notes.getInstance().isMobile() ? settings.detailItemHeightMobile : settings.detailItemHeightDesktop;
@@ -627,6 +639,15 @@ class DetailBehaviour {
 	getSortComparisonValue(docA, docB, docAmeta, docBmeta) {
 		const d = Notes.getInstance().getData();
 		
+		// Parent of the selected item always first (only applies to ref mode, else it is irrelevant because the parent is never shown)
+		if (docAmeta.isParentOfSelectedParent) return -1;
+		if (docBmeta.isParentOfSelectedParent) return 1; 
+		
+		// Selected item always second 
+		if (docAmeta.isSelectedParent) return docBmeta.isParentOfSelectedParent ? 1 : -1; 
+		if (docBmeta.isSelectedParentt) return docAmeta.isParentOfSelectedParent ? -1 : 1; 
+
+		/*
 		// Selected parent always on top
 		if (docAmeta.isSelectedParent) return -1;
 		if (docBmeta.isSelectedParent) return 1;
@@ -634,7 +655,7 @@ class DetailBehaviour {
 		// Parent of the selected item always second (only applies to ref mode, else it is irrelevant because the parent is never shown)
 		if (docAmeta.isParentOfSelectedParent) return docBmeta.isSelectedParent ? 1 : -1; 
 		if (docBmeta.isParentOfSelectedParent) return docAmeta.isSelectedParent ? -1 : 1; 
-		
+		*/
 		const s = this.getCurrentSortMode();
 		
 		// Sort by size (deep)
@@ -928,6 +949,7 @@ class DetailBehaviour {
 		// During search, all documents are shown as normal items
 		if (searchText.length > 0) meta.isSelectedParent = false;		
 		
+		// Properties
 		//const isAttachment = (doc.type == 'attachment');
 		//const isReference = (doc.type == 'reference');
 		const hasChildren = this.hasChildren(doc);
@@ -939,11 +961,21 @@ class DetailBehaviour {
 		const isChildOfSelected = (this.selectedParent == doc.parent);
 		const selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
 
+		// Elements
 		const previewEl = itemContent.find('.' + this.getItemPreviewClass());
 		const metaEl = itemContent.find('.' + this.getItemMetaClass());
+		const groupMarker = itemContainer.find('.treeitem-detail-group-marker');
+		const innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
+		const itemHeader = itemContainer.find('.' + this.getItemTextClass());
+		const iconClass = this.getIconStyleClass(this.isItemOpened(doc), doc);
+		const iconEl = itemContent.find('.' + this.getIconClass());
+		const textEl = itemContent.find('.treeitemtext-detail-text');
+
+		// Dimensions for the first element
+		const parentWidth = this.treeFontSize * 2;
+		const selectedHeight = this.getSelectedItemHeight();
 
 		// Group marker (disabled here by default, this is set after filtering)
-		const groupMarker = itemContainer.find('.treeitem-detail-group-marker');
 		groupMarker.css('display', 'none');
 		
 		// Category markers
@@ -970,8 +1002,8 @@ class DetailBehaviour {
 					showMarker(markerRightEl, false);
 					markerRightEl.css('background', '#eeeeee');
 					markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
-				}
-				if (isOutgoinglinkOfSelected) {
+				} 
+				else if (isOutgoinglinkOfSelected) {
 					showMarker(markerRightEl, false);
 					markerRightEl.css('background', '#b5f7c6');
 					markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
@@ -983,8 +1015,17 @@ class DetailBehaviour {
 			markerLeftElIcon.removeClass('fa-chevron-left');
 			markerLeftElIcon.removeClass('fa-chevron-right');
 			markerLeftElIcon.removeClass('fa-chevron-down');
+			markerLeftEl.css('width', '16px');
 
-			if (isBacklinkOfSelected) {
+			if (isParentOfSelected) {
+				showMarker(markerLeftEl, true);
+				markerLeftEl.css('background', '#faacac');
+				markerLeftEl.css('width', parentWidth + 'px');
+				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
+				
+				markerLeftElIcon.addClass('fa-chevron-left');
+			}
+			else if (isBacklinkOfSelected) {
 				showMarker(markerLeftEl, true);
 				markerLeftEl.css('background', '#b5f7c6');
 				markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
@@ -998,14 +1039,6 @@ class DetailBehaviour {
 				
 				markerLeftElIcon.addClass('fa-chevron-right');
 			}				
-			else if (isParentOfSelected) {
-				showMarker(markerLeftEl, true);
-				markerLeftEl.css('background', '#faacac');
-				markerLeftEl.css('width', (this.treeFontSize * 2) + 'px');
-				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
-				
-				markerLeftElIcon.addClass('fa-chevron-left');
-			}
 			else if (isSiblingOfSelected) {
 				showMarker(markerLeftEl, true);
 				markerLeftEl.css('background', '#b1f4fa');
@@ -1029,24 +1062,31 @@ class DetailBehaviour {
 		
 		// Item dimensions. Parent shall be small (like font size), the normal items should be larger.
 		if (meta.isSelectedParent) {
-			itemContent.css('height', ((this.treeFontSize * 1.6) + 'px'));
-			itemContainer.css('width',(this.grid.getContainerWidth() - this.sortButtonsWidth - (this.treeFontSize * 2)) + 'px');
+			// Selected parent
+			itemHeader.css('margin-top', ((selectedHeight - this.treeFontSize * 1.4) / 2) + 'px');   // NOTE: 1.4 is the global line height!
+			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
+			
+			itemContent.css('height', selectedHeight + 'px');
+			itemContainer.css('width',(this.grid.getContainerWidth() - this.sortButtonsWidth - parentWidth) + 'px');
 		} else {
+			itemHeader.css('margin-top', '0px');
+			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
+			
 			if (isParentOfSelected) {
-				itemContent.css('height', (((this.treeFontSize * 1.6)) + 'px'));
-				itemContainer.css('width', (this.treeFontSize * 2) + 'px');
+				// Parent of selected
+				itemContent.css('height', selectedHeight + 'px');
+				itemContainer.css('width', parentWidth + 'px');
 			} else {
+				// Normal item
 				itemContent.css('height', ((this.itemHeight) + 'px'));
 				itemContainer.css('width', '100%');
 			}
 		}
 		
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
-		const iconEl = itemContent.find('.' + this.getIconClass());
 		const poss = this.getAllPossibleIconStyleClasses();
 		for(var p in poss) iconEl.toggleClass(poss[p], false);
 		
-		const iconClass = this.getIconStyleClass(this.isItemOpened(doc), doc);
 		iconEl.toggleClass(iconClass, true); 
 
 		iconEl.css('padding-right', iconClass ? '10px' : '0px'); //(hasChildren || isAttachment || isReference) ? '10px' : '0');
@@ -1054,13 +1094,11 @@ class DetailBehaviour {
 		iconEl.css('display', ((!this.enableParents) || (!meta.isSelectedParent)) ? (iconClass ? 'block' : 'none') : 'none');
 
 		// Inner container
-		const innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
 		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
 		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
 		innerContainer.css('width', meta.isSelectedParent ? '100%' : ((markerShown == 'r') ? ((this.grid.getContainerWidth() - 45) + 'px') : ''));
 
 		// Header line
-		const itemHeader = itemContainer.find('.' + this.getItemTextClass());
 		itemHeader.css('max-width', 
 			meta.isSelectedParent 
 			? '100%' 
@@ -1139,7 +1177,7 @@ class DetailBehaviour {
 	isItemVisible(doc, searchText) {
 		var d = Notes.getInstance().getData();
 		var selectedDoc = d.getById(this.selectedParent);
-		
+
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
 			return d.containsText(doc, searchText);

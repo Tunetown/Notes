@@ -74,11 +74,11 @@ class Linkage {
 		var start = -1;
 		var end = -1;
 		var coll = [];
-		var hadQuote = false;
+		//var hadQuote = false;
 		for(var i=0; i<content.length-1; ++i) {
 			const cc = content[i] + content[i+1];
 			
-			if ((!capturing) && (cc == Linkage.startTag)) {
+			if (/*(!capturing) && */(cc == Linkage.startTag)) {
 				capturing = true;
 				start = i+2;
 				

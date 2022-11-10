@@ -38,7 +38,8 @@ class DocumentChecks {
 				var doc = allDocs.rows[i].doc;
 				
 				if (doc._id.startsWith('_')) continue;
-				if (doc._id =='settings') continue;
+				if (doc._id == 'settings') continue;
+				if (doc._id == MetaActions.metaDocId) continue;
 				
 				cnt++;
 				Document.checkBasicProps(doc, errors, allDocs.rows);
@@ -130,6 +131,7 @@ class DocumentChecks {
 				
 				if (doc._id.startsWith('_')) continue;
 				if (doc._id =='settings') continue;
+				if (doc._id == MetaActions.metaDocId) continue;
 			
 				cnt++;
 				Document.checkMeta(doc, errors);
@@ -294,6 +296,7 @@ class DocumentChecks {
 				var doc = allDocs.rows[i].doc;
 				if (doc._id.startsWith('_')) continue;
 				if (doc._id =='settings') continue;
+				if (doc._id == MetaActions.metaDocId) continue;
 				
 				cnt++;
 				if (!doc.type) {
