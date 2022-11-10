@@ -218,8 +218,8 @@ class Tools {
 	/**
 	 * Generate 8 character uuids.
 	 */
-	static getUuid(seed) {
-		return (Date.now() + (seed ? seed : 0)).toString(36);
+	static getUuid(addSeed) {
+		return (Date.now() + (addSeed ? addSeed : 0)).toString(36);
 	}
 	
 	/**
@@ -269,6 +269,50 @@ class Tools {
 	    else if (g < 0) g = 0;
 	 
 	    return (usePound?"#":"") + (g | (b << 8) | (r << 16)).toString(16);
+	}
+	
+	/**
+	 * Returns a color with good contrast to the passed color.
+	 */
+	static getForegroundColor(backColor) {
+		return Tools.isColorDark(backColor) ? '#ffffff' : '#000000';
+	}
+	
+	/**
+	 * Returns if the passed color is a dark one. 
+	 * Adapted from https://awik.io/determine-color-bright-dark-using-javascript/
+	 */
+	static isColorDark(color) {
+    	// Variables for red, green, blue values
+		var r, g, b, hsp;
+		
+		// Check the format of the color, HEX or RGB?
+		if (color.match(/^rgb/)) {
+			// If RGB --> store the red, green, blue values in separate variables
+			color = color.match(/^rgba?\((\d+),\s*(\d+),\s*(\d+)(?:,\s*(\d+(?:\.\d+)?))?\)$/);
+			
+			r = color[1];
+			g = color[2];
+			b = color[3];
+		} else {
+			// If hex --> Convert it to RGB: http://gist.github.com/983661
+			color = +("0x" + color.slice(1).replace( 
+			color.length < 5 && /./g, '$&$&'));
+			
+			r = color >> 16;
+			g = color >> 8 & 255;
+			b = color & 255;
+		}
+		
+		// HSP (Highly Sensitive Poo) equation from http://alienryderflex.com/hsp.html
+		hsp = Math.sqrt(
+			0.219 * (r * r) +
+			0.627 * (g * g) +
+			0.154 * (b * b)
+		);
+
+		// Using the HSP value, determine whether the color is light or dark
+		return !(hsp>127.5);
 	}
 	
 	/**

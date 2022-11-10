@@ -26,6 +26,12 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Called after the search text has been set.
+	 */
+	afterSetSearchText(searchtext) {
+	}
+	
+	/**
 	 * For a given document, this returns the siblings currently visible.
 	 */
 	getParentId(doc) {

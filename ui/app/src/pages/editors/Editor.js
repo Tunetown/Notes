@@ -509,6 +509,8 @@ class Editor {
 		
 		return new tinymce.util.Promise(function (resolve) {
 			resolve(that.getTagAutocompleteMatchedChars(editor, pattern).map(function (char) {
+				const classes = [Hashtag.getListStyleClass(char.id)];
+				
 				return {
 					type: 'cardmenuitem',
 					value: Hashtag.startChar + char.id + ' ',
@@ -520,8 +522,9 @@ class Editor {
 							items: [
 								{
 									type: 'cardtext',
-									text: char.text,
-									name: 'char_name'
+									text: Hashtag.startChar + char.text,
+									name: 'char_name',
+									classes: classes
 								}
 							]
 						}
@@ -566,27 +569,48 @@ class Editor {
 	////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
-	 * updates the content replacing all links and tags.
+	 * Updates the content replacing all links and tags.
 	 */
 	convertContentLinksAndTags() {
 		var content = this.getContent();
+		
+		// Convert links and tags. If nothing changed, quit.
 		var converted = this.convertPlainLinksAndTags(content);
 		if (content == converted) return;
+
+		// Set the new content on the editor
+		tinymce.get(this.editorId).setContent(converted);
 		
-		console.log(" -> Converted links and tags.")
+		// Restore cursor position
+		this.setCursorAfterNode(this.cursorElementId);
+	}
+	
+	/**
+	 * Sets the cursor in the editor one step after the end of the DOM element with the passed ID.
+	 */
+	setCursorAfterNode(id) {
+		var cursorNode = tinymce.get(this.editorId).dom.select('#' + id);
 		
-		var bookmark = tinymce.get(this.editorId).selection.getBookmark();
-		//console.log(bookmark);
-		tinymce.get(this.editorId).setContent(converted);		
+		var sel = tinymce.get(this.editorId).selection;
+		var rng = sel.getRng();
+
+		// Set after the element which has last been replaced
+		rng.setStartAfter(cursorNode[0]);
+		rng.setEndAfter(cursorNode[0]);
 		
-		//tinymce.get(this.editorId).selection.moveToBookmark(bookmark);
+		// Advance the cursor by one step to get outside the element.
+		rng.setStart(rng.startContainer, rng.startOffset + 1);
+		sel.setRng(rng);
 	}
 	
 	/**
 	 * Replaces all plain links ([[]]) and hashtags to HTML with click handlers, if not yet converted.
 	 */
 	convertPlainLinksAndTags(content) {
-		Hashtag.parse(content);
+		// This will hold the DOM ID of the last created link or tag element for 
+		// later cursor positioning, after conversion of links and tags.
+		this.cursorElementId = false;
+		
 		if (!ClientState.getInstance().getEditorSettings().dontReplaceLinksInRTEditor) content = this.convertPlainLinks(content);
 		if (!ClientState.getInstance().getEditorSettings().dontReplaceTagsInRTEditor) content = this.convertPlainTags(content);
 		return content;
@@ -647,9 +671,12 @@ class Editor {
 			$(this).html(html);
 		});
 		
-		if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw links with HTML');
-		
-		return dom.html();
+		if (cnt > 0) {
+			console.log(' -> Editor: Replaced ' + cnt + ' raw links with HTML');
+			return dom.html();
+		} else {
+			return content;			
+		}
 	}
 	
 	/**
@@ -701,9 +728,12 @@ class Editor {
 			$(this).html(html);
 		});
 		
-		if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw hashtags with HTML');
-		
-		return dom.html();
+		if (cnt > 0) {
+			if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw hashtags with HTML');
+			return dom.html();
+		} else {
+			return content;			
+		}
 	}
 	
 	/**
@@ -711,6 +741,7 @@ class Editor {
 	 */
 	updateLinkClickHandlers(editor) {
 		var that = this;
+		
 		setTimeout(function() {
 			const links = editor.contentDocument.getElementsByClassName(Editor.linkClass);
 			for (var i=0; i<links.length; ++i) {
@@ -722,6 +753,12 @@ class Editor {
 			for (var i=0; i<tags.length; ++i) {
 				tags[i].removeEventListener("click", that.onTagClick);
 				tags[i].addEventListener("click", that.onTagClick);
+				
+				// Colors
+				const tag = Editor.extractTagFromElement($(tags[i]));
+				const tagColor = Hashtag.getColor(tag);
+				if (tag) $(tags[i]).css('background-color', tagColor);
+				if (tag) $(tags[i]).css('color', Tools.getForegroundColor(tagColor));
 			}
 		}, 0);
 	}
@@ -730,14 +767,18 @@ class Editor {
 	 * Generates a link span HTML. Returns a string.
 	 */
 	createLinkElement(target, text) {
-		return '<span class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>';
+		if (!this.cursorElementSeed) this.cursorElementSeed = 1;
+		this.cursorElementId = Tools.getUuid(this.cursorElementSeed++);
+		return '<span id="' + this.cursorElementId + '" class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>&nbsp;';
 	}
 	
 	/**
 	 * Generates a tag span HTML. Returns a string.
 	 */
 	createTagElement(target) {
-		return '<span class="' + Editor.tagClass + '">' + Hashtag.startChar + target + '</span>';
+		if (!this.cursorElementSeed) this.cursorElementSeed = 1;
+		this.cursorElementId = Tools.getUuid(this.cursorElementSeed++);
+		return '<span id="' + this.cursorElementId + '" class="' + Editor.tagClass + '">' + Hashtag.startChar + target + '</span>&nbsp;';
 	}
 	
 	/**
@@ -752,8 +793,7 @@ class Editor {
 		const ref = $(event.currentTarget).data('ref');
 		if (!ref) return;
 		
-		//NoteTree.getInstance().openNode(ref);
-		Notes.getInstance().routing.call(ref.trim());
+		Editor.callDocument(ref.trim());
 	}
 	
 	/**
@@ -765,10 +805,46 @@ class Editor {
 		
 		if (!event.currentTarget) return;
 		
-		const tag = $(event.currentTarget).text().substring(Hashtag.startChar.length);
+		const tag = Editor.extractTagFromElement($(event.currentTarget)); //.text();
 		if (!tag) return;
 		
-		NoteTree.getInstance().setSearchText('tag:' + Hashtag.trim(tag));
+		if (event.ctrlKey) {
+			const currentId = Editor.getInstance().getCurrentId();
+			Notes.getInstance().routing.callHashtags(currentId);
+		} else {
+			Editor.searchForTag(Hashtag.trim(tag));
+		}
+	}
+	
+	/**
+	 * Extracts the tag name from a JQuery element's text content.
+	 */
+	static extractTagFromElement(el) {
+		var tag = el.text();
+		if (tag.substring(0, Hashtag.startChar.length) != Hashtag.startChar) return false;
+		if (!tag) return false;
+		
+		return tag.substring(Hashtag.startChar.length).trim();
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Used by all editors to call in-document linked items.
+	 */
+	static callDocument(id) {
+		NoteTree.getInstance().setSearchText('');
+		Notes.getInstance().routing.call(id);
+	}
+	
+	/**
+	 * Used by all editors to search for hash tags.
+	 */
+	static searchForTag(tag) {
+		const n = Notes.getInstance();
+		const currentId = Editor.getInstance().getCurrentId();
+		
+		n.routing.callSearch('tag:' + tag, n.isMobile() ? null : currentId);
 	}
 }
 

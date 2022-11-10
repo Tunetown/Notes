@@ -27,33 +27,36 @@ class Hashtags {
 	}
 	
 	/**
-	 * Load the page.
+	 * Load the page. ID is optional.
 	 */
-	load() {
+	load(id) {
 		var n = Notes.getInstance();
 		n.setCurrentPage(this);
 		
-		n.setStatusText("All Hashtags");
-		
-		// Clear list
-		$('#contentContainer').empty();
-		
-		// Get list of labels
-		var tags = n.getData().getTagAutocompleteList();
+		var doc = null;
+		if (id) doc = n.getData().getById(id);
 
+		// Get list of tags
+		var tags = n.getData().getTags(doc ? [doc] : null);
+		
+		// Header text
+		n.setStatusText("All Hashtags" + (doc ? (' of ' + (doc.name ? doc.name : doc._id)) : '') + ' (' + tags.length + ')');
+		
 		// Build new table from the data
+		$('#contentContainer').empty();
 		var rows = new Array();
-		//var that = this;
+		
+		var that = this;
 		for(var i in tags || []) {
-			var tag = tags[i];
-			if (!tag.id) continue;
+			const tag = tags[i];
 			
-			var numDocs = n.getData().getDocumentsWithTag(tag.id);
+			const numDocs = n.getData().getDocumentsWithTag(tag);
+			const tagColor = Hashtag.getColor(tag);
 			
 			// Action buttons (only for current document's labels)
 			var butts = $('<span class="listOptionContainer" />').append(
 				[
-					$('<div data-toggle="tooltip" title="Search for documents with the tag" class="fa fa-search versionButton" data-id="' + tag.id + '"/>')
+					$('<div data-toggle="tooltip" title="Search for documents with the tag" class="fa fa-search versionButton" data-id="' + tag + '"/>')
 					.on('click', function(e) {
 						e.stopPropagation();
 						var id = $(this).data().id;
@@ -67,9 +70,11 @@ class Hashtags {
 				$('<tr>')
 				.append(
 					[
-						$('<td data-id="' + tag.id + '"></td>').append(
-							$('<span class="listLink" data-id="' + tag.id + '"></span>')
-							.html('#' + tag.id)
+						$('<td data-id="' + tag + '"></td>').append(
+							$('<span class="notesHashTag" data-id="' + tag + '"></span>')
+							.html('#' + tag)
+							.css('background-color', tagColor)
+							.css('color', Tools.getForegroundColor(tagColor))
 							.on('click', function(e) {
 								e.stopPropagation();
 								var id = $(this).data().id;
@@ -78,18 +83,18 @@ class Hashtags {
 							})							
 						),
 						
-						$('<td data-id="' + tag.id + '" data-numdocs="' + numDocs.length + '"></td>').append(
+						$('<td data-id="' + tag + '" data-numdocs="' + numDocs.length + '"></td>').append(
 							$('<span></span>')
 							.html(numDocs.length)
 						),
 						
 						$('<td/>').append(
-							$('<input type="color" data-id="' + tag.id + '" value="' + '#f90' + '">')
+							$('<input type="color" data-id="' + tag + '" value="' + tagColor + '">')
 							.on('blur', function(event) {
 					        	event.stopPropagation();
 					        	var id = $(this).data().id;
 								
-								//that.setLabelDefinitionColor(id, owner, $(this).val())
+								that.setTagColor(id, $(this).val());
 					        })
 						),
 
@@ -145,5 +150,15 @@ class Hashtags {
 	 * Unload instance
 	 */
 	unload() {
+	}
+	
+	/**
+	 * Set a tag's color in the global meta data document.
+	 */
+	setTagColor(tag, color) {
+		Hashtag.setColor(tag, color)
+		.then(function() {
+			return TreeActions.getInstance().requestTree();
+		});
 	}
 }

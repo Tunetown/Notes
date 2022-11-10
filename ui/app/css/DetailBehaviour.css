@@ -168,6 +168,16 @@
 	flex: 0 0 auto;
 }
 
+.doc-hashtag-detail {
+	position: relative;
+	top: 50%;
+	transform: translate(0, -50%);
+	margin-left: 2px;
+	flex: 0 0 auto;
+	border-radius: 4px !important;
+	cursor: default !important;
+}
+
 .doc-label-detail-star {
 	position: relative;
 	top: 50%;

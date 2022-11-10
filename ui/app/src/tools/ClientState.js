@@ -36,6 +36,7 @@ class ClientState {
 		this.cidGraphMeta = "gs";
 		this.cidLinkages = "li";
 		this.cidSearchProposals = "sp";
+		this.cidExperimentalFunctions = "ex";
 	}
 	
 	/**
@@ -44,6 +45,23 @@ class ClientState {
 	static getInstance() {
 		if (!ClientState.instance) ClientState.instance = new ClientState();
 		return ClientState.instance;
+	}
+	
+	/**
+	 * Enables or disables an experimental function.
+	 */
+	enableExperimentalFunction(id, enable) {
+		var f = this.getLocal(this.cidExperimentalFunctions, true);
+		f[id] = enable;
+		this.setLocal(this.cidExperimentalFunctions, f, true);
+	}
+	
+	/**
+	 * Returns if a given experimental function is enabled or not.
+	 */
+	experimentalFunctionEnabled(id) {
+		var f = this.getLocal(this.cidExperimentalFunctions, true);
+		return !!f[id];
 	}
 	
 	/**

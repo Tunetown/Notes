@@ -562,4 +562,13 @@ div.tox-tinymce {
 	border: 2px solid gray;
 	border-radius: 5px;
 }
+
+.notesHashTag {
+   color: white; 
+   background: darkblue;
+   cursor: pointer; 
+   padding: 3px;
+   border-radius: 4px;
+}
+
  

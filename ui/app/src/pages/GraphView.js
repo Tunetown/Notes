@@ -26,6 +26,8 @@ class GraphView {
 		return GraphView.instance;
 	}
 	
+	static experimentalFunctionId = 'GraphPage';
+	
 	/**
 	 * Loads the passed version history data into the versions view. doc is a cdb document
 	 */

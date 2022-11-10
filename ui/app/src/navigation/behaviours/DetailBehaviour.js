@@ -319,6 +319,13 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Called after the search text has been set.
+	 */
+	afterSetSearchText(searchtext) {
+		this.updateSortButtons();
+	}
+	
+	/**
 	 * Turn the multi select mode on and off (multiselect)
 	 */
 	toggleSelectMode() {
@@ -466,6 +473,13 @@ class DetailBehaviour {
 	 * Update the state of the sort buttons to the current sort mode and direction.
 	 */
 	updateSortButtons() {
+		if (this.grid.getSearchText().length > 0) {
+			$('#' + this.grid.treeRootTopSwitchContainer).css('display', 'none');
+			this.updateSortButtonsWidth();
+			return;
+		}
+		$('#' + this.grid.treeRootTopSwitchContainer).css('display', 'block');
+		
 		// Sort
 		var s = this.getCurrentSortMode();
 		
@@ -822,8 +836,9 @@ class DetailBehaviour {
 						// Star label						
 						$('<div class="doc-label doc-label-detail-star fa fa-star"></div>'),
 						
-						// Labels
-						Document.getLabelElements(doc, 'doc-label-detail')
+						// Labels and Hashtags
+						Document.getLabelElements(doc, 'doc-label-detail'),
+						Document.getTagElements(doc, 'doc-hashtag-detail')
 					),
 				]),
 				

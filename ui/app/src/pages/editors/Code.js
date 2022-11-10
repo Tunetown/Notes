@@ -559,7 +559,8 @@ class Code {
 		for(var i in proposals) {
 			list.push({
 				text: proposals[i].id + ' ',
-				displayText: proposals[i].text
+				displayText: Hashtag.startChar + proposals[i].text,
+				className: Hashtag.getListStyleClass(proposals[i].id)
 			});
 		}
 		
@@ -599,6 +600,12 @@ class Code {
 				
 				tags[i].removeEventListener("touchstart", that.onTagClick);
 				tags[i].addEventListener("touchstart", that.onTagClick);
+				
+				// Colors
+				const tag = Editor.extractTagFromElement($(tags[i]));
+				const tagColor = Hashtag.getColor(tag);
+				if (tag) $(tags[i]).css('background-color', tagColor);
+				if (tag) $(tags[i]).css('color', Tools.getForegroundColor(tagColor));
 			}
 		}, 0);
 	}
@@ -617,8 +624,7 @@ class Code {
 		
 		const meta = Linkage.splitLink(link);
 		
-		//NoteTree.getInstance().openNode(meta.target);
-		Notes.getInstance().routing.call(meta.target);
+		Editor.callDocument(meta.target);
 	}
 	
 	/**
@@ -633,7 +639,12 @@ class Code {
 		const tag = $(event.currentTarget).text().substring(Hashtag.startChar.length);
 		if (!tag) return;
 		
-		NoteTree.getInstance().setSearchText('tag:' + Hashtag.trim(tag));
+		if (event.ctrlKey) {
+			const currentId = Code.getInstance().getCurrentId();
+			Notes.getInstance().routing.callHashtags(currentId);
+		} else {
+			Editor.searchForTag(Hashtag.trim(tag));
+		}
 	}
 }
 	

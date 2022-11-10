@@ -1123,6 +1123,38 @@ class Settings {
 								})
 							)
 						),
+						
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						
+						$('<tr class="bg-primary" />').append(
+							[
+								$('<th scope="col">Experimental Features</th>'),
+								$('<th scope="col"></th>'),
+								$('<th scope="col"></th>'),
+							]
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Enable Graph Page</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												ClientState.getInstance().enableExperimentalFunction(GraphView.experimentalFunctionId, !!this.getChecked());
+												Notes.getInstance().update();
+											}
+										});
+									}, 0);
+								})
+							)
+						),
 					]
 				)
 			),

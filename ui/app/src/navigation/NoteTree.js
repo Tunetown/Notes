@@ -684,6 +684,7 @@ class NoteTree {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
 						that.updateSearch();
+						that.behaviour.afterSetSearchText(that.getSearchText());
 						that.showSearchProposals(that.getSearchText().length == 0);
 					})
 					.on('blur', function(event) {
@@ -1344,6 +1345,9 @@ class NoteTree {
 	 */
 	setSearchText(txt) {
 		$('#treeSearch').val(txt);
+		
+		this.behaviour.afterSetSearchText(txt);
+		
 		return this.updateSearch();
 	}
 	
@@ -1391,31 +1395,26 @@ class NoteTree {
 		if (doShow) {
 			// Build DOM for search proposals
 			const helpText =  
-				'All contents, document names and labels are searched by default. ' + 
+				'<span class="serachhelptext">Type a text to search for it in all contents, document names and labels. Use the follong prefixes optionally:</span>' + 
 				'<br>' + 
 				'<ul>' + 
 					'<li>' +
-						'<b>name:[...]</b> only searches in document names' +  
-					'</li>' + 
-					'<li>' +
-						'<b>type:[...]</b> only searches in document type' +  
-					'</li>' + 
-					'<li>' +
-						'<b>tag:[...]</b> only searches for documents with the corresponding hash tag' +  
-					'</li>' + 
-					'<li>' +
-						'<b>label:[...]</b> only searches for documents with the corresponding label' +  
+						'<b>name:[...]</b> only shows documents which contain the search text in their names' +  
 					'</li>' + 
 					'<li>' +
 						'<b>star:[...]</b> only searches in the contents and names of documents which are pinned to the favorites list' +  
 					'</li>' + 
+					'<li>' +
+						'<b>tag:[...]</b> only shows documents containing the specified hash tag' +  
+					'</li>' + 
+					'<li>' +
+						'<b>label:[...]</b> only searches for documents with a label whose name contains the search text' +  
+					'</li>' + 
+					'<li>' +
+						'<b>type:[...]</b> only shows documents with the specified type (possible types are: note, attachment, reference)' +  
+					'</li>' + 
 				'</ul>'; 
 
-			cont.append(
-				$('<div class="treeSearchHelpItemPassive"></div>').html(helpText),
-				$('<div class="treeSearchHelpLine"></div>')
-			)
-			
 			var props = ClientState.getInstance().getSearchProposals();
 			for(var i in props) {
 				if (typeof props[i] != 'object') continue;
@@ -1432,7 +1431,12 @@ class NoteTree {
 					.html(props[i].token)
 				);
 			}
-
+			
+			cont.append(
+				$('<div class="treeSearchHelpLine"></div>'),
+				$('<div class="treeSearchHelpItemPassive"></div>').html(helpText),
+			)
+			
 			cont.css('top', ($('#searchBarTree').height() + 12) + 'px');
 		}
 		

@@ -1308,6 +1308,36 @@ class Document {
 	}
 	
 	/**
+	 * Returns HTML elements for the hashtags of the document.
+	 */
+	static getTagElements(doc, cssClass) {
+		var tags = Notes.getInstance().getData().getTags([doc]);
+		var ret = [];
+		
+		for(var i in tags || []) {
+			var el = $('<div data-id="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-label ' + (cssClass ? cssClass : '') + '"></div>');
+		
+			var col = Hashtag.getColor(tags[i]);
+			
+			el.css('background-color', col);
+			el.on('touchstart mousedown', function(event) {
+				event.stopPropagation();
+			});
+			el.on('click', function(event) {
+				event.stopPropagation();
+				
+				const data = $(this).data();
+				if (!data || !data.id) return;
+				
+				Notes.getInstance().routing.callSearch('tag:' + data.id, Notes.getInstance().getCurrentlyShownId());
+			})
+			
+			ret.push(el);
+		}
+		return ret;
+	}
+	
+	/**
 	 * Get a name for attachments
 	 */
 	static stripAttachmentName(fileName) {

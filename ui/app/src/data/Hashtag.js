@@ -82,31 +82,15 @@ class Hashtag {
 							||
 							(Hashtag.terminationChars.indexOf(c) >= 0)
 						)
-					) 
+					)
 				{
-					/*if (outsideTagsOnly) {
-						if (
-								(state.startingChar != '>')
-								&&
-								(c != '<')
-							)
-						{
-							state.last = c;
-							return {
-								start: state.start,
-								end: state.end,
-								tag: state.buffer.trim(),
-							};
-						}
-					} else {*/
-						state.last = c;
-						return {
-							start: state.start,
-							end: state.end,
-							orig: Hashtag.startChar + state.buffer,
-							tag: Hashtag.trim(state.buffer),
-						};
-					//}
+					state.last = c;
+					return {
+						start: state.start,
+						end: state.end,
+						orig: Hashtag.startChar + state.buffer,
+						tag: Hashtag.trim(state.buffer),
+					};
 				}
 			}
 			return null;
@@ -146,5 +130,61 @@ class Hashtag {
 	 */
 	static isCapturing(state) {
 		return state && state.capturing;
+	}
+	
+	static metaFileName = 'tagMeta';
+	
+	/**
+	 * Returns the passed tag's color code. If no color is 
+	 * set in the global metadata, a default is returned.
+	 */
+	static getColor(tag) {
+		if (!tag) return Config.defaultHashtagColor;
+		
+		const meta = MetaActions.getInstance().meta[Hashtag.metaFileName];
+		if (!meta) return Config.defaultHashtagColor;
+		
+		const hash = Tools.hashCode(tag);
+		if(!meta.hasOwnProperty(hash)) return Config.defaultHashtagColor;
+		
+		const tagmeta = meta[hash];
+		if (!tagmeta.color) return Config.defaultHashtagColor;
+		
+		return tagmeta.color;
+	}
+	
+	/**
+	 * Sets the tags color in global metadata. Returns a promise.
+	 */
+	static setColor(tag, color) {
+		if (!tag) return Promise.resolve();
+		
+		const m = MetaActions.getInstance();
+		var meta = m.meta[Hashtag.metaFileName];
+		if (!meta) meta = {};
+		
+		const hash = Tools.hashCode(tag);
+		if(!meta.hasOwnProperty(hash)) {
+			meta[hash] = {
+				tag: tag
+			};
+		}
+		
+		meta[hash].color = color;
+		
+		m.meta[Hashtag.metaFileName] = meta;
+		
+		return m.saveGlobalMeta();
+	}
+	
+	static stylePrefix = 'tag_';
+	
+	/**
+	 * Returns a dynamic CSS class name for the given tag, to be used in lists.
+	 */
+	static getListStyleClass(tag) {
+		const col = Hashtag.getColor(tag);
+		const styleStr = 'background-color: ' + col + ' !important; color: rgba(0,0,0,0) !important; margin-right: 4px;  border-radius: 10px; content: "__";';
+		return Styles.getInstance().getStyleClass(Hashtag.stylePrefix + tag, ':before', styleStr);
 	}
 }

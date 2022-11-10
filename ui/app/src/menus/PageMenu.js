@@ -29,8 +29,8 @@ class PageMenu {
 		if (n.isMobile()) options.noOpenInNavigation = true;
 		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;
 		
-		//var openedDoc = editor.current;
 		var openedDoc = n.getData().getById(editor.getCurrentId());
+		if (!openedDoc || (openedDoc.type != 'note') || ((openedDoc.editor != 'richtext') && (openedDoc.editor != 'code'))) options.noTags = true;
 		
 		return [
 			// Editor mode
@@ -181,6 +181,15 @@ class PageMenu {
 	        
 	        $('<div class="userbuttonLine"></div>'),
 	        
+			// Tags
+	        options.noTags ? null : $('<div class="userbutton"><div class="fa fa-hashtag userbuttonIcon"></div>Tags</div>')
+	        .on('click', function(event) {
+	        	event.stopPropagation();
+	        	editor.hideOptions();
+	        	
+	        	n.routing.callHashtags(editor.getCurrentId());
+	        }),
+
 	        // Labels
 	        options.noLabelDefinitions ? null : $('<div class="userbutton"><div class="fa fa-tags userbuttonIcon"></div>Labels</div>')
 	        .append(

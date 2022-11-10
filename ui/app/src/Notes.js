@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.95.5';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.95.8';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -227,16 +227,18 @@ class Notes {
 							}
 						}
 						
-						// In the final change, update views and trigger a tree request.
+						// In the final change, update views and trigger a tree request, reload global metadata.
 						if (change_seq == final_seq) {
 							that.showProgressBar(1);
 							
 							Views.getInstance().updateViews()
 							.then(function(resp) {
-								if (resp.docCreated) {
-									that.showAlert('Successfully initialized database views.', 'S');
-								}
-								
+								return MetaActions.getInstance().requestGlobalMeta()
+								.catch(function(err) {
+									that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+								});
+							})
+							.then(function() {
 								return TreeActions.getInstance().requestTree();
 							})
 							.catch(function(err) {
@@ -246,18 +248,32 @@ class Notes {
 						}
 						
 						// Intermediate changes: Check for tree changes and trigger a reload when there are any relevant ones
-						if (change.change) { 
+						if (change.change) {
+							var treeRequested = false;
 							for(var i in change.change.docs || []) {
 								var doc = change.change.docs[i];
 								if (doc._id.startsWith('_')) continue;
 								
-								if (Document.containsTreeRelevantChanges(doc)) {
-									console.log("Sync: -> Re-requesting tree, document " + (doc.name ? doc.name : doc._id) + " had relevant changes");
-									TreeActions.getInstance().requestTree()
+								if (doc._id == MetaActions.metaDocId) {
+									// Update global meta document if changed
+									console.log("Sync: -> Re-requesting global metadata");
+									
+									MetaActions.getInstance().requestGlobalMeta()
 									.catch(function(err) {
-										that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+										that.showAlert('Error requesting global metadata: ' + err.message, 'E', err.messageThreadId);
 									});
-									break;
+								} else if (!treeRequested) {
+									// Update tree if something relevant has changed
+									if (Document.containsTreeRelevantChanges(doc)) {
+										console.log("Sync: -> Re-requesting tree, document " + (doc.name ? doc.name : doc._id) + " had relevant changes");
+									
+										TreeActions.getInstance().requestTree()
+										.catch(function(err) {
+											that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+										});
+									
+										treeRequested = true;
+									}
 								}
 							}
 						}
@@ -569,12 +585,6 @@ class Notes {
 						return Promise.resolve(data);
 					});
 				}
-			} else {
-				/*// Register service worker, if not already done
-				if (!that.serviceWorkerRegistered) {
-					that.registerServiceWorker(); 
-					that.serviceWorkerRegistered = true;
-				}*/
 			}
 		
 			return Promise.resolve(data);
@@ -605,18 +615,30 @@ class Notes {
 			d.checkRemoteConnection()
 			.then(function(resp) {
 				if (!resp.ok) $('#loadedNote').html(resp.status);
-			}).catch(function(err) {
+			})
+			.catch(function(err) {
 				$('#loadedNote').html("No remote DB connected");
 			});
-			
-			// Resolve the promise
+
 			return Promise.resolve({
 				ok: true,
 				treePromise: treePromise,
 				settingsPromise, settingsPromise
 			});
 		})
+		.then(function(data) {
+			// Load global metadata and the return the app start result from the previous step.
+			return MetaActions.getInstance().requestGlobalMeta()
+			.then(function() {
+				return Promise.resolve(data);				
+			})
+			.catch(function(err) {
+				that.showAlert('Error loading global metadata: ' + err.message, 'E', err.messageThreadId);
+				return Promise.resolve(data);
+			});
+		})
 		.catch(function(err) {
+			// App start error handling: Show the error and resolve (else the app would be stuck here).
 			that.showAlert("Error connecting to database: " + err.message, 'E', err.messageThreadId);
 			
 			// Here we resolve, because the pages should be loaded nevertheless.
@@ -1057,7 +1079,10 @@ class Notes {
 				$('<div class="userbuttonLine"></div>'),
 
 				$('<div class="userbutton" id="selProfileMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile()"><div class="fa fa-home userbuttonIcon"></div>Select Notebook</div>'),
+				
+				!ClientState.getInstance().experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? null :
 				$('<div class="userbutton" id="graphMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callGraphView()"><div class="fa fa-project-diagram userbuttonIcon"></div>Graph</div>'),
+				
 				$('<div class="userbutton" id="conflictsMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callConflicts()"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>'),
 				$('<div class="userbuttonLine"></div>'),
 				

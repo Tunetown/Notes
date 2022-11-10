@@ -18,7 +18,14 @@
  */
 
 .cm-notestag {
-	color: orange !important;
+	text-decoration: underline; 
+	cursor: pointer; 
+	padding: 2px;
+    border-radius: 3px;
+}
+
+.cm-link {
+	cursor: pointer; 
 }
 
 .notesTMCELink {
@@ -29,7 +36,7 @@
 
 .notesTMCETag {
    color: white; 
-   background: darkgreen;
+   background: darkblue;
    cursor: pointer; 
    padding: 3px;
    border-radius: 4px;

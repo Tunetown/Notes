@@ -106,27 +106,44 @@ class Routing {
 			});
 						
 			// Profile root: Show overview
-			this.get('#/:profile', function(context) {
-				that.app.startApp(this.params['profile'])
+			function profileRoot(context, params) {
+				return that.app.startApp(params['profile'])
 				.then(function(data) {
 					that.app.resetPage(true);
 					that.app.setStatusText();
+					return Promise.resolve({
+						ok: true,
+						startAppData: data
+					});
 				})
+			};
+			this.get('#/:profile', function(context) {
+				profileRoot(context, this.params)
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
 			this.get('#/:profile/', function(context) {
-				that.app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.app.resetPage(true);
-					that.app.setStatusText();
-				})
+				profileRoot(context, this.params)
 				.catch(function(err) {
 					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 				});
 			});
-	
+			
+			// Profile root with search text passed as URI parameter
+			this.get('#/:profile/search/:token', function(context) {
+				const token = this.params['token'];
+				profileRoot(context, this.params)
+				.then(function(resp) {
+					if (!resp || !resp.ok || !token || !resp.startAppData) return Promise.reject();
+					
+					return Promise.resolve(resp.startAppData.treePromise);
+				})
+				.then(function() {
+					NoteTree.getInstance().setSearchText(token);
+				});
+			});
+			
 			// Settings
 			this.get('#/:profile/settings', function(context) {
 				that.app.startApp(this.params['profile'])
@@ -235,6 +252,28 @@ class Routing {
 					return Promise.resolve(data.treePromise)
 					.then(function(data) {
 						return Hashtags.getInstance().load();
+					});
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading tags overview: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
+			// Hashtags of a note
+			this.get('#/:profile/tags/:noteId', function(context) {
+				var noteId = this.params['noteId'];
+				if (!noteId) {
+					that.app.showAlert('No ID received', 'E');
+					return;
+				}
+				
+				that.app.startApp(this.params['profile'])
+				.then(function(data) {
+					that.app.resetPage();
+					
+					return Promise.resolve(data.treePromise)
+					.then(function(data) {
+						return Hashtags.getInstance().load(noteId);
 					});
 				})
 				.catch(function(err) {
@@ -394,6 +433,33 @@ class Routing {
 			});
 			
 			// Item
+			function openDocument(context, params, noteId) {
+				return that.app.startApp(params['profile'])
+				.then(function(data) {
+					that.app.resetPage();
+					
+					var doc = Document.getTargetDoc(that.app.getData() ? that.app.getData().getById(noteId) : null);
+					if (Database.getInstance().profileHandler.getCurrentProfile().clone && doc) {
+						// If the data is already there, use it
+						return EditorActions.getInstance().requestEditor(doc)
+						.then(function() {
+							return Promise.resolve({
+								ok: true,
+								startAppData: data
+							})
+						});
+					} else {
+						// If the data is not yet there or we are not in clone mode, load it from DB
+						return DocumentActions.getInstance().request(noteId)
+						.then(function() {
+							return Promise.resolve({
+								ok: true,
+								startAppData: data
+							})
+						});
+					}
+				});
+			}
 			this.get('#/:profile/:noteId', function(context) {
 				var noteId = this.params['noteId'];
 				if (!noteId) {
@@ -401,30 +467,39 @@ class Routing {
 					return;
 				}
 
-				that.app.startApp(this.params['profile'])
+				openDocument(context, this.params, noteId)
 				.then(function(data) {
-					that.app.resetPage();
-					
-					function triggerLinkNav() {
-						Promise.resolve(data.treePromise).then(function() {
-							NoteTree.getInstance().editorOpened(noteId);
-						})
-					}
-					
-					var doc = Document.getTargetDoc(that.app.getData() ? that.app.getData().getById(noteId) : null);
-					if (Database.getInstance().profileHandler.getCurrentProfile().clone && doc) {
-						// If the data is already there, use it
-						return EditorActions.getInstance().requestEditor(doc)
-						.then(function() {
-							triggerLinkNav();
-						})
-					} else {
-						// If the data is not yet there or we are not in clone mode, load it from DB
-						return DocumentActions.getInstance().request(noteId)
-						.then(function() {
-							triggerLinkNav();
-						})
-					}
+					if (!data || !data.ok) return Promise.reject({
+						message: 'Error in Routing.opeDocument()' + (data && data.message) ? (': ' + data.message) : ''
+					});
+					return Promise.resolve(data.startAppData.treePromise);
+				})
+				.then(function() {
+					NoteTree.getInstance().editorOpened(noteId);
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
+			// Item with search text predefined
+			this.get('#/:profile/:noteId/search/:token', function(context) {
+				var noteId = this.params['noteId'];
+				if (!noteId) {
+					that.app.showAlert('No ID received', 'E');
+					return;
+				}
+				var token = this.params['token'];
+				
+				openDocument(context, this.params, noteId)
+				.then(function(data) {
+					if (!data || !data.ok) return Promise.reject({
+						message: 'Error in Routing.opeDocument()' + (data && data.message) ? (': ' + data.message) : ''
+					});
+					return Promise.resolve(data.startAppData.treePromise);
+				})
+				.then(function() {
+					if (token) NoteTree.getInstance().setSearchText(token);
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
@@ -468,6 +543,19 @@ class Routing {
 		} else {
 			location.href = url;
 		}
+	}
+	
+	/**
+	 * Sets the serach text to the token after page load. Optionally, you can pass 
+	 * a document ID to be opened, else the profile root is loaded.
+	 */
+	callSearch(token, id) {
+		if (!token) {
+			this.call(id);
+			return;
+		}
+		
+		this.call((id ? (id + '/') : '') + 'search/' + token);
 	}
 	
 	/**
@@ -540,8 +628,8 @@ class Routing {
 	/**
 	 * Call hashtags overview
 	 */
-	callHashtags() {
-		this.call('tags');
+	callHashtags(id) {
+		this.call('tags' + (id ? ('/' + id) : ''));
 	}
 	
 	/**

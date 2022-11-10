@@ -88,7 +88,6 @@ class DocumentAccess {
 			});
 		}
 		
-		var that = this;
 		return Database.getInstance().get()
 		.then(function(db) {
 			return db.allDocs({

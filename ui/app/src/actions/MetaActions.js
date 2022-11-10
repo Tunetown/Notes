@@ -1,5 +1,5 @@
 /**
- * Actions for global metadata.
+ * Actions for global metadata, stored in a separate document.
  * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
  * 
@@ -26,41 +26,49 @@ class MetaActions {
 		return MetaActions.instance;
 	}
 	
+	static metaDocId = 'global-meta';
+
 	constructor() {
-		this.metaDocName = 'global-meta';
 		this.meta = {};
 	}
 	
 	/**
-	 * Request the global metadata.
+	 * Request the global metadata. After this is done, the meta data is accessible
+	 * in the meta attribute.
 	 */
 	requestGlobalMeta() {
 		var that = this;
-		this.meta = {};
 		
 		return Database.getInstance().get()
 		.then(function(db) {
-			return db.get(this.metaDocName);
+			return db.get(MetaActions.metaDocId);
 		})
 		.then(function (data) {
 			// Execute callbacks
 			Callbacks.getInstance().executeCallbacks('requestGlobalMeta', data);
     		
-			that.meta = data;
+			if (data && data.meta) {
+				that.meta = data.meta;	
+				console.log(' -> Loaded global metadata');
 
+				return Promise.resolve({ 
+					ok: true
+				});
+			}
 			return Promise.resolve({ 
-				ok: true,
-				data: data
+				ok: false
 			});
 		})
 		.catch(function(err) {
 			// Not found: This is no severe error in this case, so we resolve the promise instead of rejecting.
-			if (err.status == 404) return Promise.resolve({ 
-				ok: false,
-				data: {},
-				message: err.message,
-				messageThreadId: 'RequestMetaMessages'
-			});
+			if (err.status == 404) {
+				console.log(' -> No global metadata document exists yet');
+				return Promise.resolve({ 
+					ok: false,
+					message: err.message,
+					messageThreadId: 'RequestMetaMessages'
+				});
+			}
 			
 			return Promise.reject({
 				message: err.message,
@@ -70,18 +78,43 @@ class MetaActions {
 	}
 	
 	/**
-	 * Request the settings for the user
+	 * Saves the meta data to database.
 	 */
 	saveGlobalMeta() {
 		var that = this;
+		var db;
+		var metadoc;
 		
-		var doc;
 		return Database.getInstance().get()
-		.then(function(db) {
-			doc = that.meta;
-			doc._id = that.metaDocName;
+		.then(function(_db) {
+			db = _db;
+			return db.get(MetaActions.metaDocId)
+			.then(function(data) {
+				metadoc = data;
+				return Promise.resolve();
+			})
+			.catch(function(err) {
+				if (!err) return Promise.reject();
+				if (err.status == 404) {
+					metadoc = {
+						_id: MetaActions.metaDocId,
+					}
+					return Promise.resolve();
+				}
+				return Promise.reject();
+			})
+		})
+		.then(function() {
+			if (!metadoc) {
+				throw new Error('No meta document created');
+			} 
+
+			metadoc.meta = that.meta;
+			metadoc.timestamp = Date.now();
 			
-			return db.put(doc);
+			return db.put(metadoc, {
+				force: true
+			});
 		})
 		.then(function (data) {
 			if (!data.ok) {
@@ -91,16 +124,15 @@ class MetaActions {
 				});
 			}
 			
+			console.log(' -> Saved global metadata');
+			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('saveGlobalMeta', doc);
+			Callbacks.getInstance().executeCallbacks('saveGlobalMeta', metadoc);
     		
 			return Promise.resolve({
 				message: "Saved global metadata.",
 				messageThreadId: 'SaveMetaMessages'
 			});
 		})
-		.catch(function(err) {
-			return Promise.reject(err);
-		});
 	}
 }
