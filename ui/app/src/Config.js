@@ -93,3 +93,16 @@ Config.dontCheckConflictsGloballyBeyondNumRecords = 6000;  // When the notebook 
  * Options for hashtags and links in document contents
  */
 Config.defaultHashtagColor = '#008800';      // Only hash colors allowed!
+Config.tagNameColorProposals = [
+	{ color: '#00dd00', token: 'compl' },
+	{ color: '#00dd00', token: 'ok' },
+	{ color: '#00dd00', token: 'done' },
+	{ color: '#00dd00', token: 'succ' },
+	
+	{ color: '#ff9900', token: 'todo' },
+	{ color: '#ff9900', token: 'tbd' },
+	{ color: '#ff9900', token: 'tbc' },
+
+	{ color: '#ff0000', token: 'error' },
+	{ color: '#ff0000', token: 'fail' },
+];

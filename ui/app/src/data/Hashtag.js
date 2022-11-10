@@ -135,20 +135,42 @@ class Hashtag {
 	static metaFileName = 'tagMeta';
 	
 	/**
+	 * Tries to guess what the tag might need to look like.
+	 */
+	static getColorProposal(tag) {
+		const tagL = tag.toLowerCase();
+		
+		for(var i in Config.tagNameColorProposals) {
+			const p = Config.tagNameColorProposals[i];
+			if (p && p.token && p.color && (tagL.indexOf(p.token.toLowerCase()) >= 0)) return p.color;
+		}
+		
+		return Tools.getRandomColor();
+	}
+	
+	/**
 	 * Returns the passed tag's color code. If no color is 
-	 * set in the global metadata, a default is returned.
+	 * set in the global metadata, a random color is returned and also saved.
 	 */
 	static getColor(tag) {
 		if (!tag) return Config.defaultHashtagColor;
 		
+		function randomColor() {
+			const col = Hashtag.getColorProposal(tag);
+			
+			Hashtag.setColor(tag, col);
+			
+			return col;
+		}
+		
 		const meta = MetaActions.getInstance().meta[Hashtag.metaFileName];
-		if (!meta) return Config.defaultHashtagColor;
+		if (!meta) return randomColor();
 		
 		const hash = Tools.hashCode(tag);
-		if(!meta.hasOwnProperty(hash)) return Config.defaultHashtagColor;
+		if(!meta.hasOwnProperty(hash)) return randomColor();
 		
 		const tagmeta = meta[hash];
-		if (!tagmeta.color) return Config.defaultHashtagColor;
+		if (!tagmeta.color) return randomColor();
 		
 		return tagmeta.color;
 	}

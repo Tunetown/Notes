@@ -692,8 +692,8 @@ class DetailBehaviour {
 		
 		if (!docmeta) docmeta = this.getItemRefTypeDescriptor(doc);
 		
-		if (docmeta.isSelectedParent) return DetailBehaviour.groupDistance * 10;
-		if (docmeta.isParentOfSelectedParent) return DetailBehaviour.groupDistance * 20;
+		if (docmeta.isParentOfSelectedParent) return DetailBehaviour.groupDistance * 10;
+		if (docmeta.isSelectedParent) return DetailBehaviour.groupDistance * 20;
 		if (docmeta.isChildOfSelectedParent) return DetailBehaviour.groupDistance * 30;
 		if (docmeta.isOutgoinglinkOfSelected) return DetailBehaviour.groupDistance * 40;
 		if (docmeta.isBacklinkOfSelected) return DetailBehaviour.groupDistance * 50;
@@ -928,8 +928,8 @@ class DetailBehaviour {
 		// During search, all documents are shown as normal items
 		if (searchText.length > 0) meta.isSelectedParent = false;		
 		
-		const isAttachment = (doc.type == 'attachment');
-		const isReference = (doc.type == 'reference');
+		//const isAttachment = (doc.type == 'attachment');
+		//const isReference = (doc.type == 'reference');
 		const hasChildren = this.hasChildren(doc);
 		const isBacklinkOfSelected = this.enableBacklinks && meta.isBacklinkOfSelected; 
 		const isParentOfSelected = this.enableParents && meta.isParentOfSelectedParent; 
@@ -1001,6 +1001,7 @@ class DetailBehaviour {
 			else if (isParentOfSelected) {
 				showMarker(markerLeftEl, true);
 				markerLeftEl.css('background', '#faacac');
+				markerLeftEl.css('width', (this.treeFontSize * 2) + 'px');
 				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
 				
 				markerLeftElIcon.addClass('fa-chevron-left');
@@ -1027,8 +1028,18 @@ class DetailBehaviour {
 		}
 		
 		// Item dimensions. Parent shall be small (like font size), the normal items should be larger.
-		itemContent.css('height', meta.isSelectedParent ? '100%' : ((isParentOfSelected ? (this.treeFontSize * 1.6) : this.itemHeight) + 'px'));
-		itemContainer.css('width', meta.isSelectedParent ? (this.grid.getContainerWidth() - this.sortButtonsWidth) + 'px' : '100%');
+		if (meta.isSelectedParent) {
+			itemContent.css('height', ((this.treeFontSize * 1.6) + 'px'));
+			itemContainer.css('width',(this.grid.getContainerWidth() - this.sortButtonsWidth - (this.treeFontSize * 2)) + 'px');
+		} else {
+			if (isParentOfSelected) {
+				itemContent.css('height', (((this.treeFontSize * 1.6)) + 'px'));
+				itemContainer.css('width', (this.treeFontSize * 2) + 'px');
+			} else {
+				itemContent.css('height', ((this.itemHeight) + 'px'));
+				itemContainer.css('width', '100%');
+			}
+		}
 		
 		// Styling for icons (here we dont want no spaces when the icon is hidden)
 		const iconEl = itemContent.find('.' + this.getIconClass());
@@ -1876,7 +1887,7 @@ class DetailBehaviour {
 		var that = this;
 		
 		// Main event, attached to the whole item
-		itemElement.find('.' + this.getItemInnerContainerClass()).each(function(i) {
+		itemElement.find('.' + this.getItemInnerContainerClass() + ', .' + this.getItemLeftMarkerClass() + ', .' + this.getItemRightMarkerClass()).each(function(i) {
 			this.mainEvent = new TouchClickHandler(this, {
 				onGestureFinishCallback: function(event) {
 					return that.onTreeEvent(event);
@@ -1886,7 +1897,6 @@ class DetailBehaviour {
 					if (that.multiSelect) return;
 					
 					var data = $(event.currentTarget).parent().data();
-					
 					that.callOptionsWithId([data.id], Tools.extractX(event), Tools.extractY(event));
 				},
 				delayHoldMillis: 600
@@ -1934,13 +1944,6 @@ class DetailBehaviour {
 		$('.' + this.getSelectorInputClass())
 		.each(function() {
 			this.checked = doSelect;
-			/*var data = $(this).data();
-			if (!data) return;
-			var id = data.id;
-			if (!id) return;
-			
-			ret.push(id);
-			*/
 		});
 	}
 	
@@ -2035,7 +2038,7 @@ class DetailBehaviour {
 	onTreeEvent(event) {
 		var data = $(event.currentTarget).parent().data();
 		this.saveScrollPosition();
-		
+
 		if (this.multiSelect) {
 			this.toggleSelected(data.id);
 			this.callOptionsWithId(this.getSelectedIds(), Tools.extractX(event), Tools.extractY(event));

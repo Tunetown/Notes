@@ -475,6 +475,7 @@ class Routing {
 					return Promise.resolve(data.startAppData.treePromise);
 				})
 				.then(function() {
+					NoteTree.getInstance().setSearchText();
 					NoteTree.getInstance().editorOpened(noteId);
 				})
 				.catch(function(err) {

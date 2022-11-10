@@ -244,6 +244,18 @@ class Tools {
 	}
 	
 	/**
+	 * Creates a random color.
+	 */
+	static getRandomColor() {
+		const letters = '0123456789abcdef';
+		var color = '#';
+		for (var i = 0; i < 6; i++) {
+			color += letters[Math.floor(Math.random() * 16)];
+		}
+		return color;
+	}
+	
+	/**
 	 * Change color brightness. Taken from https://css-tricks.com/snippets/javascript/lighten-darken-color/
 	 */
 	static lightenDarkenColor(col, amt) {
