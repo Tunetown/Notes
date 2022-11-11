@@ -970,6 +970,8 @@ class DetailBehaviour {
 		const iconClass = this.getIconStyleClass(this.isItemOpened(doc), doc);
 		const iconEl = itemContent.find('.' + this.getIconClass());
 		const textEl = itemContent.find('.treeitemtext-detail-text');
+		const markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
+		const markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
 
 		// Dimensions for the first element
 		const parentWidth = this.treeFontSize * 2;
@@ -979,11 +981,11 @@ class DetailBehaviour {
 		groupMarker.css('display', 'none');
 		
 		// Category markers
-		const markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
-		const markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
 		markerLeftEl.css('display', 'none');
+		markerLeftEl.css('width', '16px');
+		markerLeftEl.css('color', 'darkgrey');
 		markerRightEl.css('display', 'none');
-		
+					
 		var markerShown = false;
 		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
 			
@@ -1012,17 +1014,20 @@ class DetailBehaviour {
 			
 			// Marker at the left for backlinks and and references
 			const markerLeftElIcon = markerLeftEl.find('.' + this.getMarkerIconClass());
+			markerLeftElIcon.css('font-size', '10px');
 			markerLeftElIcon.removeClass('fa-chevron-left');
 			markerLeftElIcon.removeClass('fa-chevron-right');
 			markerLeftElIcon.removeClass('fa-chevron-down');
-			markerLeftEl.css('width', '16px');
+			var leftMarkerColor = 'darkgrey';
 
 			if (isParentOfSelected) {
 				showMarker(markerLeftEl, true);
 				markerLeftEl.css('background', '#faacac');
 				markerLeftEl.css('width', parentWidth + 'px');
 				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
+				leftMarkerColor = 'black';
 				
+				markerLeftElIcon.css('font-size', this.treeFontSize + 'px');
 				markerLeftElIcon.addClass('fa-chevron-left');
 			}
 			else if (isBacklinkOfSelected) {
@@ -1052,7 +1057,7 @@ class DetailBehaviour {
 			const highlightLeft = (!isParentOfSelected) && (doc._id == this.lastSelectedParent);
 			const highlightRight = highlightLeft;
 			markerLeftEl.css('border', highlightLeft ? ('2px solid ' + highlightColor) : '');
-			markerLeftEl.css('color', highlightLeft ? highlightColor : 'darkgrey');
+			markerLeftEl.css('color', highlightLeft ? highlightColor : leftMarkerColor);
 			if (highlightLeft) markerLeftEl.attr('title', markerLeftEl.attr('title') + ', last opened in navigation');
 			
 			markerRightEl.css('border', highlightRight ? ('2px solid ' + highlightColor) : '');
