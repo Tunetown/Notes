@@ -223,7 +223,14 @@ class Settings {
 								$('<div id="dbcheck">Database Status</div>'),
 								$('<div id="dbAdminLink"></div>'),
 								$('<br>'),
-								$('<div id="dbUrl"><b>URL:</b> ' + d.profileHandler.getCurrentProfile().url + '</div>'),
+								
+								$('<span id="dbUrl"><b>URL:</b> ' + d.profileHandler.getCurrentProfile().url + '</span>'),
+								$('<a style="cursor: pointer; padding-left: 10px;">Copy</a>')
+								.on('click', function(event) {
+									navigator.clipboard.writeText(d.profileHandler.getCurrentProfile().url);
+									n.showAlert('Copied URL to Clipboard', 'I');
+								}),
+								
 								!d.profileHandler.getCurrentProfile().clone ? null : $('<div id="dblocalcheck"><b>Local DB name:</b> ' + d.determineLocalDbName() + '</div>')
 							)
 						),
