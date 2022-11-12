@@ -950,6 +950,7 @@ class DetailBehaviour {
 	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
 		const data = Notes.getInstance().getData();
 		const selectedDoc = data.getById(this.selectedParent);
+		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
 
 		// Gather attributes
 		const meta = this.getItemRefTypeDescriptor(doc);
@@ -968,6 +969,7 @@ class DetailBehaviour {
 		const isSiblingOfSelected = this.enableSiblings && meta.isSiblingOfSelected;
 		const isChildOfSelected = (this.selectedParent == doc.parent);
 		const selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
+		const isRoot = !selectedDoc; 
 
 		// Elements
 		const previewEl = itemContent.find('.' + this.getItemPreviewClass());
@@ -1032,7 +1034,7 @@ class DetailBehaviour {
 				showMarker(markerLeftEl, true);
 				markerLeftEl.css('background', '#faacac');
 				markerLeftEl.css('width', parentWidth + 'px');
-				markerLeftEl.attr('title', 'Parent of ' + selectedDocName + ' in the hierarchy');
+				markerLeftEl.attr('title', 'Back to ' + (parentDoc ? parentDoc.name : this.rootDocument.name));
 				leftMarkerColor = 'black';
 				
 				markerLeftElIcon.css('font-size', this.treeFontSize + 'px');
@@ -1077,12 +1079,16 @@ class DetailBehaviour {
 		if (meta.isSelectedParent) {
 			// Selected parent
 			itemHeader.css('margin-top', ((selectedHeight - this.treeFontSize * 1.4) / 2) + 'px');   // NOTE: 1.4 is the global line height!
+			itemHeader.css('display', 'block');
 			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
 			
 			itemContent.css('height', selectedHeight + 'px');
-			itemContainer.css('width',(this.grid.getContainerWidth() - this.sortButtonsWidth - parentWidth) + 'px');
+			itemContent.css('padding-right', '0px');
+			itemContainer.css('width',(this.grid.getContainerWidth() - this.sortButtonsWidth - (isRoot ? 0 : parentWidth)) + 'px');
 		} else {
+			itemContent.css('padding-right', '10px');
 			itemHeader.css('margin-top', '0px');
+			itemHeader.css('display', 'flex');
 			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
 			
 			if (isParentOfSelected) {

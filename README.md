@@ -97,5 +97,10 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Bug fixes and small optimizations in appearance
     - Removed sheet type from create note dialog
     
+- 0.95.10
+    - Tags
+    - Small improvements in the Settings page
+    - Improved UI design for navigation
+    
     
     
