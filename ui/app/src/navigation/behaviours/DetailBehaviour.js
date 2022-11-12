@@ -560,6 +560,14 @@ class DetailBehaviour {
 		// Sorting
 		this.grid.grid.grid.refreshSortData();
 		
+		var selectedDoc = this.getById(this.selectedParent);
+		if (selectedDoc && this.hasChildren(selectedDoc, true)) {
+			$('#treeteasertext').css('display', 'none');
+		} else {
+			$('#treeteasertext').css('display', 'block');
+			$('#treeteasertext').text(selectedDoc.name + ' has no related items to show');
+		}
+		
 		const that = this;
 		this.grid.grid.grid.sort(function(itemA, itemB) {
 			// Get documents
@@ -1094,7 +1102,7 @@ class DetailBehaviour {
 		
 		iconEl.toggleClass(iconClass, true); 
 
-		iconEl.css('padding-right', iconClass ? '10px' : '0px'); //(hasChildren || isAttachment || isReference) ? '10px' : '0');
+		iconEl.css('padding-right', iconClass ? '10px' : '0px'); 
 		iconEl.toggleClass('folder', hasChildren);
 		iconEl.css('display', ((!this.enableParents) || (!meta.isSelectedParent)) ? (iconClass ? 'block' : 'none') : 'none');
 
@@ -1338,7 +1346,17 @@ class DetailBehaviour {
 	/**
 	 * Returns if the document has children.
 	 */
-	hasChildren(doc) {
+	hasChildren(doc, ignoreParent) {
+		if (this.enableParents && (!ignoreParent)) {
+			/*if (doc.parent) {
+				var p = d.getById(doc.parent);
+				if (p) {
+					return true;
+				}
+			}*/
+			return true;
+		}
+		
 		var d = Notes.getInstance().getData();
 
 		if (this.enableChildren || (this.mode != 'ref')) {
@@ -1353,16 +1371,6 @@ class DetailBehaviour {
 			if (d.getReferencesTo(doc._id).length > 0) {
 				return true;
 			}
-		}
-		
-		if (this.enableParents) {
-			/*if (doc.parent) {
-				var p = d.getById(doc.parent);
-				if (p) {
-					return true;
-				}
-			}*/
-			return true;
 		}
 		
 		if (this.enableLinks) {

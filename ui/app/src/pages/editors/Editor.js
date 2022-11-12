@@ -479,6 +479,8 @@ class Editor {
 		
 		return new tinymce.util.Promise(function (resolve) {
 			resolve(that.getLinkAutocompleteMatchedChars(editor, pattern).map(function (char) {
+				//const classes = [Linkage.getListStyleClass(char.id)];
+				
 				return {
 					type: 'cardmenuitem',
 					value: Linkage.startTagRest + char.id + (char.displayText ? (Linkage.separator + char.displayText) : '') + Linkage.endTag,

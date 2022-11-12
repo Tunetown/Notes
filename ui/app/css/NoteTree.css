@@ -242,3 +242,11 @@
 	cursor: default;
 }
 
+#treeteasertext {
+	position: absolute;
+	top: 50%;
+	left: 50%;
+	transform: translate(-50%, -50%);
+	color: darkgrey;
+	text-align: center;
+}

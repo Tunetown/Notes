@@ -228,7 +228,7 @@ class NoteTree {
 			// Clear content and hide at first
 			favBar.empty();
 			favBar.css('height', 'auto');
-			that.showFavorites(false);
+			that.showFavorites(false, true);
 		}
 		
 		var n = Notes.getInstance();
@@ -726,6 +726,8 @@ class NoteTree {
 				$('<br>'),
 				$('<br>'),
 				$('<br>'),
+				
+				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
 
 			$('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
@@ -1132,12 +1134,12 @@ class NoteTree {
 	/**
 	 * Set favorites visibility
 	 */
-	showFavorites(show) {
+	showFavorites(show, dontReset) {
 		if (show) {
 			$('#favBar').show();
 		} else {
 			$('#favBar').hide();
-			this.resetFavoriteBuffers();
+			if (!dontReset) this.resetFavoriteBuffers();
 		}
 	}
 	
