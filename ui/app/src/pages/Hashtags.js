@@ -71,15 +71,15 @@ class Hashtags {
 				.append(
 					[
 						$('<td data-id="' + tag + '"></td>').append(
-							$('<span class="notesHashTag" data-id="' + tag + '"></span>')
+							$('<span class="notesHashTag" data-tag="' + tag + '"></span>')
 							.html('#' + tag)
 							.css('background-color', tagColor)
 							.css('color', Tools.getForegroundColor(tagColor))
 							.on('click', function(e) {
 								e.stopPropagation();
-								var id = $(this).data().id;
+								var tag = $(this).data().tag;
 
-								NoteTree.getInstance().setSearchText('tag:' + id);
+								Hashtag.showTag(tag);
 							})							
 						),
 						

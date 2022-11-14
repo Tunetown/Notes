@@ -161,6 +161,8 @@ class NoteTree {
 			$('#' + this.treeNavContainerId).on('click', function(e) {
 				e.stopPropagation();
 				
+				Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
+				
 				if (that.blockDeselectCallback) {
 					// This is used so that after certain events, the deselect handler is not executed to not get in the way.
 					// Espacially after moving items.
@@ -168,7 +170,7 @@ class NoteTree {
 					return;
 				}
 				Notes.getInstance().hideOptions();
-				NoteTree.getInstance().resetSelectedState();
+				that.resetSelectedState();
 			});
 			
 			// Reset selection

@@ -643,7 +643,7 @@ class Code {
 			const currentId = Code.getInstance().getCurrentId();
 			Notes.getInstance().routing.callHashtags(currentId);
 		} else {
-			Editor.searchForTag(Hashtag.trim(tag));
+			Hashtag.showTag(Hashtag.trim(tag));
 		}
 	}
 }

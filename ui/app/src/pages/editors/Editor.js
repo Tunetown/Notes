@@ -814,7 +814,7 @@ class Editor {
 			const currentId = Editor.getInstance().getCurrentId();
 			Notes.getInstance().routing.callHashtags(currentId);
 		} else {
-			Editor.searchForTag(Hashtag.trim(tag));
+			Hashtag.showTag(Hashtag.trim(tag));
 		}
 	}
 	
@@ -837,16 +837,6 @@ class Editor {
 	static callDocument(id) {
 		NoteTree.getInstance().setSearchText('');
 		Notes.getInstance().routing.call(id);
-	}
-	
-	/**
-	 * Used by all editors to search for hash tags.
-	 */
-	static searchForTag(tag) {
-		const n = Notes.getInstance();
-		const currentId = Editor.getInstance().getCurrentId();
-		
-		n.routing.callSearch('tag:' + tag, n.isMobile() ? null : currentId);
 	}
 }
 

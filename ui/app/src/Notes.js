@@ -842,8 +842,10 @@ class Notes {
 							that.toggleEditorLinkage();
 						}),
 					)
-
 				])
+				.on('click', function(event) {
+					that.setFocus(Notes.FOCUS_ID_EDITOR);
+				})
 			])
 		]);
 
@@ -906,6 +908,20 @@ class Notes {
 		$('#linkEditorButton').attr('title', (linkEditorMode == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
 	}
 	
+	static FOCUS_ID_EDITOR = 'editor';
+	static FOCUS_ID_NAVIGATION = 'nav';
+
+	focusId = Notes.FOCUS_ID_EDITOR;
+	
+	/**
+	 * Set ID of focussed area.
+	 */
+	setFocus(id) {
+		this.focusId = id;
+
+		this.update();
+	}
+	
 	/**
 	 * Go home to the navigation root
 	 */
@@ -919,6 +935,11 @@ class Notes {
 	 * Go back in browser history
 	 */
 	back() {
+		if (NoteTree.getInstance().getSearchText().length > 0) {
+			NoteTree.getInstance().setSearchText('');
+			return;
+		}
+		
 		ClientState.getInstance().setLastOpenedUrl();
 		history.back();
 	}
@@ -1409,6 +1430,10 @@ class Notes {
 		if (!dontHideUserMenu) this.hideMenu();
 
 		this.hideOptions();
+
+		// Focus
+		$('#treenav').css('border', ((this.focusId == Notes.FOCUS_ID_NAVIGATION) ? ('1px solid ' + Config.focusColor) : '0px solid darkgrey'));
+		$('#article').css('border', ((this.focusId == Notes.FOCUS_ID_EDITOR) ? ('1px solid ' + Config.focusColor) : '0px solid darkgrey'));
 
 		// Update tree (hide options and update selected item to match the editor)
 		var t = NoteTree.getInstance();

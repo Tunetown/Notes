@@ -106,3 +106,8 @@ Config.tagNameColorProposals = [
 	{ color: '#ff0000', token: 'error' },
 	{ color: '#ff0000', token: 'fail' },
 ];
+
+/**
+ * Focus of areas
+ */
+Config.focusColor = '#c40cf7';

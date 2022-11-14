@@ -73,7 +73,8 @@ section {
 nav {
 	background-color: lightgrey;
 	brightness: 2;
-	border-right: 1px solid darkgrey;
+	/*border-right: 1px solid darkgrey;*/
+	border: 1px solid darkgrey;
 	
 	/*min-height: calc(100vh - 55px);*/
 	
@@ -98,6 +99,7 @@ article {
 	background-color: #f1f1f1;
 	padding: 0;
 	position: relative;
+	border: 1px solid white;
 }
 
 .mainPanel {

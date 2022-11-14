@@ -209,4 +209,11 @@ class Hashtag {
 		const styleStr = 'background-color: ' + col + ' !important; color: rgba(0,0,0,0) !important; margin-right: 4px;  border-radius: 10px; content: "__";';
 		return Styles.getInstance().getStyleClass(Hashtag.stylePrefix + tag, ':before', styleStr);
 	}
+	
+	/**
+	 * Used by all pages etc. to show a tag's mentions.
+	 */
+	static showTag(tag) {
+		NoteTree.getInstance().setSearchText('tag:' + tag);
+	}
 }
