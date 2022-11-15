@@ -27,6 +27,13 @@ class AttachmentPreview {
 	}
 	
 	/**
+	 * PDFs do not support focussing, so we deactivate that completely for attachments.
+	 */
+	overrideFocusId() {
+		return Notes.FOCUS_ID_EDITOR;
+	}
+	
+	/**
 	 * Reset the "currently shown" flags
 	 */
 	unload() {

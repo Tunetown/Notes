@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.95.11';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -373,6 +373,34 @@ class Notes {
 	} 
 	
 	/**
+	 * Check all sources against the MD5 hashes in this class.
+	 *
+	checkSources() {
+		var promises = [];
+		for (var [key, value] of this.sourceHashes) {
+			promises.push(
+				new Promise(function(resolve) {
+					var file = key;
+					var hash = value;
+					fetch(file)
+					.then(function(data) {
+						return data.text();
+					})
+					.then(function(text) {
+						var currentHash = md5(text);
+						
+						if (currentHash != hash) {
+							console.log(file + '  ' + currentHash + '  shoud be ' + hash);
+						}
+						resolve();
+					})
+				})
+			)
+		}
+		return Promise.all(promises);
+	}
+	
+	/**
 	 * Handlers incoming messages from the service worker.
 	 */
 	setupServiceWorkerMessageReceiver() { 
@@ -552,7 +580,7 @@ class Notes {
 				
 		// Store URL as last loaded address
 		ClientState.getInstance().setLastOpenedUrl(location.href);
-				
+		
 		// Disable back swiping for mobile devices
 		/*if (this.isMobile()) {
 			this.disableBackSwipe();
@@ -729,7 +757,8 @@ class Notes {
 			$('#forwardButton').show();
 		}
 		
-		this.update();
+		this.setFocus(Notes.FOCUS_ID_EDITOR);
+		//this.update();
 		
 		Database.getInstance().setAutoLoginBlock(false);
 	}
@@ -824,6 +853,13 @@ class Notes {
 							that.back();
 						}),
 						
+						// Forward button used to navigate back to the tree in mobile mode
+						$('<div id="forwardButton2" class="editorNavButton roundedButton fa fa-chevron-right"></div>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.forward();
+						}),
+
 						// Home button used to navigate back to the tree root in mobile mode
 						$('<div id="homeButton2" class="editorNavButton roundedButton fa fa-home"></div>')
 						.on('click', function(e) {
@@ -870,6 +906,8 @@ class Notes {
 		ClientState.getInstance().setLinkageMode('editor', linkEditorMode);
 		
 		this.updateLinkageButtons();
+		
+		this.setFocus(Notes.FOCUS_ID_EDITOR);
 	}
 
 	/**
@@ -912,6 +950,19 @@ class Notes {
 	static FOCUS_ID_NAVIGATION = 'nav';
 
 	focusId = Notes.FOCUS_ID_EDITOR;
+
+	/**
+	 * Returns the current focus ID.
+	 */
+	getFocusId() {
+		// Check if the page provides an override for focussing
+		var page = this.getCurrentPage();
+		if (page && (typeof page.overrideFocusId == 'function')) {
+			return page.overrideFocusId();
+		}
+		
+		return this.focusId;
+	}
 	
 	/**
 	 * Set ID of focussed area.
@@ -931,25 +982,52 @@ class Notes {
 		this.routing.call();
 	}
 		
-	/**
-	 * Go back in browser history
-	 */
-	back() {
-		if (NoteTree.getInstance().getSearchText().length > 0) {
-			NoteTree.getInstance().setSearchText('');
-			return;
-		}
-		
+	browserBack() {
 		ClientState.getInstance().setLastOpenedUrl();
 		history.back();
 	}
 	
 	/**
+	 * Go back in browser history
+	 */
+	back() {
+		if (this.isMobile()) {
+			this.browserBack();
+		} else {
+			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
+				if (!NoteTree.getInstance().appBackButtonPushed()) {
+					// Tree did not handle the event
+					this.browserBack();
+				}
+			} else {
+				// Editor focussed
+				this.browserBack();
+			}
+		}
+	}
+	
+	browserForward() {
+		ClientState.getInstance().setLastOpenedUrl();
+		history.forward();
+	}
+		
+	/**
 	 * Go forward in browser history
 	 */
 	forward() {
-		ClientState.getInstance().setLastOpenedUrl();
-		history.forward();
+		if (this.isMobile()) {
+			this.browserForward();
+		} else {
+			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
+				if (!NoteTree.getInstance().appForwardButtonPushed()) {
+					// Tree did not handle the event
+					this.browserForward();
+				}
+			} else {
+				// Editor focussed
+				this.browserForward();
+			}
+		}
 	}
 	
 	/**
@@ -1432,8 +1510,13 @@ class Notes {
 		this.hideOptions();
 
 		// Focus
-		$('#treenav').css('border', ((this.focusId == Notes.FOCUS_ID_NAVIGATION) ? ('1px solid ' + Config.focusColor) : '0px solid darkgrey'));
-		$('#article').css('border', ((this.focusId == Notes.FOCUS_ID_EDITOR) ? ('1px solid ' + Config.focusColor) : '0px solid darkgrey'));
+		if (this.isMobile()) {
+			$('#treenav').css('border', 'none');
+			$('#article').css('border', 'none');
+		} else {
+			$('#treenav').css('border-bottom', ((this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) ? ('3px solid ' + Config.focusColor) : '3px solid darkgrey'));
+			$('#article').css('border-bottom', ((this.getFocusId() == Notes.FOCUS_ID_EDITOR) ? ('3px solid ' + Config.focusColor) : '3px solid darkgrey'));
+		}
 
 		// Update tree (hide options and update selected item to match the editor)
 		var t = NoteTree.getInstance();

@@ -87,22 +87,24 @@ class Editor {
 	                	that.updateStatus();
 						that.updateLinkClickHandlers(editor);
 	                	that.startDelayedSave();
-	                    
 	                });
 	                editor.on('input', function(e) {
 						that.updateLinkClickHandlers(editor);
 	                	that.startDelayedSave();
 	                });
 	                editor.on('click', function(e) {
-	                	Notes.getInstance().update();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
+	                	//Notes.getInstance().update();
 	                });
 					editor.on('init', function(e) {
 	                	//if (doFocus) {
 						//	Editor.getInstance().fullscreen();
 						//}
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
 	                });
 					editor.on('focus', function(e) {
 			            that.hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
 			        });
 					editor.on('FullscreenStateChanged', function () {
 						// Get rid of mobile keyboard

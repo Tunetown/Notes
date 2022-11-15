@@ -49,6 +49,9 @@ class DetailBehaviour {
 			name: 'Notebook Home',
 			type: 'root'
 		};
+		
+		// Navigation history
+		this.history = new HistoryHandler();
 	}
 	
 	/**
@@ -114,7 +117,9 @@ class DetailBehaviour {
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	backButtonPushed(event) {
-		if (this.grid.getSearchText()) {
+		Notes.getInstance().back();  
+		
+		/*if (this.grid.getSearchText()) {
 			this.grid.setSearchText('');
 			return;
 		}
@@ -132,7 +137,14 @@ class DetailBehaviour {
 			if (!doc) return;
 			
 			this.selectParent(doc.parent);
-		}
+		}*/
+	}
+	
+	/**
+	 * Called when the back button of the tree has been pushed, if visible.
+	 */
+	forwardButtonPushed(event) {
+		Notes.getInstance().forward();  // TODO also put to the other behaviours!
 	}
 	
 	/**
@@ -146,25 +158,57 @@ class DetailBehaviour {
 			return;
 		}
 		
-		this.selectParent();
+		this.selectParentFromEvent();
 	}
 	
 	/**
 	 * Called after the back button in the app header has been pushed.
-	 *
+	 */
 	appBackButtonPushed() {
-		var e = Notes.getInstance().getCurrentEditor();
-		if (e) {
-			console.log(e.getCurrentId());
-			this.selectParent(e.getCurrentId());
+		if (Notes.getInstance().isMobile()) return false;
+		
+		if (this.history.canBack()) {
+			var h = this.history.back();
+			if (h.type == 'sel') {
+				this.grid.setSearchText('', true);
+				this.selectParentFromEvent(h.id, null, true);
+				return true;
+			}
+			if (h.type == 'token') {
+				this.grid.setSearchText(h.token, true);
+				return true;
+			}
+			/*if (h.type == 'page') {
+				ClientState.getInstance().setLastOpenedUrl();
+				location.href = h.url;
+				return true;
+			}*/
 		}
+		return false;
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
-	 *
+	 */
 	appForwardButtonPushed() {
-		this.appBackButtonPushed();
+		if (Notes.getInstance().isMobile()) return false;
+		
+		if (this.history.canForward()) {
+			var h = this.history.forward();
+			if (h.type == 'sel') {
+				this.selectParentFromEvent(h.id, null, true);
+				return true;
+			}
+			if (h.type == 'token') {
+				this.grid.setSearchText(h.token, true);
+				return true;
+			}
+			/*if (h.type == 'page') {
+				location.href = h.url;
+				return true;
+			}*/
+		}
+		return false;
 	}
 	
 	/**
@@ -260,9 +304,12 @@ class DetailBehaviour {
 	 * Called before the grid is initialized
 	 */
 	beforeInit() {
-		//if (this.mode == 'ref') $('#treeBackButton').hide();
-		//else 
-		$('#treeBackButton').show();
+		if (Notes.getInstance().isMobile()) $('#treeBackButton').show();
+		else $('#treeBackButton').hide();
+
+		if (Notes.getInstance().isMobile()) $('#treeForwardButton').show();
+		else $('#treeForwardButton').hide();
+		
 		$('#treeHomeButton').show();
 		
 		// Search buttons
@@ -318,10 +365,41 @@ class DetailBehaviour {
 		this.updateSortButtons();
 	}
 	
+	addParentToHistory(id) {
+		var last = this.history.get();
+		if (last && (last.type == 'sel') && (last.id == id)) return;
+
+		this.history.add({
+			type: 'sel',
+			id: id
+		});
+	}
+	
+	addSearchToHistory(token) {
+		var last = this.history.get();
+		if (last && (last.type == 'token')) return;   // TODO check prefixing instead
+		
+		this.history.add({
+			type: 'token',
+			token: token
+		});
+	}
+
+	/*addPageToHistory(url) {
+		var last = this.history.get();
+		if (last && (last.type == 'page') && (last.url == url)) return;
+		
+		this.history.add({
+			type: 'page',
+			url: url
+		});
+	}*/
+
 	/**
 	 * Called after the search text has been set.
 	 */
-	afterSetSearchText(searchtext) {
+	afterSetSearchText(searchtext, data) {
+		if (!data && !!searchtext) this.addSearchToHistory(searchtext);
 		this.updateSortButtons();
 	}
 	
@@ -1892,7 +1970,7 @@ class DetailBehaviour {
 	/**
 	 * Select a new parent
 	 */
-	selectParent(id, fromLinkage) {
+	selectParent(id, fromLinkage, noHistoryAdd) {
 		if (this.selectedParent == id) return;
 		
 		// If we go deeper in the tree, we also reset the scroll position.
@@ -1910,6 +1988,9 @@ class DetailBehaviour {
 		this.lastSelectedParent = this.selectedParent;
 		
 		this.selectedParent = id;
+
+		if (!noHistoryAdd) this.addParentToHistory(this.selectedParent);
+
 		this.grid.filter();
 		this.grid.setSelected();
 		
@@ -2046,6 +2127,8 @@ class DetailBehaviour {
 	 */
 	onSelectEvent(event) {
 		var data = $(event.currentTarget).parent().parent().data();
+
+		this.grid.itemClicked(event, data.id);
 		
 		this.saveScrollPosition();
 		
@@ -2060,7 +2143,7 @@ class DetailBehaviour {
 		var doc = Notes.getInstance().getData().getById(data.id);
 		if (!doc) {
 			if (this.mode == 'ref') {
-				this.selectParent('');
+				this.selectParentFromEvent('');
 				return;
 			} else {
 				throw new Error("Doc " + data.id + " not found");
@@ -2072,14 +2155,14 @@ class DetailBehaviour {
 				this.grid.setSelected();
 				this.grid.openNode(data.id) //, true);
 			} else {
-				this.selectParent(doc.parent);
+				this.selectParentFromEvent(doc.parent);
 			}
 		} else {
 			if (this.mode == 'ref') {
 				var selectedDoc = Notes.getInstance().getData().getById(this.selectedParent);
 				if (selectedDoc && selectedDoc.parent && (selectedDoc.parent == data.id)) {
 					// Parent if selected: do not open, navigate back.
-					this.selectParent(data.id);
+					this.selectParentFromEvent(data.id);
 					return;
 				}
 			}
@@ -2094,6 +2177,9 @@ class DetailBehaviour {
 	 */
 	onTreeEvent(event) {
 		var data = $(event.currentTarget).parent().data();
+		
+		this.grid.itemClicked(event, data.id);
+
 		this.saveScrollPosition();
 
 		if (this.multiSelect) {
@@ -2107,7 +2193,7 @@ class DetailBehaviour {
 		var doc = Notes.getInstance().getData().getById(data.id);
 		if (!doc) {
 			if (this.mode == 'ref') {
-				this.selectParent('');
+				this.selectParentFromEvent('');
 				return;
 			} else {
 				throw new Error("Doc " + data.id + " not found");
@@ -2118,15 +2204,23 @@ class DetailBehaviour {
 		if (this.hasChildren(doc)) {
 			if (this.selectedParent == data.id) {
 				// Click on parent: Close it
-				this.selectParent(doc.parent);
+				this.selectParentFromEvent(doc.parent);
 			} else {
 				// Click on item: Open it
-				this.selectParent(data.id);
+				this.selectParentFromEvent(data.id);
 			}
 			
 		} else {
 			this.grid.setSelected(data.id);
 			this.grid.openNode(data.id); //, true);
+		}
+	}
+	
+	selectParentFromEvent(id, fromLinkage, noHistoryAdd) {
+		if (Notes.getInstance().isMobile()) {
+			Notes.getInstance().routing.callProfileRootWithSelectedId(id);
+		} else {
+			this.selectParent(id, fromLinkage, noHistoryAdd);
 		}
 	}
 	

@@ -711,6 +711,21 @@ class Tools {
 	}
 	
 	/**
+	 * Taken from https://forum.freecodecamp.org/t/calculate-hash-of-a-remote-resource-js/414536
+	 *
+	static calculateMD5(blob) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsArrayBuffer(blob);
+        reader.onloadend = function () {
+          var wordArray = CryptoJS.lib.WordArray.create(reader.result),
+            hash = CryptoJS.MD5(wordArray).toString();
+            resolve(hash)
+        };
+      })
+    }
+	
+	/**
 	 * File name escaping
 	 */
 	static escapeFilename(name) {

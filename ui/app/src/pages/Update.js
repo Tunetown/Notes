@@ -42,7 +42,7 @@ class Update {
 		$('#contentContainer').empty(); 
 		$('#contentContainer').append(
 			headerContainer,
-			this.contentContainer 
+			this.contentContainer  
 		);
 		
 		headerContainer.append( 
@@ -63,6 +63,11 @@ class Update {
 					event.stopPropagation();
 					Update.getInstance().load();
 				}),
+				/*$('<button class="btn btn-secondary updateRefreshBtn">Validate Sources...</button><br><br>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					Notes.getInstance().checkSources();
+				}),*/
 				$('<div><span style="color: red;">If you get errors after updating, please empty your browser cache and, if you installed it locally, re-install the app.</span></div><br>'),
 				$('<div><em>Technical Info: This forces the service worker to be reinstalled, and loads all sources from the host again. The PWA installation is not touched!</em></div><br>'),
 			);

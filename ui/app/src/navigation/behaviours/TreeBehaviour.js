@@ -28,7 +28,7 @@ class TreeBehaviour {
 	/**
 	 * Called after the search text has been set.
 	 */
-	afterSetSearchText(searchtext) {
+	afterSetSearchText(searchtext, data) {
 	}
 	
 	/**
@@ -106,14 +106,16 @@ class TreeBehaviour {
 	
 	/**
 	 * Called after the back button in the app header has been pushed.
-	 *
+	 */
 	appBackButtonPushed() {
+		return false;
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
-	 *
+	 */
 	appForwardButtonPushed() {
+		return false;
 	}
 	
 	/**
@@ -158,6 +160,7 @@ class TreeBehaviour {
 	 */
 	beforeInit() {
 		$('#treeBackButton').hide();
+		$('#treeForwardButton').hide();
 		$('#treeHomeButton').hide();
 	}
 	
@@ -167,6 +170,9 @@ class TreeBehaviour {
 	afterInit() {
 	}
 
+	addPageToHistory(url) {
+	}
+	
 	/**
 	 * Called before filtering
 	 */
@@ -624,6 +630,8 @@ class TreeBehaviour {
 	onSelectEvent(event) {
 		var data = $(event.currentTarget).parent().data();
 
+		this.grid.itemClicked(event, data.id);
+
 		this.saveScrollPosition();
 		
 		if (Notes.getInstance().hideOptions()) return;
@@ -637,6 +645,8 @@ class TreeBehaviour {
 	 */
 	onTreeEvent(event) {
 		var data = $(event.currentTarget).parent().parent().data();
+
+		this.grid.itemClicked(event, data.id);
 
 		this.saveScrollPosition();
 		

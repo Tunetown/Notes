@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.95.11.a';
+const PRECACHE = 'notes_precache-v0.96.0.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -78,6 +78,7 @@ const PRECACHE_URLS = [
   './ui/lib/client-zip.js',
   './ui/lib/neo4j/js/neo4jd3.js',
   './ui/lib/neo4j/js/d3.min.js',
+  /*'./ui/lib/md5.min.js',*/
   
   './ui/lib/codemirror/lib/codemirror.js',
   './ui/lib/codemirror/mode/markdown/markdown.js',
@@ -164,6 +165,7 @@ const PRECACHE_URLS = [
   './ui/app/src/tools/ImageDialog.js',
   './ui/app/src/tools/Callbacks.js',
   './ui/app/src/tools/Styles.js',
+  './ui/app/src/tools/HistoryHandler.js',
   './ui/app/src/Config.js',
   './ui/app/src/Routing.js',
   './ui/app/src/Notes.js',
@@ -200,7 +202,7 @@ const PRECACHE_URLS = [
   './ui/app/images/NotesLogo_48.png',
   './ui/app/images/NotesLogo_512.png',
   './ui/app/images/NotesLogo_96.png',
-  './ui/app/images/favicon.ico',
+  './ui/app/images/favicon.ico'
 ];
 
 /**

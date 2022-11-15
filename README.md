@@ -102,5 +102,7 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Small improvements in the Settings page
     - Improved UI design for navigation
     
+- 0.96.0
+    - Rework of back/forward navigation (now also selected parents are recorded)
     
     

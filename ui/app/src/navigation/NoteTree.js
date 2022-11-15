@@ -502,6 +502,7 @@ class NoteTree {
 			$(event.currentTarget).find('.selectedFavorite').css('display', 'inherit');
 		}
 			
+		var that = this;
 		el.contextmenu(handleFavContext);
 		el.mainEvent = new TouchClickHandler(el, {
 			onGestureFinishCallback: function(event) {
@@ -519,7 +520,7 @@ class NoteTree {
 				}*/	
 
 				Notes.getInstance().routing.call(targetDoc._id);
-				
+				that.itemClicked(event, data.id);
 			},
 			
 			delayedHoldCallback: handleFavContext,
@@ -734,18 +735,29 @@ class NoteTree {
 
 			$('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
 				// Back Button
-				$('<div data-toggle="tooltip" title="Back" class="fa fa-level-up-alt treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
+				$('<div data-toggle="tooltip" title="Back" class="fa fa-chevron-left treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 						that.behaviour.backButtonPushed(event);
 					}),
 					
+				// Forward Button
+				$('<div data-toggle="tooltip" title="Forward" class="fa fa-chevron-right treeModeSwitchbutton roundedButton" id="treeForwardButton"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
+						that.behaviour.forwardButtonPushed(event);
+					}),
+
 				// Home Button
 				$('<div data-toggle="tooltip" title="Home" class="fa fa-home treeModeSwitchbutton roundedButton" id="treeHomeButton"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 						that.behaviour.homeButtonPushed(event);
 					}),
 				
@@ -754,6 +766,7 @@ class NoteTree {
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 						that.block();
 						DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
 						.then(function(data) {
@@ -773,6 +786,7 @@ class NoteTree {
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 						var s = ClientState.getInstance().getViewSettings();
 						s.navMode = Behaviours.getNextNavMode();
 						ClientState.getInstance().saveViewSettings(s);
@@ -791,6 +805,7 @@ class NoteTree {
 						
 						var newState = !that.isSettingsPanelVisible();
 						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 						
 						if (newState) {
 							that.buildSettingsPanel();
@@ -812,6 +827,7 @@ class NoteTree {
 					.on('click', function(event) {
 						event.stopPropagation();
 						Notes.getInstance().hideOptions();
+						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 						
 						that.toggleLinkToEditor();
 					})
@@ -1068,18 +1084,22 @@ class NoteTree {
 		}
 	}
 	
+	/*addPageToHistory(url) {
+		this.behaviour.addPageToHistory(url);
+	}*/
+	
 	/**
 	 * Called after the back button in the app header has been pushed.
-	 *
+	 */
 	appBackButtonPushed() {
-		this.behaviour.appBackButtonPushed();
+		return this.behaviour.appBackButtonPushed();
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
-	 *
+	 */
 	appForwardButtonPushed() {
-		this.behaviour.appForwardButtonPushed();
+		return this.behaviour.appForwardButtonPushed();
 	}
 	
 	/**
@@ -1347,10 +1367,10 @@ class NoteTree {
 	/**
 	 * Sets a search text.
 	 */
-	setSearchText(txt) {
+	setSearchText(txt, data) {
 		$('#treeSearch').val(txt);
 		
-		this.behaviour.afterSetSearchText(txt);
+		this.behaviour.afterSetSearchText(txt, data);
 		
 		return this.updateSearch();
 	}
@@ -1645,5 +1665,12 @@ class NoteTree {
 				}
 			}
 		}
+	}
+	
+	/**
+	 * Called by the behaviours on item clicks.
+	 */
+	itemClicked(event, id) {
+		Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 	}
 }

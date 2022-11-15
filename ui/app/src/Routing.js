@@ -144,6 +144,31 @@ class Routing {
 				});
 			});
 			
+			// Profile root with selected parent ID passed as URI parameter
+			this.get('#/:profile/select/', function(context) {
+				profileRoot(context, this.params)
+				.then(function(resp) {
+					if (!resp || !resp.ok || !resp.startAppData) return Promise.reject();
+					
+					return Promise.resolve(resp.startAppData.treePromise);
+				})
+				.then(function() {
+					NoteTree.getInstance().focus('');
+				});
+			});
+			this.get('#/:profile/select/:parent', function(context) {
+				const parent = this.params['parent'];
+				profileRoot(context, this.params)
+				.then(function(resp) {
+					if (!resp || !resp.ok || !resp.startAppData) return Promise.reject();
+					
+					return Promise.resolve(resp.startAppData.treePromise);
+				})
+				.then(function() {
+					NoteTree.getInstance().focus(parent ? parent : '');
+				});
+			});
+			
 			// Settings
 			this.get('#/:profile/settings', function(context) {
 				that.app.startApp(this.params['profile'])
@@ -557,6 +582,13 @@ class Routing {
 		}
 		
 		this.call((id ? (id + '/') : '') + 'search/' + token);
+	}
+	
+	/**
+	 * Calls the profile root with the selected parent ID.
+	 */
+	callProfileRootWithSelectedId(id) {
+		this.call('select/' + (id ? id : ''));
 	}
 	
 	/**
