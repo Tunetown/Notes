@@ -235,7 +235,7 @@ class Hashtag {
 		const n = Notes.getInstance();
 		
 		if (n.isMobile()) {
-			n.routing.callSearch(tag);
+			n.routing.callSearch('tag:' + tag);
 		} else {
 			NoteTree.getInstance().setSearchText('tag:' + tag);
 		}

@@ -241,11 +241,11 @@ class NoteTree {
 		}
 		
 		// No favorites: Dont show anything
-		var favorites = c.getFavorites();
+		/*var favorites = c.getFavorites();
 		if (!favorites) {
 			clear();			
 			return;
-		}
+		}*/
 
 		// We have favorites: Check if the user wants to see them
 		var showFavorites = !c.getViewSettings().dontShowFavorites;
@@ -259,8 +259,9 @@ class NoteTree {
 		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
 		if (showCurrentInFavorites) currentId = false;
 
-		// Add starred documents with ranks higher than the normal favs, last changed first.
+		// Add favorites and starred documents with ranks higher than the normal favs, last changed first.
 		var starred = d.getStarredDocs();
+		
 		var starredSorted = [];
 		for (var s in starred) {
 		    starredSorted.push({
@@ -270,6 +271,7 @@ class NoteTree {
 		}
 
 		// Get favorites as array
+		var favorites = c.getFavorites();
 		var favsSorted = [];
 		for (var prop in favorites) {
 		    if (favorites.hasOwnProperty(prop)) {

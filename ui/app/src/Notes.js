@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.2';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1321,7 +1321,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? 35 : 45;
+		return this.isMobile() ? 35 : 40;
 	}
 	
 	/**
@@ -1334,7 +1334,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? 35 : 0;
+		return this.isMobile() ? 42 : 0;
 	}
 	
 	/**

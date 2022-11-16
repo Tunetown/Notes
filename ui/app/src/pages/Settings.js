@@ -231,7 +231,7 @@ class Settings {
 						),	
 						
 						$('<tr/>').append(
-							$('<td>Notebook</td>'),
+							$('<td>Notebook Options</td>'),
 							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
 
 								/*$('<button class="btn btn-secondary settings-button">Open Notebook by App Link</button>')
@@ -290,8 +290,8 @@ class Settings {
 									});
 								}),
 								
-								$('<br>'),
-								$('<textarea readonly id="dbLink">' + Notes.getInstance().routing.getBasePath() + '</textarea>'),
+								//$('<br>'),
+								//$('<textarea readonly id="dbLink">' + Notes.getInstance().routing.getBasePath() + '</textarea>'),
 							])
 						),	
 						
@@ -1035,7 +1035,7 @@ class Settings {
 								}),
 								
 								// Clear local data
-								$('<button class="btn btn-secondary settings-button">Clear Local Data...</button>')
+								$('<button class="btn btn-secondary settings-button">Clear Local Data</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									
@@ -1058,7 +1058,7 @@ class Settings {
 								}),
 								
 								// Generate documents
-								$('<button class="btn btn-secondary settings-button">Generate Documents...</button>')
+								$('<button class="btn btn-secondary settings-button">Generate Documents</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									Notes.getInstance().routing.call('generate');

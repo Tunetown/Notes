@@ -117,7 +117,7 @@ class Profiles {
 				)
 			)
 		);
-		remoteList.push(
+		/*remoteList.push(
 			$('<tr></tr>').append(
 				$('<td class="profileSelectElementContainer"></td>').append(
 					$('<button class="btn btn-secondary profileSelectBtnFixed">Open Notebook...</button>')
@@ -146,7 +146,7 @@ class Profiles {
 					})
 				)
 			)
-		);
+		);*/
 
 		var overview = $('<div class="prettyPageBody profileDocContent"></div>');
 

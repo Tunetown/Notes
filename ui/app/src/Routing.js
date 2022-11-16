@@ -563,6 +563,10 @@ class Routing {
 	 * Calls a route
 	 */
 	call(path, profileUrl) {
+		if (profileUrl) {
+			NoteTree.getInstance().resetFavoriteBuffers();
+		}
+		
 		var url = this.getBasePath(profileUrl) + (path ? path : '');
 		if (location.href == url) {
 			this.app.refresh();
