@@ -193,7 +193,7 @@ class Check {
 			$('<div id="runAllButton" type="button" data-toggle="tooltip" title="Run all checks" class="fa fa-play" onclick="event.stopPropagation();Check.getInstance().runAll()"></div>'),
 		]);
 		
-		n.updateHeaderSize();
+		//n.updateDimensions();
 		
 		$('#closeMsgButton').css('display', 'none');
 	}

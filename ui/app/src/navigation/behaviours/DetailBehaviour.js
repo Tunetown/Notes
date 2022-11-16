@@ -55,6 +55,13 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * If the behaviour supports history, this returns it, or false if not.
+	 */
+	getHistory() {
+		return this.history;
+	}
+	
+	/**
 	 * Reset instance
 	 */
 	reset() {
@@ -162,53 +169,55 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Returns (if the behaviour supports history) if there is a way back.
+	 */
+	historyCanBack() {
+		return this.history.canBack() || (this.selectedParent != '');
+	}
+	
+	/**
 	 * Called after the back button in the app header has been pushed.
 	 */
 	appBackButtonPushed() {
-		if (Notes.getInstance().isMobile()) return false;
+		if (Notes.getInstance().isMobile()) return;
 		
 		if (this.history.canBack()) {
 			var h = this.history.back();
 			if (h.type == 'sel') {
 				this.grid.setSearchText('', true);
 				this.selectParentFromEvent(h.id, null, true);
-				return true;
 			}
 			if (h.type == 'token') {
 				this.grid.setSearchText(h.token, true);
-				return true;
 			}
 			/*if (h.type == 'page') {
 				ClientState.getInstance().setLastOpenedUrl();
 				location.href = h.url;
-				return true;
 			}*/
+		} else {
+			this.grid.setSearchText('', true);
+			this.selectParentFromEvent('', null, true);
 		}
-		return false;
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
 	 */
 	appForwardButtonPushed() {
-		if (Notes.getInstance().isMobile()) return false;
+		if (Notes.getInstance().isMobile()) return;
 		
 		if (this.history.canForward()) {
 			var h = this.history.forward();
 			if (h.type == 'sel') {
 				this.selectParentFromEvent(h.id, null, true);
-				return true;
 			}
 			if (h.type == 'token') {
 				this.grid.setSearchText(h.token, true);
-				return true;
 			}
 			/*if (h.type == 'page') {
 				location.href = h.url;
-				return true;
 			}*/
-		}
-		return false;
+		} 
 	}
 	
 	/**
@@ -613,6 +622,28 @@ class DetailBehaviour {
 	}
 
 	/**
+	 * Item height (local setting).
+	 */
+	static getItemHeight() {
+		var g = ClientState.getInstance().getLocalSettings();
+
+		if (g) {
+			if (Notes.getInstance().isMobile()) {
+				if (g.detailItemHeightMobile) {
+					return parseFloat(g.detailItemHeightMobile);
+				}
+			} else {
+				if (g.detailItemHeightDesktop) {
+					return parseFloat(g.detailItemHeightDesktop);
+				}
+			}
+		}
+		
+		// Default
+		return Math.round(NoteTree.getInstance().getTreeTextSize() * 4.4);
+	}
+
+	/**
 	 * Called before filtering
 	 */
 	beforeFilter(noAnimations) {
@@ -621,10 +652,8 @@ class DetailBehaviour {
 		$('#' + this.grid.treeRootTopSwitchContainer)
 		.css('height', this.getSelectedItemHeight() + 'px');
 		
-		var settings = Settings.getInstance().settings;
-		var iH = Notes.getInstance().isMobile() ? settings.detailItemHeightMobile : settings.detailItemHeightDesktop;
-		this.itemHeight = iH ? iH : (this.treeFontSize * 4.4);
-		
+		this.itemHeight = DetailBehaviour.getItemHeight();
+
 		var d = Notes.getInstance().getData();
 		if (!d) return;
 		var selDoc = d.getById(this.selectedParent);
@@ -731,17 +760,8 @@ class DetailBehaviour {
 		
 		// Selected item always second 
 		if (docAmeta.isSelectedParent) return docBmeta.isParentOfSelectedParent ? 1 : -1; 
-		if (docBmeta.isSelectedParentt) return docAmeta.isParentOfSelectedParent ? -1 : 1; 
+		if (docBmeta.isSelectedParent) return docAmeta.isParentOfSelectedParent ? -1 : 1; 
 
-		/*
-		// Selected parent always on top
-		if (docAmeta.isSelectedParent) return -1;
-		if (docBmeta.isSelectedParent) return 1;
-		
-		// Parent of the selected item always second (only applies to ref mode, else it is irrelevant because the parent is never shown)
-		if (docAmeta.isParentOfSelectedParent) return docBmeta.isSelectedParent ? 1 : -1; 
-		if (docBmeta.isParentOfSelectedParent) return docAmeta.isSelectedParent ? -1 : 1; 
-		*/
 		const s = this.getCurrentSortMode();
 		
 		// Sort by size (deep)
@@ -1997,6 +2017,8 @@ class DetailBehaviour {
 		this.grid.refreshColors();
 		
 		this.updateSortButtons();
+		
+		this.grid.updateHistoryButtons();
 		
 		if (this.grid.getSearchText().length > 0) {
 			this.grid.setSearchText('');

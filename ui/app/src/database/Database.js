@@ -80,7 +80,7 @@ class Database {
 			});
 		}
 		
-		console.log("Loading DBs with profile " + profile.url);
+		console.log("Initialize database(s) with profile " + profile.url);
 
 		// Create PouchDB instance
 		if (!profile.url || profile.url == "local") {
@@ -98,7 +98,7 @@ class Database {
 			if (profile.clone) {
 				this.dbLocal = this.createLocalDatabase(this.determineLocalDbName(profile.url));
 				this.db = this.dbLocal;
-				console.log('Created local database');
+				//console.log('Created local database');
 			}
 
 			var that = this;
@@ -115,7 +115,7 @@ class Database {
 				}
 				
 				that.dbRemote = data.db;
-				console.log('Created remote database');
+				//console.log('Created remote database');
 
 				if (profile.clone) {
 					// Start change feeds if in clone mode
@@ -150,7 +150,7 @@ class Database {
 	 * Reset instance
 	 */
 	reset() {
-		console.log("Resetting databases");
+		//console.log("Resetting databases");
 		this.syncHandler.stopAllSync();
 
 		this.db = null;
@@ -365,7 +365,7 @@ class Database {
 	 * Create a local PouchDB instance. Directly returns the instance.
 	 */
 	createLocalDatabase(url) {
-		console.log("Creating local database instance " + url);
+		//console.log("Creating local database instance " + url);
 		return new PouchDB(url);
 	}
 	

@@ -36,13 +36,23 @@ class MuuriGrid {
 		this.grid.destroy();
 	}
 	
+	static getAnimationDuration() {
+		var g = ClientState.getInstance().getLocalSettings();
+		if (g) {
+			if (g.navigationAnimationDuration) {
+				return parseInt(g.navigationAnimationDuration);
+			}
+		}
+		
+		// Default
+		return 50;
+	}
+	
 	/**
 	 * Initialize the grid on the passed element.
 	 */
 	init(el) {
 		var that = this;
-	
-		var settings = Settings.getInstance().settings;
 	
 		this.grid = new Muuri(el, {
 			showDuration: 100,
@@ -53,7 +63,7 @@ class MuuriGrid {
 			dragHandle: this.options.dragHandle,
 			layoutOnInit: false,
 			layoutOnResize: 100,
-		    layoutDuration: (!!settings.navigationAnimationDuration) ? settings.navigationAnimationDuration : 50,
+		    layoutDuration: MuuriGrid.getAnimationDuration(),
 			layoutEasing: 'ease',
 			layout: this.options.layoutCallback,
 			 

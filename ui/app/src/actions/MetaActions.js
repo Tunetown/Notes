@@ -49,7 +49,7 @@ class MetaActions {
     		
 			if (data && data.meta) {
 				that.meta = data.meta;	
-				console.log(' -> Loaded global metadata');
+				//console.log(' -> Loaded global metadata');
 
 				return Promise.resolve({ 
 					ok: true

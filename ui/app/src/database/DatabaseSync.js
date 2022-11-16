@@ -112,7 +112,7 @@ class DatabaseSync {
 			messageThreadId: 'DBSyncMessages'
 		});
 		
-		console.log("Starting live sync for databases");
+		console.log("Sync: Starting live sync");
 		this.setSyncState("unknown");
 
 		var syncedUrl = this.dbHandler.profileHandler.getCurrentProfile().url;
@@ -192,7 +192,7 @@ class DatabaseSync {
 				}
 
 			}).on('active', function (info) {
-				console.log("Sync: Active");
+				//console.log("Sync: Active");
 				that.setSyncState("syncing");
 				that.dbHandler.notifyOfflineState();
 				

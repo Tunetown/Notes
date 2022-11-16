@@ -177,9 +177,8 @@ class DocumentActions {
 		.then(function(db) {
 			return db.get(id);
 		})
-		.then(function (data) {
-			var v = RawView.getInstance();
-			v.load(data);
+		.then(function(data) {
+			RawView.getInstance().load(data);
 			
 			return Promise.resolve({ ok: true });
 		});		
@@ -1521,5 +1520,119 @@ class DocumentActions {
 			// Return new document
 			return Promise.resolve(backImage);
 		});
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Convert all labels of the passed document to hashtags, and saves the result.
+	 */
+	convertLabelsToTags(doc) {
+		if (!doc) {
+			return Promise.reject({
+				message: 'No document passed',
+				messageThreadId: 'convertLabelsToTagsMessages' 
+			});
+		}
+
+		if (doc.type != 'note') {
+			return Promise.reject({
+				message: 'Document ' + doc.name + ' must be a textual note, but is of type ' + doc.type + '. Conversion not possible.',
+				messageThreadId: 'convertLabelsToTagsMessages' 
+			});
+		}
+		
+		if ((doc.editor != 'code') && (doc.editor != 'richtext')) {
+			return Promise.reject({
+				message: 'Document ' + doc.name + ' has an invalid editor mode: ' + doc.editor + '. Conversion not possible.',
+				messageThreadId: 'convertLabelsToTagsMessages' 
+			});
+		}
+
+		const n = Notes.getInstance();
+		const labels = n.getData().getActiveLabelDefinitions(doc._id);
+		
+		if (labels.length == 0) {
+			return Promise.reject({
+				message: 'Document ' + doc.name + ' has no labels to convert.',
+				messageThreadId: 'convertLabelsToTagsMessages' 
+			});
+		}
+			
+		if (!confirm('Do you want to convert ' + labels.length + ' labels of ' + doc.name + ' to hashtags? The hashtags will be added at the top of the existing content.')) {
+			return Promise.reject();
+		}
+		
+		/**
+		 * Returns the content added to the parent at top.
+		 */
+		function getTagsText() {
+			var tags = "";
+			for(var l in labels) {
+				const label = labels[l];
+				tags += Hashtag.startChar + (label.name ? label.name : label.id) + ' ';
+			}
+			
+			if (doc.editor == 'code') {
+				return tags + '\n\n';
+			}
+			if (doc.editor == 'richtext') {
+				return '<p>' + tags + '</p>';
+			}
+			return '';
+		}
+		
+		return DocumentAccess.getInstance().loadDocuments([doc])
+    	.then(function(/*data*/) {
+			// Set tag colors (do not overwrite any existing ones!)
+			var promises = [];
+			
+			for(var l in labels) {
+				const label = labels[l];
+				const tag = (label.name ? label.name : label.id);
+				if (!label.color) continue;
+				if (Hashtag.hasColor(tag)) continue;
+				
+				// No color in meta data: Add the label color for the tag
+				promises.push(Hashtag.setColor(tag, label.color));
+			}
+			
+			return Promise.all(promises);
+		})
+		.then(function(/*data*/) {
+			// Set new content
+			return DocumentActions.getInstance().save(doc._id, getTagsText(labels) + doc.content);
+		})
+		.then(function(/*data*/) {
+			return DocumentAccess.getInstance().loadDocumentsById([doc._id])
+		})
+		.then(function(/*data*/) {
+			// Remove labels
+			doc = n.getData().getById(doc._id);
+			doc.labels = [];
+			return DocumentAccess.getInstance().saveItem(doc._id);
+		})
+		.then(function(/*data*/) {
+			
+			
+			
+			
+		})
+		.then(function(/*data*/) {
+			return TreeActions.getInstance().requestTree();
+		})
+		.then(function(/*data*/) {
+			if (Notes.getInstance().getCurrentlyShownId() == doc._id) {
+				// Refresh Editor as well
+				Notes.getInstance().routing.call(doc._id);
+			}
+			
+			return Promise.resolve({
+				ok: true,
+				message: 'Successfully converted ' + labels.length + ' labels to hashtags in ' + doc.name,
+				messageThreadId: 'convertLabelsToTagsMessages'
+			});
+    	});
 	}
 }

@@ -37,6 +37,7 @@ class ClientState {
 		this.cidLinkages = "li";
 		this.cidSearchProposals = "sp";
 		this.cidExperimentalFunctions = "ex";
+		this.cidLocalSettings = "se";
 	}
 	
 	/**
@@ -45,6 +46,20 @@ class ClientState {
 	static getInstance() {
 		if (!ClientState.instance) ClientState.instance = new ClientState();
 		return ClientState.instance;
+	}
+	
+	/**
+	 * Local UI settings
+	 */
+	setLocalSettings(s) {
+		this.setLocal(this.cidLocalSettings, s, true);
+	}
+	
+	/**
+	 * Local UI settings
+	 */
+	getLocalSettings() {
+		return this.getLocal(this.cidLocalSettings, true);
 	}
 	
 	/**

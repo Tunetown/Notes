@@ -667,51 +667,137 @@ class NoteTree {
 	}
 	
 	/**
+	 * Common stuff used by all footer action handlers
+	 */
+	commonButtonHandler(event) {
+		event.stopPropagation();
+		const n = Notes.getInstance();
+		n.hideOptions();
+		n.setFocus(Notes.FOCUS_ID_NAVIGATION);
+	}
+
+	/**
+	 * Handlers for all footer actions
+	 */
+	backHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		that.behaviour.backButtonPushed(event);
+	}
+	
+	forwardHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		that.behaviour.forwardButtonPushed(event);
+	}
+	
+	homeHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		that.behaviour.homeButtonPushed(event);
+	}
+	
+	createHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		that.block();
+		
+		const n = Notes.getInstance();
+		DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
+		.then(function(data) {
+			that.unblock();
+			if (data.message) {
+				n.showAlert(data.message, "S", data.messageThreadId);
+			}
+		})
+		.catch(function(err) {
+			that.unblock();
+			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+		});
+	}
+	
+	settingsHandler(event) {
+		var that = NoteTree.getInstance();
+		const newState = !that.isSettingsPanelVisible();
+
+		that.commonButtonHandler(event);
+		
+		if (newState) {
+			that.buildSettingsPanel();
+			that.showSettingsPanel(true);
+		} else {
+			that.showSettingsPanel(false);
+		}
+	}
+	
+	linkageHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		that.toggleLinkToEditor();
+	}
+	
+	/**
 	 * Set up the DOM tree for the tree.
 	 */
 	setupDom() {
 		var that = this;
+		var n = Notes.getInstance();
+		
+		/**
+		 * Handlers for the search bar
+		 */
+		function searchFocusHandler(event) {
+			event.stopPropagation();
+			n.hideOptions();
+			if (that.behaviour) that.behaviour.saveScrollPosition();
+			that.showSearchProposals(true);
+		}
+		
+		function searchInputHandler(event) {
+			event.stopPropagation();
+			n.hideOptions();
+			that.updateSearch();
+			that.behaviour.afterSetSearchText(that.getSearchText());
+			that.showSearchProposals(that.getSearchText().length == 0);
+		}
+		
+		function searchBlurHandler(event) {
+			event.stopPropagation();
+			if ($('#treeSearchProposals:hover').length == 0) {
+				that.showSearchProposals(false);
+			}
+		}
+		
+		function searchKeydownHandler(event) {
+			if(event.which == 27){
+				event.stopPropagation();
+				n.hideOptions();
+				that.setSearchText('');
+				that.showSearchProposals(false);
+		    }
+		}
+		
+		function searchCancelHandler(event) {
+			event.stopPropagation();
+			n.hideOptions();
+			that.setSearchText('');
+		}
+
+		// Build DOM
 		$('#' + this.treeNavContainerId).append(
 			$('<div id="' + this.treeContainerId + '"></div>').append(
 				// Search bar
 				$('<div id="searchBarTree" class="searchBar searchBarTree"></div>').append(
 					// Search input
 					$('<input autocomplete="off" type="text" id="treeSearch" placeholder="Type text to search..." />')
-					.on('focus', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						if (that.behaviour) that.behaviour.saveScrollPosition();
-						that.showSearchProposals(true);
-					})
-					.on('input', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						that.updateSearch();
-						that.behaviour.afterSetSearchText(that.getSearchText());
-						that.showSearchProposals(that.getSearchText().length == 0);
-					})
-					.on('blur', function(event) {
-						event.stopPropagation();
-						if ($('#treeSearchProposals:hover').length == 0) {
-							that.showSearchProposals(false);
-						}
-					})
-					.on('keydown', function(event) {
-						if(event.which == 27){
-							event.stopPropagation();
-							Notes.getInstance().hideOptions();
-							that.setSearchText('');
-							that.showSearchProposals(false);
-					    }
-					}),
+					.on('focus', searchFocusHandler)
+					.on('input', searchInputHandler)
+					.on('blur', searchBlurHandler)
+					.on('keydown', searchKeydownHandler),
 					
 					// Cancel button for search
 					$('<div id="searchCancelButton" class="searchCancelButton fa fa-times"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						that.setSearchText('');
-					}),
+					.on('click', searchCancelHandler),
 					
 					// Search proposals
 					$('<div id="treeSearchProposals"></div>')
@@ -733,89 +819,29 @@ class NoteTree {
 				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
 
-			$('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
+			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
 				// Back Button
-				$('<div data-toggle="tooltip" title="Back" class="fa fa-chevron-left treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						that.behaviour.backButtonPushed(event);
-					}),
+				$('<div data-toggle="tooltip" title="Back" class="fa fa-arrow-left treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
+					.on('click', this.backHandler),
 					
 				// Forward Button
-				$('<div data-toggle="tooltip" title="Forward" class="fa fa-chevron-right treeModeSwitchbutton roundedButton" id="treeForwardButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						that.behaviour.forwardButtonPushed(event);
-					}),
+				$('<div data-toggle="tooltip" title="Forward" class="fa fa-arrow-right treeModeSwitchbutton roundedButton" id="treeForwardButton"></div>')
+					.on('click', this.forwardHandler),
 
 				// Home Button
 				$('<div data-toggle="tooltip" title="Home" class="fa fa-home treeModeSwitchbutton roundedButton" id="treeHomeButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						that.behaviour.homeButtonPushed(event);
-					}),
+					.on('click', this.homeHandler),
 				
 				// Create note
 				$('<div data-toggle="tooltip" title="Create Document" class="fa fa-plus treeModeSwitchbutton roundedButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						that.block();
-						DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
-						.then(function(data) {
-							that.unblock();
-							if (data.message) {
-								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
-							}
-						})
-						.catch(function(err) {
-							that.unblock();
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-						});
-					}),
-						
-				// Toggle navigation mode
-				/*$('<div data-toggle="tooltip" title="Toggle navigation mode" class="fa fa-' + Behaviours.getNavModeIcon(Behaviours.getNextNavMode()) + ' treeModeSwitchbutton roundedButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						var s = ClientState.getInstance().getViewSettings();
-						s.navMode = Behaviours.getNextNavMode();
-						ClientState.getInstance().saveViewSettings(s);
-
-						Behaviours.setNavModeIconClass($(this), Behaviours.getNextNavMode());
-						
-						that.refresh();
-					})*/
+					.on('click', this.createHandler),
 			),
 			
-			$('<div id="' + this.treeRootSettingsSwitchContainer + '" />').append(
+			n.useFooter() ? null : $('<div id="' + this.treeRootSettingsSwitchContainer + '" />').append(
 				// Settings Button
 				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog treeModeSwitchbutton roundedButton" id="treeSettingsButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						
-						var newState = !that.isSettingsPanelVisible();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						
-						if (newState) {
-							that.buildSettingsPanel();
-							that.showSettingsPanel(true);
-						} else {
-							that.showSettingsPanel(false);
-						}
-					})
+					.on('click', this.settingsHandler)
 					.append(
-						// Settings panel
 						$('<div id="treeSettingsPanel"></div>')
 						.on('click', function(event) {
 							event.stopPropagation();
@@ -824,13 +850,7 @@ class NoteTree {
 				
 				// Link navigation to editor Button
 				$('<div data-toggle="tooltip" title="" class="fa fa-link treeModeSwitchbutton roundedButton" id="treeLinkButton"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						Notes.getInstance().hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
-						
-						that.toggleLinkToEditor();
-					})
+					.on('click', this.linkageHandler)
 			),
 			
 			$('<div id="treeblock"></div>')
@@ -850,7 +870,7 @@ class NoteTree {
 				}
 			}
 		]);
-		
+
 		// Action callbacks
 		/*Callbacks.getInstance().registerCallback(
 			'tree',
@@ -983,6 +1003,48 @@ class NoteTree {
 			}
 		);
 	}
+
+	/**
+	 * Set up the footer for mobiles.
+	 */	
+	setupFooter() {
+		const n = Notes.getInstance();
+		
+		if (n.useFooter()) {
+			n.setFooterContent([
+				// Back Button
+				$('<div data-toggle="tooltip" title="Back" class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
+					.on('click', this.backHandler),
+					
+				// Forward Button
+				$('<div data-toggle="tooltip" title="Forward" class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
+					.on('click', this.forwardHandler),
+
+				// Home Button
+				$('<div data-toggle="tooltip" title="Home" class="fa fa-home footerButton" id="treeHomeButton"></div>')
+					.on('click', this.homeHandler),
+				
+				// Create note
+				$('<div data-toggle="tooltip" title="Create Document" class="fa fa-plus footerButton"></div>')
+					.on('click', this.createHandler),
+					
+				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
+					.on('click', this.settingsHandler)
+					.append(
+						$('<div id="treeSettingsPanel"></div>')
+						.on('click', function(event) {
+							event.stopPropagation();
+						})
+					),
+				
+				// Link navigation to editor Button
+				$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
+					.on('click', this.linkageHandler)
+			]);
+		} else {
+			n.setFooterContent();
+		}
+	}
 	
 	/**
 	 * Toggles linkage to the editor.
@@ -1005,8 +1067,15 @@ class NoteTree {
 	updateLinkageButtons() {
 		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
 		$('#treeLinkButton').css('display', (!this.supportsLinkNavigationToEditor()) ? 'none' : 'block');
-		$('#treeLinkButton').css('background-color', (linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
-		$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#ffffff' : '#000000');
+		
+		if (Notes.getInstance().useFooter()) {
+			$('#treeLinkButton').css('background-color', '');
+			$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#c40cf7' : '');			
+		} else {
+			$('#treeLinkButton').css('background-color', (linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
+			$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#ffffff' : '#000000');
+		}
+		
 		$('#treeLinkButton').attr('title', (linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
 	}
 	
@@ -1092,14 +1161,21 @@ class NoteTree {
 	 * Called after the back button in the app header has been pushed.
 	 */
 	appBackButtonPushed() {
-		return this.behaviour.appBackButtonPushed();
+		this.behaviour.appBackButtonPushed();
+	}
+	
+	/**
+	 * Returns (if the behaviour supports history) if there is a way back.
+	 */
+	historyCanBack() {
+		return this.behaviour.historyCanBack();	
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
 	 */
 	appForwardButtonPushed() {
-		return this.behaviour.appForwardButtonPushed();
+		this.behaviour.appForwardButtonPushed();
 	}
 	
 	/**
@@ -1332,7 +1408,21 @@ class NoteTree {
 	 * Returns the tree text size
 	 */
 	getTreeTextSize() {
-		return parseFloat($('#' + this.treeNavContainerId).css('font-size'));
+		var g = ClientState.getInstance().getLocalSettings();
+		if (g) {
+			if (Notes.getInstance().isMobile()) {
+				if (g.navTextSizeMobile) {
+					return parseFloat(g.navTextSizeMobile);
+				}
+			} else {
+				if (g.navTextSizeDesktop) {
+					return parseFloat(g.navTextSizeDesktop);
+				}
+			}
+		}
+		
+		// Default
+		return Notes.getInstance().isMobile() ? 22 : 18;
 	}
 	
 	/**
@@ -1371,6 +1461,8 @@ class NoteTree {
 		$('#treeSearch').val(txt);
 		
 		this.behaviour.afterSetSearchText(txt, data);
+		
+		if (txt) Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 		
 		return this.updateSearch();
 	}
@@ -1465,6 +1557,17 @@ class NoteTree {
 		}
 		
 		cont.css('display', doShow ? 'block' : 'none');
+	}
+	
+	/**
+	 * Update the state of history buttons.
+	 */
+	updateHistoryButtons() {
+		Notes.getInstance().updateHistoryButtons();
+	}
+	
+	getHistory() {
+		return this.behaviour.getHistory();
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

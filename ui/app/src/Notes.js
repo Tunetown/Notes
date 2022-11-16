@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -741,9 +741,14 @@ class Notes {
 			$('#contentContainer').hide();
 			$('#treenav').show();
 
+			NoteTree.getInstance().setupFooter();
+
 			if (this.isMobile()) NoteTree.getInstance().refresh();
 		} else {
 			$('#contentContainer').show();
+
+			this.setupEditorFooter();
+
 			if (this.isMobile()) {
 				$('#treenav').hide();
 				$('#editorNavButtons').show();
@@ -763,6 +768,26 @@ class Notes {
 		Database.getInstance().setAutoLoginBlock(false);
 	}
 	
+	editorBackButtonHandler(e) {
+		e.stopPropagation();
+		Notes.getInstance().back();
+	}
+				
+	editorForwardButtonHandler(e) {
+		e.stopPropagation();
+		Notes.getInstance().forward();
+	}
+	
+	editorHomeButtonHandler(e) {
+		e.stopPropagation();
+		Notes.getInstance().home();
+	}
+	
+	editorLinkageButtonHandler(e) {
+		e.stopPropagation();
+		Notes.getInstance().toggleEditorLinkage();
+	}
+				
 	/**
 	 * Set up the page DOM tree.
 	 */
@@ -844,45 +869,35 @@ class Notes {
 					$('<div id="console" class="mainPanel"/>'),
 					
 					// Buttons for editor (left side)
-					$('<div id="editorNavButtons" class="editorNavButtons"/>')
+					this.useFooter() ? null : $('<div id="editorNavButtons" class="editorNavButtons"/>')
 					.append(
 						// Back button used to navigate back to the tree in mobile mode
-						$('<div id="backButton2" class="editorNavButton roundedButton fa fa-chevron-left"></div>')
-						.on('click', function(e) {
-							e.stopPropagation();
-							that.back();
-						}),
+						$('<div id="backButton2" class="editorNavButton roundedButton fa fa-arrow-left"></div>')
+						.on('click', this.editorBackButtonHandler),
 						
 						// Forward button used to navigate back to the tree in mobile mode
-						$('<div id="forwardButton2" class="editorNavButton roundedButton fa fa-chevron-right"></div>')
-						.on('click', function(e) {
-							e.stopPropagation();
-							that.forward();
-						}),
+						$('<div id="forwardButton2" class="editorNavButton roundedButton fa fa-arrow-right"></div>')
+						.on('click', this.editorForwardButtonHandler),
 
 						// Home button used to navigate back to the tree root in mobile mode
 						$('<div id="homeButton2" class="editorNavButton roundedButton fa fa-home"></div>')
-						.on('click', function(e) {
-							e.stopPropagation();
-							that.home();
-						})
+						.on('click', this.editorHomeButtonHandler)
 					),
 					
 					// Buttons for editor (right side)
-					$('<div id="editorLinkButtons" data-toggle="tooltip" title="" class="editorLinkButtons"/>')
+					this.useFooter() ? null : $('<div id="editorLinkButtons" data-toggle="tooltip" title="" class="editorLinkButtons"/>')
 					.append(
 						// Link page button
 						$('<div id="linkEditorButton" class="editorLinkButton roundedButton fa fa-link"></div>')
-						.on('click', function(e) {
-							e.stopPropagation();
-							that.toggleEditorLinkage();
-						}),
+						.on('click', this.editorLinkageButtonHandler),
 					)
 				])
 				.on('click', function(event) {
 					that.setFocus(Notes.FOCUS_ID_EDITOR);
 				})
-			])
+			]),
+			
+			$('<div id="footer"></div>')
 		]);
 
 		// Also setup the navigation tree
@@ -893,6 +908,33 @@ class Notes {
 		
 		// We only do this once ;)
 		this.isDomSetup = true;
+	}
+	
+	/**
+	 * Sets up the footer for editors on mobile.
+	 */
+	setupEditorFooter() {
+		if (this.useFooter()) {
+			this.setFooterContent([
+				// Back button used to navigate back to the tree in mobile mode
+				$('<div id="backButton2" class="footerButton fa fa-chevron-left"></div>')
+				.on('click', this.editorBackButtonHandler),
+				
+				// Forward button used to navigate back to the tree in mobile mode
+				$('<div id="forwardButton2" class="footerButton fa fa-chevron-right"></div>')
+				.on('click', this.editorForwardButtonHandler),
+
+				// Home button used to navigate back to the tree root in mobile mode
+				$('<div id="homeButton2" class="footerButton fa fa-home"></div>')
+				.on('click', this.editorHomeButtonHandler),
+
+				// Link page button
+				$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
+				.on('click', this.editorLinkageButtonHandler),
+			]);
+		} else {
+			this.setFooterContent();
+		}
 	}
 	
 	/**
@@ -995,10 +1037,7 @@ class Notes {
 			this.browserBack();
 		} else {
 			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
-				if (!NoteTree.getInstance().appBackButtonPushed()) {
-					// Tree did not handle the event
-					this.browserBack();
-				}
+				NoteTree.getInstance().appBackButtonPushed();
 			} else {
 				// Editor focussed
 				this.browserBack();
@@ -1019,13 +1058,32 @@ class Notes {
 			this.browserForward();
 		} else {
 			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
-				if (!NoteTree.getInstance().appForwardButtonPushed()) {
-					// Tree did not handle the event
-					this.browserForward();
-				}
+				NoteTree.getInstance().appForwardButtonPushed();
 			} else {
 				// Editor focussed
 				this.browserForward();
+			}
+		}
+	}
+	
+	/**
+	 * Updates the "enabled" state of the navigation buttons.
+	 */
+	updateHistoryButtons() {
+		const backButt = $('#backButton');
+		const forwardButt = $('#forwardButton');
+		
+		backButt.css('color', '');
+		forwardButt.css('color', '');
+
+		if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
+			const history = NoteTree.getInstance().getHistory();
+			
+			if (history) {
+				const deactivatedColor = Tools.blendColors(0.2, this.getMainColor(), this.getTextColor());
+				
+				backButt.css('color', (NoteTree.getInstance().historyCanBack() ? '' : deactivatedColor));
+				forwardButt.css('color', (history.canForward() ? '' : deactivatedColor));
 			}
 		}
 	}
@@ -1215,6 +1273,24 @@ class Notes {
 		el.css('height', size*2 + "px");
 	}
 	
+	getRoundedButtonSize() {
+		var g = ClientState.getInstance().getLocalSettings();
+		if (g) {
+			if (this.isMobile()) {
+				if (g.optionTextSizeMobile) {
+					return parseFloat(g.optionTextSizeMobile);
+				}
+			} else {
+				if (g.optionTextSizeDesktop) {
+					return parseFloat(g.optionTextSizeDesktop);
+				}
+			}
+		}
+		
+		// Default
+		return this.isMobile() ? 20 : 18;
+	}
+	
 	/**
 	 * Sets the CSS for header buttons on the passed jquery element(s). size has to be the header size (see getHeaderSize()).
 	 * Returns the element(s) for daisy chaining.
@@ -1231,24 +1307,81 @@ class Notes {
 	 * Returns the header size.
 	 */
 	getHeaderSize() {
-		return parseFloat(this.isMobile() ? Settings.getInstance().settings.headerSizeMobile : Settings.getInstance().settings.headerSizeDesktop);
+		var g = ClientState.getInstance().getLocalSettings();
+		if (g) {
+			if (this.isMobile()) {
+				if (g.headerSizeMobile) {
+					return parseFloat(g.headerSizeMobile);
+				}
+			} else {
+				if (g.headerSizeDesktop) {
+					return parseFloat(g.headerSizeDesktop);
+				}
+			}
+		}
+		
+		// Default
+		return this.isMobile() ? 35 : 45;
+	}
+	
+	/**
+	 * Returns the footer size.
+	 */
+	getFooterSize() {
+		var g = ClientState.getInstance().getLocalSettings();
+		if (this.isMobile() && g && g.footerSizeMobile) {
+			return parseFloat(g.footerSizeMobile);
+		}
+		
+		// Default
+		return 35;
+	}
+	
+	/**
+	 * Adds the passed element(s) to the footer after clearing it. elements may be an element or a list of elements.
+	 */
+	setFooterContent(elements) {
+		$('#footer').empty();
+		if (elements) $('#footer').append(elements);
+	}
+	
+	/**
+	 * Use a footer?
+	 */
+	useFooter() {
+		return this.isMobile();
 	}
 	
 	/**
 	 * Update the header CSS to its defined size.
 	 */
-	updateHeaderSize() {
+	updateDimensions() {
 		var size = this.getHeaderSize();
+		var fsize = this.getFooterSize();
 		
-		// Common containers
+		// Common containers: All content
 		$('#all').css('height', $(window).height() + 'px');
+		
+		// Content area (Editors and nav)
 		$('section').css('top', size + 'px');
-		$('section').css('height', ($(window).height() - size) + 'px');
+		$('section').css('height', ($(window).height() - size - fsize) + 'px');
+		$('section').css('flex-direction', this.isMobile() ? 'column' : 'row');
 
-		// Navigation tree area
-		$('nav').css('height', ($(window).height() - size) + 'px');
-		$('nav').css('min-height', ($(window).height() - size) + 'px');
-		$('nav').css('max-height', ($(window).height() - size) + 'px');
+		// Navigation area
+		$('nav').css('height', ($(window).height() - size - fsize) + 'px');
+		$('nav').css('min-height', ($(window).height() - size - fsize) + 'px');
+		$('nav').css('max-height', ($(window).height() - size - fsize) + 'px');
+		
+		$('nav').css('flex', this.isMobile() ? 2 : 'none');
+		$('nav').css('height', this.isMobile() ? '100%' : '');
+		$('nav').css('resize', this.isMobile() ? '' : 'horizontal');
+		
+		// Footer
+		$('#footer').css('display', (this.useFooter() ? 'grid' : 'none'));
+		if (this.useFooter()) {
+			$('#footer').css('height', fsize + 'px');
+			$('#footer').css('font-size', Math.max(fsize / 3, 20) + 'px');
+		}
 		
 		// Header
 		$('header').css('height', size + 'px');
@@ -1271,14 +1404,11 @@ class Notes {
 		// User menu
 		$('.userbuttons').css('top', size + 'px');
 		
-		// Alert notification icon in user menu
+		// Alert notification icon at user menu icon
 		this.setRoundedButtonSize(size * (8 / 55), '.alertNotification');
 		
-		// Common stuff / media queries replacements
-		$('section').css('flex-direction', this.isMobile() ? 'column' : 'row');
-		$('nav').css('flex', this.isMobile() ? 2 : 'none');
-		$('nav').css('height', this.isMobile() ? '100%' : '');
-		$('nav').css('resize', this.isMobile() ? '' : 'horizontal');
+		// Option icons
+		this.setRoundedButtonSize(this.getRoundedButtonSize());
 	}
 	
 	/**
@@ -1371,7 +1501,7 @@ class Notes {
 		
 		this.currentMoveTargetId = id;
 	}
-	
+
 	/**
 	 * Generates and returns a select element containing elements for all available move targets.
 	 * excludeIds will be excluded from the selection, as well as all children of these.
@@ -1486,7 +1616,7 @@ class Notes {
 		
 		// Update UI
 		if (!noUpdate) this.update();
-		//else this.updateHeaderSize();
+		//else this.updateDimensions();
 	}
 	
 	/**
@@ -1494,6 +1624,14 @@ class Notes {
 	 */
 	setChangeMarker(visible) {
 		$('#changedMarker').css("display", visible ? "inline" : "none");
+	}
+	
+	getTextColor() {
+		return $('header').css('color');
+	}
+
+	getMainColor() {
+		return $('header').css('background-color');
 	}
 	
 	/**
@@ -1521,6 +1659,7 @@ class Notes {
 		// Update tree (hide options and update selected item to match the editor)
 		var t = NoteTree.getInstance();
 		t.updateSelectedState();
+		t.setTreeTextSize(t.getTreeTextSize());
 		
 		this.updateSyncStatus();
 		
@@ -1553,11 +1692,11 @@ class Notes {
 		$('.conflictMarker').css('display', (this.getData() && this.getData().hasConflicts()) ? 'inline-block' : 'none');
 
 		// Update header size
-		this.updateHeaderSize();
+		this.updateDimensions();
 		
+		// Update button states
 		this.updateLinkageButtons();
-		
-		//NoteTree.getInstance().updateUI();
+		this.updateHistoryButtons();
 	}
 	
 	/**

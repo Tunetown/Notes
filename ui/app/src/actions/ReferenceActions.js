@@ -155,7 +155,7 @@ class ReferenceActions {
 			});
 		}
 
-		if (!confirm('Do you want convert ' + referenceDoc.name + ' to a link?\n\n- The reference ' + referenceDoc.name + ' will be deleted\n- A link to ' + referencedDoc.name + ' will be inserted at the beginning of ' + parentDoc.name)) {
+		if (!confirm('Do you want to convert ' + referenceDoc.name + ' to a link?\n\n- The reference ' + referenceDoc.name + ' will be deleted\n- A link to ' + referencedDoc.name + ' will be inserted at the beginning of ' + parentDoc.name)) {
 			return Promise.reject();
 		}
 		

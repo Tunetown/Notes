@@ -35,10 +35,13 @@ class RawView {
 		
 		this.current = doc;
 		
-		n.setStatusText("Raw JSON data: " + doc.name);
+		n.setStatusText("Raw JSON data: " + doc._id);
+		
+		var docToShow = doc;
+		if (Document.isTypeValid(doc.type)) docToShow = Document.clone(doc);
 		
 		this.editor = CodeMirror($('#contentContainer')[0], {
-			value: JSON.stringify(Document.clone(doc), null, 4),
+			value: JSON.stringify(doc, null, 4),
 			mode:  'javascript',
 			lineNumbers: true
 		});
@@ -59,7 +62,11 @@ class RawView {
 	 * Switch back to the standard editor.
 	 */
 	back() {
-		Notes.getInstance().routing.call(this.current._id);
+		if (Document.isTypeValid(this.current.type)) {
+			Notes.getInstance().routing.call(this.current._id);
+		} else {
+			Notes.getInstance().browserBack();
+		}
 	}
 	
 	/**

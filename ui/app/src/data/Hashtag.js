@@ -176,6 +176,24 @@ class Hashtag {
 	}
 	
 	/**
+	 * Returns if the passed tag has a custom color.
+	 */
+	static hasColor(tag) {
+		if (!tag) return false;
+		
+		const meta = MetaActions.getInstance().meta[Hashtag.metaFileName];
+		if (!meta) return false;
+		
+		const hash = Tools.hashCode(tag);
+		if(!meta.hasOwnProperty(hash)) return false;
+		
+		const tagmeta = meta[hash];
+		if (!tagmeta.color) return false;
+		
+		return true;
+	}
+	
+	/**
 	 * Sets the tags color in global metadata. Returns a promise.
 	 */
 	static setColor(tag, color) {
@@ -214,6 +232,12 @@ class Hashtag {
 	 * Used by all pages etc. to show a tag's mentions.
 	 */
 	static showTag(tag) {
-		NoteTree.getInstance().setSearchText('tag:' + tag);
+		const n = Notes.getInstance();
+		
+		if (n.isMobile()) {
+			n.routing.callSearch(tag);
+		} else {
+			NoteTree.getInstance().setSearchText('tag:' + tag);
+		}
 	}
 }

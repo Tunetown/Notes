@@ -73,12 +73,13 @@ class ContextMenu {
 					}),
 					
 				// Show in navigation
-				$('<div id="contextOptionShowInNavigation" data-toggle="tooltip" title="Show in Navigation" class="fa fa-angle-left treebutton roundedButton contextOptionShowInNavigation"></div>')
+				$('<div id="contextOptionShowInNavigation" data-toggle="tooltip" title="Show in Navigation" class="fa fa-map treebutton roundedButton contextOptionShowInNavigation"></div>')
 			        .on('click', function(event) {
 			        	event.stopPropagation();
 			        	n.hideOptions();
 			        	if (n.optionsIds.length != 1) return;
 			        	
+						if (n.isMobile()) n.routing.call();
 						NoteTree.getInstance().focus(n.optionsIds[0]);
 			        }),
 

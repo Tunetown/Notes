@@ -169,6 +169,22 @@ class LabelDefinitions {
 		}
 		
 		$('#contentContainer').append(
+			!this.current ? null : 
+			$('<div style="padding: 15px;"></div>').append(
+				$('<a style="cursor: pointer;">Convert all labels of ' + this.current.name + ' to hashtags</a>')
+				.on('click', function(event) {
+					DocumentActions.getInstance().convertLabelsToTags(that.current)
+					.then(function(ret) {
+						if (ret && ret.message) {
+							Notes.getInstance().showAlert(ret.message, 'S');
+						}
+					})
+					.catch(function(err) {
+						if (err && err.message) alert(err.message);
+					});
+				}),
+			),
+			
 			$('<table class="table table-striped table-hover" id="labelsTable" />').append(
 				[
 					$('<thead class="bg-primary"/>').append(
@@ -185,6 +201,7 @@ class LabelDefinitions {
 					$('<tbody/>').append(rows),
 				]
 			),
+			
 			$('<br>'),
 			$('<br>'),
 			$('<br>'),

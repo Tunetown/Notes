@@ -26,6 +26,20 @@ class TileBehaviour {
 	}
 	
 	/**
+	 * If the behaviour supports history, this returns it, or false if not.
+	 */
+	getHistory() {
+		return false;
+	}
+	
+	/**
+	 * Returns (if the behaviour supports history) if there is a way back.
+	 */
+	historyCanBack() {
+		return false;
+	}
+	
+	/**
 	 * Called after the search text has been set.
 	 */
 	afterSetSearchText(searchtext, data) {
@@ -133,6 +147,7 @@ class TileBehaviour {
 		if (state.tiles) {
 			this.expander.restoreTreeState(state.tiles.expanded);
 		}
+		this.grid.setTreeTextSize(18); // Temporary (this mode is deprecated!)
 	}
 	
 	/**

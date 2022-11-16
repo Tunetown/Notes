@@ -38,26 +38,7 @@ class Settings {
 			// Theme colors
 			mainColor: "#ff8080",
 			textColor: "#06feab",
-			
-			// Header size
-			headerSizeDesktop: 45,
-			headerSizeMobile: 35,
 
-			// Tree text sizes
-			treeTextSizeDesktop: 18,
-			treeTextSizeMobile: 22,
-			
-			detailItemHeightDesktop: (18 * 4.4), // Formerly: * 6
-			detailItemHeightMobile: (22 * 4.4), // Formerly: * 6
-			
-			// Tile text sizes
-			tileTextSizeDesktop: 18,
-			tileTextSizeMobile: 18,
-			
-			// Option button sizes
-			optionTextSizeDesktop: 18,
-			optionTextSizeMobile: 20,
-			
 			// Database options
 			autoSaveIntervalSecs: 3,
 			dbAccountName: Database.getInstance().profileHandler.getCurrentProfile().url,
@@ -71,7 +52,6 @@ class Settings {
 			maxUploadSizeMB: 1,
 			reduceHistory: true,
 			maxSearchResults: 15,
-			navigationAnimationDuration: 60,
 			showAttachedImageAsItemBackground: true
 		};
 	}
@@ -97,26 +77,9 @@ class Settings {
 			}
 		}
 		
-		this.checkNumeric(settings, 'headerSizeDesktop', errors);
-		this.checkNumeric(settings, 'headerSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'treeTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'treeTextSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'detailItemHeightDesktop', errors);
-		this.checkNumeric(settings, 'detailItemHeightMobile', errors);
-		
-		this.checkNumeric(settings, 'tileTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'tileTextSizeMobile', errors);
-		
-		this.checkNumeric(settings, 'optionTextSizeDesktop', errors);
-		this.checkNumeric(settings, 'optionTextSizeMobile', errors);
-		
 		this.checkNumeric(settings, 'autoSaveIntervalSecs', errors);
 		this.checkNumeric(settings, 'maxUploadSizeMB', errors);
 		this.checkNumeric(settings, 'maxSearchResults', errors);
-		
-		this.checkNumeric(settings, 'navigationAnimationDuration', errors);
 		
 		if (!Document.isValidEditorMode(settings.defaultNoteEditor)) {
 			errors.push({
@@ -231,7 +194,7 @@ class Settings {
 									n.showAlert('Copied URL to Clipboard', 'I');
 								}),
 								
-								!d.profileHandler.getCurrentProfile().clone ? null : $('<div id="dblocalcheck"><b>Local DB name:</b> ' + d.determineLocalDbName() + '</div>')
+								//!d.profileHandler.getCurrentProfile().clone ? null : $('<div id="dblocalcheck"><b>Local DB name:</b> ' + d.determineLocalDbName() + '</div>')
 							)
 						),
 						$('<tr/>').append(
@@ -271,7 +234,7 @@ class Settings {
 							$('<td>Notebook</td>'),
 							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
 
-								$('<button class="btn btn-secondary settings-button">Open Notebook by App Link</button>')
+								/*$('<button class="btn btn-secondary settings-button">Open Notebook by App Link</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									
@@ -296,7 +259,7 @@ class Settings {
 									} catch (e) {
 										n.showAlert('Error opening notebook: ' + e);
 									}
-								}),
+								}),*/
 								
 								(d.profileHandler.getCurrentProfile().url == "local") ? null : $('<button class="btn btn-secondary settings-button">Close Notebook...</button>')
 								.on('click', function(event) {
@@ -308,6 +271,23 @@ class Settings {
 									Database.getInstance().profileHandler.deleteProfile();
 									Database.getInstance().reset();
 									Notes.getInstance().routing.call('settings');
+								}),
+								
+								!d.profileHandler.getCurrentProfile().clone ? null : $('<button class="btn btn-secondary settings-button">Replicate Notebook to URL</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									
+									var url = prompt('URL to replicate to: ');
+									if (!url) return;
+									
+									Notes.getInstance().routing.callConsole();
+									Database.getInstance().replicateLocalTo(url)
+									.catch(function(err) {
+										Notes.getInstance().showAlert("Error replicating to " + url);
+										
+										Console.log("Error replicating to " + url + ":", 'E');
+										Console.log(err);
+									});
 								}),
 								
 								$('<br>'),
@@ -373,7 +353,8 @@ class Settings {
 							),
 							$('<td/>')
 						),	
-						$('<tr/>').append(
+						
+						/*$('<tr/>').append(
 							$('<td/>'),
 							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
 
@@ -423,66 +404,16 @@ class Settings {
 									});
 								}),
 							])
-						),	
+						),*/
 
 						///////////////////////////////////////////////////////////////////////////////////////////////////
 						///////////////////////////////////////////////////////////////////////////////////////////////////
 						
 						$('<tr class="bg-primary" />').append(
 							[
-								$('<th scope="col" colspan="2">Import/Export of Documents</th>'),
-								$('<th scope="col"></th>'),
-							]
-						),
-						$('<tr/>').append(
-							$('<td class="w-auto">Internal</td>'),
-							$('<td colspan="2"/>').append([
-								$('<button class="btn btn-secondary settings-button">Export Raw Data (JSON)</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									that.exportAll('json');
-								}),
-								$('<button class="btn btn-secondary settings-button">Import Raw Data (JSON)</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									new Import(new NotesImporter()).startFileImport();
-								}),
-								$('<button class="btn btn-secondary settings-button">Generate Documents...</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									Notes.getInstance().routing.call('generate');
-								}),
-							])
-						),	
-						$('<tr/>').append(
-							$('<td class="w-auto">Trello</td>'),
-							$('<td colspan="2"/>').append([
-								$('<button class="btn btn-secondary settings-button">Import Board from Trello (JSON)</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									new Import(new TrelloImporter()).startFileImport();
-								}),
-							])
-						),	
-						$('<tr/>').append(
-							$('<td class="w-auto">Obsidian</td>'),
-							$('<td colspan="2"/>').append([
-								$('<button class="btn btn-secondary settings-button">Export as ZIP of MD files</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									that.exportAll('files');
-								}),
-							])
-						),	
-						
-						///////////////////////////////////////////////////////////////////////////////////////////////////
-						///////////////////////////////////////////////////////////////////////////////////////////////////
-						
-						$('<tr class="bg-primary" />').append(
-							[
 								$('<th scope="col">Notebook Settings</th>'),
-								$('<th scope="col">Desktop</th>'),
-								$('<th scope="col">Mobile</th>'),
+								$('<th scope="col"></th>'),
+								$('<th scope="col"></th>'),
 							]
 						),
 						$('<tr/>').append(
@@ -498,7 +429,7 @@ class Settings {
 						),
 						$('<tr/>').append(
 							$('<td class="w-auto">Theme Color</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input type="color" value="' + this.settings.mainColor + '"/>')
 								.on('change', function() {
 									var s = Settings.getInstance();
@@ -514,11 +445,10 @@ class Settings {
 									that.saveSettings();
 								})
 							),
-							$('<td/>')
 						),
 						$('<tr/>').append(
 							$('<td class="w-auto">Header Text Color</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input type="color" value="' + this.settings.textColor + '"/>')
 								.on('change', function() {
 									var s = Settings.getInstance();
@@ -534,7 +464,6 @@ class Settings {
 									that.saveSettings();
 								})
 							),
-							$('<td/>')
 						),
 						$('<tr/>').append(
 							$('<td class="w-auto">Editor Defaults</td>'),
@@ -578,7 +507,7 @@ class Settings {
 						),
 						$('<tr/>').append(
 							$('<td class="w-auto">Ask before Moving</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input class="checkbox-switch" type="checkbox" ' + (this.settings.askBeforeMoving ? "checked" : "") + '/>')
 								.each(function(i) {
 									var that = this;
@@ -595,12 +524,11 @@ class Settings {
 									}, 0);
 								})
 							),
-							$('<td/>')
 						),
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Reduce History at Save</td>'),
-							$('<td/>').append(
+							$('<td colspan="2" />').append(
 								$('<input class="checkbox-switch" type="checkbox" ' + (this.settings.reduceHistory ? "checked" : "") + '/>')
 								.each(function(i) {
 									var that = this;
@@ -617,7 +545,6 @@ class Settings {
 									}, 0);
 								})
 							),
-							$('<td/>')
 						),
 						
 						$('<tr/>').append(
@@ -656,208 +583,6 @@ class Settings {
 						),
 						
 						$('<tr/>').append(
-							$('<td class="w-auto">Button Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.optionTextSizeDesktop) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.optionTextSizeDesktop = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.optionTextSizeMobile) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.optionTextSizeMobile = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							)
-						),
-							
-						$('<tr/>').append(
-							$('<td class="w-auto">Header Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + this.settings.headerSizeDesktop + '" />')
-								.on('change', function() {
-									if (parseFloat(this.value) < 20 || !parseFloat(this.value)) this.value = 20;
-									
-									var s = Settings.getInstance();
-									s.settings.headerSizeDesktop = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-								})
-							),
-							$('<td/>').append(
-								$('<input type="text" value="' + this.settings.headerSizeMobile + '" />')
-								.on('change', function() {
-									if (parseFloat(this.value) < 20 || !parseFloat(this.value)) this.value = 20;
-									
-									var s = Settings.getInstance();
-									s.settings.headerSizeMobile = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-								})
-							)
-						),
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Navigation Text Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.treeTextSizeDesktop) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.treeTextSizeDesktop = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.treeTextSizeMobile) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.treeTextSizeMobile = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							)
-						),
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Navigation Item Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.detailItemHeightDesktop) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.detailItemHeightDesktop = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.detailItemHeightMobile) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.detailItemHeightMobile = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							)
-						),
-						
-						/*
-						$('<tr/>').append(
-							$('<td class="w-auto">Tile Text Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.tileTextSizeDesktop) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.tileTextSizeDesktop = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseFloat(this.settings.tileTextSizeMobile) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									s.settings.tileTextSizeMobile = parseFloat(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							)
-						),*/
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Navigation Animation Time</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + parseInt(this.settings.navigationAnimationDuration) + '" />')
-								.on('change', function() {
-									var s = Settings.getInstance();
-									if (parseInt(this.value) < 10 || !parseInt(this.value)) this.value = 10;
-									
-									s.settings.navigationAnimationDuration = parseInt(this.value);
-									s.apply();
-									
-									that.saveSettings();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							)
-						),
-						
-						$('<tr/>').append(
 							$('<td class="w-auto">Preview attachment images in navigation</td>'),
 							$('<td colspan="2" />').append(
 								$('<input class="checkbox-switch" type="checkbox" ' + (this.settings.showAttachedImageAsItemBackground ? 'checked' : '') + ' />')
@@ -890,6 +615,67 @@ class Settings {
 							]
 						),
 
+						$('<tr/>').append(
+							$('<td class="w-auto">Header Size</td>'),
+							$('<td colspan="2" />').append(
+								$('<input type="text" value="' + n.getHeaderSize()  + '" />')
+								.on('change', function() {
+									if (parseFloat(this.value) < 20 || !parseFloat(this.value)) this.value = 20;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									if (n.isMobile()) {
+										g.headerSizeMobile = parseFloat(this.value);										
+									} else {
+										g.headerSizeDesktop = parseFloat(this.value);
+									}
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+								})
+							),
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Option Button Size</td>'),
+							$('<td colspan="2" />').append(
+								$('<input type="text" value="' + n.getRoundedButtonSize() + '" />')
+								.on('change', function() {
+									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									if (n.isMobile()) {
+										g.optionTextSizeMobile = parseFloat(this.value);										
+									} else {
+										g.optionTextSizeDesktop = parseFloat(this.value);
+									}
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							),
+						),
+						
+						!n.isMobile() ? null : $('<tr/>').append(
+							$('<td class="w-auto">Footer Size (Mobile)</td>'),
+							$('<td colspan="2"/>').append(
+								$('<input type="text" value="' + n.getFooterSize() + '" />')
+								.on('change', function() {
+									if (parseFloat(this.value) < 20 || !parseFloat(this.value)) this.value = 20;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									g.footerSizeMobile = parseFloat(this.value);										
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+								})
+							)
+						),
+						
 						n.isMobile() ? null : $('<tr/>').append(
 							$('<td class="w-auto">Navigation Width</td>'),
 							$('<td colspan="2" />').append(
@@ -905,73 +691,72 @@ class Settings {
 							)
 						),
 						
-						/*
 						$('<tr/>').append(
-							$('<td class="w-auto">Tile Mode: Max. item size</td>'),
+							$('<td class="w-auto">Navigation Text Size</td>'),
 							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().tileMaxSize ? ClientState.getInstance().getViewSettings().tileMaxSize : 220) + '" />')
+								$('<input type="text" value="' + NoteTree.getInstance().getTreeTextSize() + '" />')
 								.on('change', function() {
-									var val = parseFloat(this.value);
-									var s = ClientState.getInstance().getViewSettings();
-
-									if (!val) {
-										this.value = (s.tileMaxSize ? s.tileMaxSize : 220);
-										return;
+									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									if (n.isMobile()) {
+										g.navTextSizeMobile = parseFloat(this.value);										
+									} else {
+										g.navTextSizeDesktop = parseFloat(this.value);
 									}
+									ClientState.getInstance().setLocalSettings(g);
 									
-									s.tileMaxSize = val;
-									ClientState.getInstance().saveViewSettings(s);
+									n.update();
 									
-									Notes.getInstance().routing.call('settings');
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
 								})
-							)
-						),*/
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Persistent Console logs</td>'),
-							$('<td colspan="2" />').append(
-								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getConsoleSettings().persist ? 'checked' : '') + ' />')
-								.each(function(i) {
-									var that = this;
-									setTimeout(function() {
-										new Switch(that, {
-											size: 'small',
-											onSwitchColor: '#337ab7',
-											onChange: function() {
-												var s = ClientState.getInstance().getConsoleSettings();
-												s.persist = !!this.getChecked();
-												ClientState.getInstance().saveConsoleSettings(s);
-												
-												Console.getInstance().clear();
-												Notes.getInstance().showAlert('Cleared console logs.', 'I');
-											}
-										});
-									}, 0);
-								}),
-
-								$('<a style="cursor: pointer; padding-left: 10px;">Open Console</a>')
-								.on('click', function(event) {
-									Notes.getInstance().routing.callConsole();
-								})
-							)
+							),
 						),
 						
 						$('<tr/>').append(
-							$('<td class="w-auto">Override View Mode</td>'),
-							$('<td colspan="2" />').append(
-								$('<select></select>').append([
-									$('<option value="off">Off</option>'),
-									$('<option value="desktop">Desktop</option>'),
-									$('<option value="mobile">Mobile</option>'),
-								])
-								.each(function(i) {
-									var mode = ClientState.getInstance().getMobileOverride();
-									if (!mode) mode = "off";
-									$(this).val(mode);
+							$('<td class="w-auto">Navigation Item Size</td>'),
+							$('<td/>').append(
+								$('<input type="text" value="' + DetailBehaviour.getItemHeight() + '" />')
+								.on('change', function() {
+									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
 									
-									$(this).on('change', function(event) {
-										ClientState.getInstance().setMobileOverride($(this).val())
-										location.reload();
+									var g = ClientState.getInstance().getLocalSettings();
+									if (n.isMobile()) {
+										g.detailItemHeightMobile = parseFloat(this.value);										
+									} else {
+										g.detailItemHeightDesktop = parseFloat(this.value);
+									}
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							),
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Navigation Animation Time</td>'),
+							$('<td colspan="2"/>').append(
+								$('<input type="text" value="' + MuuriGrid.getAnimationDuration() + '" />')
+								.on('change', function() {
+									if (parseInt(this.value) < 10 || !parseInt(this.value)) this.value = 10;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									g.navigationAnimationDuration = parseInt(this.value);										
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 									});
 								})
 							)
@@ -1087,6 +872,112 @@ class Settings {
 							)
 						),
 						
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						
+						$('<tr class="bg-primary" />').append(
+							[
+								$('<th scope="col" colspan="2">Import/Export of Documents</th>'),
+								$('<th scope="col"></th>'),
+							]
+						),
+						$('<tr/>').append(
+							$('<td class="w-auto">Internal</td>'),
+							$('<td colspan="2"/>').append([
+								$('<button class="btn btn-secondary settings-button">Export Raw Data (JSON)</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									that.exportAll('json');
+								}),
+								$('<button class="btn btn-secondary settings-button">Import Raw Data (JSON)</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									new Import(new NotesImporter()).startFileImport();
+								}),
+							])
+						),	
+						$('<tr/>').append(
+							$('<td class="w-auto">Trello</td>'),
+							$('<td colspan="2"/>').append([
+								$('<button class="btn btn-secondary settings-button">Import Board from Trello (JSON)</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									new Import(new TrelloImporter()).startFileImport();
+								}),
+							])
+						),	
+						$('<tr/>').append(
+							$('<td class="w-auto">Obsidian</td>'),
+							$('<td colspan="2"/>').append([
+								$('<button class="btn btn-secondary settings-button">Export as ZIP of MD files</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									that.exportAll('files');
+								}),
+							])
+						),	
+						
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						
+						$('<tr class="bg-primary" />').append(
+							[
+								$('<th scope="col">Debugging Options</th>'),
+								$('<th scope="col"></th>'),
+								$('<th scope="col"></th>'),
+							]
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Persistent Console logs</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getConsoleSettings().persist ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											onChange: function() {
+												var s = ClientState.getInstance().getConsoleSettings();
+												s.persist = !!this.getChecked();
+												ClientState.getInstance().saveConsoleSettings(s);
+												
+												Console.getInstance().clear();
+												Notes.getInstance().showAlert('Cleared console logs.', 'I');
+											}
+										});
+									}, 0);
+								}),
+
+								$('<a style="cursor: pointer; padding-left: 10px;">Open Console</a>')
+								.on('click', function(event) {
+									Notes.getInstance().routing.callConsole();
+								})
+							)
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Override View Mode</td>'),
+							$('<td colspan="2" />').append(
+								$('<select></select>').append([
+									$('<option value="off">Off</option>'),
+									$('<option value="desktop">Desktop</option>'),
+									$('<option value="mobile">Mobile</option>'),
+								])
+								.each(function(i) {
+									var mode = ClientState.getInstance().getMobileOverride();
+									if (!mode) mode = "off";
+									$(this).val(mode);
+									
+									$(this).on('change', function(event) {
+										ClientState.getInstance().setMobileOverride($(this).val())
+										location.reload();
+									});
+								})
+							)
+						),
+						
 						$('<tr/>').append(
 							$('<td class="w-auto">Rich Text Editor: Auto-Format links</td>'),
 							$('<td colspan="2" />').append(
@@ -1130,6 +1021,67 @@ class Settings {
 								})
 							)
 						),
+						
+						$('<tr/>').append(
+							$('<td/>'),
+							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
+
+								// Check page
+								$('<button class="btn btn-secondary settings-button">Check Consistency</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									
+									Notes.getInstance().routing.call('check');
+								}),
+								
+								// Clear local data
+								$('<button class="btn btn-secondary settings-button">Clear Local Data...</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									
+									if (!confirm("Really delete the local database?")) {
+										return;
+									}
+									
+									var prom = Database.getInstance().clearLocalDatabase();
+									if (!prom) {
+										Notes.getInstance().showAlert('Could not delete database.', 'E');
+										return;
+									}
+									prom.then(function(data) {
+										Notes.getInstance().showAlert('Local database is now empty.', 'S');
+										Database.getInstance().reset();
+										Notes.getInstance().routing.call('settings');
+									}).catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								}),
+								
+								// Generate documents
+								$('<button class="btn btn-secondary settings-button">Generate Documents...</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									Notes.getInstance().routing.call('generate');
+								}),
+								
+								$('<br>'),
+								
+								// Edit raw settings document
+								$('<button class="btn btn-secondary settings-button">Edit Raw Settings</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									n.routing.callRawView('settings');
+								}),
+								
+								// Edit global-meta document
+								$('<button class="btn btn-secondary settings-button">Edit Global Metadata</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									n.routing.callRawView(MetaActions.metaDocId);
+								}),
+
+							])
+						),	
 						
 						///////////////////////////////////////////////////////////////////////////////////////////////////
 						///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1273,17 +1225,9 @@ class Settings {
 		
 		n.setMainColor(this.settings.mainColor);
 		n.setTextColor(this.settings.textColor);
-		n.updateHeaderSize();
+		n.updateDimensions();
 		
-		if (ClientState.getInstance().getViewSettings().navMode == Behaviours.modeIdTiles) {
-			t.setTreeTextSize(n.isMobile() ? this.settings.tileTextSizeMobile : this.settings.tileTextSizeDesktop);
-		} else {
-			t.setTreeTextSize(n.isMobile() ? this.settings.treeTextSizeMobile : this.settings.treeTextSizeDesktop);
-		}
 		t.updateFavorites();
-		
-		n.setRoundedButtonSize(n.isMobile() ? this.settings.optionTextSizeMobile : this.settings.optionTextSizeDesktop);
-		
 	}
 	
 	/**

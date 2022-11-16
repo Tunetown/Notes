@@ -74,7 +74,7 @@ nav {
 	background-color: lightgrey;
 	brightness: 2;
 	/*border-right: 1px solid darkgrey;*/
-	border: 1px solid darkgrey;
+	/*border: 1px solid darkgrey;*/
 	
 	/*min-height: calc(100vh - 55px);*/
 	
@@ -99,7 +99,26 @@ article {
 	background-color: #f1f1f1;
 	padding: 0;
 	position: relative;
-	border: 1px solid white;
+	/*border: 1px solid white;*/
+}
+
+#footer {
+	width: 100%;
+	height: 40px;
+	
+	overflow: hidden; 
+	
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	
+	background: #f4f4f4;
+	
+	display: grid;
+	justify-content: space-evenly;
+	grid-auto-flow: column;
+	column-gap: 5px;
+	grid-template-columns: repeat( 6, minmax(1px, 1fr) );
 }
 
 .mainPanel {
@@ -165,6 +184,19 @@ article {
 	box-shadow: 0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19);
 }
 
+.footerButton {
+	cursor: pointer;
+	text-align: center;
+	color: #555;
+}
+
+.footerButton:before {
+	position: relative;
+	top: 50%;
+	transform: translate(0, -50%);
+	display: block;
+}
+
 .dialogTable {
 	width: 100%;
 }
@@ -179,3 +211,4 @@ article {
 	min-width: 100%;
 	white-space: nowrap;
 }
+
