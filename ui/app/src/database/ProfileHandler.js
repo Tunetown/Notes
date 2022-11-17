@@ -245,4 +245,15 @@ class ProfileHandler {
 			this.options.saveProfilesCallback(profiles);
 		}
 	}
+	
+	/**
+	 * Returns the database name from an url.
+	 */
+	static extractDatabaseName(url) {
+		if (url == 'local') return 'local';
+		
+		return url.split('/').slice(-1).join();
+	}
+	
+
 }

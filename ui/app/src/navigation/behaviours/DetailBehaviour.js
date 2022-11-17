@@ -246,9 +246,11 @@ class DetailBehaviour {
 	restoreState(state) {
 		if (!state.detail) return;
 		
-		if (state.detail.sp) {
+		if (state.detail.sp) {//&& !Notes.getInstance().isMobile()) {
 			this.selectParent(state.detail.sp);
-		}
+		}/* else {
+			this.selectParent('');
+		}*/
 		
 		if (state.detail.sortModes) {
 			this.sortModes = state.detail.sortModes;
@@ -1123,7 +1125,7 @@ class DetailBehaviour {
 			// Marker at the left for backlinks and and references
 			const markerLeftElIcon = markerLeftEl.find('.' + this.getMarkerIconClass());
 			markerLeftElIcon.css('font-size', '10px');
-			markerLeftElIcon.removeClass('fa-chevron-left');
+			markerLeftElIcon.removeClass('fa-level-up-alt');
 			markerLeftElIcon.removeClass('fa-chevron-right');
 			markerLeftElIcon.removeClass('fa-chevron-down');
 			var leftMarkerColor = 'darkgrey';
@@ -1136,7 +1138,7 @@ class DetailBehaviour {
 				leftMarkerColor = 'black';
 				
 				markerLeftElIcon.css('font-size', this.treeFontSize + 'px');
-				markerLeftElIcon.addClass('fa-chevron-left');
+				markerLeftElIcon.addClass('fa-level-up-alt');
 			}
 			else if (isBacklinkOfSelected) {
 				showMarker(markerLeftEl, true);
@@ -1364,6 +1366,13 @@ class DetailBehaviour {
 	getParentId(doc) {
 		if (this.mode == 'ref') return this.selectedParent;
 		return doc.parent;
+	}
+	
+	/**
+	 * Get currently focussed ID.
+	 */
+	getFocusedId() {
+		return this.selectedParent ? this.selectedParent : '';
 	}
 	
 	/**
@@ -1811,7 +1820,7 @@ class DetailBehaviour {
 	/**
 	 * Returns the elements to be added to the settings panel (optional function, does not have to exist).
 	 */
-	getSettingsPanelContentTableRows() {
+	getSettingsPanelContentTableRows(prefixText) {
 		var that = this;
 		
 		if (this.mode != 'ref') return [];
@@ -1819,10 +1828,12 @@ class DetailBehaviour {
 		var d = Notes.getInstance().getData();
 		var selectedDoc = d.getById(this.selectedParent);
 		
+		if (!prefixText) prefixText = '';
+		
 		return [
 			$('<tr></tr>')
 			.append(
-				$('<td>Children</td>'),
+				$('<td>' + prefixText + 'Children</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableChildren ? 'checked' : '') + ' />')
@@ -1848,7 +1859,7 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>Siblings</td>'),
+				$('<td>' + prefixText + 'Siblings</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableSiblings ? 'checked' : '') + ' />')
@@ -1875,7 +1886,7 @@ class DetailBehaviour {
 			/*
 			$('<tr></tr>')
 			.append(
-				$('<td>Parents</td>'),
+				$('<td>' + prefixText + 'Parents</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableParents ? 'checked' : '') + ' />')
@@ -1899,7 +1910,7 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>Outgoing Links</td>'),
+				$('<td>' + prefixText + 'Outgoing Links</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableLinks ? 'checked' : '') + ' />')
@@ -1925,7 +1936,7 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>Backlinks</td>'),
+				$('<td>' + prefixText + 'Backlinks</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableBacklinks ? 'checked' : '') + ' />')
@@ -1951,7 +1962,7 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>References</td>'),
+				$('<td>' + prefixText + 'References</td>'),
 				$('<td></td>')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableRefs ? 'checked' : '') + ' />')

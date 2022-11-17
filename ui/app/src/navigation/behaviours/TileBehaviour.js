@@ -26,6 +26,13 @@ class TileBehaviour {
 	}
 	
 	/**
+	 * Get currently focussed ID.
+	 */
+	getFocusedId() {
+		return '';
+	}
+	
+	/**
 	 * If the behaviour supports history, this returns it, or false if not.
 	 */
 	getHistory() {

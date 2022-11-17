@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.5';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -783,9 +783,121 @@ class Notes {
 		Notes.getInstance().home();
 	}
 	
+	editorNavButtonHandler(e) {
+		e.stopPropagation();
+		Notes.getInstance().routing.callProfileRootWithSelectedId(NoteTree.getInstance().getFocussedId());
+	}
+	
 	editorLinkageButtonHandler(e) {
 		e.stopPropagation();
 		Notes.getInstance().toggleEditorLinkage();
+	}
+	
+	editorCreateButtonHandler(e) {
+		e.stopPropagation();
+		
+		const n = Notes.getInstance();
+		const t = NoteTree.getInstance();
+		
+		//t.block();
+		
+		DocumentActions.getInstance().create(t.behaviour.getNewItemParent())
+		.then(function(data) {
+			//t.unblock();
+			if (data.message) {
+				n.showAlert(data.message, "S", data.messageThreadId);
+			}
+		})
+		.catch(function(err) {
+			//t.unblock();
+			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+		});
+	}
+	
+	editorFavoritesButtonHandler(e) {
+		e.stopPropagation();
+		
+		const n = Notes.getInstance();
+		var selector = n.getFavoritesSelector('footerFavoritesSelector');
+		
+		n.showGenericDialog(
+			// Init
+			function(dialog, e, resolve, reject) {
+				dialog.find('.modal-content').append(
+					$('<div class="modal-header"><h5 class="modal-title">Open Document from Favorites List:</h5></div>'),
+					$('<div class="modal-body"></div>').append(
+						selector
+						.on('change', function(/*event*/) {
+				        	var target = this.value;
+					        
+							dialog.modal('hide');
+							Notes.getInstance().routing.call(target);
+						})
+					)
+				);
+				
+				selector.selectize({
+					sortField: 'text'
+				});
+				
+				// TODO Open selector immediately (seems to be difficult)
+			},
+			
+			// Hide
+			function(dialog, e, resolve, reject) {
+				resolve();
+			},
+		);
+	}
+	
+	/**
+	 * Delivers a select element containing the favorites and pinned (starred) documents.
+	 */
+	getFavoritesSelector(elementId) {
+		const favs = NoteTree.getInstance().getFavorites();
+
+		var favoritesNum = ClientState.getInstance().getViewSettings().favoritesNum;
+		if (!favoritesNum) favoritesNum = Config.defaultFavoritesAmount;
+		
+		var selector =  $('<select id="' + elementId + '"></select>');
+		
+		const that = this;
+		function addOption(id) {
+			selector.append(
+				$('<option value="' + id + '">' + that.formatSelectOptionText(id) + '</option>')
+			);
+		}
+		
+		for(var i=0; i<favs.starred.length; ++i) {
+			addOption(favs.starred[i].id);
+		}
+		for(var i=0; i<favs.favorites.length && i<favoritesNum; ++i) {
+			addOption(favs.favorites[i].id);
+		}
+		
+		return selector;
+	}
+	
+	/**
+	 * Generic popup dialog. All callbacks get the same parameters: (dialogElement, event, resolve, reject).
+	 */
+	showGenericDialog(initCallback, hideCallback) {
+		return new Promise(function(resolve, reject) {
+			const dialog = $('#genericDialog');
+			
+			dialog.find('.modal-content').empty();
+			
+			dialog.off('shown.bs.modal');
+			dialog.on('shown.bs.modal', function (event) {
+				initCallback(dialog, event, resolve, reject);
+			});
+			dialog.off('hidden.bs.modal');
+			dialog.on('hidden.bs.modal', function (event) {
+				hideCallback(dialog, event, resolve, reject);
+			});
+			
+			dialog.modal();
+		});
 	}
 				
 	/**
@@ -925,12 +1037,20 @@ class Notes {
 				.on('click', this.editorForwardButtonHandler),
 
 				// Home button used to navigate back to the tree root in mobile mode
-				$('<div id="homeButton2" class="footerButton fa fa-home"></div>')
-				.on('click', this.editorHomeButtonHandler),
+				$('<div id="homeButton2" class="footerButton fa fa-map"></div>')
+				.on('click', this.editorNavButtonHandler),
+
+				// Create note
+				$('<div id="createButton2" class="footerButton fa fa-plus"></div>')
+				.on('click', this.editorCreateButtonHandler),
+
+				// Favorites
+				$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
+				.on('click', this.editorFavoritesButtonHandler),
 
 				// Link page button
-				$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
-				.on('click', this.editorLinkageButtonHandler),
+				//$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
+				//.on('click', this.editorLinkageButtonHandler),
 			]);
 		} else {
 			this.setFooterContent();
@@ -1225,14 +1345,25 @@ class Notes {
 	}
 	
 	/**
+	 * Returns what the notebook should be shown to be named like.
+	 */
+	getCurrentNotebookVisibleName() {
+		const s = Settings.getInstance().settings;
+		const p = Database.getInstance().profileHandler;
+		
+		return (s.dbAccountName ? s.dbAccountName : ProfileHandler.extractDatabaseName(p.getCurrentProfile().url));
+	}
+	
+	/**
 	 * Shows the user main menu.
 	 */
 	showUserMenu() {
 		this.hideOptions();
 		
+		var that = this;
 		this.showMenu('user', function(cont) {
 			cont.append([
-				$('<div class="userbuttonPassive"><div class="fa fa-user userbuttonIcon"></div>' + (Settings.getInstance().settings.dbAccountName ? Settings.getInstance().settings.dbAccountName : Database.getInstance().profileHandler.getCurrentProfile().url) + '</div>'),
+				$('<div class="userbuttonPassive"><div class="fa fa-user userbuttonIcon"></div>' + that.getCurrentNotebookVisibleName() + '</div>'),
 				$('<div class="userbuttonLine"></div>'),
 
 				$('<div class="userbutton" id="selProfileMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile()"><div class="fa fa-home userbuttonIcon"></div>Select Notebook</div>'),
@@ -1288,7 +1419,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? 20 : 18;
+		return this.isMobile() ? Config.defaultButtonSizeMobile : Config.defaultButtonSizeDesktop;
 	}
 	
 	/**
@@ -1321,7 +1452,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? 35 : 40;
+		return this.isMobile() ? Config.defaultHeaderSizeMobile : Config.defaultHeaderSizeDesktop;
 	}
 	
 	/**
@@ -1334,7 +1465,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? 42 : 0;
+		return this.isMobile() ? Config.defaultFooterSizeMobile : 0;
 	}
 	
 	/**

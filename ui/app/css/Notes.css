@@ -118,7 +118,7 @@ article {
 	justify-content: space-evenly;
 	grid-auto-flow: column;
 	column-gap: 5px;
-	grid-template-columns: repeat( 6, minmax(1px, 1fr) );
+	grid-template-columns: repeat( 5, minmax(1px, 1fr) );
 }
 
 .mainPanel {

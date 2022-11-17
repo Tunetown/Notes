@@ -19,6 +19,51 @@
 class Config {};
 	
 /**
+ * Settings defaults (notebook settings, stored per notebook in the database as settings document)
+ */
+Config.defaultThemeColor = "#ff8080";
+Config.defaultTextColor = "#06feab";
+
+Config.defaultAutosaveIntervalSecs = 3;
+
+Config.defaultNotebookName = 'New Notebook';
+
+Config.defaultEditorMode = 'code';
+Config.defaultPlainTextMode = 'markdown';
+
+Config.defaultAskBeforeMoving = false;
+Config.defaultMaxUploadSizeMB = 1;
+Config.defaultReduceHistory = true;
+Config.defaultMaxSearchResults = 20;
+Config.defaultShowAttachedImageAsItemBackground = true;
+	
+/**
+ * Default local settings
+ */	
+Config.defaultHeaderSizeDesktop = 40;
+Config.defaultHeaderSizeMobile = 35 ;
+Config.minHeaderSize = 20;
+
+Config.defaultButtonSizeDesktop = 18;
+Config.defaultButtonSizeMobile = 20;
+Config.minButtonSize = 10;
+
+Config.defaultFooterSizeMobile = 42;
+Config.minFooterSize = 20;
+
+Config.defaultNavigationTextSizeDesktop = 18;
+Config.defaultNavigationTextSizeMobile = 22;
+Config.minNavigationTextSize = 10;
+
+Config.minDetailNavigationItemHeight = 10;
+
+Config.minDetailNavigationAnimationDuration = 10;
+
+Config.defaultFavoritesSize = 65;
+Config.defaultFavoritesAmount = 20;
+Config.minFavoritesSize = 20;
+
+/**
  * Name of the root node if it needs to be shown to the user. Leave this 
  * empty for normal usage.
  */

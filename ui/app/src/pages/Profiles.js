@@ -103,13 +103,10 @@ class Profiles {
 		remoteList.push(
 			$('<tr></tr>').append(
 				$('<td class="profileSelectElementContainer"></td>').append(
-					$('<button class="btn btn-secondary profileSelectBtnFixed">Add Notebook from CouchDB URL...</button>')
+					$('<button class="btn btn-secondary profileSelectBtnFixed">Open Notebook from CouchDB URL...</button>')
 					.on('click', function() {
 						var url = prompt('CouchDB Address:');
 						if (!url) return;
-						
-						var d = Database.getInstance();
-						var n = Notes.getInstance();
 						
 						Database.getInstance().reset();
 						Notes.getInstance().routing.call('', url);

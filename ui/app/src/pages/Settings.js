@@ -36,23 +36,23 @@ class Settings {
 	getDefaults() {
 		return {
 			// Theme colors
-			mainColor: "#ff8080",
-			textColor: "#06feab",
+			mainColor: Config.defaultThemeColor,
+			textColor: Config.defaultTextColor,
 
 			// Database options
-			autoSaveIntervalSecs: 3,
-			dbAccountName: Database.getInstance().profileHandler.getCurrentProfile().url,
+			autoSaveIntervalSecs: Config.defaultAutosaveIntervalSecs,
+			dbAccountName: Config.defaultNotebookName, //Database.getInstance().profileHandler.getCurrentProfile().url,
 
 			// Editor settings
-			defaultNoteEditor: 'code',
-			defaultCodeLanguage: 'markdown',
+			defaultNoteEditor: Config.defaultEditorMode,
+			defaultCodeLanguage: Config.defaultPlainTextMode,
 
 			// Div. options
-			askBeforeMoving: false,
-			maxUploadSizeMB: 1,
-			reduceHistory: true,
-			maxSearchResults: 15,
-			showAttachedImageAsItemBackground: true
+			askBeforeMoving: Config.defaultAskBeforeMoving,
+			maxUploadSizeMB: Config.defaultMaxUploadSizeMB,
+			reduceHistory: Config.defaultReduceHistory,
+			maxSearchResults: Config.defaultMaxSearchResults,
+			showAttachedImageAsItemBackground: Config.defaultShowAttachedImageAsItemBackground,
 		};
 	}
 	
@@ -146,7 +146,7 @@ class Settings {
 		var remoteList = [];
 		var profiles = d.profileHandler.getProfiles();
 		var currentP = d.profileHandler.getCurrentProfile().url;
-		remoteList.push($('<option value="new">Add Notebook from CouchDB URL...</option>'));
+		//remoteList.push($('<option value="new">Add Notebook from CouchDB URL...</option>'));
 		for(var p in profiles) {
 			remoteList.push($('<option value="' + profiles[p].url + '" ' + ((profiles[p].url == currentP) ? 'selected' : '') + '>' + Tools.getBasename(profiles[p].url) + '</option>'));
 		}
@@ -165,20 +165,21 @@ class Settings {
 							]
 						),
 						$('<tr/>').append(
-							$('<td class="w-auto">Remote <a href="https://couchdb.apache.org/" target="_blank">CouchDB</a> Database</td>'),
+							$('<td class="w-auto">Selected Notebook</td>'),
 							$('<td colspan="2"/>').append(
 								$('<select class="settings-button" id="cdbEndpointSelect"></select>')
 								.append(remoteList)
 								.on('change', function(event) {
 									var url = this.value;
-									if (url == "new") {
+									/*if (url == "new") {
 										url = prompt("URL to the CouchDB database: ", that.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url)); 
 										if (!url || url == "new") return;
-									}
+									}*/
 									
 									Database.getInstance().reset();
-									//Notes.getInstance().showAlert("Switching notebooks, please wait...", 'I');
+
 									console.log('Switching to notebook at ' + url);
+
 									Notes.getInstance().routing.call('settings', url);
 								}),
 								$('<br>'),
@@ -231,9 +232,18 @@ class Settings {
 						),	
 						
 						$('<tr/>').append(
-							$('<td>Notebook Options</td>'),
+							$('<td>Options</td>'),
 							$('<td colspan="2"/>').append(!d.profileHandler.getCurrentProfile().url ? null : [
 
+								$('<button class="btn btn-secondary settings-button">Open Notebook from CouchDB URL...</button>')
+								.on('click', function() {
+									var url = prompt('CouchDB Address:', that.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
+									if (!url) return;
+									
+									Database.getInstance().reset();
+									Notes.getInstance().routing.call('', url);
+								}),
+								
 								/*$('<button class="btn btn-secondary settings-button">Open Notebook by App Link</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
@@ -273,6 +283,7 @@ class Settings {
 									Notes.getInstance().routing.call('settings');
 								}),
 								
+								/*
 								!d.profileHandler.getCurrentProfile().clone ? null : $('<button class="btn btn-secondary settings-button">Replicate Notebook to URL</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
@@ -289,7 +300,7 @@ class Settings {
 										Console.log(err);
 									});
 								}),
-								
+								*/
 								//$('<br>'),
 								//$('<textarea readonly id="dbLink">' + Notes.getInstance().routing.getBasePath() + '</textarea>'),
 							])
@@ -417,7 +428,7 @@ class Settings {
 							]
 						),
 						$('<tr/>').append(
-							$('<td class="w-auto">Account Name</td>'),
+							$('<td class="w-auto">Notebook Name</td>'),
 							$('<td colspan="2"/>').append(
 								$('<input type="text" value="' + this.settings.dbAccountName + '" />')
 								.on('change', function() {
@@ -428,7 +439,7 @@ class Settings {
 							),
 						),
 						$('<tr/>').append(
-							$('<td class="w-auto">Theme Color</td>'),
+							$('<td class="w-auto">Theme Background Color</td>'),
 							$('<td colspan="2" />').append(
 								$('<input type="color" value="' + this.settings.mainColor + '"/>')
 								.on('change', function() {
@@ -447,7 +458,7 @@ class Settings {
 							),
 						),
 						$('<tr/>').append(
-							$('<td class="w-auto">Header Text Color</td>'),
+							$('<td class="w-auto">Theme Text Color</td>'),
 							$('<td colspan="2" />').append(
 								$('<input type="color" value="' + this.settings.textColor + '"/>')
 								.on('change', function() {
@@ -498,6 +509,9 @@ class Settings {
 								.on('change', function() {
 									var s = Settings.getInstance();
 									this.value = parseFloat(this.value) ? parseFloat(this.value) : 0;
+									if (this.value < 0) {
+										this.value = 0;
+									}									
 									
 									s.settings.autoSaveIntervalSecs = parseFloat(this.value);
 									that.saveSettings();
@@ -553,8 +567,8 @@ class Settings {
 								$('<input type="text" value="' + parseFloat(this.settings.maxUploadSizeMB) + '" />')
 								.on('change', function() {
 									var val = parseFloat(this.value);
-									if (val < 0) {
-										this.value = 5;
+									if (!val || val < 0) {
+										this.value = 0;
 										val = parseFloat(this.value);
 									}
 									
@@ -571,8 +585,10 @@ class Settings {
 								$('<input type="text" value="' + parseInt(this.settings.maxSearchResults) + '" />')
 								.on('change', function() {
 									var val = parseInt(this.value);
-									if (val < 0) {
-										this.value = 20;
+									if (!val) {
+										this.value = Config.defaultMaxSearchResults;
+									} else if (val < 1) {
+										this.value = 1;
 										val = parseInt(this.value);
 									}
 									
@@ -620,7 +636,7 @@ class Settings {
 							$('<td colspan="2" />').append(
 								$('<input type="text" value="' + n.getHeaderSize()  + '" />')
 								.on('change', function() {
-									if (parseFloat(this.value) < 20 || !parseFloat(this.value)) this.value = 20;
+									if (parseFloat(this.value) < Config.minHeaderSize || !parseFloat(this.value)) this.value = Config.minHeaderSize;
 									
 									var g = ClientState.getInstance().getLocalSettings();
 									if (n.isMobile()) {
@@ -640,7 +656,7 @@ class Settings {
 							$('<td colspan="2" />').append(
 								$('<input type="text" value="' + n.getRoundedButtonSize() + '" />')
 								.on('change', function() {
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
+									if (parseFloat(this.value) < Config.minButtonSize || !parseFloat(this.value)) this.value = Config.minButtonSize;
 									
 									var g = ClientState.getInstance().getLocalSettings();
 									if (n.isMobile()) {
@@ -665,99 +681,13 @@ class Settings {
 							$('<td colspan="2"/>').append(
 								$('<input type="text" value="' + n.getFooterSize() + '" />')
 								.on('change', function() {
-									if (parseFloat(this.value) < 20 || !parseFloat(this.value)) this.value = 20;
+									if (parseFloat(this.value) < Config.minFooterSize || !parseFloat(this.value)) this.value = Config.minFooterSize;
 									
 									var g = ClientState.getInstance().getLocalSettings();
 									g.footerSizeMobile = parseFloat(this.value);										
 									ClientState.getInstance().setLocalSettings(g);
 									
 									n.update();
-								})
-							)
-						),
-						
-						n.isMobile() ? null : $('<tr/>').append(
-							$('<td class="w-auto">Navigation Width</td>'),
-							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + NoteTree.getInstance().getContainerWidth() + '" />')
-								.on('change', function() {
-									if (!parseFloat(this.value)) this.value = "";
-									
-									if (Notes.getInstance().isMobile()) return;
-									NoteTree.getInstance().setContainerWidth(parseInt(this.value));
-									ClientState.getInstance().saveTreeState();
-									NoteTree.getInstance().refresh();
-								})
-							)
-						),
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Navigation Text Size</td>'),
-							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + NoteTree.getInstance().getTreeTextSize() + '" />')
-								.on('change', function() {
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									var g = ClientState.getInstance().getLocalSettings();
-									if (n.isMobile()) {
-										g.navTextSizeMobile = parseFloat(this.value);										
-									} else {
-										g.navTextSizeDesktop = parseFloat(this.value);
-									}
-									ClientState.getInstance().setLocalSettings(g);
-									
-									n.update();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-						),
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Navigation Item Size</td>'),
-							$('<td/>').append(
-								$('<input type="text" value="' + DetailBehaviour.getItemHeight() + '" />')
-								.on('change', function() {
-									if (parseFloat(this.value) < 10 || !parseFloat(this.value)) this.value = 10;
-									
-									var g = ClientState.getInstance().getLocalSettings();
-									if (n.isMobile()) {
-										g.detailItemHeightMobile = parseFloat(this.value);										
-									} else {
-										g.detailItemHeightDesktop = parseFloat(this.value);
-									}
-									ClientState.getInstance().setLocalSettings(g);
-									
-									n.update();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
-								})
-							),
-						),
-						
-						$('<tr/>').append(
-							$('<td class="w-auto">Navigation Animation Time</td>'),
-							$('<td colspan="2"/>').append(
-								$('<input type="text" value="' + MuuriGrid.getAnimationDuration() + '" />')
-								.on('change', function() {
-									if (parseInt(this.value) < 10 || !parseInt(this.value)) this.value = 10;
-									
-									var g = ClientState.getInstance().getLocalSettings();
-									g.navigationAnimationDuration = parseInt(this.value);										
-									ClientState.getInstance().setLocalSettings(g);
-									
-									n.update();
-									
-									TreeActions.getInstance().requestTree()
-									.catch(function(err) {
-										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-									});
 								})
 							)
 						),
@@ -781,6 +711,7 @@ class Settings {
 								})
 							)
 						),
+						
 						$('<tr/>').append(
 							$('<td class="w-auto">Show Favorites</td>'),
 							$('<td colspan="2"/>').append(
@@ -815,12 +746,14 @@ class Settings {
 								})
 							)
 						),
+						
 						$('<tr/>').append(
 							$('<td class="w-auto">Favorites Size</td>'),
 							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesSize ? ClientState.getInstance().getViewSettings().favoritesSize : "70") + '" />')
+								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesSize ? ClientState.getInstance().getViewSettings().favoritesSize : Config.defaultFavoritesSize) + '" />')
 								.on('change', function() {
-									if (!parseInt(this.value)) this.value = "70";
+									if (!parseInt(this.value)) this.value = Config.defaultFavoritesSize;
+									if (parseInt(this.value) < Config.minFavoritesSize) this.value = Config.minFavoritesSize;
 									
 									var cs = ClientState.getInstance().getViewSettings();
 									cs.favoritesSize = parseInt(this.value);
@@ -831,12 +764,14 @@ class Settings {
 								})
 							)
 						),
+						
 						$('<tr/>').append(
 							$('<td class="w-auto">Max. Number of Favorites</td>'),
 							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum ? ClientState.getInstance().getViewSettings().favoritesNum : "10") + '" />')
+								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum ? ClientState.getInstance().getViewSettings().favoritesNum : Config.defaultFavoritesAmount) + '" />')
 								.on('change', function() {
-									if (!parseInt(this.value)) this.value = "10";
+									if (!parseInt(this.value)) this.value = Config.defaultFavoritesAmount;
+									if (parseInt(this.value) < 1) this.value = 1;
 									
 									var cs = ClientState.getInstance().getViewSettings();
 									cs.favoritesNum = parseInt(this.value);
@@ -847,6 +782,7 @@ class Settings {
 								})
 							)
 						),
+						
 						$('<tr/>').append(
 							$('<td class="w-auto">Show current Document in Favorites</td>'),
 							$('<td colspan="2" />').append(
@@ -877,6 +813,123 @@ class Settings {
 						
 						$('<tr class="bg-primary" />').append(
 							[
+								$('<th scope="col">Navigation Settings</th>'),
+								$('<th scope="col"></th>'),
+								$('<th scope="col"></th>'),
+							]
+						),
+						
+						n.isMobile() ? null : $('<tr/>').append(
+							$('<td class="w-auto">Navigation Width</td>'),
+							$('<td colspan="2" />').append(
+								$('<input type="text" value="' + NoteTree.getInstance().getContainerWidth() + '" />')
+								.on('change', function() {
+									if (!parseFloat(this.value)) this.value = "";
+									if (parseFloat(this.value) < 0) this.value = "";
+									
+									if (Notes.getInstance().isMobile()) return;
+									NoteTree.getInstance().setContainerWidth(parseInt(this.value));
+									ClientState.getInstance().saveTreeState();
+									NoteTree.getInstance().refresh();
+								})
+							)
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Text Size</td>'),
+							$('<td colspan="2" />').append(
+								$('<input type="text" value="' + NoteTree.getInstance().getTreeTextSize() + '" />')
+								.on('change', function() {
+									if (parseFloat(this.value) < Config.minNavigationTextSize || !parseFloat(this.value)) this.value = Config.minNavigationTextSize;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									if (n.isMobile()) {
+										g.navTextSizeMobile = parseFloat(this.value);										
+									} else {
+										g.navTextSizeDesktop = parseFloat(this.value);
+									}
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							),
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Item Size</td>'),
+							$('<td/>').append(
+								$('<input type="text" value="' + DetailBehaviour.getItemHeight() + '" />')
+								.on('change', function() {
+									if (parseFloat(this.value) < Config.minDetailNavigationItemHeight || !parseFloat(this.value)) this.value = Config.minDetailNavigationItemHeight;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									if (n.isMobile()) {
+										g.detailItemHeightMobile = parseFloat(this.value);										
+									} else {
+										g.detailItemHeightDesktop = parseFloat(this.value);
+									}
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							),
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Animation Time</td>'),
+							$('<td colspan="2"/>').append(
+								$('<input type="text" value="' + MuuriGrid.getAnimationDuration() + '" />')
+								.on('change', function() {
+									if (parseInt(this.value) < Config.minDetailNavigationAnimationDuration || !parseInt(this.value)) this.value = Config.minDetailNavigationAnimationDuration;
+									
+									var g = ClientState.getInstance().getLocalSettings();
+									g.navigationAnimationDuration = parseInt(this.value);										
+									ClientState.getInstance().setLocalSettings(g);
+									
+									n.update();
+									
+									TreeActions.getInstance().requestTree()
+									.catch(function(err) {
+										Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+									});
+								})
+							)
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Navigation Mode</td>'),
+							$('<td colspan="2" />').append(
+								Behaviours.getModeSelector('settingsTreeModeSelectorList', ClientState.getInstance().getViewSettings().navMode)
+								.on('change', function(event) {
+									n.hideOptions();
+									
+									var s = ClientState.getInstance().getViewSettings();
+									s.navMode = this.value;
+									ClientState.getInstance().saveViewSettings(s);
+			
+									//NoteTree.getInstance().refresh();
+									n.routing.callSettings();
+								})
+							)
+						),
+					],
+					NoteTree.getInstance().getSettingsPanelContentTableRows('Ref Mode: Show '),
+					[
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						///////////////////////////////////////////////////////////////////////////////////////////////////
+						
+						$('<tr class="bg-primary" />').append(
+							[
 								$('<th scope="col" colspan="2">Import/Export of Documents</th>'),
 								$('<th scope="col"></th>'),
 							]
@@ -884,11 +937,31 @@ class Settings {
 						$('<tr/>').append(
 							$('<td class="w-auto">Internal</td>'),
 							$('<td colspan="2"/>').append([
+								!d.profileHandler.getCurrentProfile().clone ? null : $('<button class="btn btn-secondary settings-button">Replicate Notebook to URL</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									
+									var url = prompt('URL to replicate to: ');
+									if (!url) return;
+									
+									Notes.getInstance().routing.callConsole();
+									Database.getInstance().replicateLocalTo(url)
+									.catch(function(err) {
+										Notes.getInstance().showAlert("Error replicating to " + url);
+										
+										Console.log("Error replicating to " + url + ":", 'E');
+										Console.log(err);
+									});
+								}),
+								
+								!d.profileHandler.getCurrentProfile().clone ? null : $('<br>'),
+								
 								$('<button class="btn btn-secondary settings-button">Export Raw Data (JSON)</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
 									that.exportAll('json');
 								}),
+								
 								$('<button class="btn btn-secondary settings-button">Import Raw Data (JSON)</button>')
 								.on('click', function(event) {
 									event.stopPropagation();

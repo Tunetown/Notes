@@ -217,48 +217,13 @@ class NoteTree {
 	}
 	
 	/**
-	 * Updates the favorites bar
+	 * Ready to show favorites array, including sorting and pinned (starred) docs.
 	 */
-	updateFavorites() {
-		var c = ClientState.getInstance();
-		
-		var favBar = $('#favBar');
-		if (!favBar) return;
-
-		var that = this;
-		function clear() {
-			// Clear content and hide at first
-			favBar.empty();
-			favBar.css('height', 'auto');
-			that.showFavorites(false, true);
-		}
-		
+	getFavorites() {
 		var n = Notes.getInstance();
+		var c = ClientState.getInstance();
 		var d = n.getData();
-		if (!d) {
-			clear();			
-			return;
-		}
 		
-		// No favorites: Dont show anything
-		/*var favorites = c.getFavorites();
-		if (!favorites) {
-			clear();			
-			return;
-		}*/
-
-		// We have favorites: Check if the user wants to see them
-		var showFavorites = !c.getViewSettings().dontShowFavorites;
-		if (!showFavorites) {
-			clear();				
-			return;
-		}
-
-		// Should the currently opened document be shown?
-		var currentId = n.getCurrentlyShownId(true);
-		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
-		if (showCurrentInFavorites) currentId = false;
-
 		// Add favorites and starred documents with ranks higher than the normal favs, last changed first.
 		var starred = d.getStarredDocs();
 		
@@ -270,6 +235,11 @@ class NoteTree {
 			});
 		}
 
+		// Should the currently opened document be shown in the favorites?
+		var currentId = n.getCurrentlyShownId(true);
+		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
+		if (showCurrentInFavorites) currentId = false;
+		
 		// Get favorites as array
 		var favorites = c.getFavorites();
 		var favsSorted = [];
@@ -295,21 +265,61 @@ class NoteTree {
 				if (!found)	favsSorted.push(fav);
 		    }
 		}
+		
+		// Sort
+		function compareFavs(b, a) {
+			return (a.rank ? a.rank : 0) - (b.rank ? b.rank : 0); 
+		}
+		
+		favsSorted.sort(compareFavs);
+		starredSorted.sort(compareFavs);
 
-		if ((favsSorted.length == 0) && (starredSorted.length == 0)) {
+		return {
+			starred: starredSorted,
+			favorites: favsSorted
+		}
+	}
+	
+	/**
+	 * Updates the favorites bar
+	 */
+	updateFavorites() {
+		var c = ClientState.getInstance();
+		
+		var favBar = $('#favBar');
+		if (!favBar) return;
+
+		var that = this;
+		function clear() {
+			// Clear content and hide at first
+			favBar.empty();
+			favBar.css('height', 'auto');
+			that.showFavorites(false, true);
+		}
+		
+		var n = Notes.getInstance();
+		var d = n.getData();
+		if (!d) {
+			clear();			
+			return;
+		}
+		
+		// We have favorites: Check if the user wants to see them
+		var showFavorites = !c.getViewSettings().dontShowFavorites;
+		if (!showFavorites) {
+			clear();				
+			return;
+		}
+
+		const favs = this.getFavorites();
+		
+		if ((favs.favorites.length == 0) && (favs.starred.length == 0)) {
 			clear();				
 			return;
 		}
 		
-		// Sort favorites
-		function compareFavs(b, a) {
-			return (a.rank ? a.rank : 0) - (b.rank ? b.rank : 0); 
-		}
-		favsSorted.sort(compareFavs);
-		starredSorted.sort(compareFavs);
-		
 		// Check if there have been changes
-		var cmp = Tools.hashCode(JSON.stringify(favsSorted) + '-' + JSON.stringify(starredSorted));
+		var cmp = Tools.hashCode(JSON.stringify(favs));
 		if (this.lastRenderedFavs == cmp) {
 			return;
 		}
@@ -318,19 +328,13 @@ class NoteTree {
 		
 		// Changed favorites: Update them. First we need a container and some other elements.
 		var favSize = c.getViewSettings().favoritesSize;
-		if (!favSize) favSize = 70;
+		if (!favSize) favSize = Config.defaultFavoritesSize;
 
 		const teaserWidth = 30;   // Width of the teasers
 		var leftTeaser = $('<div class="beforeFavScrollTeaser"></div>')
-			/*.append(
-				$('<span class="favScrollTeaserIcon fa fa-chevron-left"></span>')
-			)*/
 			.css('height', (favSize + 7) + 'px')
 			.css('width', teaserWidth);
 		var rightTeaser = $('<div class="afterFavScrollTeaser"></div>')
-			/*.append(
-				$('<span class="favScrollTeaserIcon fa fa-chevron-right"></span>')
-			)*/
 			.css('height', (favSize + 7) + 'px')
 			.css('width', teaserWidth);
 			
@@ -369,14 +373,14 @@ class NoteTree {
 		cont.css('height', (favSize + 7) + 'px');
 		
 		var favoritesNum = c.getViewSettings().favoritesNum;
-		if (!favoritesNum) favoritesNum = 10;
+		if (!favoritesNum) favoritesNum = Config.defaultFavoritesAmount;
 
 		// Add the favorites to the bar
-		for(var i=0; i<starredSorted.length; ++i) {
-			this.addFavoriteToBar(cont, starredSorted[i]);
+		for(var i=0; i<favs.starred.length; ++i) {
+			this.addFavoriteToBar(cont, favs.starred[i]);
 		}
-		for(var i=0; i<favsSorted.length && i<favoritesNum; ++i) {
-			this.addFavoriteToBar(cont, favsSorted[i]);
+		for(var i=0; i<favs.favorites.length && i<favoritesNum; ++i) {
+			this.addFavoriteToBar(cont, favs.favorites[i]);
 		}
 
 		// Teasers
@@ -702,20 +706,27 @@ class NoteTree {
 	createHandler(event) {
 		var that = NoteTree.getInstance();
 		that.commonButtonHandler(event);
-		that.block();
+		//that.block();
 		
 		const n = Notes.getInstance();
 		DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
 		.then(function(data) {
-			that.unblock();
+			//that.unblock();
 			if (data.message) {
 				n.showAlert(data.message, "S", data.messageThreadId);
 			}
 		})
 		.catch(function(err) {
-			that.unblock();
+			//that.unblock();
 			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		});
+	}
+	
+	favoritesHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		
+		Notes.getInstance().editorFavoritesButtonHandler(event);
 	}
 	
 	settingsHandler(event) {
@@ -842,18 +853,23 @@ class NoteTree {
 			n.useFooter() ? null : $('<div id="' + this.treeRootSettingsSwitchContainer + '" />').append(
 				// Settings Button
 				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog treeModeSwitchbutton roundedButton" id="treeSettingsButton"></div>')
-					.on('click', this.settingsHandler)
-					.append(
+					.on('click', this.settingsHandler),
+					/*.append(
 						$('<div id="treeSettingsPanel"></div>')
 						.on('click', function(event) {
 							event.stopPropagation();
 						})
-					),
+					),*/
 				
 				// Link navigation to editor Button
 				$('<div data-toggle="tooltip" title="" class="fa fa-link treeModeSwitchbutton roundedButton" id="treeLinkButton"></div>')
 					.on('click', this.linkageHandler)
 			),
+			
+			$('<div id="treeSettingsPanel"></div>')
+				.on('click', function(event) {
+					event.stopPropagation();
+				}),
 			
 			$('<div id="treeblock"></div>')
 		);
@@ -1015,33 +1031,37 @@ class NoteTree {
 		if (n.useFooter()) {
 			n.setFooterContent([
 				// Back Button
-				$('<div data-toggle="tooltip" title="Back" class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
+				$('<div class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
 					.on('click', this.backHandler),
 					
 				// Forward Button
-				$('<div data-toggle="tooltip" title="Forward" class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
+				$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
 					.on('click', this.forwardHandler),
 
 				// Home Button
-				$('<div data-toggle="tooltip" title="Home" class="fa fa-home footerButton" id="treeHomeButton"></div>')
+				$('<div class="fa fa-home footerButton" id="treeHomeButton"></div>')
 					.on('click', this.homeHandler),
 				
 				// Create note
-				$('<div data-toggle="tooltip" title="Create Document" class="fa fa-plus footerButton"></div>')
+				$('<div class="fa fa-plus footerButton"></div>')
 					.on('click', this.createHandler),
 					
-				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
-					.on('click', this.settingsHandler)
-					.append(
+				// Favorites
+				$('<div class="fa fa-star footerButton"></div>')
+				.on('click', this.favoritesHandler),
+				
+				/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
+					.on('click', this.settingsHandler),
+					/*.append(
 						$('<div id="treeSettingsPanel"></div>')
 						.on('click', function(event) {
 							event.stopPropagation();
 						})
-					),
+					),*/
 				
 				// Link navigation to editor Button
-				$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
-					.on('click', this.linkageHandler)
+				/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
+					.on('click', this.linkageHandler)*/
 			]);
 		} else {
 			n.setFooterContent();
@@ -1067,6 +1087,11 @@ class NoteTree {
 	}
 	
 	updateLinkageButtons() {
+		if (Notes.getInstance().isMobile()) {
+			$('#treeLinkButton').css('display', 'none');
+			return;
+		}
+		
 		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
 		$('#treeLinkButton').css('display', (!this.supportsLinkNavigationToEditor()) ? 'none' : 'block');
 		
@@ -1150,7 +1175,7 @@ class NoteTree {
 		
 		// Focus if linked
 		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
-		if (linkToEditor == 'on') {
+		if ((!Notes.getInstance().isMobile()) && (linkToEditor == 'on')) {
 			this.focus(id, true);
 		}
 	}
@@ -1180,6 +1205,12 @@ class NoteTree {
 		this.behaviour.appForwardButtonPushed();
 	}
 	
+	getSettingsPanelContentTableRows(prefixText) {
+		if (!this.behaviour) return [];
+		if (typeof this.behaviour.getSettingsPanelContentTableRows !== 'function') return [];
+		return this.behaviour.getSettingsPanelContentTableRows(prefixText);
+	}
+	
 	/**
 	 * Builds the settings panel part which depends on the behaviour.
 	 */
@@ -1187,11 +1218,6 @@ class NoteTree {
 		$('#treeSettingsPanel').empty();
 		if (!this.behaviour) return;
 			
-		var behaviourRows = [];
-		if (typeof this.behaviour.getSettingsPanelContentTableRows === 'function') {
-			behaviourRows = this.behaviour.getSettingsPanelContentTableRows();
-		}
-		
 		var that = this;
 		$('#treeSettingsPanel').append(
 			$('<table></table>')
@@ -1214,7 +1240,7 @@ class NoteTree {
 							})
 						)
 					),
-					behaviourRows
+					this.getSettingsPanelContentTableRows()
 				)
 			)
 		);
@@ -1225,6 +1251,12 @@ class NoteTree {
 	 */
 	showSettingsPanel(doShow) {
 		$('#treeSettingsPanel').css('display', doShow ? 'block' : 'none');
+		
+		if (doShow) {
+			const n = Notes.getInstance();
+			
+			$('#treeSettingsPanel').css('bottom', n.isMobile() ? '8px' : ((n.getRoundedButtonSize() * 2 + 30) + 'px'));
+		}
 	}
 	
 	isSettingsPanelVisible() {
@@ -1256,6 +1288,13 @@ class NoteTree {
 	focus(id, fromLinkage) {
 		this.behaviour.focus(id, fromLinkage);
 		this.setSelected(id);
+	}
+	
+	/**
+	 * Returns the currently focussed ID if this is supported by the behaviour, or '' if not.
+	 */
+	getFocussedId() {
+		return this.behaviour.getFocusedId();
 	}
 	
 	/**
@@ -1424,7 +1463,7 @@ class NoteTree {
 		}
 		
 		// Default
-		return Notes.getInstance().isMobile() ? 22 : 18;
+		return Notes.getInstance().isMobile() ? Config.defaultNavigationTextSizeMobile : Config.defaultNavigationTextSizeDesktop;
 	}
 	
 	/**

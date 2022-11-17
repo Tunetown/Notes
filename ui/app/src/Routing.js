@@ -111,10 +111,31 @@ class Routing {
 				.then(function(data) {
 					that.app.resetPage(true);
 					that.app.setStatusText();
-					return Promise.resolve({
-						ok: true,
-						startAppData: data
-					});
+					
+					if (that.app.isMobile()) {
+						// Mobile: Reset selection (in mobile mode we just use URL navigation for everything)
+						if (data.treePromise) {
+							return data.treePromise
+							.then(function() {
+								NoteTree.getInstance().focus('');
+								return Promise.resolve({
+									ok: true,
+									startAppData: data
+								});
+							});
+						} else {
+							NoteTree.getInstance().focus('');
+							return Promise.resolve({
+								ok: true,
+								startAppData: data
+							});
+						}
+					} else {
+						return Promise.resolve({
+							ok: true,
+							startAppData: data
+						});						
+					}
 				})
 			};
 			this.get('#/:profile', function(context) {
@@ -173,7 +194,7 @@ class Routing {
 			this.get('#/:profile/settings', function(context) {
 				that.app.startApp(this.params['profile'])
 				.then(function(data) {
-					return Promise.resolve(data.settingsPromise)
+					return Promise.all([data.settingsPromise, data.treePromise])
 					.then(function(data) {
 						that.app.resetPage();
 						Settings.getInstance().load();
