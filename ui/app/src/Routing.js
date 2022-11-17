@@ -201,7 +201,7 @@ class Routing {
 					})
 					.catch(function(err) {
 						that.app.resetPage();
-						that.app.setStatusText('No settings found', 'W');
+						that.app.setStatusText('No settings found');
 						Settings.getInstance().load();
 					});
 				})

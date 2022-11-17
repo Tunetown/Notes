@@ -1618,7 +1618,44 @@ class NoteTree {
 	 * Applies the current filter to the grid. 
 	 */
 	filter(noAnimations) {
-		if (!this.grid) return true;
+		var that = this;
+
+		if (this.filterRunning) {
+			/*if (this.nextFilter) {
+				console.log("Skipping filter");	
+			}*/
+			
+			// Already filter running: Specify the next one to perform.
+			this.nextFilter = {
+				noAnimations: noAnimations,
+			};
+			return Promise.resolve();
+		}
+		
+		// No filter running: Directly run it. 
+		//console.log("Starting new filter (queue length: " + this.filterQueue.length + ")");
+		
+		that.filterRunning = true;
+		return this.#filterInternal(noAnimations)
+		.then(function() {
+			that.filterRunning = false;
+			//console.log("Stopped filter (queue length: " + that.filterQueue.length + ")");
+			
+			if (that.nextFilter) {
+				const noAn = that.nextFilter.noAnimations;
+				that.nextFilter = null;
+				return that.filter(noAn);
+			} else {
+				return Promise.resolve();
+			}
+		});
+	}
+	
+	/**
+	 * Internal filter function, only called by the filter promise queue.
+	 */
+	#filterInternal(noAnimations) {
+		if (!this.grid) return Promise.resolve();
 
 		this.behaviour.beforeFilter(noAnimations);
 		
@@ -1649,6 +1686,7 @@ class NoteTree {
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
 					//that.behaviour.restoreScrollPosition();
+					//console.log("Stop Filter")
 					resolve();
 				}
 			} : {
@@ -1658,6 +1696,7 @@ class NoteTree {
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
 					//that.behaviour.restoreScrollPosition();
+					//console.log("Stop Filter")
 					resolve();
 				}
 			});
@@ -1667,6 +1706,7 @@ class NoteTree {
 			return DocumentAccess.getInstance().loadAllDocuments()
 			.then(function() { 
 				return new Promise(function(resolve/*, reject*/) {
+					//console.log("Start Filter")
 					that.updateDomItems(true);
 					
 					doFilter(resolve);
@@ -1674,6 +1714,7 @@ class NoteTree {
 			});
 		} else {
 			return new Promise(function(resolve/*, reject*/) {
+				//console.log("Start Filter")
 				that.updateDomItems(true);
 				
 				doFilter(resolve);

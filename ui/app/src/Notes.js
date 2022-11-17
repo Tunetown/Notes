@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.6';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.7';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -718,7 +718,7 @@ class Notes {
 		this.setCurrentEditor();
 		this.setCurrentPage();
 		
-		this.setMoveSelector();
+		this.setHeaderSelector();
 		this.allowViewportScaling(false);
 		this.hideMenu();
 		
@@ -819,6 +819,7 @@ class Notes {
 		
 		const n = Notes.getInstance();
 		var selector = n.getFavoritesSelector('footerFavoritesSelector');
+		selector.val('');
 		
 		n.showGenericDialog(
 			// Init
@@ -836,9 +837,11 @@ class Notes {
 					)
 				);
 				
-				selector.selectize({
-					sortField: 'text'
-				});
+				setTimeout(function() {
+					selector.selectize({
+						sortField: 'text'
+					});
+				}, 0);
 				
 				// TODO Open selector immediately (seems to be difficult)
 			},
@@ -849,7 +852,7 @@ class Notes {
 			},
 		);
 	}
-	
+		
 	/**
 	 * Delivers a select element containing the favorites and pinned (starred) documents.
 	 */
@@ -939,7 +942,8 @@ class Notes {
 						$('<span data-toggle="tooltip" title="Offline" class="fa fa-plane headerElementLeft" id="onlineStatus"/>'),
 					]),
 					
-					$('<span id="headerMoveSelectorContainer" />'),
+					$('<span id="headerPathContainer" />')
+					.on('click', this.headerSelectDocumentHandler),
 
 					$('<span id="headerText"></span>').append([
 						$('<span id="loadedNote"></span>'),
@@ -1523,8 +1527,8 @@ class Notes {
 		$('#headerText').css('font-size', size * (20/55) + 'px');
 		$('#headerText').css('padding-top', size * (12/55) + 'px');
 
-		$('#headerMoveSelectorContainer').css('font-size', size * (20/55) + 'px');
-		$('#headerMoveSelectorContainer').css('padding-top', size * (12/55) + 'px');
+		$('#headerPathContainer').css('font-size', size * (20/55) + 'px');
+		$('#headerPathContainer').css('padding-top', size * (12/55) + 'px');
 		
 		// Right header
 		this.setHeaderButtonSize($('.headerButton'), size);
@@ -1574,39 +1578,99 @@ class Notes {
 			$('#loadedNote').on('click', function(event) {
 				clickCallback(event);
 			});
-			$('#loadedNote').css('cursor', 'pointer');
 		} else {
-			$('#loadedNote').css('cursor', 'auto');
+			$('#loadedNote').on('click', this.headerSelectDocumentHandler);
+			//$('#loadedNote').css('cursor', 'auto');
 		}
+
+		$('#loadedNote').css('cursor', 'pointer');
 	}
 	
 	/**
-	 * Shows the move target selector for the given ID, or hides it if id is falsy.
+	 * Event handler which lets the user select another document to open.
 	 */
-	setMoveSelector(id) {
+	headerSelectDocumentHandler(e) {
+		e.stopPropagation();
+		
+		const n = Notes.getInstance();
+		var selector = n.getMoveTargetSelector(false, true);
+		selector.val('');
+		
+		n.showGenericDialog(
+			// Init
+			function(dialog, e, resolve, reject) {
+				dialog.find('.modal-content').append(
+					$('<div class="modal-header"><h5 class="modal-title">Open Document:</h5></div>'),
+					$('<div class="modal-body"></div>').append(
+						selector
+						.on('change', function(/*event*/) {
+				        	var target = this.value;
+					        
+							dialog.modal('hide');
+							Notes.getInstance().routing.call(target);
+						})
+					)
+				);
+				
+				setTimeout(function() {
+					selector.selectize({
+						sortField: 'text'
+					});
+				}, 0);
+				
+				// TODO Open selector immediately (seems to be difficult)
+			},
+			
+			// Hide
+			function(dialog, e, resolve, reject) {
+				resolve();
+			},
+		);
+	}
+
+	/**
+	 * Shows the header target selector for the given ID, or hides it if id is falsy.
+	 */
+	setHeaderSelector(id) {
 		if (!this.getData()) return;
 		
 		if (!id) { 
-			$('#headerMoveSelectorContainer').empty();
-			this.currentMoveTargetId = false;
+			$('#headerPathContainer').empty();
 			return;
 		}
 		
 		var doc = this.getData().getById(id);
 		if (!doc) return null;
 
-		if (this.currentMoveTargetId == id) return;
+		$('#headerPathContainer').empty();
+		if (doc.parent) {
+			$('#headerPathContainer').text(this.getData().getReadablePath(doc.parent));
+		}
+		
+		/*
+		if (!this.getData()) return;
+		
+		if (!id) { 
+			$('#headerPathContainer').empty();
+			this.currentHeaderSelectorTargetId = false;
+			return;
+		}
+		
+		var doc = this.getData().getById(id);
+		if (!doc) return null;
 
-		$('#headerMoveSelectorContainer').empty();
+		if (this.currentHeaderSelectorTargetId == id) return;
+
+		$('#headerPathContainer').empty();
 
 		var selector = this.getMoveTargetSelector([id]);
 		selector.val(doc.parent);
 		selector.addClass('headerMoveSelector');
 		
 		var that = this;
-		$('#headerMoveSelectorContainer').append(
+		$('#headerPathContainer').append(
 			selector
-			.on('change', function(/*event*/) {
+			.on('change', function() {
 	        	var target = this.value;
 	        	
 	        	Tools.adjustSelectWidthToValue($(this));
@@ -1630,7 +1694,8 @@ class Notes {
 		this.setMainColor($('header').css('background-color'));
 		this.setTextColor($('header').css('color'));
 		
-		this.currentMoveTargetId = id;
+		this.currentHeaderSelectorTargetId = id;
+		*/
 	}
 
 	/**
@@ -1798,7 +1863,7 @@ class Notes {
 		$('section').css('min-height', $('#treecontainer').outerHeight() + 20);
 		
 		// Update move target selector if there is an active editor and the currently shown selector is out of date
-		this.setMoveSelector(this.getCurrentlyShownId(true));
+		this.setHeaderSelector(this.getCurrentlyShownId(true));
 
 		// For small screens, the left header display also needs to be restricted (causing an ellipsis there possibly)
 		if ($('#headerLeft').offset()) {

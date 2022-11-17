@@ -179,9 +179,10 @@
 	text-shadow: 0 3px 3px rgba(255, 255, 255, 0.3);
 }
 
-#headerMoveSelectorContainer {
+#headerPathContainer {
 	display: inline-block;
 	vertical-align:top;
+	cursor: pointer;
 	
 	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
 	user-select: none; /* supported by Chrome and Opera */

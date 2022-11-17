@@ -849,8 +849,8 @@ class Board {
 		if (doc) txt = doc.name + (n.isMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
 
 		// Show loaded note in the header bar 
-		var that = this;
-		n.setStatusText(txt, function(event) {
+		//var that = this;
+		n.setStatusText(txt/*, function(event) {
 			event.stopPropagation();
 			that.hideOptions();	
 			
@@ -865,7 +865,7 @@ class Board {
 			.catch(function(err) {
 				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
-		});
+		}*/ );
 	}
 	
 	/**

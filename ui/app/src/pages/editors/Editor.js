@@ -193,8 +193,8 @@ class Editor {
 		if (data) txt = data.name + (n.isMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
 
 		// Show loaded note in the header bar 
-		var that = this;
-		n.setStatusText(txt, function(event) {
+		//var that = this;
+		n.setStatusText(txt /*, function(event) {
 			event.stopPropagation();
 			that.hideOptions();	
 			
@@ -209,7 +209,7 @@ class Editor {
 			.catch(function(err) {
 				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
-		});
+		}*/ );
 	}
 	
 	/**
