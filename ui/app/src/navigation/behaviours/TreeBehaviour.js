@@ -495,7 +495,6 @@ class TreeBehaviour {
 		case 'note':       return 'fa fa-file'; 
 		case 'reference':  return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
 		case 'attachment': return 'fa fa-paperclip';             
-		case 'sheet':      return 'fa fa-table'; 
 		}
 		return '';
 	}
@@ -511,8 +510,7 @@ class TreeBehaviour {
 			'fa fa-file',
 			'fa fa-paperclip',
 			'fa fa-long-arrow-alt-right',
-			'fa fa-paperclip',
-			'fa fa-table'
+			'fa fa-paperclip'
 		]
 	}
 	

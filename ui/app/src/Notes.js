@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.7';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.8';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -487,23 +487,7 @@ class Notes {
 			    });
 		}
 	}
-	
-	/**
-	 * Checks if the notebook contains sheets and displays a warning in this case.
-	 * TODO remove when sheets are finally removed in the future.
-	 */
-	warnSheetsUsed() {
-		var that = this;
 		
-		this.getData().each(function(doc, quit) {
-			if (doc.type == 'sheet') {
-				that.showAlert('This notebook contains sheets, which will become obsolete soon! Please remove them before updating the app the next time.<br>You can use "type:sheet" to search for sheet documents.', 'W');		
-				
-				quit();
-			}
-		});
-	}
-	
 	/**
 	 * Disables the back swipe gesture. 
 	 * Taken from https://www.outsystems.com/forums/discussion/77514/disable-swipe-to-previous-screen-some-android-and-ios/
@@ -585,16 +569,6 @@ class Notes {
 		/*if (this.isMobile()) {
 			this.disableBackSwipe();
 		}*/
-				
-		// Set up a requestTree callback which warns the user if sheets are still used.
-		// TODO: Remove when sheets are finally removed completely in the future. 
-		Callbacks.getInstance().registerCallback(
-			'sheetWarning',
-			'requestTree',
-			function() {
-				that.warnSheetsUsed();
-			}
-		);
 				
 		// Initialize database instance with the user ID. This is started asynchronously. After the database(s)
 		// is/are up, the settings, notes tree and the last loaded note are requested independently.

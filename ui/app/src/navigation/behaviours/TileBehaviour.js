@@ -675,7 +675,6 @@ class TileBehaviour {
 		case 'note':       return 'fa fa-file'; 
 		case 'reference':  return 'fa fa-long-arrow-alt-right';  // Should not be called anymore! Refs are shown differently now.
 		case 'attachment': return 'fa fa-paperclip';             
-		case 'sheet':      return 'fa fa-table'; 
 		}
 		return '';
 	}
@@ -690,8 +689,7 @@ class TileBehaviour {
 			'fa fa-plus treeicon-tile-folder-closed',
 			'fa fa-file',
 			'fa fa-long-arrow-alt-right',
-			'fa fa-paperclip',
-			'fa fa-table'
+			'fa fa-paperclip'
 		]
 	}
 	

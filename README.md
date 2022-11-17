@@ -107,5 +107,6 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Mobile: More convenient footer instead of rounded buttons like in desktop mode
     - Restructured Settings page
     - On click header status text: Quick open document
+    - Removed sheet type, removed luckysheet
     
     

@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.96.7.a';
+const PRECACHE = 'notes_precache-v0.96.8.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -33,15 +33,6 @@ const PRECACHE_URLS = [
   './ui/lib/selectize/selectize.min.js',
   './ui/lib/jquery.color-2.1.2.min.js',
 
-  './ui/lib/luckysheet/pluginsCss.css',
-  './ui/lib/luckysheet/plugins.css',
-  './ui/lib/luckysheet/luckysheet.css',
-  './ui/lib/luckysheet/iconfont.css',
-  './ui/lib/luckysheet/loading.gif',
-  './ui/lib/luckysheet/waffle_sprite.png',
-  './ui/lib/luckysheet/EwaAntH.gif',
-  './ui/lib/luckysheet/EwaAntV.gif',
-  
   './ui/lib/bootstrap/bootstrap.min.css',
   './ui/lib/fa/css/all.min.css',
 
@@ -63,8 +54,6 @@ const PRECACHE_URLS = [
   './ui/app/css/Editor.css',
 
   './ui/lib/jquery-min.js',
-  './ui/lib/luckysheet/luckysheet.umd.js',
-  './ui/lib/luckysheet/plugin.js',
   './ui/lib/bootstrap/bootstrap.min.js',     
   './ui/lib/tinymce/tinymce.min.js',
   './ui/lib/muuri/muuri.min.js',
@@ -132,7 +121,6 @@ const PRECACHE_URLS = [
   './ui/app/src/menus/PageMenu.js',
   './ui/app/src/menus/ContextMenu.js',
   './ui/app/src/pages/editors/Editor.js',
-  './ui/app/src/pages/editors/Sheet.js',
   './ui/app/src/pages/editors/Board.js',
   './ui/app/src/pages/editors/Code.js',
   './ui/app/src/pages/Profiles.js',

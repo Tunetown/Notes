@@ -1687,7 +1687,7 @@ class DetailBehaviour {
 		}
 		
 		if (doc.type == 'attachment') return DetailBehaviour.iconClassAttachment; 
-		if (doc.type == 'reference') return DetailBehaviour.iconClassReference;   // Should not be called anymore! Refs are shown differently now.
+		if (doc.type == 'reference') return DetailBehaviour.iconClassReference;
 		return '';
 	}
 	

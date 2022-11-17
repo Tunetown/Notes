@@ -840,7 +840,6 @@ class Document {
 					if ( 
 						(doc.type != "note") && 
 						(doc.type != "attachment") &&
-						(doc.type != "sheet") &&
 						(doc.type != "reference")
 					) return; 
 					
@@ -899,7 +898,6 @@ class Document {
 					if (
 						(doc.type != "note") &&
 						(doc.type != "attachment") &&
-						(doc.type != "sheet") &&
 						(doc.type != "reference")
 					) return;
 					
@@ -918,7 +916,6 @@ class Document {
 					if (
 						(doc.type != "note") &&
 						(doc.type != "attachment") &&
-						(doc.type != "sheet") &&
 						(doc.type != "reference")
 					) return;
 					
@@ -940,7 +937,6 @@ class Document {
 		return $('<select id="' + elementId + '">').append([
 			$('<option value="note" selected>Note</option>'),
 			$('<option value="reference">Reference</option>'),
-			//$('<option value="sheet">Spreadsheet</option>'),
 			$('<option value="attachment">Attachment</option>'),
 		]);
 	}
@@ -953,7 +949,6 @@ class Document {
 		return [ 
 			"attachment",
 			"note",
-			"sheet",
 			"reference",
 		];
 	}
@@ -988,8 +983,6 @@ class Document {
 	static getDocumentEditor(doc) {
 		if (!doc.type) throw new Error('No document type');
 		if (!Document.isTypeValid(doc.type)) throw new Error('Invalid document type: ' + doc.type);
-		
-		if (doc.type == 'sheet') return Sheet.getInstance();
 		
 		if (doc.type == 'note') {
 			if (doc.editor) {

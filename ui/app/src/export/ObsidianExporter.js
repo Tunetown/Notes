@@ -229,12 +229,6 @@ class ObsidianExporter {
 				break;
 			}
 			
-			// Sheets are not exported at all (obsolete)
-			case 'sheet': {
-				console.log(' ==>> WARNING: Sheets are obsolete and will not be exported: ' + meta.path);
-				break;
-			}
-			
 			// Attachments: We add these without content here, and store reference to it in a separate
 			// array. This is later used by linkDocuments() to reference the file in the corr. index note.
 			case 'attachment': {
@@ -972,11 +966,6 @@ class ObsidianExporter {
 					console.log(' ==>> WARNING: Board Export for ' + dp.path + ': Broken reference in board : ' + doc.name);
 					return null;
 				}
-			}
-			
-			if (doc.type == 'sheet') {
-				console.log(' -> Board Export for ' + dp.path + ': Ignoring sheet (obsolete): ' + doc.name);
-				return null;
 			}
 			
 			var ret = that.getPreppedDocById(docsPrepped, doc._id);
