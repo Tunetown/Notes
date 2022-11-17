@@ -117,6 +117,14 @@ class TreeBehaviour {
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	backButtonPushed(event) {
+		Notes.getInstance().back(); 
+	}
+	
+	/**
+	 * Called when the back button of the tree has been pushed, if visible.
+	 */
+	forwardButtonPushed(event) {
+		Notes.getInstance().forward();
 	}
 	
 	/**
@@ -129,14 +137,14 @@ class TreeBehaviour {
 	 * Called after the back button in the app header has been pushed.
 	 */
 	appBackButtonPushed() {
-		return false;
+		Notes.getInstance().browserBack(); 
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
 	 */
 	appForwardButtonPushed() {
-		return false;
+		Notes.getInstance().browserForward();
 	}
 	
 	/**

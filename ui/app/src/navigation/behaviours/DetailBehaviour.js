@@ -125,26 +125,6 @@ class DetailBehaviour {
 	 */
 	backButtonPushed(event) {
 		Notes.getInstance().back();  
-		
-		/*if (this.grid.getSearchText()) {
-			this.grid.setSearchText('');
-			return;
-		}
-		
-		if (this.mode == 'ref') {
-			// Back to last selected
-			if (!this.lastSelectedParent) return;
-			
-			this.selectParent(this.lastSelectedParent);
-		} else {
-			// Back to parent
-			if (!this.selectedParent) return;
-			
-			var doc = Notes.getInstance().getData().getById(this.selectedParent);
-			if (!doc) return;
-			
-			this.selectParent(doc.parent);
-		}*/
 	}
 	
 	/**
