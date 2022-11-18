@@ -1175,7 +1175,7 @@ class NoteTree {
 		
 		// Focus if linked
 		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
-		if ((!Notes.getInstance().isMobile()) && (linkToEditor == 'on')) {
+		if (Notes.getInstance().isMobile() || (linkToEditor == 'on')) {
 			this.focus(id, true);
 		}
 	}

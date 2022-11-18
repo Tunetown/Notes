@@ -57,6 +57,8 @@ Config.minNavigationTextSize = 10;
 
 Config.minDetailNavigationItemHeight = 10;
 
+Config.defaultDetailNavigationAnimationDurationDesktop = 60;
+Config.defaultDetailNavigationAnimationDurationMobile = 100;
 Config.minDetailNavigationAnimationDuration = 10;
 
 Config.defaultFavoritesSize = 65;
@@ -67,7 +69,7 @@ Config.minFavoritesSize = 20;
  * Name of the root node if it needs to be shown to the user. Leave this 
  * empty for normal usage.
  */
-Config.ROOT_NAME = '';
+Config.ROOT_NAME = 'Notebook Home';
 
 /**
  * Offset for the context option menus, seen from the event cursor position.

@@ -893,7 +893,11 @@ class Settings {
 									if (parseInt(this.value) < Config.minDetailNavigationAnimationDuration || !parseInt(this.value)) this.value = Config.minDetailNavigationAnimationDuration;
 									
 									var g = ClientState.getInstance().getLocalSettings();
-									g.navigationAnimationDuration = parseInt(this.value);										
+									if (n.isMobile()) {
+										g.navigationAnimationDurationMobile = parseInt(this.value);										
+									} else {
+										g.navigationAnimationDurationDesktop = parseInt(this.value);
+									}
 									ClientState.getInstance().setLocalSettings(g);
 									
 									n.update();

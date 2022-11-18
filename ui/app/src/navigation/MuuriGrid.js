@@ -38,14 +38,22 @@ class MuuriGrid {
 	
 	static getAnimationDuration() {
 		var g = ClientState.getInstance().getLocalSettings();
+		const n = Notes.getInstance();
+		
 		if (g) {
-			if (g.navigationAnimationDuration) {
-				return parseInt(g.navigationAnimationDuration);
+			if (n.isMobile()) {
+				if (g.navigationAnimationDurationMobile) {
+					return parseInt(g.navigationAnimationDurationMobile);
+				}
+			} else {
+				if (g.navigationAnimationDurationDesktop) {
+					return parseInt(g.navigationAnimationDurationDesktop);
+				}
 			}
 		}
 		
 		// Default
-		return 50;
+		return n.isMobile() ? Config.defaultDetailNavigationAnimationDurationMobile : Config.defaultDetailNavigationAnimationDurationDesktop;
 	}
 	
 	/**

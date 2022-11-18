@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.10';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.12';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1680,7 +1680,7 @@ class Notes {
 		var selector = $('<select></select>');
 		
 		var ids = excludeRoot ? [] : [{
-			text: Config.ROOT_NAME + ' /',
+			text: '/',
 			id: ''
 		}];
 

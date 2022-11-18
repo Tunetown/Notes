@@ -46,7 +46,7 @@ class DetailBehaviour {
 		// kept here)
 		this.rootDocument = {
 			_id: '',
-			name: 'Notebook Home',
+			name: Config.ROOT_NAME,
 			type: 'root'
 		};
 		

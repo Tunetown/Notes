@@ -282,12 +282,12 @@ class DocumentActions {
 
 			$('#createWarnIcon').css('display', 'none');
 			$('#createWarnText').css('display', 'none');
-			//$('#createWarnText').html('Name already exists');
+			$('#createWarnText').html('This Name already exists in the notebook. This is totally supported, however it but can be confusing when searching documents.');
 			
 			$('#createNameInput').off('input');
 			$('#createNameInput').on('input', function(/*e*/) {
 				// Warning disabled as we can have identical names since long time.
-				/*var val = $(this).val();
+				var val = $(this).val();
 				
 				if ((typeSelector.val() == 'reference') || !val || !val.length) {
 					$('#createWarnIcon').css('display', 'none');
@@ -300,7 +300,7 @@ class DocumentActions {
 					var ex = n.getData().documentNameExists(val);
 					$('#createWarnIcon').css('display', ex ? 'inline-block' : 'none');
 					$('#createWarnText').css('display', ex ? 'inline-block' : 'none');
-				}, 300);*/
+				}, 300);
 			});
 			
 			$('#newRootText').html(doc ? doc.name : Config.ROOT_NAME);

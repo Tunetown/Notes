@@ -754,7 +754,7 @@ class Data {
 		ret.push(doc.name ? doc.name : doc._id);
 		
 		if (!doc.parentDoc) {
-			ret.push(Config.ROOT_NAME);  
+			ret.push('');  
 			return ret;
 		} else {
 			return this.getReadablePathRec(doc.parentDoc, ret);
