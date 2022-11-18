@@ -41,7 +41,7 @@ class NoteTree {
 	 */
 	init(noAnimation) {
 		var that = this;
-		
+
 		// Get behaviour instance depending on the view mode
 		this.initBehaviour();
 		

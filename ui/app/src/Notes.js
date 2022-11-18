@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.9';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.96.10';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -841,7 +841,7 @@ class Notes {
 		const that = this;
 		function addOption(id) {
 			selector.append(
-				$('<option value="' + id + '">' + that.formatSelectOptionText(id) + '</option>')
+				$('<option value="' + id + '">' + that.formatSelectOptionText(that.getData().getReadablePath(id, null, true)) + '</option>')
 			);
 		}
 		
