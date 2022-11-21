@@ -330,15 +330,15 @@ class NoteTree {
 		var favSize = c.getViewSettings().favoritesSize;
 		if (!favSize) favSize = Config.defaultFavoritesSize;
 
-		const teaserWidth = 30;   // Width of the teasers
-		var leftTeaser = $('<div class="beforeFavScrollTeaser"></div>')
-			.css('height', (favSize + 7) + 'px')
+		const teaserWidth = Config.favoritesTeaserWidth;   // Width of the teasers
+		var leftTeaser = $('<div class="navteaser beforeFavScrollTeaser"></div>')
+			.css('height', (favSize + Config.favoritesMargin) + 'px')
 			.css('width', teaserWidth);
-		var rightTeaser = $('<div class="afterFavScrollTeaser"></div>')
-			.css('height', (favSize + 7) + 'px')
+		var rightTeaser = $('<div class="navteaser afterFavScrollTeaser"></div>')
+			.css('height', (favSize + Config.favoritesMargin) + 'px')
 			.css('width', teaserWidth);
 			
-		const teaserFadeWidth = 10;  // Scroll position at which the fade of the teaser starts
+		const teaserFadeWidth = Config.favoritesTeaserFadeStartWidth;  // Scroll position at which the fade of the teaser starts
 		function updateTeasers(container) {
 			var maxScrollLeft = cont.prop('scrollWidth') - container.outerWidth();
 			if (maxScrollLeft <= 0) {
@@ -369,8 +369,8 @@ class NoteTree {
 				updateTeasers(cont);
 			});
 		
-		favBar.css('height', (favSize + 7) + 'px');
-		cont.css('height', (favSize + 7) + 'px');
+		favBar.css('height', (favSize + Config.favoritesMargin * 2) + 'px');
+		cont.css('height', (favSize + Config.favoritesMargin) + 'px');
 		
 		var favoritesNum = c.getViewSettings().favoritesNum;
 		if (!favoritesNum) favoritesNum = Config.defaultFavoritesAmount;

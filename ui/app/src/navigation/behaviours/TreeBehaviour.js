@@ -268,7 +268,8 @@ class TreeBehaviour {
 				$('<div class="' + this.getItemTextClass() + '">' + additionalTextBefore + doc.name + additionalTextAfter + '</div>'),
 			]).append(
 				// Labels
-				Document.getLabelElements(doc, 'doc-label-tree')
+				Document.getLabelElements(doc, 'doc-label-tree'),
+				Document.getTagElements(doc, 'doc-hashtag-tree')
 			),
 			
 			// Drag handle (dynamically blended in)
@@ -287,6 +288,12 @@ class TreeBehaviour {
 		labels.css('max-width', this.treeFontSize + 'px');
 		labels.css('min-height', this.treeFontSize + 'px');
 		labels.css('max-height', this.treeFontSize + 'px');
+		
+		var tags = itemContent.find('.doc-hashtag');
+		tags.css('min-width', this.treeFontSize + 'px');
+		tags.css('max-width', this.treeFontSize + 'px');
+		tags.css('min-height', this.treeFontSize + 'px');
+		tags.css('max-height', this.treeFontSize + 'px');
 		
 		var data = Notes.getInstance().getData();
 		var hasChildren = data.hasChildren(doc._id);

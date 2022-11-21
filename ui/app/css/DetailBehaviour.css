@@ -181,7 +181,6 @@
 	transform: translate(0, -50%);
 	margin-left: 2px;
 	flex: 0 0 auto;
-	border-radius: 4px !important;
 	cursor: default !important;
 }
 

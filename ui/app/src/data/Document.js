@@ -1308,7 +1308,7 @@ class Document {
 		var ret = [];
 		
 		for(var i in tags || []) {
-			var el = $('<div data-id="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-label ' + (cssClass ? cssClass : '') + '"></div>');
+			var el = $('<div data-id="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-hashtag ' + (cssClass ? cssClass : '') + '"></div>');
 		
 			var col = Hashtag.getColor(tags[i]);
 			

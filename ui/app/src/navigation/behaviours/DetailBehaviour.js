@@ -1256,6 +1256,12 @@ class DetailBehaviour {
 		labels.css('min-height', this.treeFontSize + 'px');
 		labels.css('max-height', this.treeFontSize + 'px');
 		
+		const tags = itemContent.find('.doc-hashtag');
+		tags.css('min-width', this.treeFontSize + 'px');
+		tags.css('max-width', this.treeFontSize + 'px');
+		tags.css('min-height', this.treeFontSize + 'px');
+		tags.css('max-height', this.treeFontSize + 'px');
+
 		this.setItemLabelAlignment(itemContent, !meta.isSelectedParent);
 		
 		const showSelector = this.multiSelect && (!meta.isParentOfSelectedParent);

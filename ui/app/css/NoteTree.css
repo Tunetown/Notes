@@ -250,3 +250,7 @@
 	color: darkgrey;
 	text-align: center;
 }
+
+.navteaser {
+	pointer-events: none;
+}

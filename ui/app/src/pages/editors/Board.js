@@ -264,7 +264,9 @@ class Board {
 											}
 										);
 									}),
-								Document.getLabelElements(subList[i], 'doc-label-board')
+									
+								Document.getLabelElements(subList[i], 'doc-label-board'),
+								Document.getTagElements(subList[i], 'doc-hashtag-board')
 							),
 							
 							$('<div class="board-item-content-preview">' + preview + '</div>')
@@ -480,11 +482,17 @@ class Board {
 		$('.board-container').css('min-width', (boardWidth + 10) + "px");
 
 		// Labels size
-		var labels = $('.doc-label-board');
+		var labels = $('.doc-label');
 		labels.css('min-width', "16px");
 		labels.css('max-width', "16px");
 		labels.css('min-height', "16px");
 		labels.css('max-height', "16px");
+		
+		var tags = $('.doc-hashtag');
+		tags.css('min-width', "16px");
+		tags.css('max-width', "16px");
+		tags.css('min-height', "16px");
+		tags.css('max-height', "16px");
 		
 		// Item height in general
 		if (itemElements.length != itemHdrs.length) throw new Error('Internal error creating Board: item element mismatch');

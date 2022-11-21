@@ -812,7 +812,7 @@ class Editor {
 		const tag = Editor.extractTagFromElement($(event.currentTarget)); //.text();
 		if (!tag) return;
 		
-		if (event.ctrlKey) {
+		if (event.ctrlKey || event.metaKey) {
 			const currentId = Editor.getInstance().getCurrentId();
 			Notes.getInstance().routing.callHashtags(currentId);
 		} else {

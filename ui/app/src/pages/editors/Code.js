@@ -67,6 +67,7 @@ class Code {
 				mode: that.getEditorLanguage(),
 				extraKeys: ec,
 				hintOptions: {
+					completeSingle: false,
 					hint: function(cm, option) {
 						return that.handleAutoComplete(cm, option);
 					}, 
@@ -639,7 +640,7 @@ class Code {
 		const tag = $(event.currentTarget).text().substring(Hashtag.startChar.length);
 		if (!tag) return;
 		
-		if (event.ctrlKey) {
+		if (event.ctrlKey || event.metaKey) {
 			const currentId = Code.getInstance().getCurrentId();
 			Notes.getInstance().routing.callHashtags(currentId);
 		} else {
