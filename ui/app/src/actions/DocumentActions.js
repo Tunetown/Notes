@@ -543,14 +543,9 @@ class DocumentActions {
 			}
 			
 			// Undo step
-			UndoManager.getInstance().add({
-				type: UndoManager.STEP_TYPE_DOCUMENT_BASED,
-				name: 'Save content of ' + (data.name ? data.name : data._id),
-				doc: Document.clone(data),
-				finishedCallback: function(step) {
-					Notes.getInstance().routing.call(step.doc._id); // TODO
-					return Promise.resolve();
-				}
+			UndoManager.getInstance().addDocumentBased({
+				name: 'Save content of "' + (data.name ? data.name : data._id) + '"',
+				doc: Document.clone(data)
 			})
 			
 			// Create version

@@ -38,6 +38,7 @@ class ClientState {
 		this.cidSearchProposals = "sp";
 		this.cidExperimentalFunctions = "ex";
 		this.cidLocalSettings = "se";
+		this.cidUndoHistory = "ud";
 	}
 	
 	/**
@@ -60,6 +61,21 @@ class ClientState {
 	 */
 	getLocalSettings() {
 		return this.getLocal(this.cidLocalSettings, true);
+	}
+	
+	/**
+	 * Undo history: Set data.
+	 */
+	setUndoHistory(data) {
+		this.setLocal(this.cidUndoHistory, data);
+	}
+	
+	/**
+	 * Undo history: Get data.
+	 */
+	getUndoHistory() {
+		console.log(this.getLocal(this.cidUndoHistory));
+		return this.getLocal(this.cidUndoHistory);
 	}
 	
 	/**

@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.97.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.97.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1408,6 +1408,8 @@ class Notes {
 		UndoManager.getInstance().undo()
 		.then(function(stepdata) {
 			that.showAlert('Rolled back step "' + stepdata.name + '"', 'I', 'UndoMessages');
+			//that.routing.refresh();
+			location.reload();
 		});
 	}
 	
@@ -1426,6 +1428,8 @@ class Notes {
 		UndoManager.getInstance().redo()
 		.then(function(stepdata) {
 			that.showAlert('Re-done step "' + stepdata.name + '"', 'I', 'UndoMessages');
+			//that.routing.refresh();
+			location.reload();
 		});
 	}
 	

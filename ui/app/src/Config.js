@@ -166,3 +166,7 @@ Config.favoritesMargin = 7;
 Config.favoritesTeaserWidth = 30;
 Config.favoritesTeaserFadeStartWidth = 10;
 
+/**
+ * Undo history
+ */
+Config.undoMaxHistorySize = 100;

@@ -110,6 +110,6 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Removed sheet type, removed luckysheet
     
 - 0.97.0
-    - Undo/Redo
+    - Undo/Redo prepared as experimental feature
     
     
