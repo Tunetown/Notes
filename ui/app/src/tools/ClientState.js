@@ -460,6 +460,20 @@ class ClientState {
 	}
 	
 	/**
+	 * Resets the focussing ID of the current tree state.
+	 */
+	resetTreeFocusId() {
+		var t = NoteTree.getInstance();
+		if (!t.behaviour) return;
+		
+		var state = this.getLocal(this.getTreeStateCid());
+		
+		t.behaviour.resetFocus(state);
+		
+		this.setLocal(this.getTreeStateCid(), state);
+	}
+	
+	/**
 	 * Returns the local storage item for the given internal ID
 	 */
 	getLocal(cid, generic) {

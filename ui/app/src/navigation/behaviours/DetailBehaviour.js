@@ -221,16 +221,22 @@ class DetailBehaviour {
 	}
 
 	/**
+	 * Removes the focus ID from state, so nothing will be restored later.
+	 */
+	resetFocus(state) {
+		if (state.detail && state.detail.sp) delete state.detail.sp;
+		this.selectedParent = '';
+	}
+
+	/**
 	 * Recover state info from the passed state object
 	 */
 	restoreState(state) {
 		if (!state.detail) return;
 		
-		if (state.detail.sp) {//&& !Notes.getInstance().isMobile()) {
+		if (state.detail.sp) {
 			this.selectParent(state.detail.sp);
-		}/* else {
-			this.selectParent('');
-		}*/
+		}
 		
 		if (state.detail.sortModes) {
 			this.sortModes = state.detail.sortModes;
@@ -2004,6 +2010,7 @@ class DetailBehaviour {
 		
 		this.lastSelectedParent = this.selectedParent;
 		
+		console.log(' -> Navigation: Select ' + id);
 		this.selectedParent = id;
 
 		if (!noHistoryAdd) this.addParentToHistory(this.selectedParent);

@@ -26,6 +26,8 @@ class Settings {
 		return Settings.instance;
 	}
 	
+	static settingsDocId = 'settings';
+	
 	constructor() {
 		this.settings = this.getDefaults();
 	}
@@ -146,7 +148,6 @@ class Settings {
 		var remoteList = [];
 		var profiles = d.profileHandler.getProfiles();
 		var currentP = d.profileHandler.getCurrentProfile().url;
-		//remoteList.push($('<option value="new">Add Notebook from CouchDB URL...</option>'));
 		for(var p in profiles) {
 			remoteList.push($('<option value="' + profiles[p].url + '" ' + ((profiles[p].url == currentP) ? 'selected' : '') + '>' + Tools.getBasename(profiles[p].url) + '</option>'));
 		}
@@ -973,26 +974,6 @@ class Settings {
 								}),
 							])
 						),	
-						$('<tr/>').append(
-							$('<td class="w-auto">Trello</td>'),
-							$('<td colspan="2"/>').append([
-								$('<button class="btn btn-secondary settings-button">Import Board from Trello (JSON)</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									new Import(new TrelloImporter()).startFileImport();
-								}),
-							])
-						),	
-						$('<tr/>').append(
-							$('<td class="w-auto">Obsidian</td>'),
-							$('<td colspan="2"/>').append([
-								$('<button class="btn btn-secondary settings-button">Export as ZIP of MD files</button>')
-								.on('click', function(event) {
-									event.stopPropagation();
-									that.exportAll('files');
-								}),
-							])
-						),	
 						
 						///////////////////////////////////////////////////////////////////////////////////////////////////
 						///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1147,7 +1128,7 @@ class Settings {
 								$('<button class="btn btn-secondary settings-button">Edit Raw Settings</button>')
 								.on('click', function(event) {
 									event.stopPropagation();
-									n.routing.callRawView('settings');
+									n.routing.callRawView(Settings.settingsDocId);
 								}),
 								
 								// Edit global-meta document
@@ -1191,6 +1172,49 @@ class Settings {
 								})
 							)
 						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Enable Undo/Redo</td>'),
+							$('<td colspan="2" />').append(
+								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? 'checked' : '') + ' />')
+								.each(function(i) {
+									var that = this;
+									setTimeout(function() {
+										new Switch(that, {
+											size: 'small',
+											onSwitchColor: '#337ab7',
+											disabled:  false,
+											onChange: function() {
+												ClientState.getInstance().enableExperimentalFunction(UndoManager.experimentalFunctionId, !!this.getChecked());
+												Notes.getInstance().update();
+											}
+										});
+									}, 0);
+								})
+							)
+						),
+						
+						$('<tr/>').append(
+							$('<td class="w-auto">Import from Trello</td>'),
+							$('<td colspan="2"/>').append([
+								$('<button class="btn btn-secondary settings-button">Import Board from Trello (JSON)</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									new Import(new TrelloImporter()).startFileImport();
+								}),
+							])
+						),	
+						$('<tr/>').append(
+							$('<td class="w-auto">Export to Obsidian</td>'),
+							$('<td colspan="2"/>').append([
+								$('<button class="btn btn-secondary settings-button">Export as ZIP of MD files</button>')
+								.on('click', function(event) {
+									event.stopPropagation();
+									that.exportAll('files');
+								}),
+							])
+						),	
+
 					]
 				)
 			),

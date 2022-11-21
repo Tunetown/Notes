@@ -288,6 +288,38 @@ class DocumentAccess {
 		});
 	}
 	
+	/**
+	 * Save raw document without revision (load it beforehand). Used by UndoManager.
+	 */
+	saveDbDocumentIgnoringRevision(doc) {
+		var n = Notes.getInstance();
+		n.getData().resetBacklinks();
+		n.getData().resetChildrenBuffers();
+		
+		var db;
+		var oldDoc;
+		return Database.getInstance().get()
+		.then(function(dbRef) {
+			db = dbRef;
+			
+			return db.get(doc._id);
+		})
+		.then(function(oldDocRef) {
+			oldDoc = oldDocRef;
+			
+			doc._rev = oldDoc._rev;
+			return db.put(doc);
+		})
+		.then(function(data) {
+			return Promise.resolve({
+				ok: data.ok,
+				oldDoc: oldDoc,
+				message: 'Saved ' + doc._id,
+				messageThreadId: 'SaveDbDocumentIgnoringRevisionMessages'
+			});
+		});
+	}
+	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	

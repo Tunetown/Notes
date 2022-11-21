@@ -32,7 +32,7 @@ class SettingsActions {
 	requestSettings() {
 		return Database.getInstance().get()
 		.then(function(db) {
-			return db.get('settings');
+			return db.get(Settings.settingsDocId);
 		})
 		.then(function (data) {
 			Settings.getInstance().set(data);
@@ -63,11 +63,17 @@ class SettingsActions {
 	saveSettings() {
 		var that = this;
 		
+		var db;
 		var doc;
 		return Database.getInstance().get()
-		.then(function(db) {
+		.then(function(_db) {
+			db = _db;
+			return db.get(Settings.settingsDocId);
+		})
+		.then(function (oldDoc) {
 			doc = Settings.getInstance().get();
-			doc._id = 'settings';
+			doc._id = Settings.settingsDocId;
+			doc._rev = oldDoc._rev;
 			
 			return db.put(doc);
 		})
@@ -101,7 +107,7 @@ class SettingsActions {
 	checkSettings() {
 		return Database.getInstance().get()
 		.then(function(db) {
-			return db.get('settings');
+			return db.get(Settings.settingsDocId);
 		})
 		.then(function (data) {
 			var errors = [];
@@ -113,7 +119,7 @@ class SettingsActions {
 			});
 		})
 		.then(function(data) {
-			return Database.getInstance().checkConflicts('settings')
+			return Database.getInstance().checkConflicts(Settings.settingsDocId)
 			.then(function(data2) {
 				var resp = Tools.mergeCheckResponses([data, data2]);
 				resp.numChecked = 1;

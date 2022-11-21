@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.96.13';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.97.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1351,6 +1351,14 @@ class Notes {
 				
 				$('<div class="userbutton" id="conflictsMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callConflicts()"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>'),
 				$('<div class="userbuttonLine"></div>'),
+
+				!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
+				$('<div class="userbutton" id="undoMenuItem" onclick="event.stopPropagation();Notes.getInstance().undo()"><div class="fa fa-undo userbuttonIcon"></div>Undo' + that.getNextUndoStepName() + '</div>'),
+				
+				!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
+				$('<div class="userbutton" id="redoMenuItem" onclick="event.stopPropagation();Notes.getInstance().redo()"><div class="fa fa-redo userbuttonIcon"></div>Redo' + that.getNextRedoStepName() + '</div>'),
+				
+				$('<div class="userbuttonLine"></div>'),
 				
 				$('<div class="userbutton" id="syncMenuButton" onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();"><div class="fa fa-sync userbuttonIcon"></div>Synchronize</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callSettings()"><div class="fa fa-cog userbuttonIcon"></div>Settings</div>'),
@@ -1364,6 +1372,60 @@ class Notes {
 			]);
 			 
 			$('#syncMenuButton').css('display', Database.getInstance().profileHandler.getCurrentProfile().clone ? 'block' : 'none');
+		});
+	}
+
+	/**
+	 * Get the name of the next possible undo step.
+	 */	
+	getNextUndoStepName() {
+		if (!UndoManager.getInstance().canUndo()) return ' not possible';
+		
+		return ' ' + UndoManager.getInstance().getNextUndoStep().name;
+	}
+	
+	/**
+	 * Get the name of the next possible undo step.
+	 */	
+	getNextRedoStepName() {
+		if (!UndoManager.getInstance().canRedo()) return ' not possible';
+		
+		return ' ' + UndoManager.getInstance().getNextRedoStep().name;
+	}
+
+	/**
+	 * Trigger undo.
+	 */
+	undo() {
+		this.hideMenu();
+		
+		if (!UndoManager.getInstance().canUndo()) {
+			this.showAlert('No undo possible', 'I', 'UndoMessages');
+			return;
+		}
+		
+		var that = this;
+		UndoManager.getInstance().undo()
+		.then(function(stepdata) {
+			that.showAlert('Rolled back step "' + stepdata.name + '"', 'I', 'UndoMessages');
+		});
+	}
+	
+	/**
+	 * Trigger redo.
+	 */
+	redo() {
+		this.hideMenu();
+		
+		if (!UndoManager.getInstance().canRedo()) {
+			this.showAlert('No redo possible', 'I', 'UndoMessages');
+			return;
+		}
+		
+		var that = this;
+		UndoManager.getInstance().redo()
+		.then(function(stepdata) {
+			that.showAlert('Re-done step "' + stepdata.name + '"', 'I', 'UndoMessages');
 		});
 	}
 	
@@ -1590,7 +1652,8 @@ class Notes {
 					selector.selectize({
 						sortField: 'text'
 					});
-				}, 0);
+					selector.val('');
+				}, 50);
 				
 				// TODO Open selector immediately (seems to be difficult)
 			},

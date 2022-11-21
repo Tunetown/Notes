@@ -36,6 +36,8 @@ class Hashtags {
 		var doc = null;
 		if (id) doc = n.getData().getById(id);
 
+		this.current = doc;
+
 		// Get list of tags
 		var tags = n.getData().getTags(doc ? [doc] : null);
 		
@@ -156,8 +158,10 @@ class Hashtags {
 	 * Set a tag's color in the global meta data document.
 	 */
 	setTagColor(tag, color) {
+		var that = this;
 		Hashtag.setColor(tag, color)
 		.then(function() {
+			Notes.getInstance().routing.callHashtags(that.current ? that.current._id : null);
 			return TreeActions.getInstance().requestTree();
 		});
 	}

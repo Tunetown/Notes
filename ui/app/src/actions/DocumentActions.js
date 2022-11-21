@@ -542,6 +542,17 @@ class DocumentActions {
 				});
 			}
 			
+			// Undo step
+			UndoManager.getInstance().add({
+				type: UndoManager.STEP_TYPE_DOCUMENT_BASED,
+				name: 'Save content of ' + (data.name ? data.name : data._id),
+				doc: Document.clone(data),
+				finishedCallback: function(step) {
+					Notes.getInstance().routing.call(step.doc._id); // TODO
+					return Promise.resolve();
+				}
+			})
+			
 			// Create version
 			var versionName = false;
 			if (Document.getContent(data)) {

@@ -109,4 +109,7 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - On click header status text: Quick open document
     - Removed sheet type, removed luckysheet
     
+- 0.97.0
+    - Undo/Redo
+    
     

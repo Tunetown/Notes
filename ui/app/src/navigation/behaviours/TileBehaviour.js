@@ -26,6 +26,12 @@ class TileBehaviour {
 	}
 	
 	/**
+	 * Removes the focus ID from memory, so nothing will be restored later.
+	 */
+	resetFocus() {
+	}
+
+	/**
 	 * Get currently focussed ID.
 	 */
 	getFocusedId() {

@@ -105,7 +105,7 @@ class Profiles {
 				$('<td class="profileSelectElementContainer"></td>').append(
 					$('<button class="btn btn-secondary profileSelectBtnFixed">Open Notebook from CouchDB URL...</button>')
 					.on('click', function() {
-						var url = prompt('CouchDB Address:');
+						var url = prompt('CouchDB Address:', Settings.getInstance().getDatabaseUrlProposal(Database.getInstance().profileHandler.getCurrentProfile().url));
 						if (!url) return;
 						
 						Database.getInstance().reset();

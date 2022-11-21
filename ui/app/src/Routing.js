@@ -112,30 +112,10 @@ class Routing {
 					that.app.resetPage(true);
 					that.app.setStatusText();
 					
-					if (that.app.isMobile()) {
-						// Mobile: Reset selection (in mobile mode we just use URL navigation for everything)
-						if (data.treePromise) {
-							return data.treePromise
-							.then(function() {
-								NoteTree.getInstance().focus('');
-								return Promise.resolve({
-									ok: true,
-									startAppData: data
-								});
-							});
-						} else {
-							NoteTree.getInstance().focus('');
-							return Promise.resolve({
-								ok: true,
-								startAppData: data
-							});
-						}
-					} else {
-						return Promise.resolve({
-							ok: true,
-							startAppData: data
-						});						
-					}
+					return Promise.resolve({
+						ok: true,
+						startAppData: data
+					});						
 				})
 			};
 			this.get('#/:profile', function(context) {
@@ -154,11 +134,18 @@ class Routing {
 			// Profile root with search text passed as URI parameter
 			this.get('#/:profile/search/:token', function(context) {
 				const token = this.params['token'];
+				
+				ClientState.getInstance().resetTreeFocusId();
+				
 				profileRoot(context, this.params)
 				.then(function(resp) {
-					if (!resp || !resp.ok || !token || !resp.startAppData) return Promise.reject();
+					if (!resp || !resp.ok || !token) return Promise.reject();
 					
-					return Promise.resolve(resp.startAppData.treePromise);
+					if (resp.startAppData && resp.startAppData.treePromise) {
+						return resp.startAppData.treePromise;
+					} else {
+						return Promise.resolve();
+					}
 				})
 				.then(function() {
 					NoteTree.getInstance().setSearchText(token);
@@ -167,26 +154,38 @@ class Routing {
 			
 			// Profile root with selected parent ID passed as URI parameter
 			this.get('#/:profile/select/', function(context) {
+				ClientState.getInstance().resetTreeFocusId();
+				
 				profileRoot(context, this.params)
 				.then(function(resp) {
-					if (!resp || !resp.ok || !resp.startAppData) return Promise.reject();
+					if (!resp || !resp.ok) return Promise.reject();
 					
-					return Promise.resolve(resp.startAppData.treePromise);
+					if (resp.startAppData && resp.startAppData.treePromise) {
+						return resp.startAppData.treePromise;
+					} else {
+						return Promise.resolve();
+					}
 				})
 				.then(function() {
 					NoteTree.getInstance().focus('');
 				});
 			});
-			this.get('#/:profile/select/:parent', function(context) {
-				const parent = this.params['parent'];
+			this.get('#/:profile/select/:id', function(context) {
+				ClientState.getInstance().resetTreeFocusId();
+				
+				const id = this.params['id'];
 				profileRoot(context, this.params)
 				.then(function(resp) {
-					if (!resp || !resp.ok || !resp.startAppData) return Promise.reject();
+					if (!resp || !resp.ok) return Promise.reject();
 					
-					return Promise.resolve(resp.startAppData.treePromise);
+					if (resp.startAppData && resp.startAppData.treePromise) {
+						return resp.startAppData.treePromise;
+					} else {
+						return Promise.resolve();
+					}
 				})
 				.then(function() {
-					NoteTree.getInstance().focus(parent ? parent : '');
+					NoteTree.getInstance().focus(id ? id : '');
 				});
 			});
 			
