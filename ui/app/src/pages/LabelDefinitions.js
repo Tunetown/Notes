@@ -53,7 +53,7 @@ class LabelDefinitions {
 		for(var i in labels || []) {
 			var label = labels[i];
 			if (!label.id) continue;
-			
+			 
 			// Is the label checked for the current document?
 			var docHasLabel = doc ? Document.hasLabel(doc, label.id) : false;
 			

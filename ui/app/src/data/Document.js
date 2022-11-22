@@ -1322,7 +1322,13 @@ class Document {
 				const data = $(this).data();
 				if (!data || !data.id) return;
 				
-				Notes.getInstance().routing.callSearch('tag:' + data.id, Notes.getInstance().getCurrentlyShownId());
+				if (event.ctrlKey || event.metaKey) {
+					Notes.getInstance().routing.callHashtags(data.id);
+				} else {
+					Hashtag.showTag(Hashtag.trim(data.id));
+				}
+		
+				//Notes.getInstance().routing.callSearch('tag:' + data.id, Notes.getInstance().getCurrentlyShownId());
 			})
 			
 			ret.push(el);

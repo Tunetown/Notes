@@ -1577,7 +1577,7 @@ class DocumentActions {
 			var tags = "";
 			for(var l in labels) {
 				const label = labels[l];
-				tags += Hashtag.startChar + (label.name ? label.name : label.id) + ' ';
+				tags += Hashtag.startChar + Hashtag.trim(label.name ? label.name : label.id) + ' ';
 			}
 			
 			if (doc.editor == 'code') {

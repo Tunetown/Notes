@@ -182,7 +182,7 @@ class PageMenu {
 	        $('<div class="userbuttonLine"></div>'),
 	        
 			// Tags
-	        options.noTags ? null : $('<div class="userbutton"><div class="fa fa-hashtag userbuttonIcon"></div>Tags</div>')
+	        options.noTags ? null : $('<div class="userbutton"><div class="fa fa-hashtag userbuttonIcon"></div>Hashtags</div>')
 	        .on('click', function(event) {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
