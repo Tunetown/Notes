@@ -543,10 +543,10 @@ class DocumentActions {
 			}
 			
 			// Undo step
-			UndoManager.getInstance().addDocumentBased({
+			/*UndoManager.getInstance().addDocumentBased({
 				name: 'Save content of "' + (data.name ? data.name : data._id) + '"',
-				doc: Document.clone(data)
-			})
+				doc: Document.clone(n.getData().getById(data._id))
+			})*/
 			
 			// Create version
 			var versionName = false;

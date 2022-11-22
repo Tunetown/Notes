@@ -290,7 +290,7 @@ class DocumentAccess {
 	
 	/**
 	 * Save raw document without revision (load it beforehand). Used by UndoManager.
-	 */
+	 *
 	saveDbDocumentIgnoringRevision(doc) {
 		var n = Notes.getInstance();
 		n.getData().resetBacklinks();
@@ -308,6 +308,8 @@ class DocumentAccess {
 			oldDoc = oldDocRef;
 			
 			doc._rev = oldDoc._rev;
+			
+			console.log(doc);
 			return db.put(doc);
 		})
 		.then(function(data) {

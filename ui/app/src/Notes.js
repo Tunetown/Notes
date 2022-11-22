@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.97.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.97.2';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1352,12 +1352,12 @@ class Notes {
 				$('<div class="userbutton" id="conflictsMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callConflicts()"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>'),
 				$('<div class="userbuttonLine"></div>'),
 
-				!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
+				/*!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
 				$('<div class="userbutton" id="undoMenuItem" onclick="event.stopPropagation();Notes.getInstance().undo()"><div class="fa fa-undo userbuttonIcon"></div>Undo' + that.getNextUndoStepName() + '</div>'),
 				
 				!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
 				$('<div class="userbutton" id="redoMenuItem" onclick="event.stopPropagation();Notes.getInstance().redo()"><div class="fa fa-redo userbuttonIcon"></div>Redo' + that.getNextRedoStepName() + '</div>'),
-				
+				*/
 				$('<div class="userbuttonLine"></div>'),
 				
 				$('<div class="userbutton" id="syncMenuButton" onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();"><div class="fa fa-sync userbuttonIcon"></div>Synchronize</div>'),
@@ -1377,7 +1377,7 @@ class Notes {
 
 	/**
 	 * Get the name of the next possible undo step.
-	 */	
+	 *
 	getNextUndoStepName() {
 		if (!UndoManager.getInstance().canUndo()) return ' not possible';
 		
@@ -1386,7 +1386,7 @@ class Notes {
 	
 	/**
 	 * Get the name of the next possible undo step.
-	 */	
+	 *
 	getNextRedoStepName() {
 		if (!UndoManager.getInstance().canRedo()) return ' not possible';
 		
@@ -1395,7 +1395,7 @@ class Notes {
 
 	/**
 	 * Trigger undo.
-	 */
+	 *
 	undo() {
 		this.hideMenu();
 		
@@ -1415,7 +1415,7 @@ class Notes {
 	
 	/**
 	 * Trigger redo.
-	 */
+	 *
 	redo() {
 		this.hideMenu();
 		

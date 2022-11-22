@@ -74,8 +74,13 @@ class ClientState {
 	 * Undo history: Get data.
 	 */
 	getUndoHistory() {
-		console.log(this.getLocal(this.cidUndoHistory));
-		return this.getLocal(this.cidUndoHistory);
+		var history = this.getLocal(this.cidUndoHistory);
+		if (!history.steps) {
+			history.steps = [];
+			history.position = -1;
+			this.setUndoHistory(history);
+		}
+		return history;
 	}
 	
 	/**

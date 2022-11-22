@@ -102,14 +102,12 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Small improvements in the Settings page
     - Improved UI design for navigation
     
-- 0.96.0
+- 0.97.0
     - Rework of back/forward navigation (now also selected parents are recorded)
     - Mobile: More convenient footer instead of rounded buttons like in desktop mode
     - Restructured Settings page
     - On click header status text: Quick open document
     - Removed sheet type, removed luckysheet
     
-- 0.97.0
-    - Undo/Redo prepared as experimental feature
     
     

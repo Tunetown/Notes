@@ -15,29 +15,19 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+ *
 class UndoManager {
 	
 	static experimentalFunctionId = 'UndoManager';
 	
 	/**
 	 * Singleton factory
-	 */
+	 *
 	static getInstance() {
 		if (!UndoManager.instance) UndoManager.instance = new UndoManager();
 		return UndoManager.instance;
 	}
 	
-	constructor() {
-		// Initialize local data if not yet done.	
-		var history = ClientState.getInstance().getUndoHistory();
-		if (!history.steps) {
-			history.steps = [];
-			history.position = -1;
-			ClientState.getInstance().setUndoHistory(history);
-		}
-	}
-
 	static STEP_TYPE_DOCUMENT_BASED = 'doc';
 	static STEP_TYPE_CALLBACK_BASED = 'callback';
 
@@ -61,28 +51,34 @@ class UndoManager {
 	 *   redoCallback: [Callback function for redoing, parameter: the step object itself],
 	 * }
 	 *  
-	 */
+	 *
 	add(step) {
-		var history = ClientState.getInstance().getUndoHistory();
+		if (!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId)) return;
 		
 		this.#checkStep(step);
-		this.#condense(history);
+		this.#condense();
+		
+		if (step.type == UndoManager.STEP_TYPE_DOCUMENT_BASED) {
+			// Deep clone the document in the step.
+			step.doc = JSON.parse(JSON.stringify(step.doc));
+		}
 		
 		// Add step
+		var history = ClientState.getInstance().getUndoHistory();
 		history.steps.push(step);
 		++history.position;
-		
-		this.#reduce(history);
-		this.#checkHistory(history);
-		
 		ClientState.getInstance().setUndoHistory(history);
 		
-		console.log(' -> UNDO MANAGER: Added step "' + step.name + '". Position: ' + history.position + ' of ' + history.steps.length);
+		this.#reduce();
+		
+		// DEBUG
+		if (ClientState.getInstance().getUndoHistory().position != (ClientState.getInstance().getUndoHistory().steps.length - 1)) throw new Error('Internal Error: Inconsisten UndoManager position');
+		console.log(' -> UNDO MANAGER: Added step "' + step.name + '". Position: ' + ClientState.getInstance().getUndoHistory().position + ' of ' + ClientState.getInstance().getUndoHistory().steps.length);
 	}
 	
 	/**
 	 * Shortcut for add() for document based steps.
-	 */
+	 *
 	addDocumentBased(step) {
 		step.type = UndoManager.STEP_TYPE_DOCUMENT_BASED;
 		this.add(step);
@@ -90,7 +86,7 @@ class UndoManager {
 	
 	/**
 	 * Shortcut for add() for callback based steps.
-	 */
+	 *
 	addCallbackBased(step) {
 		step.type = UndoManager.STEP_TYPE_CALLBACK_BASED;
 		this.add(step);
@@ -98,34 +94,32 @@ class UndoManager {
 	
 	/**
 	 * Is there a undo step to be undone? history is optional for internal use.
-	 */
-	canUndo(history) {
-		if (!history) history = ClientState.getInstance().getUndoHistory();
-		this.#checkHistory(history);
-
+	 *
+	canUndo() {
+		if (!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId)) return false;
+		
+		const history = ClientState.getInstance().getUndoHistory();
 		return history.position >= 0;
 	}
 	
 	/**
 	 * Is redoing possible? history is optional for internal use.
-	 */
-	canRedo(history) {
-		if (!history) history = ClientState.getInstance().getUndoHistory();
-		this.#checkHistory(history);
-
+	 *
+	canRedo() {
+		if (!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId)) return false;
+		
+		const history = ClientState.getInstance().getUndoHistory();
 		return (history.position < (history.steps.length - 1));
 	}
 	
 	/**
 	 * Returns the next undo step or null. history is optional for internal use.
-	 */
-	getNextUndoStep(history) {
-		if (!history) history = ClientState.getInstance().getUndoHistory();
-		this.#checkHistory(history);
-
-		if (!this.canUndo(history)) return null;
+	 *
+	getNextUndoStep() {
+		if (!this.canUndo()) return null;
 		
-		const step = history.steps[history.position];
+		const history = ClientState.getInstance().getUndoHistory();
+		var step = history.steps[history.position];
 		this.#checkStep(step);
 		
 		return step;
@@ -133,14 +127,12 @@ class UndoManager {
 	
 	/**
 	 * Returns the next redo step or null. history is optional for internal use.
-	 */
-	getNextRedoStep(history) {
-		if (!history) history = ClientState.getInstance().getUndoHistory();
-		this.#checkHistory(history);
+	 *
+	getNextRedoStep() {
+		if (!this.canRedo()) return null;
 
-		if (!this.canRedo(history)) return null;
-		
-		const step = history.steps[history.position + 1];
+		const history = ClientState.getInstance().getUndoHistory();
+		var step = history.steps[history.position + 1];
 		this.#checkStep(step);
 		
 		return step;
@@ -148,32 +140,38 @@ class UndoManager {
 	
 	/**
 	 * Undo last step. Returns a promise.
-	 */
+	 *
 	undo() {
-		var history = ClientState.getInstance().getUndoHistory();
-		this.#checkHistory(history);
-
-		if (!this.canUndo(history)) return Promise.resolve();
+		this.#checkHistory();
+		if (!this.canUndo()) return Promise.resolve();
 		
-		const step = this.getNextUndoStep(history);
-		--history.position;
+		var that = this;
+		function decreasePosition() {
+			var history = ClientState.getInstance().getUndoHistory();
+			--history.position;
+			ClientState.getInstance().setUndoHistory(history);
+			
+			that.#checkHistory();
+		}
+		
+		const step = this.getNextUndoStep();
 
 		if (step.type == UndoManager.STEP_TYPE_DOCUMENT_BASED) {
 			// Document undo step: These store the document to be saved to make the step undone.
-			return this.#performDocumentBasedUndoStep(history, step)
+			return this.#performDocumentBasedUndoStep()
 			.then(function() {
-				ClientState.getInstance().setUndoHistory(history);
-				return Promise.resolve(step);
-			});
+				decreasePosition();
+				return Promise.resolve();
+			})
 		}
 		
 		if (step.type == UndoManager.STEP_TYPE_CALLBACK_BASED) {
 			// Callback based undo step: Executes the passed callback with the undo step object as single parameter.
-			return this.#performCallbackBasedUndoStep(history, step)
+			return this.#performCallbackBasedUndoStep()
 			.then(function() {
-				ClientState.getInstance().setUndoHistory(history);
-				return Promise.resolve(step);
-			});
+				decreasePosition();
+				return Promise.resolve();
+			})
 		}
 		
 		throw new Error('Invalid undo step type: ' + step.type);
@@ -181,30 +179,42 @@ class UndoManager {
 
 	/**
 	 * Redo last undone step. Returns a promise.
-	 */
+	 *
 	redo() {
-		var history = ClientState.getInstance().getUndoHistory();
-		if (!this.canRedo(history)) return Promise.resolve();
+		this.#checkHistory();
+		if (!this.canRedo()) return Promise.resolve();
 
-		const step = this.getNextRedoStep(history);		
-		++history.position;
+		var that = this;
+		function increasePosition() {
+			var history = ClientState.getInstance().getUndoHistory();
+			++history.position;
+			ClientState.getInstance().setUndoHistory(history);
+			
+			that.#checkHistory();
+		}
+		
+		const step = this.getNextRedoStep();
 		
 		if (step.type == UndoManager.STEP_TYPE_DOCUMENT_BASED) {
+			console.log(' -> UNDO MANAGER: Step "' + step.name + '": Perform undo/redo for document ' + step.doc._id + '; New Position: ' + history.position + ' of ' + history.steps.length);
+
 			// Document redo step: These store the document to be saved to make the step undone.
-			return this.#performDocumentBasedRedoStep(history, step)
+			return this.#performDocumentBasedRedoStep()
 			.then(function() {
-				ClientState.getInstance().setUndoHistory(history);
-				return Promise.resolve(step);
-			});
+				increasePosition();
+				return Promise.resolve();
+			})
 		}
 		
 		if (step.type == UndoManager.STEP_TYPE_CALLBACK_BASED) {
+			console.log(' -> UNDO MANAGER: Step "' + step.name + '": Perform undo/redo by callback; New Position: ' + history.position + ' of ' + history.steps.length);
+		
 			// Callback based undo step: Executes the passed callback with the undo step object as single parameter.
-			return this.#performCallbackBasedRedoStep(history, step)
+			return this.#performCallbackBasedRedoStep()
 			.then(function() {
-				ClientState.getInstance().setUndoHistory(history);
-				return Promise.resolve(step);
-			});
+				increasePosition();
+				return Promise.resolve();
+			})
 		}
 		
 		throw new Error('Invalid undo step type: ' + step.type);
@@ -215,9 +225,11 @@ class UndoManager {
 	
 	/**
 	 * Document undo step: These store the document to be saved to make the step undone.
-	 */
-	#performDocumentBasedUndoStep(history, step) {
-		console.log(' -> UNDO MANAGER: Step "' + step.name + '": Perform undo for document ' + step.doc._id + '; New Position: ' + history.position + ' of ' + history.steps.length);
+	 *
+	#performDocumentBasedUndoStep() {
+		const that = this;
+		
+		var step = this.getNextUndoStep();
 		
 		// Save the document contained in the step.
 		return DocumentAccess.getInstance().saveDbDocumentIgnoringRevision(step.doc)
@@ -228,78 +240,111 @@ class UndoManager {
 			
 			step.redoDoc = resp.oldDoc;
 			
+			that.#replaceCurrentStep(step);
+			
 			return Promise.resolve(step);
 		});
 	}
 	
 	/**
 	 * Document redo step: The undo step before saved a redo document.
-	 */
-	#performDocumentBasedRedoStep(history, step) {
-		console.log(' -> UNDO MANAGER: Step "' + step.name + '": Perform redo for document ' + step.redoDoc._id + '; New Position: ' + history.position + ' of ' + history.steps.length);
-		
+	 *
+	#performDocumentBasedRedoStep() {
 		// Save the document contained in the step.
 		return DocumentAccess.getInstance().saveDbDocumentIgnoringRevision(step.redoDoc)
-		.then(function() {
+		.then(function(resp) {
+			if (!resp || !resp.ok || !resp.oldDoc) {
+				return Promise.reject();
+			}
+			
+			delete step.redoDoc;
+			
+			that.#replaceCurrentStep(step);
+			
 			return Promise.resolve(step);
 		});
 	}
 	
 	/**
 	 * Callback based undo step: Executes the passed undo callback with the undo step object as single parameter.
-	 */
-	#performCallbackBasedUndoStep(history, step) {
-		console.log(' -> UNDO MANAGER: Step "' + step.name + '": Perform undo by callback; New Position: ' + history.position + ' of ' + history.steps.length);
+	 *
+	#performCallbackBasedUndoStep() {
 		return step.undoCallback(step)
 		.then(function() {
+			if (!resp || !resp.ok || !resp.oldDoc) {
+				return Promise.reject();
+			}
+			
+			that.#replaceCurrentStep(step);
+			
 			return Promise.resolve(step);
 		});
 	}
 	
 	/**
 	 * Callback based redo step: Executes the passed redo callback with the undo step object as single parameter.
-	 */
-	#performCallbackBasedRedoStep(history, step) {
-		console.log(' -> UNDO MANAGER: Step "' + step.name + '": Perform redo by callback; New Position: ' + history.position + ' of ' + history.steps.length);
+	 *
+	#performCallbackBasedRedoStep() {
 		return step.redoCallback(step)
 		.then(function() {
+			if (!resp || !resp.ok || !resp.oldDoc) {
+				return Promise.reject();
+			}
+			
+			that.#replaceCurrentStep(step);
+			
 			return Promise.resolve(step);
 		});
 	}
 	
+	/**
+	 * Replaces the step at the current position with the passed one.
+	 *
+	#replaceCurrentStep(step) {
+		var history = ClientState.getInstance().getUndoHistory();
+		history.steps[history.position] = step;
+		ClientState.getInstance().setUndoHistory(history);
+	}
+
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * Removes all steps after the current position.
-	 */
-	#condense(history) {
+	 *
+	#condense() {
+		var history = ClientState.getInstance().getUndoHistory();
 		console.log(' -> UNDO MANAGER: Condensing history, current size: ' + history.steps.length + ' ...');
 		
 		while(history.steps.length > (history.position + 1)) {
 			history.steps.pop();
 		}
 		
-		this.#checkHistory(history);
+		ClientState.getInstance().setUndoHistory(history);
+		this.#checkHistory();
 		
-		console.log('              ... new size: ' + history.steps.length + ', position: ' + history.position);
+		console.log('              ... new size: ' + ClientState.getInstance().getUndoHistory().steps.length + ', position: ' + ClientState.getInstance().getUndoHistory().position);
 	}
 	
 	/**
 	 * Reduce if the max. amount of steps has been reached.
-	 */
-	#reduce(history) {
+	 *
+	#reduce() {
+		var history = ClientState.getInstance().getUndoHistory();
 		while(history.steps.length > Config.undoMaxHistorySize) {
 			console.log(' -> UNDO MANAGER: Max. size reached, removing first step');
 			
 			history.steps.shift();
 			--history.position;
 		}
+		
+		ClientState.getInstance().setUndoHistory(history);
+		this.#checkHistory();
 	}
 	
 	/**
 	 * Check step consistency.
-	 */
+	 *
 	#checkStep(step) {
 		if (!step) throw new Error('No step data');
 		if (!step.type) throw new Error('No step type');
@@ -321,12 +366,13 @@ class UndoManager {
 	
 	/**
 	 * Checks the history and position.
-	 */
-	#checkHistory(history) {
-		if (history.position != (history.steps.length - 1)) throw new Error('Internal Error: Inconsisten UndoManager position');
+	 *
+	#checkHistory() {
+		const history = ClientState.getInstance().getUndoHistory();
 		
-		if (history.position < 0) throw new Error('Invalid position: ' + history.position);
-		if (history.position >= history.steps.length) throw new Error('Invalid position: ' + history.position);
+		if ((history.steps.length == 0) && (history.position == -1)) return;
+		if (history.position < 0) throw new Error('Invalid position: ' + history.position + ' (size: ' + history.steps.length + ')');
+		if (history.position >= history.steps.length) throw new Error('Invalid position: ' + history.position + ' (size: ' + history.steps.length + ')');
 		
 		for(var i in history.steps) {
 			const step = history.steps[i];
@@ -335,7 +381,11 @@ class UndoManager {
 			
 			if (i > history.position) {
 				if (step.type == UndoManager.STEP_TYPE_DOCUMENT_BASED) {
-					if (!step.redoDoc) throw new Error('Internal Error: Undoed step "' + step.name + '" does not have a redo document at positon ' + i + ' of ' + history.steps.length);
+					if (!step.redoDoc) throw new Error('Internal Error: Undoed step "' + step.name + '" does not have a redo document at positon ' + i + ' of ' + history.steps.length + ' (current position: ' + history.position + ')');
+				}
+			} else {
+				if (step.type == UndoManager.STEP_TYPE_DOCUMENT_BASED) {
+					if (step.redoDoc) throw new Error('Internal Error: Step "' + step.name + '" has an illegal redo document at positon ' + i + ' of ' + history.steps.length + ' (current position: ' + history.position + ')');
 				}
 			}
 		}

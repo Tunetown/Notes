@@ -1173,7 +1173,7 @@ class Settings {
 							)
 						),
 						
-						$('<tr/>').append(
+						/*$('<tr/>').append(
 							$('<td class="w-auto">Enable Undo/Redo</td>'),
 							$('<td colspan="2" />').append(
 								$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? 'checked' : '') + ' />')
@@ -1192,7 +1192,7 @@ class Settings {
 									}, 0);
 								})
 							)
-						),
+						),*/
 						
 						$('<tr/>').append(
 							$('<td class="w-auto">Import from Trello</td>'),
