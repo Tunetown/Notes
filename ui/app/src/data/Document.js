@@ -1308,7 +1308,7 @@ class Document {
 		var ret = [];
 		
 		for(var i in tags || []) {
-			var el = $('<div data-id="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-hashtag ' + (cssClass ? cssClass : '') + '"></div>');
+			var el = $('<div data-id="' + (doc ? doc._id : '') + '" data-tag="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-hashtag ' + (cssClass ? cssClass : '') + '"></div>');
 		
 			var col = Hashtag.getColor(tags[i]);
 			
@@ -1320,15 +1320,13 @@ class Document {
 				event.stopPropagation();
 				
 				const data = $(this).data();
-				if (!data || !data.id) return;
+				if (!data || !data.tag) return;
 				
 				if (event.ctrlKey || event.metaKey) {
 					Notes.getInstance().routing.callHashtags(data.id);
 				} else {
-					Hashtag.showTag(Hashtag.trim(data.id));
+					Hashtag.showTag(data.tag);
 				}
-		
-				//Notes.getInstance().routing.callSearch('tag:' + data.id, Notes.getInstance().getCurrentlyShownId());
 			})
 			
 			ret.push(el);

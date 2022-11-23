@@ -173,7 +173,7 @@ class LabelDefinitions {
 			$('<div style="padding: 15px;"></div>').append(
 				$('<a style="cursor: pointer;">Convert all labels of ' + this.current.name + ' to hashtags</a>')
 				.on('click', function(event) {
-					DocumentActions.getInstance().convertLabelsToTags(that.current)
+					LabelActions.getInstance().convertLabelsToTags(that.current)
 					.then(function(ret) {
 						if (ret && ret.message) {
 							Notes.getInstance().showAlert(ret.message, 'S');

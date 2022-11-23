@@ -644,7 +644,7 @@ class Code {
 			const currentId = Code.getInstance().getCurrentId();
 			Notes.getInstance().routing.callHashtags(currentId);
 		} else {
-			Hashtag.showTag(Hashtag.trim(tag));
+			Hashtag.showTag(tag);
 		}
 	}
 }

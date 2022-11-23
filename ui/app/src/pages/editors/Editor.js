@@ -816,7 +816,7 @@ class Editor {
 			const currentId = Editor.getInstance().getCurrentId();
 			Notes.getInstance().routing.callHashtags(currentId);
 		} else {
-			Hashtag.showTag(Hashtag.trim(tag));
+			Hashtag.showTag(tag);
 		}
 	}
 	

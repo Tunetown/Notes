@@ -31,7 +31,7 @@ class Hashtag {
 	 * Hashtags must end with either a space, newline, carriage return or tab, or < and & signs to include HTML entities but exclude colors etc.,
 	 * and start with nothing, a new line, carriagne return, > sign or space or tab. 
 	 */
-	static parse(content/*, outsideTagsOnly*/) {
+	static parse(content) {
 		var coll = [];
 		var state = {};
 		for(var i=0; i<content.length; ++i) {
@@ -60,16 +60,12 @@ class Hashtag {
 	 *
 	 * Return a token descriptor if a token has been found.  
 	 */
-	static parseChar(c, pos, state, isAtEnd/*, outsideTagsOnly*/) {
+	static parseChar(c, pos, state, isAtEnd) {
 		function evalToken(endPos) {
 			state.capturing = false;
 			state.end = endPos;
 
 			if (state.start < state.end) {
-				/*var tmp1 = (!state.startingChar) 
-				var tmp2 = Hashtag.startingPreChars.indexOf(state.startingChar)
-				var tmp3 = Hashtag.terminationChars.indexOf(c)
-				var tmp4 = c.charCodeAt(0);*/
 				if (
 						(
 							(!state.startingChar) 
@@ -137,12 +133,10 @@ class Hashtag {
 	/**
 	 * Tries to guess what the tag might need to look like.
 	 */
-	static getColorProposal(tag) {
-		const tagL = tag.toLowerCase();
-		
+	static #getColorProposal(tag) {
 		for(var i in Config.tagNameColorProposals) {
 			const p = Config.tagNameColorProposals[i];
-			if (p && p.token && p.color && (tagL.indexOf(p.token.toLowerCase()) >= 0)) return p.color;
+			if (p && p.token && p.color && (tag.indexOf(p.token.toLowerCase()) >= 0)) return p.color;
 		}
 		
 		return Tools.getRandomColor();
@@ -154,11 +148,12 @@ class Hashtag {
 	 */
 	static getColor(tag) {
 		if (!tag) return Config.defaultHashtagColor;
+		tag = tag.toLowerCase();
 		
 		function randomColor() {
-			const col = Hashtag.getColorProposal(tag);
+			const col = Hashtag.#getColorProposal(tag);
 			
-			Hashtag.setColor(tag, col);
+			HashtagActions.getInstance().setColor(tag, col);
 			
 			return col;
 		}
@@ -180,6 +175,7 @@ class Hashtag {
 	 */
 	static hasColor(tag) {
 		if (!tag) return false;
+		tag = tag.toLowerCase();
 		
 		const meta = MetaActions.getInstance().meta[Hashtag.metaFileName];
 		if (!meta) return false;
@@ -191,30 +187,6 @@ class Hashtag {
 		if (!tagmeta.color) return false;
 		
 		return true;
-	}
-	
-	/**
-	 * Sets the tags color in global metadata. Returns a promise.
-	 */
-	static setColor(tag, color) {
-		if (!tag) return Promise.resolve();
-		
-		const m = MetaActions.getInstance();
-		var meta = m.meta[Hashtag.metaFileName];
-		if (!meta) meta = {};
-		
-		const hash = Tools.hashCode(tag);
-		if(!meta.hasOwnProperty(hash)) {
-			meta[hash] = {
-				tag: tag
-			};
-		}
-		
-		meta[hash].color = color;
-		
-		m.meta[Hashtag.metaFileName] = meta;
-		
-		return m.saveGlobalMeta();
 	}
 	
 	static stylePrefix = 'tag_';
@@ -233,6 +205,8 @@ class Hashtag {
 	 */
 	static showTag(tag) {
 		const n = Notes.getInstance();
+		
+		tag = Hashtag.trim(tag.toLowerCase());
 		
 		if (n.isMobile()) {
 			n.routing.callSearch('tag:' + tag);

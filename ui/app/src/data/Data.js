@@ -804,11 +804,12 @@ class Data {
 		this.each(function(doc) {
 			if (doc.tags) {
 				for(var i in doc.tags) {
-					if (doc.tags[i].toLowerCase().indexOf(tokenL) < 0) continue;
+					const tag = doc.tags[i].toLowerCase();
+					if (tag.indexOf(tokenL) < 0) continue;
 					
 					ret.push({
-						text: doc.tags[i],
-						id: doc.tags[i],
+						text: tag,
+						id: tag,
 					});
 				}
 			}
@@ -832,7 +833,7 @@ class Data {
 		if (docs) {
 			for(var i in docs) {
 				for(var t in docs[i].tags || []) {
-					ret.push(docs[i].tags[t]);
+					ret.push(docs[i].tags[t].toLowerCase());
 				}
 			}
 		} else {
@@ -840,7 +841,7 @@ class Data {
 				if (doc.deleted) continue;
 				
 				for(var t in doc.tags || []) {
-					ret.push(doc.tags[t]);
+					ret.push(doc.tags[t].toLowerCase());
 				}
 			}
 		}

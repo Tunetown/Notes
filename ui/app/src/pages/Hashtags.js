@@ -58,12 +58,18 @@ class Hashtags {
 			// Action buttons (only for current document's labels)
 			var butts = $('<span class="listOptionContainer" />').append(
 				[
-					$('<div data-toggle="tooltip" title="Search for documents with the tag" class="fa fa-search versionButton" data-id="' + tag + '"/>')
+					$('<div data-toggle="tooltip" title="Search for documents with the tag" class="fa fa-search versionButton" data-tag="' + tag + '"/>')
 					.on('click', function(e) {
 						e.stopPropagation();
-						var id = $(this).data().id;
-
-						NoteTree.getInstance().setSearchText('tag:' + id);
+						var tag = $(this).data().tag;
+						Hashtag.showTag(tag);
+					}),
+					
+					$('<div data-toggle="tooltip" title="Rename tag in all ' + numDocs.length + ' documents" class="fa fa-pencil-alt versionButton" data-tag="' + tag + '"/>')
+					.on('click', function(e) {
+						e.stopPropagation();
+						var tag = $(this).data().tag;
+						that.#renameTags(tag);
 					}),
 				]
 			);
@@ -96,7 +102,7 @@ class Hashtags {
 					        	event.stopPropagation();
 					        	var id = $(this).data().id;
 								
-								that.setTagColor(id, $(this).val());
+								that.#setTagColor(id, $(this).val());
 					        })
 						),
 
@@ -155,14 +161,54 @@ class Hashtags {
 	}
 	
 	/**
+	 * Prompt user for a new tag name and rename it in all documents. Returns a Promise.
+	 */
+	#renameTags(tag) {
+		var that = this;
+		
+		const n = Notes.getInstance();
+		const docs = n.getData().getDocumentsWithTag(tag);
+		
+		var doclist = '';
+		for(var i in docs) {
+			const doc = docs[i];
+			doclist += n.formatSelectOptionText(n.getData().getReadablePath(doc._id, null, true)) + '\n';
+		}
+		
+		var newTag = prompt('Enter the new tag name. The following documents will be updated: \n' + doclist, tag);
+		if (!newTag) {
+			n.showAlert('Action cancelled.', 'I', 'RenameTagMessages');
+			return;
+		}
+		
+		HashtagActions.getInstance().renameTag(tag, newTag)
+		.then(function(ret) {
+			if (ret && ret.message) {
+				n.showAlert(ret.message, 'S', 'RenameTagMessages');				
+			} else {
+				n.showAlert('Renamed ' + tag + ' to ' + newTag, 'S', 'RenameTagMessages');
+			}
+
+			n.routing.callHashtags(that.current ? that.current._id : null);
+		})
+		.catch(function(err) {
+			n.showAlert((err && err.message) ? err.message : 'Error renaming hashtag', 'E', 'RenameTagMessages');
+		})
+	}
+	
+	/**
 	 * Set a tag's color in the global meta data document.
 	 */
-	setTagColor(tag, color) {
+	#setTagColor(tag, color) {
 		var that = this;
-		Hashtag.setColor(tag, color)
+		
+		HashtagActions.getInstance().setColor(tag, color)
 		.then(function() {
 			Notes.getInstance().routing.callHashtags(that.current ? that.current._id : null);
-			return TreeActions.getInstance().requestTree();
-		});
+			TreeActions.getInstance().requestTree();
+		})
+		.catch(function(err) {
+			n.showAlert((err && err.message) ? err.message : 'Error setting hashtag color', 'E', 'SetTagColorMessages');
+		})
 	}
 }
