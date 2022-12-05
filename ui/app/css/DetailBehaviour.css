@@ -181,7 +181,7 @@
 	transform: translate(0, -50%);
 	margin-left: 2px;
 	flex: 0 0 auto;
-	cursor: default !important;
+	/*cursor: default !important;*/
 }
 
 .doc-label-detail-star {

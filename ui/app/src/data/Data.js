@@ -587,6 +587,34 @@ class Data {
 	}
 	
 	/**
+	 * Evaluate the search token. Returns if the document is visible for the given token.
+	 * normallyVisible tells us if the navigation behaviour would normally show the document
+	 * without a search token.
+	 */
+	evaluateSearch(doc, token, normallyVisible) {
+		const tokenNoPrefix = token.substring(1);
+		
+		// Filter shown items: Remove all that contain the token
+		if (token.startsWith('-')) {
+			if (tokenNoPrefix.length == 0) {
+				return normallyVisible;
+			}
+			return normallyVisible && !this.containsText(doc, tokenNoPrefix);
+		}
+		
+		// Filter shown items: Remove all that do not contain the token
+		if (token.startsWith('+')) {
+			if (tokenNoPrefix.length == 0) {
+				return normallyVisible;
+			}
+			return normallyVisible && this.containsText(doc, tokenNoPrefix);
+		}
+		
+		// No prefix: Show all items, regardless if they would normally be shown.
+		return this.containsText(doc, token);
+	}
+	
+	/**
 	 * Returns if the passed document contains the passed search string.
 	 */
 	containsText(doc, token) {
@@ -602,7 +630,7 @@ class Data {
 			var labels = this.getActiveLabelDefinitions(doc._id);
 			
 			for (var l in labels) {
-				if (labels[l].name.toLowerCase().search(tokenLowercase) != -1) {
+				if (labels[l].name.toLowerCase().indexOf(tokenLowercase) != -1) {
 					return true;
 				}
 			}
@@ -623,7 +651,7 @@ class Data {
 		// Name only search
 		if (token.startsWith('name:')) {
 			tokenLowercase = tokenLowercase.substring('name:'.length);
-			if (doc.name && (doc.name.toLowerCase().search(tokenLowercase) != -1)) {
+			if (doc.name && (doc.name.toLowerCase().indexOf(tokenLowercase) != -1)) {
 				return true;
 			}
 			return false;
@@ -632,7 +660,7 @@ class Data {
 		// Type only search
 		if (token.startsWith('type:')) {
 			tokenLowercase = tokenLowercase.substring('type:'.length);
-			if (doc.type && (doc.type.toLowerCase().search(tokenLowercase) != -1)) {
+			if (doc.type && (doc.type.toLowerCase().indexOf(tokenLowercase) != -1)) {
 				return true;
 			}
 			return false;
@@ -643,10 +671,10 @@ class Data {
 			if (!doc.star) return false;
 			
 			tokenLowercase = tokenLowercase.substring('fav:'.length);
-			if (doc.content && (doc.content.toLowerCase().search(tokenLowercase) != -1)) {
+			if (doc.content && (doc.content.toLowerCase().indexOf(tokenLowercase) != -1)) {
 				return true;
 			}
-			if (doc.name && (doc.name.toLowerCase().search(tokenLowercase) != -1)) {
+			if (doc.name && (doc.name.toLowerCase().indexOf(tokenLowercase) != -1)) {
 				return true;
 			}
 			return false;
@@ -655,13 +683,13 @@ class Data {
 		// Search in all fields //////////////////////////////////////////////////////
 		
 		// Name
-		if (doc.name && (doc.name.toLowerCase().search(tokenLowercase) != -1)) {
+		if (doc.name && (doc.name.toLowerCase().indexOf(tokenLowercase) != -1)) {
 			return true;
 		}
 		
 		// Content
 		if (!doc.content) return false;
-		if (doc.content.toLowerCase().search(tokenLowercase) != -1) {
+		if (doc.content.toLowerCase().indexOf(tokenLowercase) != -1) {
 			return true;
 		}
 		
@@ -669,7 +697,7 @@ class Data {
 		var labels = this.getActiveLabelDefinitions(doc._id);
 		
 		for (var l in labels) {
-			if (labels[l].name.toLowerCase().search(tokenLowercase) != -1) {
+			if (labels[l].name.toLowerCase().indexOf(tokenLowercase) != -1) {
 				return true;
 			}
 		}

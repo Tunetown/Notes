@@ -1570,7 +1570,20 @@ class NoteTree {
 					'<li>' +
 						'<b>type:[...]</b> only shows documents with the specified type (possible types are: note, attachment, reference)' +  
 					'</li>' + 
-				'</ul>'; 
+				'</ul>' + 
+				'<br>' + 
+				'<span class="serachhelptext">Additionally, you can prefix the search with a + or - sign:</span>' + 
+				'<br>' + 
+				'<ul>' + 
+					'<li>' +
+						'<b>+[...]</b> searches in the currently visible items only instead of all documents' +  
+					'</li>' + 
+					'<li>' +
+						'<b>-[...]</b> just filters out the items that match the search (also using the currently visible items as basis, not all)' +  
+					'</li>' + 
+				'</ul>' + 
+				'<br>';
+				
 
 			var props = ClientState.getInstance().getSearchProposals();
 			for(var i in props) {

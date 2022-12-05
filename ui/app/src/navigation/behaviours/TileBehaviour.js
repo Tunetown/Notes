@@ -350,18 +350,24 @@ class TileBehaviour {
 	 * Returns if the doc should be shown
 	 */
 	isItemVisible(doc, searchText) {
+		const show = this.#doShowItem(doc);
+		
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
-			return Notes.getInstance().getData().containsText(doc, searchText);
+			return Notes.getInstance().getData().evaluateSearch(doc, searchText, show);
+		} else {
+			return show;
 		}
-		
+	}
+	
+	#doShowItem(doc) {
 		// For conflicts, show them always when the document itself is shown and expanded
 		// Always show root items
 		if (!doc.parentDoc) return true;
 		
 		if (!this.expander.isExpanded(doc.parent)) return false;
 
-		return this.isItemVisible(doc.parentDoc);
+		return this.#doShowItem(doc.parentDoc);
 	}
 	
 	/**

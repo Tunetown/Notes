@@ -1286,13 +1286,21 @@ class DetailBehaviour {
 	 * Returns if the doc should be shown
 	 */
 	isItemVisible(doc, searchText) {
-		var d = Notes.getInstance().getData();
-		var selectedDoc = d.getById(this.selectedParent);
-
+		const show = this.#doShowItem(doc);
+		
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
-			return d.containsText(doc, searchText);
+			const meta = this.getItemRefTypeDescriptor(doc);
+			
+			return Notes.getInstance().getData().evaluateSearch(doc, searchText, show && !meta.isParentOfSelectedParent);
+		} else {
+			return show;
 		}
+	}
+	
+	#doShowItem(doc) {
+		var d = Notes.getInstance().getData();
+		var selectedDoc = d.getById(this.selectedParent);
 		
 		if (this.selectedParent == doc._id) return true;
 		

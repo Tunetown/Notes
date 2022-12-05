@@ -163,7 +163,7 @@ Config.focusColor = '#c40cf7';
  * Favorites
  */
 Config.favoritesMargin = 7;
-Config.favoritesTeaserWidth = 30;
+Config.favoritesTeaserWidth = 20;
 Config.favoritesTeaserFadeStartWidth = 10;
 
 /**

@@ -108,6 +108,6 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Restructured Settings page
     - On click header status text: Quick open document
     - Removed sheet type, removed luckysheet
-    
+    - Added + and - search prefixes
     
     
