@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.97.6.a';
+const PRECACHE = 'notes_precache-v0.97.7.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -99,10 +99,10 @@ const PRECACHE_URLS = [
   './ui/app/src/actions/TrashActions.js',
   './ui/app/src/actions/TreeActions.js',
   './ui/app/src/actions/MetaActions.js',
+  './ui/app/src/actions/HashtagActions.js',
   './ui/app/src/database/Database.js',
   './ui/app/src/database/DatabaseSync.js',
   './ui/app/src/database/ProfileHandler.js',
-  './ui/app/src/database/HashtagActions.js',
   './ui/app/src/data/Data.js',
   './ui/app/src/data/Graph.js',
   './ui/app/src/data/Linkage.js',
