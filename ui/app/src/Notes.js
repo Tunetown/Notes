@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.97.7';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.97.8';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -664,7 +664,7 @@ class Notes {
 	}
 
 	/**
-	 * Resets the page content elements.
+	 * Resets the page content elements. treePage is set to true only for the profile root.
 	 */
 	resetPage(treePage) {
 		var e = this.getCurrentEditor();
@@ -959,7 +959,7 @@ class Notes {
 					$('<div id="console" class="mainPanel"/>'),
 					
 					// Buttons for editor (left side)
-					this.useFooter() ? null : $('<div id="editorNavButtons" class="editorNavButtons"/>')
+					/*this.useFooter() ? null : $('<div id="editorNavButtons" class="editorNavButtons"/>')
 					.append(
 						// Back button used to navigate back to the tree in mobile mode
 						$('<div id="backButton2" class="editorNavButton roundedButton fa fa-arrow-left"></div>')
@@ -980,7 +980,7 @@ class Notes {
 						// Link page button
 						$('<div id="linkEditorButton" class="editorLinkButton roundedButton fa fa-link"></div>')
 						.on('click', this.editorLinkageButtonHandler),
-					)
+					)*/
 				])
 				.on('click', function(event) {
 					that.setFocus(Notes.FOCUS_ID_EDITOR);
@@ -1004,35 +1004,35 @@ class Notes {
 	 * Sets up the footer for editors on mobile.
 	 */
 	setupEditorFooter() {
-		if (this.useFooter()) {
-			this.setFooterContent([
-				// Back button used to navigate back to the tree in mobile mode
-				$('<div id="backButton2" class="footerButton fa fa-chevron-left"></div>')
-				.on('click', this.editorBackButtonHandler),
-				
-				// Forward button used to navigate back to the tree in mobile mode
-				$('<div id="forwardButton2" class="footerButton fa fa-chevron-right"></div>')
-				.on('click', this.editorForwardButtonHandler),
+		//if (this.useFooter()) {
+		this.setFooterContent([
+			// Back button used to navigate back to the tree in mobile mode
+			$('<div id="backButton2" class="footerButton fa fa-chevron-left"></div>')
+			.on('click', this.editorBackButtonHandler),
+			
+			// Forward button used to navigate back to the tree in mobile mode
+			$('<div id="forwardButton2" class="footerButton fa fa-chevron-right"></div>')
+			.on('click', this.editorForwardButtonHandler),
 
-				// Home button used to navigate back to the tree root in mobile mode
-				$('<div id="homeButton2" class="footerButton fa fa-map"></div>')
-				.on('click', this.editorNavButtonHandler),
+			// Home button used to navigate back to the tree root in mobile mode
+			$('<div id="homeButton2" class="footerButton fa fa-map"></div>')
+			.on('click', this.editorNavButtonHandler),
 
-				// Create note
-				$('<div id="createButton2" class="footerButton fa fa-plus"></div>')
-				.on('click', this.editorCreateButtonHandler),
+			// Create note
+			$('<div id="createButton2" class="footerButton fa fa-plus"></div>')
+			.on('click', this.editorCreateButtonHandler),
 
-				// Favorites
-				$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
-				.on('click', this.editorFavoritesButtonHandler),
+			// Favorites
+			$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
+			.on('click', this.editorFavoritesButtonHandler),
 
-				// Link page button
-				//$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
-				//.on('click', this.editorLinkageButtonHandler),
-			]);
-		} else {
+			// Link page button
+			//$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
+			//.on('click', this.editorLinkageButtonHandler),
+		]);
+		/*} else {
 			this.setFooterContent();
-		}
+		}*/
 	}
 	
 	/**
@@ -1504,12 +1504,20 @@ class Notes {
 	 */
 	getFooterSize() {
 		var g = ClientState.getInstance().getLocalSettings();
-		if (this.isMobile() && g && g.footerSizeMobile) {
-			return parseFloat(g.footerSizeMobile);
+		if (g) {
+			if (this.isMobile()) {
+				if (g.footerSizeMobile) {
+					return parseFloat(g.footerSizeMobile);
+				}
+			} else {
+				if (g.footerSizeDesktop) {
+					return parseFloat(g.footerSizeDesktop);
+				}
+			}
 		}
 		
 		// Default
-		return this.isMobile() ? Config.defaultFooterSizeMobile : 0;
+		return this.isMobile() ? Config.defaultFooterSizeMobile : Config.defaultFooterSizeDesktop;
 	}
 	
 	/**
@@ -1518,13 +1526,6 @@ class Notes {
 	setFooterContent(elements) {
 		$('#footer').empty();
 		if (elements) $('#footer').append(elements);
-	}
-	
-	/**
-	 * Use a footer?
-	 */
-	useFooter() {
-		return this.isMobile();
 	}
 	
 	/**
@@ -1552,11 +1553,11 @@ class Notes {
 		$('nav').css('resize', this.isMobile() ? '' : 'horizontal');
 		
 		// Footer
-		$('#footer').css('display', (this.useFooter() ? 'grid' : 'none'));
-		if (this.useFooter()) {
-			$('#footer').css('height', fsize + 'px');
-			$('#footer').css('font-size', Math.max(fsize / 3, 20) + 'px');
-		}
+		$('#footer').css('display', 'grid'); //(this.useFooter() ? 'grid' : 'none'));  // TODO put to CSS
+		//if (this.useFooter()) {
+		$('#footer').css('height', fsize + 'px');
+		$('#footer').css('font-size', Math.max(fsize / 3, 20) + 'px');
+		//}
 		
 		// Header
 		$('header').css('height', size + 'px');

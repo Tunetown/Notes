@@ -685,7 +685,11 @@ class Settings {
 									if (parseFloat(this.value) < Config.minFooterSize || !parseFloat(this.value)) this.value = Config.minFooterSize;
 									
 									var g = ClientState.getInstance().getLocalSettings();
-									g.footerSizeMobile = parseFloat(this.value);										
+									if (n.isMobile()) {
+										g.footerSizeMobile = parseFloat(this.value);										
+									} else {
+										g.footerSizeDesktop = parseFloat(this.value);
+									}
 									ClientState.getInstance().setLocalSettings(g);
 									
 									n.update();

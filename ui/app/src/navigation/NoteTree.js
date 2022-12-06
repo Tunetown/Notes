@@ -331,11 +331,12 @@ class NoteTree {
 		if (!favSize) favSize = Config.defaultFavoritesSize;
 
 		const teaserWidth = Config.favoritesTeaserWidth;   // Width of the teasers
+		const margin = n.isMobile() ? Config.favoritesMarginMobile : Config.favoritesMarginDesktop;
 		var leftTeaser = $('<div class="navteaser beforeFavScrollTeaser"></div>')
-			.css('height', (favSize + Config.favoritesMargin) + 'px')
+			.css('height', (favSize + margin) + 'px')
 			.css('width', teaserWidth);
 		var rightTeaser = $('<div class="navteaser afterFavScrollTeaser"></div>')
-			.css('height', (favSize + Config.favoritesMargin) + 'px')
+			.css('height', (favSize + margin) + 'px')
 			.css('width', teaserWidth);
 			
 		const teaserFadeWidth = Config.favoritesTeaserFadeStartWidth;  // Scroll position at which the fade of the teaser starts
@@ -369,8 +370,8 @@ class NoteTree {
 				updateTeasers(cont);
 			});
 		
-		favBar.css('height', (favSize + Config.favoritesMargin * 2) + 'px');
-		cont.css('height', (favSize + Config.favoritesMargin) + 'px');
+		favBar.css('height', (favSize + margin * 2) + 'px');
+		cont.css('height', (favSize + margin) + 'px');
 		
 		var favoritesNum = c.getViewSettings().favoritesNum;
 		if (!favoritesNum) favoritesNum = Config.defaultFavoritesAmount;
@@ -831,7 +832,7 @@ class NoteTree {
 				
 				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
-
+/*
 			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
 				// Back Button
 				$('<div data-toggle="tooltip" title="Back" class="fa fa-arrow-left treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
@@ -859,12 +860,12 @@ class NoteTree {
 						.on('click', function(event) {
 							event.stopPropagation();
 						})
-					),*/
+					),*
 				
 				// Link navigation to editor Button
 				$('<div data-toggle="tooltip" title="" class="fa fa-link treeModeSwitchbutton roundedButton" id="treeLinkButton"></div>')
 					.on('click', this.linkageHandler)
-			),
+			),*/
 			
 			$('<div id="treeSettingsPanel"></div>')
 				.on('click', function(event) {
@@ -1028,44 +1029,44 @@ class NoteTree {
 	setupFooter() {
 		const n = Notes.getInstance();
 		
-		if (n.useFooter()) {
-			n.setFooterContent([
-				// Back Button
-				$('<div class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
-					.on('click', this.backHandler),
-					
-				// Forward Button
-				$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
-					.on('click', this.forwardHandler),
+		//if (n.useFooter()) {
+		n.setFooterContent([
+			// Back Button
+			$('<div class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
+				.on('click', this.backHandler),
+				
+			// Forward Button
+			$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
+				.on('click', this.forwardHandler),
 
-				// Home Button
-				$('<div class="fa fa-home footerButton" id="treeHomeButton"></div>')
-					.on('click', this.homeHandler),
+			// Home Button
+			$('<div class="fa fa-home footerButton" id="treeHomeButton"></div>')
+				.on('click', this.homeHandler),
+			
+			// Create note
+			$('<div class="fa fa-plus footerButton"></div>')
+				.on('click', this.createHandler),
 				
-				// Create note
-				$('<div class="fa fa-plus footerButton"></div>')
-					.on('click', this.createHandler),
-					
-				// Favorites
-				$('<div class="fa fa-star footerButton"></div>')
-				.on('click', this.favoritesHandler),
-				
-				/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
-					.on('click', this.settingsHandler),
-					/*.append(
-						$('<div id="treeSettingsPanel"></div>')
-						.on('click', function(event) {
-							event.stopPropagation();
-						})
-					),*/
-				
-				// Link navigation to editor Button
-				/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
-					.on('click', this.linkageHandler)*/
-			]);
+			// Favorites
+			$('<div class="fa fa-star footerButton"></div>')
+			.on('click', this.favoritesHandler),
+			
+			/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
+				.on('click', this.settingsHandler),
+				/*.append(
+					$('<div id="treeSettingsPanel"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+					})
+				),*/
+			
+			// Link navigation to editor Button
+			/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
+				.on('click', this.linkageHandler)*/
+		]);/*
 		} else {
 			n.setFooterContent();
-		}
+		}*/
 	}
 	
 	/**
@@ -1095,13 +1096,13 @@ class NoteTree {
 		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
 		$('#treeLinkButton').css('display', (!this.supportsLinkNavigationToEditor()) ? 'none' : 'block');
 		
-		if (Notes.getInstance().useFooter()) {
-			$('#treeLinkButton').css('background-color', '');
-			$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#c40cf7' : '');			
-		} else {
+		//if (Notes.getInstance().useFooter()) {
+		$('#treeLinkButton').css('background-color', '');
+		$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#c40cf7' : '');			
+		/*} else {
 			$('#treeLinkButton').css('background-color', (linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
 			$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#ffffff' : '#000000');
-		}
+		}*/
 		
 		$('#treeLinkButton').attr('title', (linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
 	}

@@ -49,6 +49,7 @@ Config.defaultButtonSizeMobile = 20;
 Config.minButtonSize = 10;
 
 Config.defaultFooterSizeMobile = 42;
+Config.defaultFooterSizeDesktop = 42;
 Config.minFooterSize = 20;
 
 Config.defaultNavigationTextSizeDesktop = 18;
@@ -162,7 +163,8 @@ Config.focusColor = '#c40cf7';
 /**
  * Favorites
  */
-Config.favoritesMargin = 7;
+Config.favoritesMarginDesktop = 4;
+Config.favoritesMarginMobile = 6;
 Config.favoritesTeaserWidth = 20;
 Config.favoritesTeaserFadeStartWidth = 10;
 
