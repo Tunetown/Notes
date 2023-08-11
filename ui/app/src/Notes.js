@@ -1004,7 +1004,6 @@ class Notes {
 	 * Sets up the footer for editors on mobile.
 	 */
 	setupEditorFooter() {
-		//if (this.useFooter()) {
 		this.setFooterContent([
 			// Back button used to navigate back to the tree in mobile mode
 			$('<div id="backButton2" class="footerButton fa fa-chevron-left"></div>')
@@ -1030,9 +1029,45 @@ class Notes {
 			//$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
 			//.on('click', this.editorLinkageButtonHandler),
 		]);
-		/*} else {
-			this.setFooterContent();
-		}*/
+		
+		
+		
+		/*
+		//if (n.useFooter()) {
+		n.setFooterContent([
+			// Back Button
+			$('<div class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
+				.on('click', this.backHandler),
+				
+			// Forward Button
+			$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
+				.on('click', this.forwardHandler),
+
+			// Home Button
+			$('<div class="fa fa-home footerButton" id="treeHomeButton"></div>')
+				.on('click', this.homeHandler),
+			
+			// Create note
+			$('<div class="fa fa-plus footerButton"></div>')
+				.on('click', this.createHandler),
+				
+			// Favorites
+			$('<div class="fa fa-star footerButton"></div>')
+			.on('click', this.favoritesHandler),
+			
+			/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
+				.on('click', this.settingsHandler),
+				/*.append(
+					$('<div id="treeSettingsPanel"></div>')
+					.on('click', function(event) {
+						event.stopPropagation();
+					})
+				),*/
+			
+			// Link navigation to editor Button
+			/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
+				.on('click', this.linkageHandler)*/
+		//]);
 	}
 	
 	/**
