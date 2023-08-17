@@ -301,11 +301,13 @@ class DetailBehaviour {
 	 * Called before the grid is initialized
 	 */
 	beforeInit() {
-		if (Notes.getInstance().isMobile()) $('#treeBackButton').show();
-		else $('#treeBackButton').hide();
+		//if (Notes.getInstance().isMobile()) $('#treeBackButton').show();
+		//else $('#treeBackButton').hide();
 
-		if (Notes.getInstance().isMobile()) $('#treeForwardButton').show();
-		else $('#treeForwardButton').hide();
+		//if (Notes.getInstance().isMobile()) $('#treeForwardButton').show();
+		//else $('#treeForwardButton').hide();
+		$('#treeBackButton').show();
+		$('#treeForwardButton').show();
 		
 		$('#treeHomeButton').show();
 		

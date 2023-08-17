@@ -139,7 +139,7 @@ class Settings {
 		
 		var d = Database.getInstance();
 		
-		Database.getInstance().setAutoLoginBlock(true);
+		//Database.getInstance().setAutoLoginBlock(true);
 		
 		// Set page name in the header
 		n.setStatusText("Settings"); 
@@ -677,8 +677,8 @@ class Settings {
 							),
 						),
 						
-						!n.isMobile() ? null : $('<tr/>').append(
-							$('<td class="w-auto">Footer Size (Mobile)</td>'),
+						$('<tr/>').append(
+							$('<td class="w-auto">Footer Size</td>'),
 							$('<td colspan="2"/>').append(
 								$('<input type="text" value="' + n.getFooterSize() + '" />')
 								.on('change', function() {

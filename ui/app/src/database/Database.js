@@ -54,7 +54,8 @@ class Database {
 	
 	/**
 	 * Controls if the login form auto submits if the browser auto completed it.
-	 */
+	 * DEPRECATED! Auto login is no longer used, replaced by "trusted device" option
+	 *
 	setAutoLoginBlock(lock) {
 		this.blockAutoLogin = !!lock;
 	}
@@ -64,7 +65,7 @@ class Database {
 	 * Returns a Promise.
 	 */
 	init() {
-		this.blockAutoLogin = false;
+		//this.blockAutoLogin = false;
 		
 		if (this.isInitialised()) return Promise.resolve({
 			ok: true
@@ -304,7 +305,7 @@ class Database {
 					$('#loginSubmitButton').focus();
 					
 					// Check if the browser auto completed the fields and submit automatically in this case.
-					if (!that.blockAutoLogin) {
+					/*if (!that.blockAutoLogin) {
 						setTimeout(function() {
 							var pwdPre = $('#pwdInput').val();
 							var usrPre = $('#username').val();
@@ -313,7 +314,7 @@ class Database {
 								submitLogin();
 							}
 						}, 500);
-					}
+					}*/
 					
 				}).catch(function(err) {
 					that.notifyOfflineState();

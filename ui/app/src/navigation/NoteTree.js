@@ -832,6 +832,8 @@ class NoteTree {
 				
 				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
+			
+			n.isMobile() ? null : $('<div id="footer"></div>'),
 /*
 			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
 				// Back Button

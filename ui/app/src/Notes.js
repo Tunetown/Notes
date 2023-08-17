@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -717,7 +717,9 @@ class Notes {
 
 			NoteTree.getInstance().setupFooter();
 
-			if (this.isMobile()) NoteTree.getInstance().refresh();
+			if (this.isMobile()) {
+				NoteTree.getInstance().refresh();
+			}
 		} else {
 			$('#contentContainer').show();
 
@@ -739,7 +741,7 @@ class Notes {
 		this.setFocus(Notes.FOCUS_ID_EDITOR);
 		//this.update();
 		
-		Database.getInstance().setAutoLoginBlock(false);
+		//Database.getInstance().setAutoLoginBlock(false);
 	}
 	
 	editorBackButtonHandler(e) {
@@ -956,38 +958,14 @@ class Notes {
 					Editor.getInstance().getContainerDom(teaser),
 					
 					// Console
-					$('<div id="console" class="mainPanel"/>'),
-					
-					// Buttons for editor (left side)
-					/*this.useFooter() ? null : $('<div id="editorNavButtons" class="editorNavButtons"/>')
-					.append(
-						// Back button used to navigate back to the tree in mobile mode
-						$('<div id="backButton2" class="editorNavButton roundedButton fa fa-arrow-left"></div>')
-						.on('click', this.editorBackButtonHandler),
-						
-						// Forward button used to navigate back to the tree in mobile mode
-						$('<div id="forwardButton2" class="editorNavButton roundedButton fa fa-arrow-right"></div>')
-						.on('click', this.editorForwardButtonHandler),
-
-						// Home button used to navigate back to the tree root in mobile mode
-						$('<div id="homeButton2" class="editorNavButton roundedButton fa fa-home"></div>')
-						.on('click', this.editorHomeButtonHandler)
-					),
-					
-					// Buttons for editor (right side)
-					this.useFooter() ? null : $('<div id="editorLinkButtons" data-toggle="tooltip" title="" class="editorLinkButtons"/>')
-					.append(
-						// Link page button
-						$('<div id="linkEditorButton" class="editorLinkButton roundedButton fa fa-link"></div>')
-						.on('click', this.editorLinkageButtonHandler),
-					)*/
+					$('<div id="console" class="mainPanel"/>')				
 				])
 				.on('click', function(event) {
 					that.setFocus(Notes.FOCUS_ID_EDITOR);
 				})
 			]),
 			
-			$('<div id="footer"></div>')
+			this.isMobile() ? $('<div id="footer"></div>') : null
 		]);
 
 		// Also setup the navigation tree
@@ -1014,8 +992,13 @@ class Notes {
 			.on('click', this.editorForwardButtonHandler),
 
 			// Home button used to navigate back to the tree root in mobile mode
-			$('<div id="homeButton2" class="footerButton fa fa-map"></div>')
-			.on('click', this.editorNavButtonHandler),
+			this.isMobile() ? 
+				$('<div id="homeButton2" class="footerButton fa fa-map"></div>')
+				.on('click', this.editorNavButtonHandler)
+				:
+				$('<div id="homeButton2" class="footerButton fa fa-home"></div>')
+				.on('click', this.editorHomeButtonHandler),
+				,
 
 			// Create note
 			$('<div id="createButton2" class="footerButton fa fa-plus"></div>')
@@ -1024,50 +1007,7 @@ class Notes {
 			// Favorites
 			$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
 			.on('click', this.editorFavoritesButtonHandler),
-
-			// Link page button
-			//$('<div id="linkEditorButton" class="footerButton fa fa-link"></div>')
-			//.on('click', this.editorLinkageButtonHandler),
 		]);
-		
-		
-		
-		/*
-		//if (n.useFooter()) {
-		n.setFooterContent([
-			// Back Button
-			$('<div class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
-				.on('click', this.backHandler),
-				
-			// Forward Button
-			$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
-				.on('click', this.forwardHandler),
-
-			// Home Button
-			$('<div class="fa fa-home footerButton" id="treeHomeButton"></div>')
-				.on('click', this.homeHandler),
-			
-			// Create note
-			$('<div class="fa fa-plus footerButton"></div>')
-				.on('click', this.createHandler),
-				
-			// Favorites
-			$('<div class="fa fa-star footerButton"></div>')
-			.on('click', this.favoritesHandler),
-			
-			/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
-				.on('click', this.settingsHandler),
-				/*.append(
-					$('<div id="treeSettingsPanel"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-					})
-				),*/
-			
-			// Link navigation to editor Button
-			/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
-				.on('click', this.linkageHandler)*/
-		//]);
 	}
 	
 	/**
@@ -1089,15 +1029,6 @@ class Notes {
 	 * Restore linkage settings for the editor button.
 	 */	
 	restoreEditorLinkage() {
-		/*if ((!this.isMobile()) && NoteTree.getInstance().supportsLinkEditorToNavigation()) {
-			var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
-			if (linkEditorMode) {
-				this.linkEditorToNavigation = linkEditorMode;
-			}
-		} else {
-			this.linkEditorToNavigation = 'off';
-		}*/
-		
 		this.updateLinkageButtons();
 	}
 	
@@ -1154,7 +1085,10 @@ class Notes {
 	home() {
 		NoteTree.getInstance().resetScrollPosition('all');
 		NoteTree.getInstance().focus("");
-		this.routing.call();
+		
+		if (this.isMobile()) {
+			this.routing.call();			
+		}
 	}
 		
 	browserBack() {
@@ -1402,7 +1336,6 @@ class Notes {
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callConsole()"><div class="fa fa-terminal userbuttonIcon"></div>Console</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callTrash()"><div class="fa fa-trash userbuttonIcon"></div>Trash</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callDocumentation()},100)"><div class="fa fa-question userbuttonIcon"></div>Help</div>'),
-				//$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callUpdatePage()},100)"><div class="fa fa-heart userbuttonIcon"></div>Update</div>'),
 				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callAbout()},100)"><div class="fa fa-info userbuttonIcon"></div>About...</div>'),
 			]);
 			 
@@ -1535,7 +1468,7 @@ class Notes {
 	}
 	
 	/**
-	 * Returns the footer size.
+	 * Returns the (main, means: mobile) footer size.
 	 */
 	getFooterSize() {
 		var g = ClientState.getInstance().getLocalSettings();
@@ -1567,50 +1500,82 @@ class Notes {
 	 * Update the header CSS to its defined size.
 	 */
 	updateDimensions() {
-		var size = this.getHeaderSize();
-		var fsize = this.getFooterSize();
-		
+		const mobile = this.isMobile();
+		const size = this.getHeaderSize();
+		const fsize = this.getFooterSize();
+		const winWidth = $(window).width();
+		const winHeight = $(window).height();
+				
 		// Common containers: All content
-		$('#all').css('height', $(window).height() + 'px');
+		$('#all').css('height', winHeight + 'px');
 		
 		// Content area (Editors and nav)
-		$('section').css('top', size + 'px');
-		$('section').css('height', ($(window).height() - size - fsize) + 'px');
-		$('section').css('flex-direction', this.isMobile() ? 'column' : 'row');
+		const section = $('section');
+		if (section) {
+			section.css('top', size + 'px');
+			section.css('height', (winHeight - size - (mobile ? fsize : 0)) + 'px');
+			section.css('flex-direction', mobile ? 'column' : 'row');			
+		}
 
 		// Navigation area
-		$('nav').css('height', ($(window).height() - size - fsize) + 'px');
-		$('nav').css('min-height', ($(window).height() - size - fsize) + 'px');
-		$('nav').css('max-height', ($(window).height() - size - fsize) + 'px');
-		
-		$('nav').css('flex', this.isMobile() ? 2 : 'none');
-		$('nav').css('height', this.isMobile() ? '100%' : '');
-		$('nav').css('resize', this.isMobile() ? '' : 'horizontal');
+		const nav = $('nav');
+		if (nav) {
+			const navHeight = (winHeight - size - (mobile ? fsize : 0));
+			nav.css('height', navHeight + 'px');
+			nav.css('min-height', navHeight + 'px');
+			nav.css('max-height', navHeight + 'px');			
+
+			nav.css('flex', mobile ? 2 : 'none');
+			nav.css('height', mobile ? '100%' : '');
+			nav.css('resize', mobile ? '' : 'horizontal');			
+		}
+
+		const navContainer = $('#treeContainer');
+		if (navContainer) {			
+			const navContainerHeight = (winHeight - size - fsize);
+			navContainer.css('height', navContainerHeight + 'px');
+			navContainer.css('min-height', navContainerHeight + 'px');
+			navContainer.css('max-height', navContainerHeight + 'px');			
+		}			
 		
 		// Footer
-		$('#footer').css('display', 'grid'); //(this.useFooter() ? 'grid' : 'none'));  // TODO put to CSS
-		//if (this.useFooter()) {
-		$('#footer').css('height', fsize + 'px');
-		$('#footer').css('font-size', Math.max(fsize / 3, 20) + 'px');
-		//}
+		const footer = $('#footer');
+		if (footer) {
+			footer.css('display', 'grid'); 
+			footer.css('height', fsize + 'px');
+			
+			const maxFooterTextSize = (mobile ? winWidth : NoteTree.getInstance().getContainerWidth()) / 5 - 10;
+			console.log(maxFooterTextSize);
+			footer.css('font-size', Math.min(Math.max(fsize / 1.6, 10), maxFooterTextSize) + 'px');		
+		}
 		
 		// Header
-		$('header').css('height', size + 'px');
+		const header = $('header');
+		header.css('height', size + 'px');
 		
 		// Left header
 		this.setHeaderButtonSize($('.headerElementLeft'), size);
 		
-		$('#headerText').css('font-size', size * (20/55) + 'px');
-		$('#headerText').css('padding-top', size * (12/55) + 'px');
+		const headerText = $('#headerText');
+		if (headerText) {
+			headerText.css('font-size', size * (20/55) + 'px');
+			headerText.css('padding-top', size * (12/55) + 'px');			
+		}
 
-		$('#headerPathContainer').css('font-size', size * (20/55) + 'px');
-		$('#headerPathContainer').css('padding-top', size * (12/55) + 'px');
+		const headerPatchContainer = $('#headerPathContainer');
+		if (headerPatchContainer) {
+			headerPatchContainer.css('font-size', size * (20/55) + 'px');
+			headerPatchContainer.css('padding-top', size * (12/55) + 'px');		
+		}
 		
 		// Right header
 		this.setHeaderButtonSize($('.headerButton'), size);
 		
-		$('.alertHeaderNotification').css('top', size * (6/55) + 'px');
-		$('.alertHeaderNotification').css('right', size * (6/55) + 'px');
+		const alertNotification = $('.alertHeaderNotification');
+		if (alertNotification) {
+			alertNotification.css('top', size * (6/55) + 'px');
+			alertNotification.css('right', size * (6/55) + 'px');			
+		} 
 		
 		// User menu
 		$('.userbuttons').css('top', size + 'px');
@@ -1723,56 +1688,6 @@ class Notes {
 		if (doc.parent) {
 			$('#headerPathContainer').text(this.getData().getReadablePath(doc.parent));
 		}
-		
-		/*
-		if (!this.getData()) return;
-		
-		if (!id) { 
-			$('#headerPathContainer').empty();
-			this.currentHeaderSelectorTargetId = false;
-			return;
-		}
-		
-		var doc = this.getData().getById(id);
-		if (!doc) return null;
-
-		if (this.currentHeaderSelectorTargetId == id) return;
-
-		$('#headerPathContainer').empty();
-
-		var selector = this.getMoveTargetSelector([id]);
-		selector.val(doc.parent);
-		selector.addClass('headerMoveSelector');
-		
-		var that = this;
-		$('#headerPathContainer').append(
-			selector
-			.on('change', function() {
-	        	var target = this.value;
-	        	
-	        	Tools.adjustSelectWidthToValue($(this));
-	        	$(this).blur();
-	        	
-	        	DocumentActions.getInstance().moveDocuments([id], target, true)
-	        	.then(function(data) {
-	        		var doc = Notes.getInstance().getData().getById(id);
-	        		var tdoc = Notes.getInstance().getData().getById(target);
-	        		
-	        		Notes.getInstance().showAlert('Moved ' + doc.name + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME), 'S', data.messageThreadId);
-	        	})
-	        	.catch(function(err) {
-	        		that.showAlert("Error moving document: " + err.message, 'E', err.messageThreadId);
-	        	});
-			})
-		);
-		
-		Tools.adjustSelectWidthToValue(selector);
-		
-		this.setMainColor($('header').css('background-color'));
-		this.setTextColor($('header').css('color'));
-		
-		this.currentHeaderSelectorTargetId = id;
-		*/
 	}
 
 	/**
@@ -1889,7 +1804,6 @@ class Notes {
 		
 		// Update UI
 		if (!noUpdate) this.update();
-		//else this.updateDimensions();
 	}
 	
 	/**
@@ -2193,8 +2107,7 @@ class Notes {
 				noLabels: false,
 				noBgImage: false,
 				showDeleteFavorite: false,
-				showClearFavorites: false,
-				//showStarToggle: true,
+				showClearFavorites: false
 			};
 		}
 		

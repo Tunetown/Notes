@@ -48,8 +48,8 @@ Config.defaultButtonSizeDesktop = 18;
 Config.defaultButtonSizeMobile = 20;
 Config.minButtonSize = 10;
 
-Config.defaultFooterSizeMobile = 42;
-Config.defaultFooterSizeDesktop = 42;
+Config.defaultFooterSizeMobile = 40;
+Config.defaultFooterSizeDesktop = 35;
 Config.minFooterSize = 20;
 
 Config.defaultNavigationTextSizeDesktop = 18;

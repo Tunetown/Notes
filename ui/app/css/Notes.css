@@ -111,6 +111,7 @@ article {
 	position: absolute;
 	bottom: 0;
 	left: 0;
+	z-index: 100;
 	
 	background: #f4f4f4;
 	
