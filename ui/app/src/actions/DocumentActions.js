@@ -225,6 +225,7 @@ class DocumentActions {
 		var newIds = [];
 		var docs = [];
 		var db;
+		var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#selectTypeContainer').empty();
 			$('#selectTypeContainer').append(
@@ -260,7 +261,7 @@ class DocumentActions {
 			$('#refCell').css('display', 'none');
 			$('#refCell').empty();
 			$('#refCell').append(
-				$('<span class="deprecated"></span>').html('References are deprecated, use in-document links instead'),
+				//$('<span class="deprecated"></span>').html('References are deprecated, use in-document links instead'),
 				refSelector
 				.on('change', function(/*event*/) {
 					if ($('#createTypeInput').val() == 'reference') {

@@ -1151,7 +1151,7 @@ class DetailBehaviour {
 			}
 									
 			// Highlight last selected
-			const highlightColor = '#fada4d';
+			/*const highlightColor = '#fada4d';
 			const highlightLeft = (!isParentOfSelected) && (doc._id == this.lastSelectedParent);
 			const highlightRight = highlightLeft;
 			markerLeftEl.css('border', highlightLeft ? ('2px solid ' + highlightColor) : '');
@@ -1161,6 +1161,7 @@ class DetailBehaviour {
 			markerRightEl.css('border', highlightRight ? ('2px solid ' + highlightColor) : '');
 			markerRightEl.css('color', highlightRight ? highlightColor : 'darkgrey');
 			if (highlightRight) markerRightEl.attr('title', markerRightEl.attr('title') + ', last opened in navigation');
+			*/
 		}
 		
 		// Item dimensions. Parent shall be small (like font size), the normal items should be larger.
@@ -1315,7 +1316,7 @@ class DetailBehaviour {
 		
 		if (this.mode != 'ref') return false;
 		
-		var selectedDoc = d.getById(this.selectedParent);
+		//var selectedDoc = d.getById(this.selectedParent);
 		if (!selectedDoc) return false;
 		
 		if (this.enableRefs) {
@@ -1855,7 +1856,7 @@ class DetailBehaviour {
 						}, 0);
 					}),
 					
-					$('<span class="treesettingsinfo-detail"></span>').html('(' + d.getChildren(selectedDoc ? selectedDoc._id : '').length + ')')
+					//$('<span class="treesettingsinfo-detail"></span>').html('(' + d.getChildren(selectedDoc ? selectedDoc._id : '').length + ')')
 				)
 			),
 			
@@ -1881,7 +1882,7 @@ class DetailBehaviour {
 						}, 0);
 					}),
 					
-					$('<span class="treesettingsinfo-detail"></span>').html('(' + d.getSiblings(selectedDoc ? selectedDoc._id : '').length + ')')
+					//$('<span class="treesettingsinfo-detail"></span>').html('(' + d.getSiblings(selectedDoc ? selectedDoc._id : '').length + ')')
 				)
 			),
 			
@@ -1932,7 +1933,7 @@ class DetailBehaviour {
 						}, 0);
 					}),
 					
-					$('<span class="treesettingsinfo-detail"></span>').html('(' + ((selectedDoc && selectedDoc.links) ? selectedDoc.links.length : 0) + ')')
+					//$('<span class="treesettingsinfo-detail"></span>').html('(' + ((selectedDoc && selectedDoc.links) ? selectedDoc.links.length : 0) + ')')
 				)
 			),
 			
@@ -1958,7 +1959,7 @@ class DetailBehaviour {
 						}, 0);
 					}),
 					
-					$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getBacklinks(selectedDoc).length) + ')')
+					//$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getBacklinks(selectedDoc).length) + ')')
 				)
 			),
 			
@@ -1984,7 +1985,7 @@ class DetailBehaviour {
 						}, 0);
 					}),
 					
-					$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getReferencesTo(selectedDoc ? selectedDoc._id : null).length) + ')')
+					//$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getReferencesTo(selectedDoc ? selectedDoc._id : null).length) + ')')
 				)
 			)
 		];		

@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.1';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -63,25 +63,25 @@ class Notes {
 			cache: true
 		});
 		
+		// Reload or refresh page some milliseconds after resizing has stopped
+		this.currentMobileState = this.isReallyMobile();
+		window.onresize = function() {
+			if (that.resizeHandler) clearTimeout(that.resizeHandler);
+			that.resizeHandler = setTimeout(function() {
+				if (that.isReallyMobile() != that.currentMobileState) {
+					that.currentMobileState = that.isReallyMobile();
+					location.reload();
+				} else {
+					that.refresh();
+				}
+			}, 50);
+		}
+		
 		// Redirect console logging
 		Console.getInstance().init();
 
 		// Set up database callbacks.
 		this.setupDatabaseCallbacks();
-		
-		// Reload or refresh page some milliseconds after resizing has stopped
-		this.currentMobileState = this.isMobile();
-		window.onresize = function() {
-			if (that.resizeHandler) clearTimeout(that.resizeHandler);
-			that.resizeHandler = setTimeout(function() {
-				if (that.isMobile() != that.currentMobileState) {
-					that.currentMobileState = that.isMobile();
-					location.reload();
-				} else {
-					that.refresh();
-				}
-			}, 30);
-		}
 		
 		// CTRL-S key to save
 		$(window).bind('keydown', function(event) {
@@ -738,10 +738,19 @@ class Notes {
 			$('#forwardButton').show();
 		}
 		
+		const nbName = Settings.getInstance().settings.dbAccountName;
+		if (nbName) {
+			this.setWindowTitle('Notes | ' + nbName);			
+		}
+		
 		this.setFocus(Notes.FOCUS_ID_EDITOR);
 		//this.update();
-		
+				
 		//Database.getInstance().setAutoLoginBlock(false);
+	}
+
+	setWindowTitle(title) {
+			document.title = title; 
 	}
 	
 	editorBackButtonHandler(e) {
@@ -918,8 +927,8 @@ class Notes {
 						$('<span data-toggle="tooltip" title="Offline" class="fa fa-plane headerElementLeft" id="onlineStatus"/>'),
 					]),
 					
-					$('<span id="headerPathContainer" />')
-					.on('click', this.headerSelectDocumentHandler),
+					$('<span id="headerPathContainer" />'),
+					//.on('click', this.headerSelectDocumentHandler),
 
 					$('<span id="headerText"></span>').append([
 						$('<span id="loadedNote"></span>'),
@@ -1545,7 +1554,6 @@ class Notes {
 			footer.css('height', fsize + 'px');
 			
 			const maxFooterTextSize = (mobile ? winWidth : NoteTree.getInstance().getContainerWidth()) / 5 - 10;
-			console.log(maxFooterTextSize);
 			footer.css('font-size', Math.min(Math.max(fsize / 1.6, 10), maxFooterTextSize) + 'px');		
 		}
 		
@@ -1562,10 +1570,10 @@ class Notes {
 			headerText.css('padding-top', size * (12/55) + 'px');			
 		}
 
-		const headerPatchContainer = $('#headerPathContainer');
-		if (headerPatchContainer) {
-			headerPatchContainer.css('font-size', size * (20/55) + 'px');
-			headerPatchContainer.css('padding-top', size * (12/55) + 'px');		
+		const headerPathContainer = $('#headerPathContainer');
+		if (headerPathContainer) {
+			headerPathContainer.css('font-size', size * (20/55) + 'px');
+			headerPathContainer.css('padding-top', size * (12/55) + 'px');		
 		}
 		
 		// Right header
@@ -1684,9 +1692,13 @@ class Notes {
 		var doc = this.getData().getById(id);
 		if (!doc) return null;
 
+		var that = this;
 		$('#headerPathContainer').empty();
 		if (doc.parent) {
-			$('#headerPathContainer').text(this.getData().getReadablePath(doc.parent));
+			$('#headerPathContainer').append(this.getData().getLinkedPath(doc.parent, false, false, function(cbdoc) {
+				// Open document by header path link
+				that.routing.call(cbdoc._id);
+			}));
 		}
 	}
 
@@ -1984,6 +1996,13 @@ class Notes {
 	 * Returns if we are on a small mobile device.
 	 */
 	isMobile() {
+		return this.currentMobileState;
+	}
+	
+	/**
+	 * Returns if we are on a small mobile device (unbuffered).
+	 */
+	isReallyMobile() {
 		var mode = ClientState.getInstance().getMobileOverride();
 		if (mode) {
 			if (mode == "mobile") return true;

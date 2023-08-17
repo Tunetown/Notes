@@ -228,7 +228,22 @@ class Settings {
 									});
 								}),
 								
-								$('<span id="loginCheck"/>') 
+								$('<span id="loginCheck"/>'),
+								
+								$('<div id="settingsTrustRow"/>').append(
+									$('<button class="btn btn-secondary settings-button" id="untrustSettingsButton">Untrust</button>')
+									.on('click', function(event) {
+										event.stopPropagation();
+										
+										ClientState.getInstance().setTrustedDeviceCredentials();
+										
+										Notes.getInstance().showAlert("Deleted device credentials.", 'I');
+										
+										Notes.getInstance().routing.call('settings');
+									}), 
+									
+									$('<span id="trustCheck"/>'),							
+								)
 							])
 						),	
 						
@@ -1227,6 +1242,7 @@ class Settings {
 			$('<br>'),
 		);
 		
+		// Check DB status
 		d.checkRemoteConnection().then(function(data) {
 			$('#dbcheck').html(data.message);
 			
@@ -1239,6 +1255,7 @@ class Settings {
 			$('#dbAdminLink').empty();
 		});
 		
+		// Check login status
 		d.checkRemoteLogin().then(function(data) {
 			$('#loginCheck').html(data.message);
 			
@@ -1254,6 +1271,15 @@ class Settings {
 			$('#loginSettingsButton').show();
 			$('#logoutSettingsButton').hide();
 		});
+		
+		// Trust check
+		const trusted = ClientState.getInstance().isDeviceTrusted();
+		$('#trustCheck').html(trusted ? 'Device is trusted' : '');		
+		if (trusted) {
+			$('#settingsTrustRow').show();
+		} else {
+			$('#settingsTrustRow').hide();
+		}
 		
 		// Build buttons
 		n.setButtons([ 

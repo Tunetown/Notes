@@ -354,6 +354,13 @@
 	            				<input class="loginInput" type="password" id="pwdInput" required autofocus autocomplete="current-password">
 	                		</td>
 	                	</tr>
+	                	<tr>
+	                		<td>
+	                		</td>
+	                		<td>
+	            				<input class="loginInput" type="checkbox" id="trustInput"> <span>Trust this device?</span>
+	                		</td>
+	                	</tr>
                 	</tbody>
             	</table>
             	<button type="button" class="btn btn-primary loginButton" id="loginSubmitButton">Log in</button>
@@ -483,6 +490,8 @@
     <script src="ui/lib/tinymce/plugins/searchreplace/plugin.min.js"></script>
     <script src="ui/lib/tinymce/plugins/textpattern/plugin.min.js"></script>
     <script src="ui/lib/tinymce/plugins/toc/plugin.min.js"></script>
+    
+    <script src="ui/lib/localstorage-slim/localstorage-slim.js"></script>
   
    	<script type="module">
 		import { downloadZip } from "./ui/lib/client-zip.js"

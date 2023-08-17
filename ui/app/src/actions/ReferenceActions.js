@@ -56,9 +56,9 @@ class ReferenceActions {
 		$('#moveTargetSelectorList').empty();
 		$('#moveTargetSelectorList').append(
 			selector,
-			!parentDoc ? null : $('<hr>'),
-			!parentDoc ? null : $('<div class="deprecated"></div>').html('References are deprecated. You can convert this reference to an in-document link here:'),
-			!parentDoc ? null : $('<br>'),
+			//!parentDoc ? null : $('<hr>'),
+			//!parentDoc ? null : $('<div class="deprecated"></div>').html('References are deprecated. You can convert this reference to an in-document link here:'),
+			//!parentDoc ? null : $('<br>'),
 			!parentDoc ? null : $('<button></button>').text('Convert to link...')
 			.on('click', function(event) {
 				that.convertRefToLink(doc, refDoc, parentDoc)
@@ -341,7 +341,7 @@ class ReferenceActions {
 				});
 			});
 			
-			$('#createReferenceDialogText').html('Create reference to ' + doc.name + ' in: '); //<span class="deprecated">References are deprecated, use in-document links instead</span>');
+			$('#createReferenceDialogText').html('Create reference to ' + doc.name + ' in: ');
 			$('#createReferenceDialog').modal();
 		});
 	}	

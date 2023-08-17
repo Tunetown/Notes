@@ -24,6 +24,9 @@ class Data {
 	 */
 	constructor(bulkData, nestedDocPropName) {
 		this.prepareData(bulkData, nestedDocPropName);
+		
+		this.linkedPathElementClass = "linkedPathElement";
+		this.linkedPathElementSeparatorClass = "linkedPathElementSeparator";
 	}
 	
 	/**
@@ -749,6 +752,70 @@ class Data {
 		};
 	}
 	
+	/**
+	 * For an ID, this returns a HTML element with a readable, hyperlinked path.
+	 * callback, if passed, is called with the doc instance as the only parameter.
+	 */
+	getLinkedPath(id, separator, dontAppendSeparatorAfterName, callback) {	
+		if (!separator) separator = " / ";
+		
+		var doc = this.data.get(id);
+		if (!doc) return $('<span class="' + this.linkedPathElementClass + '" />').text('InvalidID');
+		
+		var path = this.getLinkedPathRec(doc);
+
+		var that = this;
+		var ret = [];
+		for(var i=path.length-1; i>=0; --i) {
+			var el = path[i];
+			
+			if (callback) {
+				$(el).on('click', function() {
+					const cbdocid = $(this).data('id');
+					if (!cbdocid) return;
+					
+					const cbdoc = that.getById(cbdocid);
+					if (!cbdoc) return;
+					
+					callback(cbdoc);
+				});
+			}
+			
+			if (dontAppendSeparatorAfterName) {
+				ret.push(el);
+				if ((i > 0) && separator) {
+					ret.push($('<span class="' + this.linkedPathElementSeparatorClass + '" />').text(separator));
+				}				
+			} else {
+				ret.push(el);  
+				if (separator) { 
+					ret.push($('<span class="' + this.linkedPathElementSeparatorClass + '" />').text(separator));
+				}
+			}
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Recursive Helper for getLinkedPath().
+	 */
+	getLinkedPathRec(doc, ret) {
+		if (!ret) ret = [];
+		
+		var el = $('<span class="' + this.linkedPathElementClass + '" />');
+		el.html(doc.name ? doc.name : doc._id);
+		el.data('id', doc._id);
+		ret.push(el);
+		
+		if (!doc.parentDoc) {
+			ret.push(null);  
+			return ret;
+		} else {
+			return this.getLinkedPathRec(doc.parentDoc, ret);
+		}
+	}
+
 	/**
 	 * For an ID, this returns a readable name path to root.
 	 */

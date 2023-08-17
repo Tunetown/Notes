@@ -229,6 +229,10 @@ div.tox-tinymce {
 	text-align: center;
 }
 
+#trustInput {
+	width: 30px;
+}
+
 .userLoginTable {
 	width: 100%;
 	text-align: left;

@@ -110,4 +110,11 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Removed sheet type, removed luckysheet
     - Added + and - search prefixes
     
+- 0.98.4
+    - Footer reworked on desktops
+    - Auto login replaced with "Trusted device" concept
+    - Show notebook name in tab header
+    - Minor cosmetic fixes
+    - Performance optimizations
+    
     

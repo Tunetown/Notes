@@ -39,6 +39,7 @@ class ClientState {
 		this.cidExperimentalFunctions = "ex";
 		this.cidLocalSettings = "se";
 		this.cidUndoHistory = "ud";
+		this.cidTrustedDeviceCredentials = "dc";
 	}
 	
 	/**
@@ -63,6 +64,29 @@ class ClientState {
 		return this.getLocal(this.cidLocalSettings, true);
 	}
 	
+	/**
+	 * Trusted device credentials
+	 */
+	setTrustedDeviceCredentials(usr, pwd) {		
+		const data = (usr && pwd) ? {
+			user: usr,
+			password: pwd
+		} : {};
+		this.setLocalEncrypted(this.cidTrustedDeviceCredentials, data);
+	}
+	
+	/**
+	 * Trusted device credentials
+	 */
+	getTrustedDeviceCredentials() {
+		return this.getLocalEncrypted(this.cidTrustedDeviceCredentials);
+	}
+	
+	isDeviceTrusted() {
+		const trustedCredentials = this.getTrustedDeviceCredentials();
+		return trustedCredentials && trustedCredentials.user && trustedCredentials.password;		
+	}
+
 	/**
 	 * Undo history: Set data.
 	 */
@@ -506,6 +530,19 @@ class ClientState {
 	}
 	
 	/**
+	 * Returns the local storage item for the given internal ID
+	 */
+	getLocalEncrypted(cid, generic) {		
+		var stateEnc = ls.get(this.getCookieId(cid, generic), { decrypt: true });
+		if (!stateEnc) return {};
+		
+		var state = JSON.parse(stateEnc);
+		if (!state) return {};
+		
+		return state;
+	}
+	
+	/**
 	 * Sets a local storage value. generic is used to tell if the setting is profile dependent or not.
 	 */
 	setLocal(cid, state, generic) {
@@ -513,6 +550,17 @@ class ClientState {
 			localStorage.setItem(this.getCookieId(cid, generic), "");
 		} else {
 			localStorage.setItem(this.getCookieId(cid, generic), JSON.stringify(state));
+		}
+	}
+	
+	/**
+	 * Sets a local storage value. generic is used to tell if the setting is profile dependent or not.
+	 */
+	setLocalEncrypted(cid, state, generic) {
+		if (!state) {
+			ls.set(this.getCookieId(cid, generic), "", { encrypt: true });	
+		} else {
+			ls.set(this.getCookieId(cid, generic), JSON.stringify(state), { encrypt: true });
 		}
 	}
 	

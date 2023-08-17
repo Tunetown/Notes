@@ -217,23 +217,8 @@ class Database {
 				
 				that.checkRemoteConnection()
 				.then(function(data) {
-					console.log('Showing login');
 					
-					function submitLogin(event) {
-						$(document).off('keypress', loginKeyPressed);
-											
-						var pwd = $('#pwdInput').val();
-						var usr = $('#username').val();
-
-						if (!pwd || (pwd.length == 0)) {
-							reject({
-								ok: false,
-								message: 'Please enter a password',
-								messageThreadId: 'DBLoginMessages'
-							});
-							return;
-						}
-						
+					function doLogin(usr, pwd, trust) {
 						db.login(usr, pwd, function (err, response) {
 							$('#login').css('display', 'none');
 							
@@ -252,6 +237,13 @@ class Database {
 								that.loggedInUser = usr;
 								
 								that.refresh();
+
+								// Trust the device?
+								if (trust) {
+									ClientState.getInstance().setTrustedDeviceCredentials(usr, pwd);
+								} else {
+									ClientState.getInstance().setTrustedDeviceCredentials();
+								}
 
 								resolve({
 									ok: true
@@ -273,6 +265,71 @@ class Database {
 						});
 					}
 					
+					function submitLogin(event) {
+						$(document).off('keypress', loginKeyPressed);
+											
+						const pwd = $('#pwdInput').val();
+						const usr = $('#username').val();
+						const trustDev = !!$('#trustInput').prop('checked');
+
+						if (!pwd || (pwd.length == 0)) {
+							reject({
+								ok: false,
+								message: 'Please enter a password',
+								messageThreadId: 'DBLoginMessages'
+							});
+							return;
+						}
+						
+						doLogin(usr, pwd, trustDev);
+						
+						/*db.login(usr, pwd, function (err, response) {
+							$('#login').css('display', 'none');
+							
+							if (err) {
+								that.notifyOfflineState();
+								
+								console.log("Connecting error: " + err.message);
+								
+								reject({
+									ok: false,
+									message: err.message,
+									messageThreadId: 'DBLoginMessages'
+								});
+							} else {
+								console.log("Connected successfully with user " + usr);
+								that.loggedInUser = usr;
+								
+								that.refresh();
+
+								// Trust the device?
+								const trustDev = !!$('#trustInput').prop('checked');
+								if (trustDev) {
+									ClientState.getInstance().setTrustedDeviceCredentials(usr, pwd);
+								} else {
+									ClientState.getInstance().setTrustedDeviceCredentials();
+								}
+
+								resolve({
+									ok: true
+								});
+							}
+							
+						}).catch(function(err) {
+							$('#login').css('display', 'none');
+							
+							that.notifyOfflineState();
+							
+							console.log("Connection error: " + err.message);
+							
+							reject({
+								ok: false,
+								message: err.message,
+								messageThreadId: 'DBLoginMessages'
+							});
+						});*/
+					}
+					
 					function loginCancel(event) {
 						$('#login').css('display', 'none');
 						$(document).off('keypress', loginKeyPressed);
@@ -290,6 +347,17 @@ class Database {
 					    }
 					}
 					
+					// Is this device trusted?
+					if (ClientState.getInstance().isDeviceTrusted()) {
+						const trustedCredentials = ClientState.getInstance().getTrustedDeviceCredentials();
+						console.log('Device is trusted: ' + trustedCredentials.user);
+						
+						doLogin(trustedCredentials.user, trustedCredentials.password, true);
+						return;
+					}
+					
+					console.log('Showing login');
+
 					$('#login').css("display", "block");
 					$('#loginForm').attr('method', 'post');
 					
