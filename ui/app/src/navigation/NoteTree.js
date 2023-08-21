@@ -705,6 +705,24 @@ class NoteTree {
 	 */
 	prepareDomItems() {
 		if (!Config.preRenderNavigationDomItemsInterval) return;
+		
+		const p = Database.getInstance().profileHandler.getCurrentProfile();
+		if (!p.autoSync) {
+			console.log(" -> Skipping pre-rendering of navigation items");
+			return;
+		}
+	
+		const data = Notes.getInstance().getData();
+		if (!data) return;
+		
+		console.log(" -> Starting pre-rendering of navigation items (interval: " + Config.preRenderNavigationDomItemsInterval + "ms, " + data.data.size + " documents)");
+		
+		this.preRenderingStartTime = Date.now();
+		this.preRenderingNumDocs = 0;
+		this.#doPrepareDomItems();
+	}
+	
+	#doPrepareDomItems() {
 		var that = this;
 		
 		const data = Notes.getInstance().getData();
@@ -714,16 +732,23 @@ class NoteTree {
 			if (doc.navItemElement) continue;
 			var id = doc._id;
 			
+			if (that.preRenderingNumDocs > data.data.size * 1.4) {
+				const passed = (Date.now() - this.preRenderingStartTime) / 1000;
+				console.log(" -> Preparation of navigation DOM items forcefully finished (" + that.preRenderingNumDocs + " docs processed in " + passed + "s).");
+				return;
+			}
+			
 			setTimeout(function() {
-				//console.log('Pre-creating DOM element for ' + id);
+				//console.log(" -> Pre-creating DOM element for " + id);
+				that.preRenderingNumDocs++;
 				
 				var doc = data.getById(id);
 				if (doc) {
 					// Create DOM for item in advance
-					that.createItem(doc)[0];	
+					that.createItem(doc);							
 					
 					// Restart process until all docs are finished
-					that.prepareDomItems();				
+					that.#doPrepareDomItems();				
 				}
 								
 						
@@ -733,7 +758,8 @@ class NoteTree {
 			return;
 		}		
 		
-		console.log('Preparation of navigation DOM items finished.');
+		const passed = Date.now() - this.preRenderingStartTime;
+		console.log(" -> Preparation of navigation DOM items finished (" + that.preRenderingNumDocs + " docs processed in " + passed + "s).");
 	}
 	
 	/**

@@ -177,7 +177,7 @@ Config.undoMaxHistorySize = 100;
  * Navigation processing options
  */
 Config.useBufferedNavigationItemElements = true;      /// Dont create the DOM items for navigation at every Grid.add() process (TODO can be removed if no problems arise)
-Config.preRenderNavigationDomItemsInterval = 20;      /// Interval for pre-rendering DOM items for navigation. Set to 0 for disabling pre-creation.
+Config.preRenderNavigationDomItemsInterval = 10;      /// Interval for pre-rendering DOM items for navigation. Set to 0 for disabling pre-creation.
 
 
 
