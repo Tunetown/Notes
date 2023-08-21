@@ -58,7 +58,7 @@ Config.minNavigationTextSize = 10;
 
 Config.minDetailNavigationItemHeight = 10;
 
-Config.defaultDetailNavigationAnimationDurationDesktop = 60;
+Config.defaultDetailNavigationAnimationDurationDesktop = 100;
 Config.defaultDetailNavigationAnimationDurationMobile = 100;
 Config.minDetailNavigationAnimationDuration = 10;
 
@@ -172,3 +172,13 @@ Config.favoritesTeaserFadeStartWidth = 10;
  * Undo history
  */
 Config.undoMaxHistorySize = 100;
+
+/**
+ * Navigation processing options
+ */
+Config.useBufferedNavigationItemElements = true;      /// Dont create the DOM items for navigation at every Grid.add() process (TODO can be removed if no problems arise)
+Config.preRenderNavigationDomItemsInterval = 20;      /// Interval for pre-rendering DOM items for navigation. Set to 0 for disabling pre-creation.
+
+
+
+

@@ -206,6 +206,8 @@ class NoteTree {
 		
 		this.unblock();
 		
+		this.prepareDomItems();
+		
 		return ret;
 	};	
 	
@@ -328,7 +330,6 @@ class NoteTree {
 		
 		// Changed favorites: Update them. First we need a container and some other elements.
 		var favSize = c.getViewSettings().favoritesSize;
-		if (!favSize) favSize = Config.defaultFavoritesSize;
 
 		const teaserWidth = Config.favoritesTeaserWidth;   // Width of the teasers
 		const margin = n.isMobile() ? Config.favoritesMarginMobile : Config.favoritesMarginDesktop;
@@ -374,7 +375,6 @@ class NoteTree {
 		cont.css('height', (favSize + margin) + 'px');
 		
 		var favoritesNum = c.getViewSettings().favoritesNum;
-		if (!favoritesNum) favoritesNum = Config.defaultFavoritesAmount;
 
 		// Add the favorites to the bar
 		for(var i=0; i<favs.starred.length; ++i) {
@@ -416,7 +416,6 @@ class NoteTree {
 		if (nameSplit.length == 0) return "[MISSING TEXT]";
 		
 		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
-		if (!favSize) favSize = 70;
 		
 		var ret = "";
 		var i = 0;
@@ -462,7 +461,6 @@ class NoteTree {
 		if (!doc) return;
 		
 		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
-		if (!favSize) favSize = 70;
 		
 		var nameHtml = this.getFavoriteText(doc);
 		
@@ -551,7 +549,7 @@ class NoteTree {
 
 	/**
 	 * Updates the grid item DOM to match the currently visible 
-	 * items before filter() is actually called on the grid.
+	 * items before (and after) filter() is actually called on the grid.
 	 */
 	updateDomItems(add) {
 		var data = Notes.getInstance().getData();
@@ -569,9 +567,12 @@ class NoteTree {
 		var that = this;
 		function getItemById(id) {
 			for(var i in currentItems) {
+				/*
 				var el = that.getGridItemContent(currentItems[i]);
 				var dt = el.data();
 				if (dt.id == id) return currentItems[i];
+				*/
+				if (currentItems[i].docId == id) return currentItems[i];
 			}
 			return null;
 		}
@@ -580,31 +581,47 @@ class NoteTree {
 		if (!maxSearchResults) maxSearchResults = 20;
 		
 		var cnt = 0;
+		var itemsToShow = [];
 		data.each(function(doc) {
 			var visible = that.behaviour.isItemVisible(doc, searchText);
-			var item = getItemById(doc._id);
-			
+			var item = getItemById(doc._id); //doc.navMuuriItem ? doc.navMuuriItem : null; 
+						
 			if (visible) {
 				cnt++;
 				if (!item && add && (!searchText || (cnt <= maxSearchResults))) {
 					// Does not exist: Create and add it
 					item = that.createItem(doc)[0];
 					
-					that.grid.grid.add([item], {
+					// Set invisible at first: This prevents unnecessary forced reflows.
+					$(item).css('display', 'none');
+					
+					var itm = that.grid.grid.add([item], {
 						index: that.behaviour.getInitialItemOrder(doc),
 						layout: false
-					});
-				}
+					})[0];
+					
+					// We store the document ID on the Muuri item directly for faster access
+					itm.docId = doc._id;
+					
+					// Remember Muuri items for later showing them at once
+					itemsToShow.push(itm);
+				} 
 			} else {
 				if (item && !add) {
 					// Remove
 					that.grid.grid.remove([item], {
 						removeElements: true,
 						layout: false
-					});
+					});					
 				}
 			}
 		});
+		
+		// Show items at once: This prevents unnecessary forced reflows.
+		for(var it in itemsToShow) {
+			const item = itemsToShow[it];			
+			this.grid.grid.show(item);
+		}
 		
 		this.behaviour.afterUpdateItems();
 	}
@@ -613,6 +630,12 @@ class NoteTree {
 	 * Create a grid item from the passed document 
 	 */
 	createItem(doc) {
+		const useBuffer = Config.useBufferedNavigationItemElements;
+		if (useBuffer && doc.navItemElement) {
+			//console.log("Use buffered item: " + doc._id);
+			return doc.navItemElement;
+		}
+		
 		var data = Notes.getInstance().getData();
 		if (!data) return;
 		
@@ -669,8 +692,48 @@ class NoteTree {
 			}
 		]);
 		
+		if (useBuffer) {
+			doc.navItemElement = licont;	
+		}		
+		
 		// Return element
 		return licont;
+	}
+	
+	/**
+	 * Prepare DOM item for all documents. 
+	 */
+	prepareDomItems() {
+		if (!Config.preRenderNavigationDomItemsInterval) return;
+		var that = this;
+		
+		const data = Notes.getInstance().getData();
+		if (!data) return;
+		
+		for(var [key, doc] of data.data) {
+			if (doc.navItemElement) continue;
+			var id = doc._id;
+			
+			setTimeout(function() {
+				//console.log('Pre-creating DOM element for ' + id);
+				
+				var doc = data.getById(id);
+				if (doc) {
+					// Create DOM for item in advance
+					that.createItem(doc)[0];	
+					
+					// Restart process until all docs are finished
+					that.prepareDomItems();				
+				}
+								
+						
+			}, Config.preRenderNavigationDomItemsInterval); 
+			
+			// We just get the next document without a DOM element, and process it.
+			return;
+		}		
+		
+		console.log('Preparation of navigation DOM items finished.');
 	}
 	
 	/**
@@ -1504,7 +1567,9 @@ class NoteTree {
 	setSearchText(txt, data) {
 		$('#treeSearch').val(txt);
 		
-		this.behaviour.afterSetSearchText(txt, data);
+		if (this.behaviour) {
+			this.behaviour.afterSetSearchText(txt, data);
+		}
 		
 		if (txt) Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
 		
@@ -1851,7 +1916,9 @@ class NoteTree {
 		if (element && id) {
 			// Direct call for a given item and document
 			var doc = d.getById(id);
-			setColor(doc, doc.level);
+			if (doc) {
+				setColor(doc);	
+			}			
 		} else {
 			if (id) {
 				// Call by ID only: Have to search the document and refresh colors on it and all children

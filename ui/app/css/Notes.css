@@ -120,6 +120,8 @@ article {
 	grid-auto-flow: column;
 	column-gap: 5px;
 	grid-template-columns: repeat( 5, minmax(1px, 1fr) );
+	
+	border-top: 1px solid #c7c7c7;
 }
 
 .mainPanel {

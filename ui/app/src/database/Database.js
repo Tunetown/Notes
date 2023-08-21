@@ -282,52 +282,6 @@ class Database {
 						}
 						
 						doLogin(usr, pwd, trustDev);
-						
-						/*db.login(usr, pwd, function (err, response) {
-							$('#login').css('display', 'none');
-							
-							if (err) {
-								that.notifyOfflineState();
-								
-								console.log("Connecting error: " + err.message);
-								
-								reject({
-									ok: false,
-									message: err.message,
-									messageThreadId: 'DBLoginMessages'
-								});
-							} else {
-								console.log("Connected successfully with user " + usr);
-								that.loggedInUser = usr;
-								
-								that.refresh();
-
-								// Trust the device?
-								const trustDev = !!$('#trustInput').prop('checked');
-								if (trustDev) {
-									ClientState.getInstance().setTrustedDeviceCredentials(usr, pwd);
-								} else {
-									ClientState.getInstance().setTrustedDeviceCredentials();
-								}
-
-								resolve({
-									ok: true
-								});
-							}
-							
-						}).catch(function(err) {
-							$('#login').css('display', 'none');
-							
-							that.notifyOfflineState();
-							
-							console.log("Connection error: " + err.message);
-							
-							reject({
-								ok: false,
-								message: err.message,
-								messageThreadId: 'DBLoginMessages'
-							});
-						});*/
 					}
 					
 					function loginCancel(event) {

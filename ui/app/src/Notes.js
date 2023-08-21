@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.4';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.6';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -845,7 +845,6 @@ class Notes {
 		const favs = NoteTree.getInstance().getFavorites();
 
 		var favoritesNum = ClientState.getInstance().getViewSettings().favoritesNum;
-		if (!favoritesNum) favoritesNum = Config.defaultFavoritesAmount;
 		
 		var selector =  $('<select id="' + elementId + '"></select>');
 		

@@ -638,6 +638,7 @@ class DetailBehaviour {
 	 */
 	beforeFilter(noAnimations) {
 		this.treeFontSize = this.grid.getTreeTextSize();
+		this.containerWidthBuffer = this.grid.getContainerWidth();
 		
 		$('#' + this.grid.treeRootTopSwitchContainer)
 		.css('height', this.getSelectedItemHeight() + 'px');
@@ -1056,6 +1057,250 @@ class DetailBehaviour {
 		const isOutgoinglinkOfSelected = this.enableLinks && meta.isOutgoinglinkOfSelected;
 		const isSiblingOfSelected = this.enableSiblings && meta.isSiblingOfSelected;
 		const isChildOfSelected = (this.selectedParent == doc.parent);
+		const selectedDocName = selectedDoc ? selectedDoc.name : 'Root';   // TODO const
+		const isRoot = !selectedDoc; 
+
+		// Elements
+		const previewEl = itemContent.find('.' + this.getItemPreviewClass());
+		const metaEl = itemContent.find('.' + this.getItemMetaClass());
+		const groupMarker = itemContainer.find('.treeitem-detail-group-marker');
+		const innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
+		const itemHeader = itemContainer.find('.' + this.getItemTextClass());
+		const iconClass = this.getIconStyleClass(this.isItemOpened(doc), doc);
+		const iconEl = itemContent.find('.' + this.getIconClass());
+		const textEl = itemContent.find('.treeitemtext-detail-text');
+		const markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
+		const markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
+
+		// Dimensions for the first element
+		const parentWidth = this.treeFontSize * 2;
+		const selectedHeight = this.getSelectedItemHeight();
+
+		// Group marker (disabled here by default, this is set after filtering)
+		groupMarker.css('display', 'none');
+		
+		// Category markers
+		markerLeftEl.css('display', 'none');
+		markerLeftEl.css('width', '16px');
+		markerLeftEl.css('color', 'darkgrey');
+		markerRightEl.css('display', 'none');
+					
+		var markerShown = false;
+		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
+			
+			function showMarker(markerEl, left) {
+				if (markerShown) return;
+				markerShown = left ? 'l' : 'r';
+				
+				markerEl.css('display', 'block');
+				markerEl.css('height', '100%');
+				markerEl.css('top', '0px');
+			}
+
+			// Markers at the right for children, outgoing links of the selected doc. and parent of the selected doc.
+	 		if (!isParentOfSelected) {
+				if (isChildOfSelected) {
+					showMarker(markerRightEl, false);
+					markerRightEl.css('background', '#eeeeee');
+					markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
+				} 
+				else if (isOutgoinglinkOfSelected) {
+					showMarker(markerRightEl, false);
+					markerRightEl.css('background', '#b5f7c6');
+					markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
+				}
+			}
+			
+			// Marker at the left for backlinks and and references
+			const markerLeftElIcon = markerLeftEl.find('.' + this.getMarkerIconClass());
+			markerLeftElIcon.css('font-size', '10px');
+			markerLeftElIcon.removeClass('fa-level-up-alt');
+			markerLeftElIcon.removeClass('fa-chevron-right');
+			markerLeftElIcon.removeClass('fa-chevron-down');
+			//var leftMarkerColor = 'darkgrey';
+
+			if (isParentOfSelected) {
+				showMarker(markerLeftEl, true);
+				markerLeftEl.css('background', '#faacac');
+				markerLeftEl.css('width', parentWidth + 'px');
+				markerLeftEl.attr('title', 'Back to ' + (parentDoc ? parentDoc.name : this.rootDocument.name));
+				//leftMarkerColor = 'black';
+				
+				markerLeftElIcon.css('font-size', this.treeFontSize + 'px');
+				markerLeftElIcon.addClass('fa-level-up-alt');
+			}
+			else if (isBacklinkOfSelected) {
+				showMarker(markerLeftEl, true);
+				markerLeftEl.css('background', '#b5f7c6');
+				markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
+				
+				markerLeftElIcon.addClass('fa-chevron-right');
+			}
+			else if (isReferenceToSelected) {
+				showMarker(markerLeftEl, true);
+				markerLeftEl.css('background', '#fff2bf');
+				markerLeftEl.attr('title', doc.name + ' contains a reference to ' + selectedDocName);
+				
+				markerLeftElIcon.addClass('fa-chevron-right');
+			}				
+			else if (isSiblingOfSelected) {
+				showMarker(markerLeftEl, true);
+				markerLeftEl.css('background', '#b1f4fa');
+				markerLeftEl.attr('title', 'Sibling of ' + selectedDocName + ' in the hierarchy');
+				
+				markerLeftElIcon.addClass('fa-chevron-down');
+			}
+									
+			// Highlight last selected
+			/*const highlightColor = '#fada4d';
+			const highlightLeft = (!isParentOfSelected) && (doc._id == this.lastSelectedParent);
+			const highlightRight = highlightLeft;
+			markerLeftEl.css('border', highlightLeft ? ('2px solid ' + highlightColor) : '');
+			markerLeftEl.css('color', highlightLeft ? highlightColor : leftMarkerColor);
+			if (highlightLeft) markerLeftEl.attr('title', markerLeftEl.attr('title') + ', last opened in navigation');
+			
+			markerRightEl.css('border', highlightRight ? ('2px solid ' + highlightColor) : '');
+			markerRightEl.css('color', highlightRight ? highlightColor : 'darkgrey');
+			if (highlightRight) markerRightEl.attr('title', markerRightEl.attr('title') + ', last opened in navigation');
+			*/
+		}
+		
+		// Item dimensions. Parent shall be small (like font size), the normal items should be larger.
+		if (meta.isSelectedParent) {
+			// Selected parent
+			itemHeader.css('margin-top', ((selectedHeight - this.treeFontSize * 1.4) / 2) + 'px');   // NOTE: 1.4 is the global line height!
+			itemHeader.css('display', 'block');
+			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
+			
+			itemContent.css('height', selectedHeight + 'px');
+			itemContent.css('padding-right', '0px');
+			itemContainer.css('width',(this.containerWidthBuffer - this.sortButtonsWidth - (isRoot ? 0 : parentWidth)) + 'px');
+		} else {
+			itemContent.css('padding-right', '10px');
+			itemHeader.css('margin-top', '0px');
+			itemHeader.css('display', 'flex');
+			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
+			
+			if (isParentOfSelected) {
+				// Parent of selected
+				itemContent.css('height', selectedHeight + 'px');
+				itemContainer.css('width', parentWidth + 'px');
+			} else {
+				// Normal item
+				itemContent.css('height', ((this.itemHeight) + 'px'));
+				itemContainer.css('width', '100%');
+			}
+		}
+		
+		// Styling for icons (here we dont want no spaces when the icon is hidden)
+		const poss = this.getAllPossibleIconStyleClasses();
+		for(var p in poss) iconEl.toggleClass(poss[p], false);
+		
+		iconEl.toggleClass(iconClass, true); 
+
+		iconEl.css('padding-right', iconClass ? '10px' : '0px'); 
+		iconEl.toggleClass('folder', hasChildren);
+		iconEl.css('display', ((!this.enableParents) || (!meta.isSelectedParent)) ? (iconClass ? 'block' : 'none') : 'none');
+
+		// Inner container
+		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
+		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
+		innerContainer.css('width', meta.isSelectedParent ? '100%' : ((markerShown == 'r') ? ((this.containerWidthBuffer - 45) + 'px') : ''));
+
+		// Header line
+		itemHeader.css('max-width', 
+			meta.isSelectedParent 
+			? '100%' 
+			: (
+				(this.containerWidthBuffer
+					- ((markerShown == 'r') ? (45) : 0) 
+					- ((markerShown == 'l') ? (50) : 0) 
+					- (iconClass ? (10 + this.treeFontSize) : 0)
+				) + 'px'
+			)
+		);
+
+		// Hide preview / metadata for selected parent
+		previewEl.css('display', meta.isSelectedParent ? 'none' : 'block');
+		metaEl.css('display', meta.isSelectedParent ? 'none' : 'block');
+		
+		// Set colors
+		if (meta.isSelectedParent) {
+			// Override colors for selected parent
+			itemContent.css('background-color', 'lightgrey');
+			itemContent.css('color', 'black');
+		} else {
+			// Set default colors.
+			// We only need to set the default colors which are not set in 
+			// the document, because colorItem() is called for all others anyway.
+			if (!doc.backColor) itemContent.css('background-color', 'white');
+			if (!doc.color) itemContent.css('color', 'black');
+			
+			// Set preview / meta font size
+			previewEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
+			metaEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
+		}
+		
+		// Star
+		const starEl = innerContainer.find('.doc-label-detail-star');
+		starEl.css('display', doc.star ? 'block' : 'none');
+		if (doc.star) {
+			starEl.css('color', doc.color ? doc.color : 'black');
+			starEl.css('font-size', (this.treeFontSize - 2) + 'px');
+		}
+		
+		this.updateItemMeta(doc, itemContent);
+
+		const labels = itemContent.find('.doc-label');
+		labels.css('min-width', this.treeFontSize + 'px');
+		labels.css('max-width', this.treeFontSize + 'px');
+		labels.css('min-height', this.treeFontSize + 'px');
+		labels.css('max-height', this.treeFontSize + 'px');
+		
+		const tags = itemContent.find('.doc-hashtag');
+		tags.css('min-width', this.treeFontSize + 'px');
+		tags.css('max-width', this.treeFontSize + 'px');
+		tags.css('min-height', this.treeFontSize + 'px');
+		tags.css('max-height', this.treeFontSize + 'px');
+
+		this.setItemLabelAlignment(itemContent, !meta.isSelectedParent);
+		
+		const showSelector = this.multiSelect && (!meta.isParentOfSelectedParent);
+		itemContent.find('.' + this.getSelectorClass()).css('display', showSelector ? 'inline-block' : 'none');
+
+		// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)	TODO remove if no problems arise				
+		/*const soll = itemContent.offset().top + itemContent.height();
+		const ist = previewEl.offset().top + previewEl.height();
+		const diff = ist - soll;
+		if (diff > 0) {
+			var previewHeight = previewEl.height() - diff; 
+			previewEl.css('height', previewHeight);		
+		}
+*/		
+	}
+	
+	/*
+	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
+		const data = Notes.getInstance().getData();
+		const selectedDoc = data.getById(this.selectedParent);
+		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
+
+		// Gather attributes
+		const meta = this.getItemRefTypeDescriptor(doc);
+
+		// During search, all documents are shown as normal items
+		if (searchText.length > 0) meta.isSelectedParent = false;		
+		
+		// Properties
+		//const isAttachment = (doc.type == 'attachment');
+		//const isReference = (doc.type == 'reference');
+		const hasChildren = this.hasChildren(doc);
+		const isBacklinkOfSelected = this.enableBacklinks && meta.isBacklinkOfSelected; 
+		const isParentOfSelected = this.enableParents && meta.isParentOfSelectedParent; 
+		const isReferenceToSelected = this.enableRefs && meta.isReferenceToSelected; 
+		const isOutgoinglinkOfSelected = this.enableLinks && meta.isOutgoinglinkOfSelected;
+		const isSiblingOfSelected = this.enableSiblings && meta.isSiblingOfSelected;
+		const isChildOfSelected = (this.selectedParent == doc.parent);
 		const selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
 		const isRoot = !selectedDoc; 
 
@@ -1149,19 +1394,6 @@ class DetailBehaviour {
 				
 				markerLeftElIcon.addClass('fa-chevron-down');
 			}
-									
-			// Highlight last selected
-			/*const highlightColor = '#fada4d';
-			const highlightLeft = (!isParentOfSelected) && (doc._id == this.lastSelectedParent);
-			const highlightRight = highlightLeft;
-			markerLeftEl.css('border', highlightLeft ? ('2px solid ' + highlightColor) : '');
-			markerLeftEl.css('color', highlightLeft ? highlightColor : leftMarkerColor);
-			if (highlightLeft) markerLeftEl.attr('title', markerLeftEl.attr('title') + ', last opened in navigation');
-			
-			markerRightEl.css('border', highlightRight ? ('2px solid ' + highlightColor) : '');
-			markerRightEl.css('color', highlightRight ? highlightColor : 'darkgrey');
-			if (highlightRight) markerRightEl.attr('title', markerRightEl.attr('title') + ', last opened in navigation');
-			*/
 		}
 		
 		// Item dimensions. Parent shall be small (like font size), the normal items should be larger.
@@ -1276,6 +1508,7 @@ class DetailBehaviour {
 		const showSelector = this.multiSelect && (!meta.isParentOfSelectedParent);
 		itemContent.find('.' + this.getSelectorClass()).css('display', showSelector ? 'inline-block' : 'none');
 	}
+	*/
 	
 	/**
 	 * Adjust the labels to the left or right

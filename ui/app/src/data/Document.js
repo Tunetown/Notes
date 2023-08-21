@@ -62,6 +62,9 @@ class Document {
 			doc.links = Document.getLinksFromContent(doc);
 			doc.tags = Document.getTagsFromContent(doc);
 		}
+		
+		// Clear navigation DOM element buffer
+		delete doc.navItemElement;
 	}
 	
 	/**
@@ -538,32 +541,6 @@ class Document {
 	 */
 	static brokenLinksWarning(doc) {
 		Document.invalidMetaWarning(doc);
-		/*
-		// Sanity check
-		setTimeout(function() {
-			var errors = [];
-			
-			// Just check if the links buffers are up to date
-			Document.checkLinkages(doc, null, errors);
-			
-			var cnt = 0;
-			var bl = '';
-			for(var e in errors) {
-				if (errors[e].brokenLink) {
-					if (cnt == 0) {
-						bl = errors[e].brokenLink;
-					}
-					cnt++;
-				}
-			}
-			if (cnt > 0) {
-				Notes.getInstance().showAlert(
-					cnt + ' broken link(s) detected in this document: ' + bl + ((cnt > 1) ? ' ...' : ''), 
-					'W',
-					'brokenLinksMessages'
-				);
-			}
-		}, 500);*/
 	}
 	
 	/**
@@ -739,6 +716,7 @@ class Document {
 		delete doc.backlinks;
 		delete doc.children;
 		delete doc.childrenDeep;
+		delete doc.navItemElement;
 		//Document.strip(doc);
 				
 		var d = Notes.getInstance().getData();
@@ -764,6 +742,7 @@ class Document {
 		delete doc.backlinks;
 		delete doc.children;
 		delete doc.childrenDeep;
+		delete doc.navItemElement;
 		
 		if (doc.backImage) {
 			delete doc.backImage.stub;

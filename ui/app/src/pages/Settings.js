@@ -770,7 +770,7 @@ class Settings {
 						$('<tr/>').append(
 							$('<td class="w-auto">Favorites Size</td>'),
 							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesSize ? ClientState.getInstance().getViewSettings().favoritesSize : Config.defaultFavoritesSize) + '" />')
+								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesSize) + '" />')
 								.on('change', function() {
 									if (!parseInt(this.value)) this.value = Config.defaultFavoritesSize;
 									if (parseInt(this.value) < Config.minFavoritesSize) this.value = Config.minFavoritesSize;
@@ -788,7 +788,7 @@ class Settings {
 						$('<tr/>').append(
 							$('<td class="w-auto">Max. Number of Favorites</td>'),
 							$('<td colspan="2" />').append(
-								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum ? ClientState.getInstance().getViewSettings().favoritesNum : Config.defaultFavoritesAmount) + '" />')
+								$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum) + '" />')
 								.on('change', function() {
 									if (!parseInt(this.value)) this.value = Config.defaultFavoritesAmount;
 									if (parseInt(this.value) < 1) this.value = 1;

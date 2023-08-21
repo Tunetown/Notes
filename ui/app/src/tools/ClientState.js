@@ -389,7 +389,9 @@ class ClientState {
 		
 		if (!ret.navMode) ret.navMode = Behaviours.modeIdDetailRef;
 		if (!ret.tileMaxSize) ret.tileMaxSize = 220;
-		
+		if (!ret.favoritesSize) ret.favoritesSize = Config.defaultFavoritesSize
+		if (!ret.favoritesNum) ret.favoritesNum = Config.defaultFavoritesAmount;
+
 		return ret;
 	}
 	
