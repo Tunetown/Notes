@@ -84,7 +84,7 @@ class RawView {
 		
 		if (!confirm('Download JSON export data of ' + this.current.name + ' including its contents (' + ids.length + ' documents)?')) return;
 		
-		DocumentAccess.getInstance().exportDocuments(ids)
+		(new NotesExporter()).export(ids)
 		.then(function(data) {
 			Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S', 'ExportDocsMessages');
 		})

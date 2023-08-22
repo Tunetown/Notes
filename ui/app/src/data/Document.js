@@ -33,11 +33,18 @@ class Document {
 		doc.attachmentSize = 0;
 		for(var name in doc._attachments || []) {
 			if (!doc._attachments.hasOwnProperty(name)) continue;
+			
 			var att = doc._attachments[name];
 			if (!att) continue;
-			if (!att.length) continue;
 			
-			doc.attachmentSize += att.length;
+			if (att.hasOwnProperty('data') && (typeof(att.data) == 'string')) {
+				doc.attachmentSize += att.data.length;
+			} else if (att.hasOwnProperty('length')) {
+				doc.attachmentSize += att.length;				
+			} else {
+				console.log('ERROR: Cannot determine attachment size for ' + doc._id + ' - ' + att.name);
+				break;
+			}			
 		}
 		
 		// Change log size

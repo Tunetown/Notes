@@ -50,7 +50,7 @@ class ObsidianExporter {
 	/**
 	 * Export (download) documents as ZIP file. Expects an array of IDs.
 	 */
-	exportDocumentsToObsidian(ids) {
+	export(ids) {
 		var that = this;
 		
 		// Array of prepared documents. This contains objects with all necessary, structured 

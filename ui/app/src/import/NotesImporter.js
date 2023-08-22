@@ -18,14 +18,53 @@
  */
 class NotesImporter {
 	
+	constructor(defaults) {
+		this.defaults = defaults ? defaults : {};
+	}
+	  
 	/**
 	 * Initialize the importer (add options etc)
 	 */
 	initialize() {
+		$('#importOptionsContainer').append(
+			$('<table class="importOptionsTable"></table>').append(
+				$('<tbody></tbody>').append(
+					$('<tr></tr>').append(
+						$('<td>Import internal meta/settings</td>'),
+						$('<td></td>').append(
+							$('<input type="checkbox" id="importInternal" ' + (this.defaults.importInternal ? 'checked' : '') + ' />')	
+						)
+					),
+					$('<tr></tr>').append(
+						$('<td>Create new IDs before importing</td>'),
+						$('<td></td>').append(
+							$('<input type="checkbox" id="createIds" ' + (this.defaults.createIds ? 'checked' : '') + ' />')	
+						)
+					),
+					$('<tr></tr>').append(
+						$('<td>Create a new root item for the imported documents</td>'),
+						$('<td></td>').append(
+							$('<input type="checkbox" id="useRootItem" ' + (this.defaults.useRootItem ? 'checked' : '') + ' />')	
+						)
+					)
+				)
+			)
+		);
 	}
 	
 	/**
-	 * Import the passed string data as Trello JSON board data.
+	 * Returns an options array.
+	 */
+	parseOptions() {
+		return {
+			importInternal: !!$('#importInternal').is(':checked'),
+			createIds: !!$('#createIds').is(':checked'),
+			useRootItem: !!$('#useRootItem').is(':checked')
+		};
+	}
+	
+	/**
+	 * Import the passed string data as raw JSON board data.
 	 */
 	async process(jsonString, sourceName) {
 		if (!jsonString) {
@@ -41,13 +80,29 @@ class NotesImporter {
 			});
 		}
 		
+		var options = this.parseOptions();
+
 		var d = Notes.getInstance().getData();
 		var data = JSON.parse(jsonString);
 		
 		// Prepare for existing IDs. This is done in the original jsonString, which is then re-parsed.
 		for(var i in data) {
 			var doc = data[i];
+			
 			Console.log(' -> Importing ' + doc.name + ' (' + Tools.convertFilesize(JSON.stringify(doc).length) + ')');
+				
+			if (NotesExporter.isInternalDocument(doc._id)) {
+				console.log(" -> Internal file, keeping id: " + doc._id);
+				continue;
+			}
+			
+			if (!options.createIds) {
+				// Check if exists, and throw an error if yes
+				var tmp = d.getById(doc._id);
+				if (tmp) throw new Error('Document with ID ' + doc._id + ' already exists, cancelling import.');
+				
+				continue;
+			}	
 			
 			// All IDs are renewed
 			var newId = d.generateIdFrom(doc.name);
@@ -74,10 +129,19 @@ class NotesImporter {
 			var doc = data[i];
 			delete doc._rev;
 			
+			if (NotesExporter.isInternalDocument(doc._id)) {
+				console.log(" -> Internal file OK: " + doc._id);
+				continue;
+			}
+			
 			if (!doc.parent) {
-				// Root items go directly under the new root item
-				Console.log(' -> Put root item to import node: ' + doc.name);
-				doc.parent = rootId;
+				if (options.useRootItem) {
+					// Root items go directly under the new root item
+					Console.log(' -> Set parent to new root item: ' + doc.name);
+					doc.parent = rootId;					
+				} else {
+					Console.log(' -> Checked OK (root item): ' + doc.name);
+				}
 			} else {
 				var found = false;
 				for(var d in data) {
@@ -87,16 +151,23 @@ class NotesImporter {
 					}
 				}
 				if (!found) {
-					Console.log(' -> Put root item to import node (parent ' + doc.parent + ' not found): ' + doc.name);
-					doc.parent = rootId;
+					if (options.useRootItem) {
+						Console.log(' -> Parent ' + doc.parent + ' not found for ' + doc.name + ', putting into new root');
+						doc.parent = rootId;
+					} else {
+						Console.log(' -> Parent ' + doc.parent + ' not found for ' + doc.name + ', putting into root');
+						doc.parent = '';
+					}
 				} else {
-					Console.log(' -> Root OK: ' + doc.name);
+					Console.log(' -> Checked OK: ' + doc.name);
 				}
 			}
 		}
 		
-		// Now finally add the root item
-		data.push(root);
+		if (options.useRootItem) {
+			// Now finally add the root item
+			data.push(root);
+		}
 		
 		Console.log(' -> Documents to import: ' + data.length, 'I');
 
@@ -108,7 +179,7 @@ class NotesImporter {
 			});
 		}
 
-		return DocumentAccess.getInstance().importDocuments(data)
+		return NotesImporter.importDocuments(data, options.importInternal)
 		.then(function(data) {
 			if (!data.ok) {
 				Console.log('Error in import: ' + data.message, 'E');
@@ -124,4 +195,45 @@ class NotesImporter {
 			});
 		});
 	}	
+	
+	/**
+	 * Import an array of documents
+	 */
+	static importDocuments(docs, importInternalDocs) {
+		var docsInt = [];
+		
+		for(var i in docs) {
+			if (NotesExporter.isDesignDocument(docs[i]._id)) {
+				continue;
+			}
+			
+			if (NotesExporter.isInternalDocument(docs[i]._id)) {
+				if (importInternalDocs) { 
+					docsInt.push(docs[i]);
+				}
+				continue;
+			} 
+			
+			Document.updateMeta(docs[i]);
+			docsInt.push(Document.clone(docs[i]));							
+		}
+		
+		var db;
+		return Database.getInstance().get()
+		.then(function(dbRef) {
+			db = dbRef;
+			
+			return db.bulkDocs(docsInt);
+		})
+		.then(function(/*data*/) {
+			// Execute callbacks
+			Callbacks.getInstance().executeCallbacks('importFinished', docsInt);
+			
+			return Promise.resolve({
+				ok: true,
+				message: 'Successfully imported ' + docsInt.length + ' documents',
+				messageThreadId: 'ImportDocsMessages'
+			});
+		}); 
+	}
 }

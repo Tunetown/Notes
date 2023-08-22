@@ -663,7 +663,7 @@ class DetailBehaviour {
 			$('#treeteasertext').css('display', 'none');
 		} else {
 			$('#treeteasertext').css('display', 'block');
-			$('#treeteasertext').text(selectedDoc.name + ' has no related items to show');
+			$('#treeteasertext').html(selectedDoc.name + ' has no related items to show');
 		}
 		
 		const that = this;
@@ -1045,7 +1045,10 @@ class DetailBehaviour {
 		const meta = this.getItemRefTypeDescriptor(doc);
 
 		// During search, all documents are shown as normal items
-		if (searchText.length > 0) meta.isSelectedParent = false;		
+		if (searchText.length > 0) {
+			meta.isSelectedParent = false;
+			meta.isParentOfSelectedParent = false;
+		}		
 		
 		// Properties
 		//const isAttachment = (doc.type == 'attachment');

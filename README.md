@@ -117,4 +117,12 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Minor cosmetic fixes
     - Performance optimizations
     
+- 0.98.8
+    - Massive performance optimizations (less forced reflows, better animation handling,
+      pre-rendering of items in background)
+    - Minor bug fixes
+    - Rework of Raw Json Import/Export
+    - Rework of Settings page
+    
+    
     

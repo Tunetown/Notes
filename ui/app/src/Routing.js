@@ -259,6 +259,19 @@ class Routing {
 				});
 			});
 			
+			// Verify backup
+			this.get('#/:profile/verifyrawdata', function(context) {
+				that.app.startApp(this.params['profile'])
+				.then(function(data) {
+					that.app.resetPage();
+					
+					VerifyBackup.getInstance().load();
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
 			// Checks
 			this.get('#/:profile/check', function(context) {
 				that.app.startApp(this.params['profile'])
@@ -701,6 +714,13 @@ class Routing {
 	 */
 	callConsole() {
 		location.href = '#/console';
+	}
+	
+	/**
+	 * Calls the verification page
+	 */
+	callVerifyBackup() {
+		this.call('verifyrawdata');
 	}
 	
 	/**

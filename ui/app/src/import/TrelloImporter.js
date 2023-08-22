@@ -100,7 +100,7 @@ class TrelloImporter {
 		var name = data.name ? data.name : sourceName;
 		var rootId = d.generateIdFrom(name);
 		var docs = [];
-		var that = this;
+		//var that = this;
 		var attachmentsSize = 0;
 		
 		// BG Image
@@ -238,7 +238,7 @@ class TrelloImporter {
 			});
 		}
 		
-		return DocumentAccess.getInstance().importDocuments(docs)
+		return NotesImporter.importDocuments(docs)
 		.then(function(data) {
 			if (!data.ok) {
 				Console.log('Error in Trello import: ' + data.message, 'E');

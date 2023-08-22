@@ -487,7 +487,7 @@ class DatabaseSync {
 				
 				// Counterpart found: Compare contents. For this we have to remove some attributes first 
 				// from the attachments which are installation dependent.
-				that.stripInstallationDependentProps(dataLocal.rows[l].doc);
+				/*that.stripInstallationDependentProps(dataLocal.rows[l].doc);
 				that.stripInstallationDependentProps(dataRemote.rows[r].doc);
 				
 				var resultList = [];
@@ -509,7 +509,24 @@ class DatabaseSync {
 
 					logCallback(" -> Error: Documents not identical!", "E");
 					continue;
+				}*/
+				
+				var resultList = DatabaseSync.compareDocuments(dataLocal.rows[l].doc, dataRemote.rows[r].doc);
+				if (resultList.length > 0) {
+					errors.push({
+						message: dataLocal.rows[l].id + ": Documents not identical, Details:",
+						id: dataLocal.rows[l].id,
+						type: 'E'
+					});
+					for(var i in resultList) {
+						logCallback("    " + resultList[i], 'E');
+						errors.push(resultList[i]);
+					}
+
+					logCallback(" -> Error: Documents not identical!", "E");
+					continue;
 				}
+				
 			}
 			
 			logCallback();
@@ -540,11 +557,32 @@ class DatabaseSync {
 		});
 	}
 	
+	static compareDocuments(doc1, doc2) {
+		// Compare contents. For this we have to remove some attributes first 
+		// from the attachments which are installation dependent.
+		DatabaseSync.#stripInstallationDependentProps(doc1);
+		DatabaseSync.#stripInstallationDependentProps(doc2);
+		
+		var resultList = [];
+		Tools.compareObjects(doc1, doc2, resultList);
+		
+		var ret = [];
+		for(var i in resultList) {
+			ret.push({
+				id: doc1._id,
+				message: resultList[i],
+				type: 'E'
+			});
+		}
+		
+		return ret;
+	}
+	
 	/**
 	 * Strips the digests and revisions from the passed document's attachments. These are not
 	 * the same among DBs, as they are installation dependent.
 	 */
-	stripInstallationDependentProps(doc) {
+	static #stripInstallationDependentProps(doc) {
 		if (!doc.hasOwnProperty("_attachments")) return;
 			
 		for (var i in doc._attachments) {

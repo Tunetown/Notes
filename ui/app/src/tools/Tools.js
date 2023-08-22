@@ -171,15 +171,20 @@ class Tools {
 		if (x === y) return;
 
 		// If they are not strictly equal, they both need to be Objects
-		if (!(x instanceof Object) || !(y instanceof Object)) {
-			errorList.push("Type mismatch");
+		if (!(x instanceof Object)) {
+			errorList.push("Type mismatch: First item is no object" + (propName ? (' (' + propName + ')') : ''));
+			return;
+		}
+
+		if (!(y instanceof Object)) {
+			errorList.push("Type mismatch: Second item is no object" + (propName ? (' (' + propName + ')') : ''));
 			return;
 		}
 
 		// They must have the exact same prototype chain, the closest we can do is
 		// test there constructor.
 		if (x.constructor !== y.constructor) {
-			errorList.push("Class mismatch");
+			errorList.push("Class mismatch" + (propName ? (' (' + propName + ')') : ''));
 			return;
 		}
 
@@ -189,7 +194,8 @@ class Tools {
 
 			// Allows to compare x[ p ] and y[ p ] when set to undefined
 			if (!y.hasOwnProperty(p)) {
-				errorList.push("Property missing: " + p);
+				errorList.push("Property missing in second item: " + p + (propName ? (' (at ' + propName + ')') : ''));
+				continue;
 			}
 
 			// If they have the same strict value or identity then they are equal
@@ -197,20 +203,20 @@ class Tools {
 
 			// Numbers, Strings, Functions, Booleans must be strictly equal
 			if (typeof(x[p]) !== "object") {
-				errorList.push("Property mismatch: " + p);
-				if (propName) errorList.push("  Property parent: " + propName);
-				errorList.push("  Value in first object: " + JSON.stringify(x[p]));
-				errorList.push("  Value in second object: " + JSON.stringify(y[p]));
+				errorList.push("Property mismatch: " + p + (propName ? (' (at ' + propName + ')') : '') + ': ' + JSON.stringify(x[p]) + ' != ' + JSON.stringify(y[p]));
+				//if (propName) errorList.push("  -> Property parent: " + propName);
+				//errorList.push("  -> Value in first object: " + JSON.stringify(x[p]));
+				//errorList.push("  -> Value in second object: " + JSON.stringify(y[p]));
 			} else {
 				// Objects and Arrays must be tested recursively
-				Tools.compareObjects( x[ p ],  y[ p ], errorList, p);
+				Tools.compareObjects( x[ p ],  y[ p ], errorList, (propName ? (propName + '-') : '') + p);
 			}
 		}
 
 		for (p in y) {
 			if (y.hasOwnProperty(p) && !x.hasOwnProperty(p)) {
 				// Allows x[ p ] to be set to undefined
-				errorList.push("Property mismatch: " + p);
+				errorList.push("Property missing in first item: " + p + (propName ? (' (at ' + propName + ')') : ''));
 			}
 		}
 	}
