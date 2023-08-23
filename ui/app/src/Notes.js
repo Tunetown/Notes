@@ -965,6 +965,13 @@ class Notes {
 					// Note Editor (for TinyMCE this is needed separately)
 					Editor.getInstance().getContainerDom(teaser),
 					
+					// Presentation mode overlay
+					!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
+					$('<div id="presentationModeOverlay"/>').append(
+						$('<div id="presentationModeOverlayLeft"/>'),
+						$('<div id="presentationModeOverlayRight"/>'),
+					),
+					
 					// Console
 					$('<div id="console" class="mainPanel"/>')				
 				])
@@ -1813,10 +1820,34 @@ class Notes {
 		$('#headerRight').append(
 			this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="User Menu" class="fa fa-user headerButton" id="userMenuButton" onclick="event.stopPropagation();Notes.getInstance().showUserMenu();"></div>'), size),
 			this.setHeaderButtonSize($('<div class="alertHeaderNotification alertNotification conflictMarker fa fa-bell"></div>'), size, true, 0.04),
+			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="Setlist Mode" class="fa fa-expand-arrows-alt headerButton" id="presentationModeButton" onclick="event.stopPropagation();Notes.getInstance().togglePresentationMode();"></div>'), size),
 		);
+		
+		this.updatePresentationMode();
 		
 		// Update UI
 		if (!noUpdate) this.update();
+	}
+	
+	togglePresentationMode() {
+		var vs = ClientState.getInstance().getViewSettings();
+		vs.enablePresentationMode = !vs.enablePresentationMode;
+		ClientState.getInstance().saveViewSettings(vs);
+		
+		this.updatePresentationMode();
+		
+		// TODO
+		this.showAlert("Not implemented yet", "I", "togglePresentationMode");
+		
+	}
+	
+	updatePresentationMode() {
+		var vs = ClientState.getInstance().getViewSettings();
+		
+		$('#presentationModeOverlay').css('display', vs.enablePresentationMode ? 'block' : 'none');
+		const butt = $('#presentationModeButton');
+		butt.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
+		butt.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);
 	}
 	
 	/**

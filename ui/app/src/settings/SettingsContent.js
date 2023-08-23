@@ -1145,6 +1145,28 @@ class SettingsContent {
 				)
 			),
 			
+			$('<tr/>').append(
+				$('<td class="w-auto">Enable Setlist Mode</td>'),
+				$('<td colspan="2" />').append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that = this;
+						setTimeout(function() {
+							new Switch(that, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									ClientState.getInstance().enableExperimentalFunction("SetlistMode", !!this.getChecked());
+									location.reload();
+								}
+							});
+						}, 0);
+					})
+				)
+			),
+			
+			
 			/*$('<tr/>').append(
 				$('<td class="w-auto">Enable Undo/Redo</td>'),
 				$('<td colspan="2" />').append(

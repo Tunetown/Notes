@@ -215,3 +215,35 @@ article {
 	white-space: nowrap;
 }
 
+/* ====================== Presentation Mode ========================= */
+
+#presentationModeOverlay {
+	height: 100%;
+	width: 100%;
+	background-color: rgba(0,0,0,0.1);
+	overflow: hidden;
+	position: absolute;	
+	display: none;
+}
+
+#presentationModeOverlayLeft {
+	height: 80%;
+	width: 40%;
+	left: 0px;
+	bottom: 0px;
+	background-color: rgba(200,0,0,0.5);
+	position: absolute;
+	overflow: hidden;
+	
+}
+
+#presentationModeOverlayRight {
+	height: 80%;
+	width: 40%;
+	right: 0px;
+	bottom: 0px;
+	background-color: rgba(0,200,0,0.5);
+	position: absolute;
+	overflow: hidden;
+	
+}
