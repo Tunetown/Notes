@@ -91,6 +91,10 @@ class TileBehaviour {
 	afterSetTreeTextSize(size) {
 	}
 	
+	getNewItemStartIndex(parentItemIndex) {
+		return 0;		
+	}
+	
 	/**
 	 * Should save the current scroll position.
 	 */
@@ -103,6 +107,13 @@ class TileBehaviour {
 	 */
 	restoreScrollPosition() {
 		this.scroll.restorePosition();
+	}
+	
+	/**
+	 * Internally used to reset scroll position
+	 */
+	resetScrollPosition(parent) {
+		this.scroll.resetPosition(parent);
 	}
 	
 	/**
@@ -731,6 +742,10 @@ class TileBehaviour {
 	 */
 	getDragHandleClass() {
 		return "tileDragHandle"; 
+	}
+	
+	getDragMarkerClass() {
+		return this.getDragHandleClass();
 	}
 	
 	/**

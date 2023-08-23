@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.11';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.13';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -1585,7 +1585,9 @@ class Notes {
 		} 
 		
 		// User menu
-		$('.userbuttons').css('top', size + 'px');
+		const userMenu = $('.userbuttons');
+		userMenu.css('top', size + 'px');
+		userMenu.css('max-height', (winHeight - size - 10) + 'px');
 		
 		// Alert notification icon at user menu icon
 		this.setRoundedButtonSize(size * (8 / 55), '.alertNotification');

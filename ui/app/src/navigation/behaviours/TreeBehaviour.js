@@ -52,6 +52,11 @@ class TreeBehaviour {
 		return false;
 	}
 	
+	getNewItemStartIndex(parentItemIndex) {
+		// Set the top property to that of the parent before adding, this makes the animations more fluent.
+		return parentItemIndex;
+	}
+	
 	/**
 	 * Called after the search text has been set.
 	 */
@@ -103,6 +108,13 @@ class TreeBehaviour {
 	 */
 	restoreScrollPosition() {
 		this.scroll.restorePosition();
+	}
+	
+	/**
+	 * Internally used to reset scroll position
+	 */
+	resetScrollPosition(parent) {
+		this.scroll.resetPosition(parent);
 	}
 	
 	/**
@@ -596,6 +608,11 @@ class TreeBehaviour {
 		return 'treeDragHandle';
 	}
 	
+	getDragMarkerClass() {
+		return this.getDragHandleClass();
+	}
+
+	
 	/**
 	 * Get tree item text class
 	 */
@@ -729,10 +746,12 @@ class TreeBehaviour {
 	 * Called when the user double clicks on the tree area
 	 */
 	onNavigationDoubleClick() {
+		/*
 		// Reload navigation (dor debugging)
 		TreeActions.getInstance().requestTree()
 		.then(function(data) {
 			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S", data.messageThreadId);
 		});
+		*/
 	}
 }

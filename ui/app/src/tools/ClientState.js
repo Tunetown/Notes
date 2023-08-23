@@ -386,11 +386,18 @@ class ClientState {
 	 */
 	getViewSettings() {
 		var ret = this.getLocal(this.cidViewSettings);
+
+		if (!ret || !ret.initialized) {
+			ret.detailHighlightLastSelected = true;
+		}
+
+		ret.initialized = true;
 		
 		if (!ret.navMode) ret.navMode = Behaviours.modeIdDetailRef;
 		if (!ret.tileMaxSize) ret.tileMaxSize = 220;
 		if (!ret.favoritesSize) ret.favoritesSize = Config.defaultFavoritesSize
 		if (!ret.favoritesNum) ret.favoritesNum = Config.defaultFavoritesAmount;
+		if (!ret.hasOwnProperty("dragDelayMillis")) ret.dragDelayMillis = Config.defaultDragDelayMillis;
 
 		return ret;
 	}
@@ -519,6 +526,10 @@ class ClientState {
 		
 		this.setLocal(this.getTreeStateCid(), state);
 	}
+	
+	/////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * Returns the local storage item for the given internal ID

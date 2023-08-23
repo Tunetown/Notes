@@ -663,7 +663,7 @@ class DetailBehaviour {
 			$('#treeteasertext').css('display', 'none');
 		} else {
 			$('#treeteasertext').css('display', 'block');
-			$('#treeteasertext').html(selectedDoc.name + ' has no related items to show');
+			$('#treeteasertext').html((selectedDoc ? selectedDoc.name : 'This notebook') + ' has no related items to show');
 		}
 		
 		const that = this;
@@ -737,6 +737,19 @@ class DetailBehaviour {
 				}
 			}
 		}
+		
+		// Select last opened
+		if (that.lastSelectedParent && 
+		    (that.lastSelectedParent != selectedDoc.parent) && 
+		    ClientState.getInstance().getViewSettings().detailHighlightLastSelected) {
+				
+			that.grid.setSelected(that.lastSelectedParent);				
+		}
+
+		// Restore scroll position			
+		setTimeout(function() {
+			that.restoreScrollPosition();
+		}, 0);
 	}
 	
 	/**
@@ -901,12 +914,15 @@ class DetailBehaviour {
 		if (this.mode == 'ref') {
 			if (!this.rootItem) {
 				//console.log("Adding root item");
-				this.rootItem = this.grid.createItem(this.rootDocument)[0];
+				this.rootItem = this.grid.createItem(this.rootDocument)[0];				
+				$(this.rootItem).css('display', 'none');
 				
-				this.grid.grid.grid.add([this.rootItem], {
+				var gitm = this.grid.grid.grid.add([this.rootItem], {
 					index: 0,
 					layout: false
-				});
+				})[0];
+				
+				return [gitm];
 			}
 		} else {
 			if (this.rootItem) {
@@ -919,6 +935,8 @@ class DetailBehaviour {
 				this.rootItem = null;
 			}
 		}
+		
+		return [];
 	}
 	
 	/**
@@ -935,7 +953,7 @@ class DetailBehaviour {
 			),
 			
 			// Content
-			$('<div class="' + this.getItemInnerContainerClass() + '">').append([
+			$('<div class="' + this.getItemInnerContainerClass() + ' ' + this.getDragHandleMarkerClass() + '">').append([
 				// We use a container holding all item content inside the content div.
 				$('<div class="' + this.getItemHeadlineClass() + '">').append([
 					// Selector for multi selection
@@ -944,7 +962,7 @@ class DetailBehaviour {
 					),
 					
 					// Icon
-					$('<div class="' + this.getIconClass() + '"></div>'),
+					$('<div class="' + this.getIconClass() + '"></div>'), 
 					
 					// Text
 					$('<div class="' + this.getItemTextClass() + '"></div>').append(
@@ -1270,6 +1288,14 @@ class DetailBehaviour {
 		
 		const showSelector = this.multiSelect && (!meta.isParentOfSelectedParent);
 		itemContent.find('.' + this.getSelectorClass()).css('display', showSelector ? 'inline-block' : 'none');
+		
+		// Dragging enabled for this item?
+		const enableDrag = !isParentOfSelected && !meta.isSelectedParent;
+		if (enableDrag) {
+			this.grid.grid.itemEnableDrag(muuriItem);		
+		} else {
+			this.grid.grid.itemDisableDrag(muuriItem);
+		}	
 
 		// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)	TODO remove if no problems arise				
 		/*const soll = itemContent.offset().top + itemContent.height();
@@ -1279,239 +1305,8 @@ class DetailBehaviour {
 			var previewHeight = previewEl.height() - diff; 
 			previewEl.css('height', previewHeight);		
 		}
-*/		
+		*/		
 	}
-	
-	/*
-	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
-		const data = Notes.getInstance().getData();
-		const selectedDoc = data.getById(this.selectedParent);
-		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
-
-		// Gather attributes
-		const meta = this.getItemRefTypeDescriptor(doc);
-
-		// During search, all documents are shown as normal items
-		if (searchText.length > 0) meta.isSelectedParent = false;		
-		
-		// Properties
-		//const isAttachment = (doc.type == 'attachment');
-		//const isReference = (doc.type == 'reference');
-		const hasChildren = this.hasChildren(doc);
-		const isBacklinkOfSelected = this.enableBacklinks && meta.isBacklinkOfSelected; 
-		const isParentOfSelected = this.enableParents && meta.isParentOfSelectedParent; 
-		const isReferenceToSelected = this.enableRefs && meta.isReferenceToSelected; 
-		const isOutgoinglinkOfSelected = this.enableLinks && meta.isOutgoinglinkOfSelected;
-		const isSiblingOfSelected = this.enableSiblings && meta.isSiblingOfSelected;
-		const isChildOfSelected = (this.selectedParent == doc.parent);
-		const selectedDocName = selectedDoc ? selectedDoc.name : 'Root'; 
-		const isRoot = !selectedDoc; 
-
-		// Elements
-		const previewEl = itemContent.find('.' + this.getItemPreviewClass());
-		const metaEl = itemContent.find('.' + this.getItemMetaClass());
-		const groupMarker = itemContainer.find('.treeitem-detail-group-marker');
-		const innerContainer = itemContent.find('.' + this.getItemInnerContainerClass());
-		const itemHeader = itemContainer.find('.' + this.getItemTextClass());
-		const iconClass = this.getIconStyleClass(this.isItemOpened(doc), doc);
-		const iconEl = itemContent.find('.' + this.getIconClass());
-		const textEl = itemContent.find('.treeitemtext-detail-text');
-		const markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
-		const markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
-
-		// Dimensions for the first element
-		const parentWidth = this.treeFontSize * 2;
-		const selectedHeight = this.getSelectedItemHeight();
-
-		// Group marker (disabled here by default, this is set after filtering)
-		groupMarker.css('display', 'none');
-		
-		// Category markers
-		markerLeftEl.css('display', 'none');
-		markerLeftEl.css('width', '16px');
-		markerLeftEl.css('color', 'darkgrey');
-		markerRightEl.css('display', 'none');
-					
-		var markerShown = false;
-		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
-			
-			function showMarker(markerEl, left) {
-				if (markerShown) return;
-				markerShown = left ? 'l' : 'r';
-				
-				markerEl.css('display', 'block');
-				markerEl.css('height', '100%');
-				markerEl.css('top', '0px');
-			}
-
-			// Markers at the right for children, outgoing links of the selected doc. and parent of the selected doc.
-	 		if (!isParentOfSelected) {
-				if (isChildOfSelected) {
-					showMarker(markerRightEl, false);
-					markerRightEl.css('background', '#eeeeee');
-					markerRightEl.attr('title', 'Child of ' + selectedDocName + ' in the hierarchy');
-				} 
-				else if (isOutgoinglinkOfSelected) {
-					showMarker(markerRightEl, false);
-					markerRightEl.css('background', '#b5f7c6');
-					markerRightEl.attr('title', 'Outgoing link from ' + selectedDocName + ' to ' + doc.name);
-				}
-			}
-			
-			// Marker at the left for backlinks and and references
-			const markerLeftElIcon = markerLeftEl.find('.' + this.getMarkerIconClass());
-			markerLeftElIcon.css('font-size', '10px');
-			markerLeftElIcon.removeClass('fa-level-up-alt');
-			markerLeftElIcon.removeClass('fa-chevron-right');
-			markerLeftElIcon.removeClass('fa-chevron-down');
-			var leftMarkerColor = 'darkgrey';
-
-			if (isParentOfSelected) {
-				showMarker(markerLeftEl, true);
-				markerLeftEl.css('background', '#faacac');
-				markerLeftEl.css('width', parentWidth + 'px');
-				markerLeftEl.attr('title', 'Back to ' + (parentDoc ? parentDoc.name : this.rootDocument.name));
-				leftMarkerColor = 'black';
-				
-				markerLeftElIcon.css('font-size', this.treeFontSize + 'px');
-				markerLeftElIcon.addClass('fa-level-up-alt');
-			}
-			else if (isBacklinkOfSelected) {
-				showMarker(markerLeftEl, true);
-				markerLeftEl.css('background', '#b5f7c6');
-				markerLeftEl.attr('title', 'Link from ' + doc.name + ' to ' + selectedDocName);
-				
-				markerLeftElIcon.addClass('fa-chevron-right');
-			}
-			else if (isReferenceToSelected) {
-				showMarker(markerLeftEl, true);
-				markerLeftEl.css('background', '#fff2bf');
-				markerLeftEl.attr('title', doc.name + ' contains a reference to ' + selectedDocName);
-				
-				markerLeftElIcon.addClass('fa-chevron-right');
-			}				
-			else if (isSiblingOfSelected) {
-				showMarker(markerLeftEl, true);
-				markerLeftEl.css('background', '#b1f4fa');
-				markerLeftEl.attr('title', 'Sibling of ' + selectedDocName + ' in the hierarchy');
-				
-				markerLeftElIcon.addClass('fa-chevron-down');
-			}
-		}
-		
-		// Item dimensions. Parent shall be small (like font size), the normal items should be larger.
-		if (meta.isSelectedParent) {
-			// Selected parent
-			itemHeader.css('margin-top', ((selectedHeight - this.treeFontSize * 1.4) / 2) + 'px');   // NOTE: 1.4 is the global line height!
-			itemHeader.css('display', 'block');
-			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
-			
-			itemContent.css('height', selectedHeight + 'px');
-			itemContent.css('padding-right', '0px');
-			itemContainer.css('width',(this.grid.getContainerWidth() - this.sortButtonsWidth - (isRoot ? 0 : parentWidth)) + 'px');
-		} else {
-			itemContent.css('padding-right', '10px');
-			itemHeader.css('margin-top', '0px');
-			itemHeader.css('display', 'flex');
-			textEl.css('padding-left', (this.treeFontSize / 4) + 'px');
-			
-			if (isParentOfSelected) {
-				// Parent of selected
-				itemContent.css('height', selectedHeight + 'px');
-				itemContainer.css('width', parentWidth + 'px');
-			} else {
-				// Normal item
-				itemContent.css('height', ((this.itemHeight) + 'px'));
-				itemContainer.css('width', '100%');
-			}
-		}
-		
-		// Styling for icons (here we dont want no spaces when the icon is hidden)
-		const poss = this.getAllPossibleIconStyleClasses();
-		for(var p in poss) iconEl.toggleClass(poss[p], false);
-		
-		iconEl.toggleClass(iconClass, true); 
-
-		iconEl.css('padding-right', iconClass ? '10px' : '0px'); 
-		iconEl.toggleClass('folder', hasChildren);
-		iconEl.css('display', ((!this.enableParents) || (!meta.isSelectedParent)) ? (iconClass ? 'block' : 'none') : 'none');
-
-		// Inner container
-		innerContainer.css('margin-top', meta.isSelectedParent ? '0px' : '2px');
-		innerContainer.css('margin-bottom', meta.isSelectedParent ? '0px' : '2px');
-		innerContainer.css('width', meta.isSelectedParent ? '100%' : ((markerShown == 'r') ? ((this.grid.getContainerWidth() - 45) + 'px') : ''));
-
-		// Header line
-		itemHeader.css('max-width', 
-			meta.isSelectedParent 
-			? '100%' 
-			: (
-				(this.grid.getContainerWidth() 
-					- ((markerShown == 'r') ? (45) : 0) 
-					- ((markerShown == 'l') ? (50) : 0) 
-					- (iconClass ? (10 + this.treeFontSize) : 0)
-				) + 'px'
-			)
-		);
-
-		// Hide preview / metadata for selected parent
-		previewEl.css('display', meta.isSelectedParent ? 'none' : 'block');
-		metaEl.css('display', meta.isSelectedParent ? 'none' : 'block');
-		
-		// Set colors
-		if (meta.isSelectedParent) {
-			// Override colors for selected parent
-			itemContent.css('background-color', 'lightgrey');
-			itemContent.css('color', 'black');
-		} else {
-			// Set default colors.
-			// We only need to set the default colors which are not set in 
-			// the document, because colorItem() is called for all others anyway.
-			if (!doc.backColor) itemContent.css('background-color', 'white');
-			if (!doc.color) itemContent.css('color', 'black');
-			
-			// Set preview / meta font size
-			previewEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
-			metaEl.css('font-size', (this.treeFontSize * 0.7) + 'px');
-		}
-		
-		// Star
-		const starEl = innerContainer.find('.doc-label-detail-star');
-		starEl.css('display', doc.star ? 'block' : 'none');
-		if (doc.star) {
-			starEl.css('color', doc.color ? doc.color : 'black');
-			starEl.css('font-size', (this.treeFontSize - 2) + 'px');
-		}
-		
-		this.updateItemMeta(doc, itemContent);
-
-		// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)			
-		const soll = itemContent.offset().top + itemContent.height();
-		const ist = previewEl.offset().top + previewEl.height();
-		const diff = ist - soll;
-		if (diff > 0) {
-			var previewHeight = previewEl.height() - diff; 
-			previewEl.css('height', previewHeight);		
-		}
-
-		const labels = itemContent.find('.doc-label');
-		labels.css('min-width', this.treeFontSize + 'px');
-		labels.css('max-width', this.treeFontSize + 'px');
-		labels.css('min-height', this.treeFontSize + 'px');
-		labels.css('max-height', this.treeFontSize + 'px');
-		
-		const tags = itemContent.find('.doc-hashtag');
-		tags.css('min-width', this.treeFontSize + 'px');
-		tags.css('max-width', this.treeFontSize + 'px');
-		tags.css('min-height', this.treeFontSize + 'px');
-		tags.css('max-height', this.treeFontSize + 'px');
-
-		this.setItemLabelAlignment(itemContent, !meta.isSelectedParent);
-		
-		const showSelector = this.multiSelect && (!meta.isParentOfSelectedParent);
-		itemContent.find('.' + this.getSelectorClass()).css('display', showSelector ? 'inline-block' : 'none');
-	}
-	*/
 	
 	/**
 	 * Adjust the labels to the left or right
@@ -1943,6 +1738,10 @@ class DetailBehaviour {
 		]
 	}
 	
+	getNewItemStartIndex(parentItemIndex) {
+		return 0;		
+	}
+	
 	/**
 	 * Get muuri main container item class
 	 */
@@ -1965,10 +1764,21 @@ class DetailBehaviour {
 	}
 	
 	/**
-	 * Returns the class used as handle for dragging
+	 * Returns the class used as handle for dragging (for mobiles)
 	 */
 	getDragHandleClass() {
 		return "detailDragHandle"; 
+	}
+	
+	getDragMarkerClass() {
+		return Notes.getInstance().isMobile() ? this.getDragHandleClass() : this.getDragHandleMarkerClass();
+	}
+	
+	/**
+	 * Returns the class used as handle for dragging (in Desktop mode)
+	 */
+	getDragHandleMarkerClass() {
+		return "detailDragHandleDesktop"; 
 	}
 	
 	/**
@@ -2035,6 +1845,10 @@ class DetailBehaviour {
 		return "treeicon-detail";
 	}
 	
+	/*getMoveHandleClass() {
+		return 'treemovehandle-detail';
+	}*/
+	
 	/**
 	 * Get grid selected class
 	 */
@@ -2059,7 +1873,7 @@ class DetailBehaviour {
 	/**
 	 * Returns the elements to be added to the settings panel (optional function, does not have to exist).
 	 */
-	getSettingsPanelContentTableRows(prefixText) {
+	getSettingsPanelContentTableRows() {
 		var that = this;
 		
 		if (this.mode != 'ref') return [];
@@ -2067,13 +1881,11 @@ class DetailBehaviour {
 		var d = Notes.getInstance().getData();
 		var selectedDoc = d.getById(this.selectedParent);
 		
-		if (!prefixText) prefixText = '';
-		
 		return [
 			$('<tr></tr>')
 			.append(
-				$('<td>' + prefixText + 'Children</td>'),
-				$('<td></td>')
+				$('<td>Show Children</td>'),
+				$('<td colspan="2" />')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableChildren ? 'checked' : '') + ' />')
 					.each(function(i) {
@@ -2098,8 +1910,8 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>' + prefixText + 'Siblings</td>'),
-				$('<td></td>')
+				$('<td>Show Siblings</td>'),
+				$('<td colspan="2" />')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableSiblings ? 'checked' : '') + ' />')
 					.each(function(i) {
@@ -2125,8 +1937,8 @@ class DetailBehaviour {
 			/*
 			$('<tr></tr>')
 			.append(
-				$('<td>' + prefixText + 'Parents</td>'),
-				$('<td></td>')
+				$('<td>Show Parents</td>'),
+				$('<td colspan="2" />')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableParents ? 'checked' : '') + ' />')
 					.each(function(i) {
@@ -2149,8 +1961,8 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>' + prefixText + 'Outgoing Links</td>'),
-				$('<td></td>')
+				$('<td>Show Outgoing Links</td>'),
+				$('<td colspan="2" />')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableLinks ? 'checked' : '') + ' />')
 					.each(function(i) {
@@ -2175,8 +1987,8 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>' + prefixText + 'Backlinks</td>'),
-				$('<td></td>')
+				$('<td>Show Backlinks</td>'),
+				$('<td colspan="2" />')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableBacklinks ? 'checked' : '') + ' />')
 					.each(function(i) {
@@ -2201,8 +2013,8 @@ class DetailBehaviour {
 			
 			$('<tr></tr>')
 			.append(
-				$('<td>' + prefixText + 'References</td>'),
-				$('<td></td>')
+				$('<td>Show References</td>'),
+				$('<td colspan="2" />')
 				.append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (this.enableRefs ? 'checked' : '') + ' />')
 					.each(function(i) {
@@ -2215,6 +2027,36 @@ class DetailBehaviour {
 								onChange: function() {
 									that.enableRefs = !!this.getChecked();
 									ClientState.getInstance().saveTreeState();
+									that.grid.filter();
+								}
+							});
+						}, 0);
+					}),
+					
+					//$('<span class="treesettingsinfo-detail"></span>').html('(' + (d.getReferencesTo(selectedDoc ? selectedDoc._id : null).length) + ')')
+				)
+			),
+			
+			$('<tr></tr>')
+			.append(
+				$('<td>Highlight last selected item</td>'),
+				$('<td colspan="2" />')
+				.append(
+					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getViewSettings().detailHighlightLastSelected ? 'checked' : '') + ' />')
+					.each(function(i) {
+						var that2 = this;
+						setTimeout(function() {
+							new Switch(that2, {
+								size: 'small',
+								onSwitchColor: '#337ab7',
+								disabled:  false,
+								onChange: function() {
+									const nv = !!this.getChecked();
+									
+									var vs = ClientState.getInstance().getViewSettings(); 
+									vs.detailHighlightLastSelected = nv;
+									ClientState.getInstance().saveViewSettings(vs);
+									
 									that.grid.filter();
 								}
 							});
@@ -2275,10 +2117,10 @@ class DetailBehaviour {
 			this.grid.setSearchText('');
 		}
 		
-		var that = this;
+		/*var that = this;
 		setTimeout(function() {
 			that.restoreScrollPosition();
-		}, 400);
+		}, MuuriGrid.getAnimationDuration() + 10);*/
 		
 		if (!fromLinkage) {
 			// Open in editor when linked

@@ -66,6 +66,9 @@ Config.defaultFavoritesSize = 65;
 Config.defaultFavoritesAmount = 20;
 Config.minFavoritesSize = 20;
 
+Config.minDragDelayMillis = 0;
+Config.defaultDragDelayMillis = 100;
+
 /**
  * Name of the root node if it needs to be shown to the user. Leave this 
  * empty for normal usage.

@@ -124,5 +124,11 @@ This is a Notes Taking App based purely on CouchDB and JavaScript, licensed unde
     - Rework of Raw Json Import/Export
     - Rework of Settings page
     
+- 0.98.12
+    - Cosmetic fixes
+    - Small bug fixes
+    - Rework of dragging on Desktops
+    
+    
     
     

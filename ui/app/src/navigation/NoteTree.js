@@ -53,7 +53,8 @@ class NoteTree {
 		// Linkage modes
 		this.updateLinkageButtons();
 
-		Notes.getInstance().restoreEditorLinkage();
+		var n = Notes.getInstance();
+		n.restoreEditorLinkage();
 
 		var ret = null;  // Promise to return
 		if (!this.grid) {
@@ -68,10 +69,10 @@ class NoteTree {
 			
 			// Create Muuri instance
 			this.grid = new MuuriGrid('#' + this.treeGridElementId, {
-				dragHandle: '.' + this.behaviour.getDragHandleClass(),
+				dragHandle: '.' + this.behaviour.getDragMarkerClass(),
 				contentClass: this.behaviour.getItemContentClass(),
 				moveIntoClass: this.behaviour.getMoveIntoClass(),
-				dragDelayMillis: 0,  // Not used: We use our own delayed click handler: see TouchClickHandler.js
+				dragDelayMillis: n.isMobile() ? 0 : ClientState.getInstance().getViewSettings().dragDelayMillis,
 				scoreMatchingThreshold: this.behaviour.getScoreMatchingThreshold(),
 				
 				autoScrollTargets: {
@@ -567,14 +568,22 @@ class NoteTree {
 		var that = this;
 		function getItemById(id) {
 			for(var i in currentItems) {
-				/*
-				var el = that.getGridItemContent(currentItems[i]);
-				var dt = el.data();
-				if (dt.id == id) return currentItems[i];
-				*/
-				if (currentItems[i].docId == id) return currentItems[i];
+				if (currentItems[i].docId == id) {
+					return currentItems[i];
+				}
 			}
 			return null;
+		}
+		
+		function getItemIndex(item) {
+			var ret = 0;
+			for(var i in currentItems) {
+				if (currentItems[i].docId == item.docId) {
+					return ret + 1;
+				}
+				ret++;
+			}
+			return 0;
 		}
 		
 		var maxSearchResults = Settings.getInstance().settings.maxSearchResults;
@@ -595,9 +604,18 @@ class NoteTree {
 					// Set invisible at first: This prevents unnecessary forced reflows.
 					$(item).css('display', 'none');
 					
+					var newIndex = 0;
+					if (doc.parent) {
+						var parentItem = getItemById(doc.parent);
+						if (parentItem) {
+							newIndex = that.behaviour.getNewItemStartIndex(getItemIndex(parentItem));
+						}
+					}
+					
 					var itm = that.grid.grid.add([item], {
 						index: that.behaviour.getInitialItemOrder(doc),
-						layout: false
+						layout: false,
+						index: newIndex
 					})[0];
 					
 					// We store the document ID on the Muuri item directly for faster access
@@ -616,14 +634,17 @@ class NoteTree {
 				}
 			}
 		});
-		
+				
+		var additionalItems = this.behaviour.afterUpdateItems();
+		for (var it in additionalItems) {
+			itemsToShow.push(additionalItems[it]);
+		}
+
 		// Show items at once: This prevents unnecessary forced reflows.
 		for(var it in itemsToShow) {
 			const item = itemsToShow[it];			
 			this.grid.grid.show(item);
 		}
-		
-		this.behaviour.afterUpdateItems();
 	}
 
 	/**
@@ -1770,6 +1791,8 @@ class NoteTree {
 
 		var that = this;
 		function doFilter(resolve/*, reject*/) {
+			that.updateDomItems(true);
+			
 			that.grid.grid.filter(function (item) {
 				var el = that.getGridItemContent(item);
 				var dt = el.data();
@@ -1814,16 +1837,12 @@ class NoteTree {
 			.then(function() { 
 				return new Promise(function(resolve/*, reject*/) {
 					//console.log("Start Filter")
-					that.updateDomItems(true);
-					
 					doFilter(resolve);
 				});
 			});
 		} else {
 			return new Promise(function(resolve/*, reject*/) {
 				//console.log("Start Filter")
-				that.updateDomItems(true);
-				
 				doFilter(resolve);
 			});
 		}

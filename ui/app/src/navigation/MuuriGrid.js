@@ -63,14 +63,14 @@ class MuuriGrid {
 		var that = this;
 	
 		this.grid = new Muuri(el, {
-			showDuration: 0,  // 100
+			showDuration: 1,  // Necessary to prevent finishing bugs (root item being not positioned correctly)
 			showEasing: 'ease',
-			hideDuration: 0,  // 100
+			hideDuration: 0,
 			hideEasing: 'ease',
 			dragEnabled: true,
 			dragHandle: this.options.dragHandle,
 			layoutOnInit: false,
-			layoutOnResize: 0,  // 100
+			layoutOnResize: 0,
 		    layoutDuration: MuuriGrid.getAnimationDuration(),
 			layoutEasing: 'ease',
 			layout: this.options.layoutCallback,

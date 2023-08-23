@@ -1,5 +1,5 @@
 /**
- * Service Worker for the Note taking app, if using the Proxy to CouchDB.
+ * Service Worker for the Note taking app.
  * Caches all static GET content while directly fetching the API uncached.
  * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.11.a';
+const PRECACHE = 'notes_precache-v0.98.13.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -123,6 +123,7 @@ const PRECACHE_URLS = [
   './ui/app/src/navigation/ScrollState.js',
   './ui/app/src/menus/PageMenu.js',
   './ui/app/src/menus/ContextMenu.js',
+  './ui/app/src/settings/SettingsContent.js',
   './ui/app/src/pages/editors/Editor.js',
   './ui/app/src/pages/editors/Board.js',
   './ui/app/src/pages/editors/Code.js',
