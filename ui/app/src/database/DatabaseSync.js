@@ -123,7 +123,9 @@ class DatabaseSync {
 			if (!dataLogin.ok) {
 				that.setSyncState("unknown");
 				
+				console.log('DB Login error:');
 				console.log(dataLogin);
+				
 				return Promise.reject({
 					message: 'Sync login error: ' + dataLogin.message,
 					messageThreadId: 'DBSyncMessages'
@@ -138,6 +140,7 @@ class DatabaseSync {
 			
 			if (!that.syncHandler) {
 				console.log("Error: Could not start live sync.");
+				
 				that.setSyncState("unknown");
 				that.dbHandler.notifyOfflineState();
 
@@ -154,6 +157,8 @@ class DatabaseSync {
 					that.setSyncState("unknown");
 				
 					that.options.alert('Sync error(s): ' + change.change.errors, 'E', 'DBSyncMessages');
+					
+					console.log('DB Sync error(s):');
 					console.log(change);
 					return;
 				}
@@ -172,16 +177,17 @@ class DatabaseSync {
 				});
 
 			}).on('paused', function (err) {
-				console.log("Sync: Paused");
-
 				if (err) {
 					that.options.alert('Sync error: ' + err, 'E', 'DBSyncMessages');
+					
+					console.log('DB Sync error:');
 					console.log(err);
 
 					that.setSyncState("unknown");
 					return;
 				}
 
+				console.log("Sync: Paused");
 				that.setSyncState("paused");
 
 				// Check connection to remote DB here, telling the user if the pause has to do with a lost connection
@@ -201,8 +207,14 @@ class DatabaseSync {
 				}
 
 			}).on('error', function (err) {
-				that.options.alert('Sync error: ' + err.message, 'E', 'DBSyncMessages');
-				console.log(err);
+				if (err.status == 401) {					
+					console.log('DB Sync error: ' + err.message);
+				} else {
+					that.options.alert('Sync error: ' + err.message, 'E', 'DBSyncMessages');	
+					console.log('DB Sync error: ');
+					console.log(err);
+				}
+				
 				that.dbHandler.notifyOfflineState();
 
 				that.setSyncState("unknown");
@@ -211,6 +223,8 @@ class DatabaseSync {
 				if (err.status == 401) {
 					that.dbHandler.login().catch(function(err) {
 						that.options.alert('Error logging in: ' + err.message, 'E', 'DBSyncMessages');
+						
+						console.log('DB Login error: ');
 						console.log(err);
 					});
 				}
@@ -227,7 +241,9 @@ class DatabaseSync {
 				that.restartLiveSync(syncedUrl, "Restarting live sync after completion");
 
 			}).catch(function(err) {
+				console.log('DB Error: ');
 				console.log(err);
+				
 				that.dbHandler.notifyOfflineState();
 				
 				that.restartLiveSync(syncedUrl, "Restarting live sync after exception");
@@ -238,8 +254,10 @@ class DatabaseSync {
 			});
 
 		}).catch(function(err) {
+			console.log('DB Error: ');
 			console.log(err);
 			that.dbHandler.notifyOfflineState();
+			
 			
 			that.restartLiveSync(syncedUrl, "Restarting live sync after exception");
 			
@@ -347,6 +365,8 @@ class DatabaseSync {
 					that.setSyncState( "error");
 					
 					that.blocked = false;
+					
+					console.log('DB Sync callback error:');
 					console.log(err);
 				});
 
@@ -356,6 +376,7 @@ class DatabaseSync {
 				that.setSyncState( "error");
 
 				that.blocked = false;
+				console.log('DB Sync error:');
 				console.log(err);
 			});
 		});

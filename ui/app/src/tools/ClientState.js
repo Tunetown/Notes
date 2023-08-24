@@ -27,6 +27,7 @@ class ClientState {
 		this.cidProfiles = "pr";	
 		this.cidConsoleSettings = "cs";	
 		this.cidViewSettings = "vs";	
+		this.cidTempViewSettings = "tvs";	
 		this.cidEditorSettings = "es";	
 		this.cidViewState = "vt";
 		this.cidBoardState = "bt";
@@ -410,6 +411,21 @@ class ClientState {
 	}
 	
 	/**
+	 * Returns stored local temporary view settings
+	 */
+	getTemporaryViewSettings() {
+		var ret = this.getLocal(this.cidTempViewSettings);
+		return ret;
+	}
+	
+	/**
+	 * Saves the passed view settings
+	 */
+	saveTemporaryViewSettings(p) {
+		this.setLocal(this.cidTempViewSettings, p);
+	}
+
+	/**
 	 * Returns stored local editor settings
 	 */
 	getEditorSettings() {
@@ -477,9 +493,9 @@ class ClientState {
 		var t = NoteTree.getInstance();
 		
 		var state = this.getLocal(this.getTreeStateCid());
-		state.treeWidth = n.isMobile() ? state.treeWidth : ((t.getContainerWidth() > 100) ? t.getContainerWidth() : state.treeWidth);
 		
 		t.behaviour.saveState(state);
+		//state.treeWidth = n.isMobile() ? state.treeWidth : ((t.getContainerWidth() > 100) ? t.getContainerWidth() : state.treeWidth);
 		
 		this.setLocal(this.getTreeStateCid(), state);
 	}
@@ -498,19 +514,28 @@ class ClientState {
 		var n = Notes.getInstance();
 		var t = NoteTree.getInstance();
 		
-		var state = this.getLocal(this.getTreeStateCid());
+		var state = this.getTreeState(); //this.getLocal(this.getTreeStateCid());
 	
 		// Behaviour specific fields
 		t.behaviour.restoreState(state);
 
 		// Tree width
 		if (!n.isMobile()) {
-			if (state.treeWidth) {
-				t.setContainerWidth(state.treeWidth);				
-			} else {
-				t.setContainerWidth(350);				
-			}
+			t.setContainerWidth(state.treeWidth);				
 		}		
+	}
+	
+	/**
+	 * Loads a saved state from the cookie, and applies it to the tree.
+	 */
+	getTreeState() {
+		var state = this.getLocal(this.getTreeStateCid());
+	
+		if (!state.treeWidth) {
+			state.treeWidth = Config.defaultTreeWidth; //n.isMobile() ? state.treeWidth : ((t.getContainerWidth() > 100) ? t.getContainerWidth() : state.treeWidth);
+		}
+		
+		return state;
 	}
 	
 	/**
@@ -526,7 +551,7 @@ class ClientState {
 		
 		this.setLocal(this.getTreeStateCid(), state);
 	}
-	
+
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////
 	/////////////////////////////////////////////////////////////////////////

@@ -794,6 +794,21 @@ class Tools {
 	}
 	
 	/**
+	 * Flashes the givel DOM element. Duration is optional.
+	 *
+	static flashElement(el, duration) {
+		if (!duration) duration = Config.defaultFlashDuration;
+		if (!duration) return;
+		
+		$(el).css('opacity: 1;');
+		$(el).animate({
+			opacity: 0
+		}, {
+			duration: duration
+		})
+	}
+	
+	/**
 	 * Replaces the name of the file in the given path, keeping the extenson.
 	 *
 	static replaceFileName(path, newname, separator, dontKeepExtension) {

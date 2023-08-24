@@ -277,7 +277,7 @@ class SettingsContent {
 
 					$('<button class="btn btn-secondary settings-button">Open Notebook from CouchDB URL...</button>')
 					.on('click', function() {
-						var url = prompt('CouchDB Address:', that.#getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
+						var url = prompt('CouchDB Address:', SettingsContent.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
 						if (!url) return;
 						
 						Database.getInstance().reset();
@@ -409,6 +409,8 @@ class SettingsContent {
 						var s = Settings.getInstance();
 						s.settings.dbAccountName = this.value;
 						s.saveSettings();
+						
+						location.reload();
 					})
 				),
 			),
@@ -1218,7 +1220,7 @@ class SettingsContent {
 	/**
 	 * Removes the database name from an url.
 	 */
-	#getDatabaseUrlProposal(url) {
+	static getDatabaseUrlProposal(url) {
 		if (url == 'local') return '';
 		
 		return url.split('/').slice(0, -1).join('/') + '/';

@@ -32,6 +32,9 @@ class EditorActions {
 	requestEditor(doc) {
 		var n = Notes.getInstance();
 		
+		// Reset presentation mode 
+		n.setPresentationModeShowAppElements(false);
+		
 		if (doc.type == 'reference') {
 			Notes.getInstance().routing.call(doc.ref);
 				

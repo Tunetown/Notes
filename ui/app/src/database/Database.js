@@ -206,6 +206,7 @@ class Database {
 					
 					if (!promtUser) {
 						console.log("Logged in as " + response.userCtx.name);
+						
 						resolve({
 							ok: true
 						});
@@ -225,7 +226,7 @@ class Database {
 							if (err) {
 								that.notifyOfflineState();
 								
-								console.log("Connecting error: " + err.message);
+								console.log("Connection error: " + err.message);
 								
 								reject({
 									ok: false,
@@ -236,11 +237,15 @@ class Database {
 								console.log("Connected successfully with user " + usr);
 								that.loggedInUser = usr;
 								
+								//that.options.syncOptions.alert('Logged in as ' + usr, 'S');
+								
 								that.refresh();
 
 								// Trust the device?
 								if (trust) {
 									ClientState.getInstance().setTrustedDeviceCredentials(usr, pwd);
+									
+									
 								} else {
 									ClientState.getInstance().setTrustedDeviceCredentials();
 								}

@@ -78,9 +78,11 @@ class ContextMenu {
 			        	event.stopPropagation();
 			        	n.hideOptions();
 			        	if (n.optionsIds.length != 1) return;
+			        	const id = n.optionsIds[0];
 			        	
-						if (n.isMobile()) n.routing.call();
-						NoteTree.getInstance().focus(n.optionsIds[0]);
+						NoteTree.getInstance().highlightDocument(id, !n.isMobile());	
+						//if (n.isMobile()) n.routing.call();
+						//NoteTree.getInstance().focus(n.optionsIds[0]);
 			        }),
 
 				// Relocate reference

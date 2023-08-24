@@ -182,6 +182,12 @@ Config.undoMaxHistorySize = 100;
 Config.useBufferedNavigationItemElements = true;      /// Dont create the DOM items for navigation at every Grid.add() process (TODO can be removed if no problems arise)
 Config.preRenderNavigationDomItemsInterval = 10;      /// Interval for pre-rendering DOM items for navigation. Set to 0 for disabling pre-creation.
 
+/**
+ * Presentation (setlist) mode
+ */
+Config.presentationModeAnimationTime = 100;           /// Time (ms) for the app elements (header, footer etc) to be blended in and out in presentation mode
 
-
-
+/**
+ * TODO Description
+ */
+Config.defaultTreeWidth = 350;

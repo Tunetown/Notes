@@ -754,8 +754,8 @@ class NoteTree {
 			var id = doc._id;
 			
 			if (that.preRenderingNumDocs > data.data.size * 1.4) {
-				const passed = (Date.now() - this.preRenderingStartTime) / 1000;
-				console.log(" -> Preparation of navigation DOM items forcefully finished (" + that.preRenderingNumDocs + " docs processed in " + passed + "s).");
+				const passedSecs = (Date.now() - this.preRenderingStartTime) / 1000;
+				console.log(" -> Pre-rendering of navigation items forcefully finished (" + that.preRenderingNumDocs + " docs processed in " + passedSecs.toFixed(2) + "s).");
 				return;
 			}
 			
@@ -779,8 +779,8 @@ class NoteTree {
 			return;
 		}		
 		
-		const passed = Date.now() - this.preRenderingStartTime;
-		console.log(" -> Preparation of navigation DOM items finished (" + that.preRenderingNumDocs + " docs processed in " + passed + "s).");
+		const passedSecs = (Date.now() - this.preRenderingStartTime) / 1000;
+		console.log(" -> Pre-rendering of navigation items finished (" + that.preRenderingNumDocs + " docs processed in " + passedSecs.toFixed(2) + "s).");
 	}
 	
 	/**
@@ -1287,10 +1287,18 @@ class NoteTree {
 		this.lastOpenedLinkTarget = false;
 		
 		// Focus if linked
-		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
-		if (Notes.getInstance().isMobile() || (linkToEditor == 'on')) {
-			this.focus(id, true);
-		}
+		/*if (Notes.getInstance().isMobile()) {
+			var doc = Notes.getInstance().getData().getById(id);
+			if (doc) {
+				this.focus(doc.parent, true);
+				this.setSelected(id);				
+			} 			
+		} else {*/
+			var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
+			if (linkToEditor == 'on') {
+				this.focus(id, true);
+			}			
+		//}
 	}
 	
 	/*addPageToHistory(url) {
@@ -1400,14 +1408,75 @@ class NoteTree {
 	 */
 	focus(id, fromLinkage) {
 		this.behaviour.focus(id, fromLinkage);
-		this.setSelected(id);
+		
+		var bookmark = this.consumeBookmarkDocumentForNextFocus();
+		if (bookmark) {
+			this.#setSelectedAndScrollTo(bookmark);
+		}		
+		//this.setSelected(id);	
+	}
+	
+	#setSelectedAndScrollTo(id) {
+		var that = this;
+		setTimeout(function() {
+			that.setSelected(id);				
+			that.scrollToDocument(id);				
+		}, MuuriGrid.getAnimationDuration() * 1.4);
 	}
 	
 	/**
 	 * Returns the currently focussed ID if this is supported by the behaviour, or '' if not.
 	 */
-	getFocussedId() {
+	getFocusedId() {
+		if (!this.behaviour) return false;
 		return this.behaviour.getFocusedId();
+	}
+	
+	/**
+	 * This selects the parent of the passed document and sets the doc itself selected, all
+	 * by calling a route.
+	 */
+	highlightDocument(id, noRouting) {
+		var n = Notes.getInstance();
+		var doc = n.getData().getById(id);
+		if (!doc) {
+			n.alert("Document " + id + " not found");
+			return;
+		}	
+		
+		if (noRouting) {
+			this.focus(doc.parent);
+			this.#setSelectedAndScrollTo(id);
+		} else {
+			this.bookmarkSelectedForNextFocus(id);		
+			n.routing.callProfileRootWithSelectedId(doc.parent);	
+		}
+	}
+	
+	/**
+	 * Saves a bookmark in local memory which will trigger the next focus() call to select the 
+	 * document. The bookmark will be removed after this has happened.
+	 * See als consumeBookmarkDocumentForNextFocus().
+	 */
+	bookmarkSelectedForNextFocus(id) {
+		var c = ClientState.getInstance();
+		var tmpVs = c.getTemporaryViewSettings();
+		
+		tmpVs.bookmarkSelectedDocument = id;
+		
+		c.saveTemporaryViewSettings(tmpVs);
+	}
+	
+	consumeBookmarkDocumentForNextFocus() {
+		var c = ClientState.getInstance();
+		var tmpVs = c.getTemporaryViewSettings();
+		
+		var ret = tmpVs.bookmarkSelectedDocument ? tmpVs.bookmarkSelectedDocument : null;
+		
+		tmpVs.bookmarkSelectedDocument = null;
+		c.saveTemporaryViewSettings(tmpVs);
+		
+		return ret;
 	}
 	
 	/**
@@ -1505,9 +1574,11 @@ class NoteTree {
 	 * Set the currently selected item by ID.
 	 */
 	setSelected(id) {
+		var alreadySelected = false;
 		if (this.selected == id) {
-			ClientState.getInstance().saveTreeState();
-			return;
+			//ClientState.getInstance().saveTreeState();
+			//return;
+			alreadySelected = true;
 		}
 		
 		var old = this.getItemContent(this.selected)
@@ -1526,7 +1597,22 @@ class NoteTree {
 			this.behaviour.selectItem(item, id);
 		}
 		
-		this.filter();
+		if (!alreadySelected) {
+			this.filter();			
+		}
+	}
+	
+		/**
+	 * Scroll so that the passed document is visible
+	 */
+	scrollToDocument(id) {
+		var el = this.getItemContent(id);
+		if (!el) return;
+		if (!el[0]) return;
+		
+		el[0].scrollIntoView();
+		
+		this.behaviour.saveScrollPosition();
 	}
 	
 	/**
@@ -1598,7 +1684,9 @@ class NoteTree {
 	 * Returns the width of the nav panel. Only relevant in non-mobile mode.
 	 */
 	getContainerWidth() {
-		return $('#' + this.treeNavContainerId).outerWidth();
+		var state = ClientState.getInstance().getTreeState();
+		return (state && state.treeWidth) ? state.treeWidth : Config.defaultTreeWidth;
+		//return $('#' + this.treeNavContainerId).outerWidth();
 	}
 	
 	/**
@@ -1737,6 +1825,15 @@ class NoteTree {
 	
 	getHistory() {
 		return this.behaviour.getHistory();
+	}
+	
+	/**
+	 * Returns an object containing info about the neighboring documents for ID.
+	 */
+	getNeighborsFor(id, parentId) {
+		if (!this.behaviour) return {};
+		
+		return this.behaviour.getNeighborsFor(id, parentId);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////

@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.13';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.15';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -770,7 +770,17 @@ class Notes {
 	
 	editorNavButtonHandler(e) {
 		e.stopPropagation();
-		Notes.getInstance().routing.callProfileRootWithSelectedId(NoteTree.getInstance().getFocussedId());
+		
+		var that = Notes.getInstance();
+		var tree = NoteTree.getInstance();
+		
+		var id = that.getCurrentlyShownId();
+		if (!id) {
+			that.alert("No document opened");
+			return;
+		}
+		
+		tree.highlightDocument(id);
 	}
 	
 	editorLinkageButtonHandler(e) {
@@ -897,6 +907,78 @@ class Notes {
 		
 		var that = this;
 		$('#all').append([
+			// Content
+			$('<section>').append([
+				// Navigation (grid)
+				$('<nav id="treenav"></nav>'),
+				
+				// Main content
+				$('<article id="article"></article>').append([
+					
+					// Content container, used by most of the pages
+					$('<div id="contentContainer" class="mainPanel"/>').append(teaser),
+					
+					// Note Editor (for TinyMCE this is needed separately)
+					Editor.getInstance().getContainerDom(teaser),
+					
+					// Presentation mode overlay
+					!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
+					$('<div id="presentationModeOverlay" data-toggle="tooltip" title="Show/Hide toolbars"/>').append(
+						// Info texts
+						$('<div id="presentationModeInfoLeft" />'),
+						$('<div id="presentationModeInfoMiddle" />'),
+						$('<div id="presentationModeInfoRight" />'),
+						
+						// Click overlays for L/R
+						$('<div id="presentationModeOverlayLeft" data-toggle="tooltip" title="Go to previous Document"/>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							
+							// Child before
+							const id = that.getCurrentlyShownId();
+							if (!id) return;
+							
+							const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
+							if (!neighborInfo || !neighborInfo.documentBefore) return;
+							
+							if (!that.isMobile()) {
+								NoteTree.getInstance().setSelected(neighborInfo.documentBefore._id);
+							}
+							
+							that.routing.call(neighborInfo.documentBefore._id);
+						}),
+						$('<div id="presentationModeOverlayRight" data-toggle="tooltip" title="Go to next Document"/>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							
+							// Child after
+							const id = that.getCurrentlyShownId();
+							if (!id) return;
+							
+							const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
+							if (!neighborInfo || !neighborInfo.documentAfter) return;
+							
+							if (!that.isMobile()) {
+								NoteTree.getInstance().setSelected(neighborInfo.documentAfter._id);
+							}
+
+							that.routing.call(neighborInfo.documentAfter._id);
+						}),
+					)
+					.on('click', function(e) {
+						e.stopPropagation();
+						
+						that.togglePresentationModeShowAppElements();
+					}),
+					
+					// Console
+					$('<div id="console" class="mainPanel"/>')				
+				])
+				.on('click', function(event) {
+					that.setFocus(Notes.FOCUS_ID_EDITOR);
+				})
+			]),
+			
 			// Header
 			$('<header/>').append([
 				$('<div id="progressBar"></div>'),
@@ -950,35 +1032,6 @@ class Notes {
 				if (!confirm('Reload app?')) return;
 				location.reload();
 			}),*/
-			
-			// Content
-			$('<section>').append([
-				// Navigation (grid)
-				$('<nav id="treenav"></nav>'),
-				
-				// Main content
-				$('<article id="article"></article>').append([
-					
-					// Content container, used by most of the pages
-					$('<div id="contentContainer" class="mainPanel"/>').append(teaser),
-					
-					// Note Editor (for TinyMCE this is needed separately)
-					Editor.getInstance().getContainerDom(teaser),
-					
-					// Presentation mode overlay
-					!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
-					$('<div id="presentationModeOverlay"/>').append(
-						$('<div id="presentationModeOverlayLeft"/>'),
-						$('<div id="presentationModeOverlayRight"/>'),
-					),
-					
-					// Console
-					$('<div id="console" class="mainPanel"/>')				
-				])
-				.on('click', function(event) {
-					that.setFocus(Notes.FOCUS_ID_EDITOR);
-				})
-			]),
 			
 			this.isMobile() ? $('<div id="footer"></div>') : null
 		]);
@@ -1272,6 +1325,7 @@ class Notes {
 	 */
 	hideMenu() {
 		$(document).off('click', this.hideMenuHandler);
+		$(document).off('keydown', this.menuKeydownHandler);
 		
 		$('#userMenuContainer').empty();
 		this.menuId = false;
@@ -1284,6 +1338,15 @@ class Notes {
 		Notes.getInstance().hideMenu();
 	}
 
+	menuKeydownHandler(event) {
+		if(event.which == 27) {
+			event.stopPropagation();
+			
+			var n = Notes.getInstance();
+			n.hideMenu();
+	    }
+	}
+		
 	/**
 	 * Shows a menu. If the same options are already shown, it hides the menu again.
 	 */
@@ -1292,7 +1355,7 @@ class Notes {
 			this.hideMenu();
 			return;
 		}
-
+		
 		$('#userMenuContainer').empty();
 		$('#userMenuContainer').append(
 			$('<div id="userMenu" class="userbuttons"></div>')
@@ -1304,6 +1367,7 @@ class Notes {
 		this.update(true);
 		
 		$(document).on('click', this.hideMenuHandler);
+		$(document).on('keydown', this.menuKeydownHandler);
 	}
 	
 	/**
@@ -1516,26 +1580,39 @@ class Notes {
 	 */
 	updateDimensions() {
 		const mobile = this.isMobile();
-		const size = this.getHeaderSize();
-		const fsize = this.getFooterSize();
+		
+		const viewSettings = ClientState.getInstance().getViewSettings();
+		const presentationMode = !!viewSettings.enablePresentationMode;
+		
+		const sectionFullscreen = 
+			presentationMode &&
+			!!this.getCurrentEditor();
+			
+		const showAppElements = 
+			!presentationMode ||                            // Always show in normal operation
+			!this.getCurrentEditor() ||                     // Always show when no editor is open
+			!!this.presentationModeShowAppElements;         // Show manually inside presetation mode	
+		
+		const showPresentationModeOverlay = sectionFullscreen;
+
+		const hdrSize = this.getHeaderSize();
+		const ftrSize = this.getFooterSize();
 		const winWidth = $(window).width();
 		const winHeight = $(window).height();
-				
+
 		// Common containers: All content
 		$('#all').css('height', winHeight + 'px');
 		
 		// Content area (Editors and nav)
 		const section = $('section');
-		if (section) {
-			section.css('top', size + 'px');
-			section.css('height', (winHeight - size - (mobile ? fsize : 0)) + 'px');
-			section.css('flex-direction', mobile ? 'column' : 'row');			
-		}
+		section.css('top', (sectionFullscreen ? 0 : hdrSize) + 'px');   
+		section.css('height', (winHeight - (sectionFullscreen ? 0 : (hdrSize + (mobile ? ftrSize : 0)))) + 'px');
+		section.css('flex-direction', mobile ? 'column' : 'row');			
 
 		// Navigation area
 		const nav = $('nav');
 		if (nav) {
-			const navHeight = (winHeight - size - (mobile ? fsize : 0));
+			const navHeight = sectionFullscreen ? winHeight : (winHeight - hdrSize - (mobile ? ftrSize : 0));
 			nav.css('height', navHeight + 'px');
 			nav.css('min-height', navHeight + 'px');
 			nav.css('max-height', navHeight + 'px');			
@@ -1547,7 +1624,7 @@ class Notes {
 
 		const navContainer = $('#treeContainer');
 		if (navContainer) {			
-			const navContainerHeight = (winHeight - size - fsize);
+			const navContainerHeight = sectionFullscreen ? winHeight : (winHeight - hdrSize - ftrSize);
 			navContainer.css('height', navContainerHeight + 'px');
 			navContainer.css('min-height', navContainerHeight + 'px');
 			navContainer.css('max-height', navContainerHeight + 'px');			
@@ -1557,50 +1634,114 @@ class Notes {
 		const footer = $('#footer');
 		if (footer) {
 			footer.css('display', 'grid'); 
-			footer.css('height', fsize + 'px');
+			footer.css('height', ftrSize + 'px');
 			
 			const maxFooterTextSize = (mobile ? winWidth : NoteTree.getInstance().getContainerWidth()) / 5 - 10;
-			footer.css('font-size', Math.min(Math.max(fsize / 1.6, 10), maxFooterTextSize) + 'px');		
+			footer.css('font-size', Math.min(Math.max(ftrSize / 1.6, 10), maxFooterTextSize) + 'px');		
 		}
 		
 		// Header
 		const header = $('header');
-		header.css('height', size + 'px');
+		header.css('height', hdrSize + 'px');
 		
 		// Left header
-		this.setHeaderButtonSize($('.headerElementLeft'), size);
+		this.setHeaderButtonSize($('.headerElementLeft'), hdrSize);
 		
 		const headerText = $('#headerText');
 		if (headerText) {
-			headerText.css('font-size', size * (20/55) + 'px');
-			headerText.css('padding-top', size * (12/55) + 'px');			
+			headerText.css('font-size', hdrSize * (20/55) + 'px');
+			headerText.css('padding-top', hdrSize * (12/55) + 'px');			
 		}
 
 		const headerPathContainer = $('#headerPathContainer');
 		if (headerPathContainer) {
-			headerPathContainer.css('font-size', size * (20/55) + 'px');
-			headerPathContainer.css('padding-top', size * (12/55) + 'px');		
+			headerPathContainer.css('font-size', hdrSize * (20/55) + 'px');
+			headerPathContainer.css('padding-top', hdrSize * (12/55) + 'px');		
 		}
 		
 		// Right header
-		this.setHeaderButtonSize($('.headerButton'), size);
+		this.setHeaderButtonSize($('.headerButton'), hdrSize);
 		
 		const alertNotification = $('.alertHeaderNotification');
 		if (alertNotification) {
-			alertNotification.css('top', size * (6/55) + 'px');
-			alertNotification.css('right', size * (6/55) + 'px');			
+			alertNotification.css('top', hdrSize * (6/55) + 'px');
+			alertNotification.css('right', hdrSize * (6/55) + 'px');			
 		} 
 		
 		// User menu
 		const userMenu = $('.userbuttons');
-		userMenu.css('top', size + 'px');
-		userMenu.css('max-height', (winHeight - size - 10) + 'px');
+		userMenu.css('top', hdrSize + 'px');
+		userMenu.css('max-height', (winHeight - hdrSize - 10) + 'px');
 		
 		// Alert notification icon at user menu icon
-		this.setRoundedButtonSize(size * (8 / 55), '.alertNotification');
+		this.setRoundedButtonSize(hdrSize * (8 / 55), '.alertNotification');
 		
 		// Option icons
 		this.setRoundedButtonSize(this.getRoundedButtonSize());
+		
+		// Presentation mode
+		const presentationModeOverlay = $('#presentationModeOverlay');
+		presentationModeOverlay.css('display', showPresentationModeOverlay ? 'block' : 'none');
+
+		clearTimeout(this.#animateDimensions);
+		setTimeout(this.#animateDimensions, 100);
+		
+		if (presentationMode) {
+			const leftOverlayInfo = $('#presentationModeInfoLeft');
+			const middleOverlayInfo = $('#presentationModeInfoMiddle');
+			const rightOverlayInfo = $('#presentationModeInfoRight');
+			
+			leftOverlayInfo.css('height', '30px'); // TODO
+			middleOverlayInfo.css('height', '30px'); // TODO
+			rightOverlayInfo.css('height', '30px'); // TODO
+		}
+	}
+	
+	/**
+	 * Animated parts of updateDimensions()
+	 */
+	#animateDimensions() {
+		var that = Notes.getInstance();
+		var t = NoteTree.getInstance();
+		
+		const viewSettings = ClientState.getInstance().getViewSettings();
+		const presentationMode = !!viewSettings.enablePresentationMode;
+		
+		const sectionFullscreen = 
+			presentationMode &&
+			!!that.getCurrentEditor();
+			
+		const showAppElements = 
+			!presentationMode ||                            // Always show in normal operation
+			!that.getCurrentEditor() ||                     // Always show when no editor is open
+			!!that.presentationModeShowAppElements;         // Show manually inside presetation mode	
+		
+		const showPresentationModeOverlay = sectionFullscreen;
+
+		const hdrSize = that.getHeaderSize();
+		
+		const animationOptions = {
+			queue: false,
+			duration: Config.presentationModeAnimationTime
+		};
+		
+		const treeWidth = t.getContainerWidth();
+		
+		const footer = $('#footer');
+		const header = $('header');
+		const nav = $('nav');
+			
+		if (showAppElements) {			
+			header.animate({ top: '0px' }, animationOptions);
+			footer.animate({ bottom: '0px' }, animationOptions);
+			
+			//if (!that.isMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
+		} else {
+			header.animate({ top: '-' + hdrSize + 'px' }, animationOptions);
+			footer.animate({ bottom: '-' + hdrSize + 'px' }, animationOptions);	
+			
+			//if (!that.isMobile()) nav.animate({ width: '0px' }, animationOptions);			
+		}
 	}
 	
 	/**
@@ -1823,33 +1964,93 @@ class Notes {
 			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="Setlist Mode" class="fa fa-expand-arrows-alt headerButton" id="presentationModeButton" onclick="event.stopPropagation();Notes.getInstance().togglePresentationMode();"></div>'), size),
 		);
 		
-		this.updatePresentationMode();
+		this.#updatePresentationMode();
 		
 		// Update UI
 		if (!noUpdate) this.update();
 	}
 	
+	/**
+	 * Toggles presentation mode.
+	 */
 	togglePresentationMode() {
 		var vs = ClientState.getInstance().getViewSettings();
 		vs.enablePresentationMode = !vs.enablePresentationMode;
 		ClientState.getInstance().saveViewSettings(vs);
 		
-		this.updatePresentationMode();
+		if (vs.enablePresentationMode) {
+			this.setPresentationModeShowAppElements();
+		}
 		
-		// TODO
-		this.showAlert("Not implemented yet", "I", "togglePresentationMode");
-		
+		this.#updatePresentationMode();
 	}
-	
-	updatePresentationMode() {
+
+	#updatePresentationMode() {
 		var vs = ClientState.getInstance().getViewSettings();
 		
-		$('#presentationModeOverlay').css('display', vs.enablePresentationMode ? 'block' : 'none');
 		const butt = $('#presentationModeButton');
 		butt.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
 		butt.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);
+		
+		this.updateDimensions();
+		this.#updatePresentationModeOverlayInfo();
 	}
 	
+	/**
+	 * Inside presentation mode, this toggles if the app elements (hdr/ftr...) are shown.
+	 */
+	togglePresentationModeShowAppElements() {
+		this.setPresentationModeShowAppElements(!this.presentationModeShowAppElements);
+		
+		this.updateDimensions();
+	}
+	
+	setPresentationModeShowAppElements(show) {
+		this.presentationModeShowAppElements = !!show;
+	}
+
+	/**
+	 * In presentation mode, this updates the info fields.
+	 */
+	#updatePresentationModeOverlayInfo() {
+		var vs = ClientState.getInstance().getViewSettings();
+		
+		const leftEl = $('#presentationModeInfoLeft');
+		const midEl = $('#presentationModeInfoMiddle');
+		const rightEl = $('#presentationModeInfoRight');
+		leftEl.text('');
+		midEl.text('');
+		rightEl.text('');
+		
+		if (!vs.enablePresentationMode) return; 
+		
+		const id = this.getCurrentlyShownId();
+		if (!id) return;
+		
+		const t = NoteTree.getInstance();
+		const parentId = t.getFocusedId();
+		
+		const neighborInfo = t.getNeighborsFor(id, parentId);
+
+		if (parentId) {
+			const parentDoc = this.getData().getById(parentId);
+			if (parentDoc) {
+				midEl.html(parentDoc.name);	
+			}
+		} else {
+			midEl.html('Root');
+		}
+
+		if (neighborInfo.documentBefore) {
+			leftEl.html('(' + neighborInfo.numDocumentsBefore + ') <b>< ' + neighborInfo.documentBefore.name + '</b>');		
+		}
+		
+		if (neighborInfo.documentAfter) {
+			rightEl.html('<b>' + neighborInfo.documentAfter.name + ' ></b> (' + neighborInfo.numDocumentsAfter + ') ');	
+		}		
+	}
+	
+
 	/**
 	 * Shows or hides the changed marker.
 	 */
@@ -1928,6 +2129,9 @@ class Notes {
 		// Update button states
 		this.updateLinkageButtons();
 		this.updateHistoryButtons();
+		
+		// Presentation mode info
+		this.#updatePresentationModeOverlayInfo();
 	}
 	
 	/**
@@ -2200,7 +2404,7 @@ class Notes {
 			// Options for a single document
 			var doc = this.getData().getById(this.optionsIds[0]);
 	
-			// Options: Show in Navigation (default: hidden)
+			// Options: (default: hidden)
 			$('.contextOptionRename').css('display', options.noRename ? 'none' : 'inline-block');
 			$('.contextOptionShowInNavigation').css('display', options.showInNavigation ? 'inline-block' : 'none');
 			$('.contextOptionMove').css('display', options.noMove ? 'none' : 'inline-block');

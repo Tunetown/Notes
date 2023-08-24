@@ -21,6 +21,7 @@ class Routing {
 	constructor(app, selector) {
 		this.app = app;
 		this.setup(selector);
+		this.rootPlaceholder = 'root';
 	}
 	
 	/**
@@ -188,6 +189,36 @@ class Routing {
 					NoteTree.getInstance().focus(id ? id : '');
 				});
 			});
+			
+			// Profile root with selected parent ID and highlight id passed as URI parameter
+			/*this.get('#/:profile/select/:selectId/:highlightId', function(context) {
+				ClientState.getInstance().resetTreeFocusId();
+				
+				const selectId = (this.params['selectId'] == that.rootPlaceholder) ? '' : this.params['selectId'];
+				const highlightId = this.params['highlightId'];
+				
+				profileRoot(context, this.params)
+				.then(function(resp) {
+					if (!resp || !resp.ok) return Promise.reject();
+					
+					if (resp.startAppData && resp.startAppData.treePromise) {
+						return resp.startAppData.treePromise;
+					} else {
+						return Promise.resolve();
+					}
+				})
+				.then(function() {
+					var t = NoteTree.getInstance();
+					t.focus(selectId ? selectId : '');
+					if (highlightId) {
+						setTimeout(function() {
+							t.setSelected(highlightId);
+							t.scrollToDocument(highlightId);
+														
+						}, MuuriGrid.getAnimationDuration() * 2);
+					}
+				});
+			});*/
 			
 			// Settings
 			this.get('#/:profile/settings', function(context) {
@@ -622,11 +653,27 @@ class Routing {
 	}
 	
 	/**
-	 * Calls the profile root with the selected parent ID.
+	 * Calls the profile root with a pre-selected parent ID.
 	 */
 	callProfileRootWithSelectedId(id) {
 		this.call('select/' + (id ? id : ''));
 	}
+	
+	/**
+	 * Calls the profile root with the parent of the passed ID as selected parent,
+	 * and the ID itself highlighted.
+	 *
+	callProfileRootWithFocusedId(id) {
+		if (!id) {
+			this.call('select/');
+			return;
+		}
+		
+		var doc = Notes.getInstance().getData().getById(id);
+		if (!doc) throw new Error("Document " + id + " not found");	
+		
+		this.call('select/' + (doc.parent ? doc.parent : this.rootPlaceholder) + '/' + (id ? id : ''));
+	}*/
 	
 	/**
 	 * Returns the profile base path

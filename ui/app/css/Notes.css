@@ -33,6 +33,8 @@ body {
 	margin: 0;
     padding: 0;	
     font-family: Avenir, Calibri, Helvetica, Arial, sans-serif; 
+    background-color: white;
+    overflow: hidden;
 }
 
 #all {
@@ -53,6 +55,7 @@ header {
 	position: absolute;
 	top: 0;
 	left: 0;
+	z-index: 100;
 }
 
 section {
@@ -68,6 +71,7 @@ section {
 	position: absolute;
 	top: 55px;
 	left: 0;
+	z-index: 10;
 }
 
 nav {
@@ -130,6 +134,14 @@ article {
 	background-color: white;
 	overflow: auto;
 	position: absolute;
+}
+
+#contentContainer {
+	z-index: 10;	
+}
+
+#editor {
+	z-index: 20;
 }
 
 #popupContainer {
@@ -220,30 +232,75 @@ article {
 #presentationModeOverlay {
 	height: 100%;
 	width: 100%;
-	background-color: rgba(0,0,0,0.1);
 	overflow: hidden;
 	position: absolute;	
 	display: none;
+	z-index: 100;
+	cursor: pointer;
 }
 
 #presentationModeOverlayLeft {
 	height: 80%;
-	width: 40%;
+	width: 30%;
 	left: 0px;
 	bottom: 0px;
-	background-color: rgba(200,0,0,0.5);
 	position: absolute;
 	overflow: hidden;
-	
 }
 
 #presentationModeOverlayRight {
 	height: 80%;
-	width: 40%;
+	width: 30%;
 	right: 0px;
 	bottom: 0px;
-	background-color: rgba(0,200,0,0.5);
 	position: absolute;
 	overflow: hidden;
-	
 }
+
+#presentationModeInfoLeft {
+	position: absolute;
+	left: 0px;
+	bottom: 0px;
+	width: 30%;
+	text-align: left;
+	
+	white-space: nowrap;                   
+    overflow: hidden;
+	text-overflow: ellipsis;
+	margin-left: 5px;
+}
+
+#presentationModeInfoMiddle {
+	position: absolute;
+	right: 35%;
+	bottom: 0px;
+	width: 30%;
+	text-align: center;
+	text-decoration: underline;
+	text-transform: uppercase;
+	
+	white-space: nowrap;                   
+    overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#presentationModeInfoRight {
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	width: 30%;
+	text-align: right;
+	
+	white-space: nowrap;                   
+    overflow: hidden;
+	text-overflow: ellipsis;
+	direction: rtl;
+
+	margin-right: 5px;
+}
+
+/*.presentationModeOverlayFlash {
+	opacity: 0;
+	height: 100%;
+	width: 100%;
+}*/

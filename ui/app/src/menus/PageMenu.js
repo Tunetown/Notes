@@ -260,9 +260,10 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				NoteTree.getInstance().focus(editor.getCurrentId());
+				NoteTree.getInstance().highlightDocument(editor.getCurrentId(), !n.isMobile());
 				
-				n.routing.call(editor.getCurrentId());
+				//NoteTree.getInstance().focus(editor.getCurrentId());				
+				//n.routing.call(editor.getCurrentId());
 			}),
 			
 			$('<div class="userbuttonLine"></div>'),

@@ -652,6 +652,33 @@ class DetailBehaviour {
 	}
 	
 	/**
+	 * Compare function to be used for sorting
+	 */
+	compareDocuments(docA, docB) {
+		var that = NoteTree.getInstance().behaviour;
+		if (!that) return 0;
+		
+		const docAmeta = that.getItemRefTypeDescriptor(docA);
+		const docBmeta = that.getItemRefTypeDescriptor(docB);
+
+		//console.log('==================');
+		
+		// Flexible sorting
+		const sortWeight = that.getSortComparisonValue(docA, docB, docAmeta, docBmeta); 
+		const groupWeightA = that.getSortWeight(docA, docAmeta);
+		const groupWeightB = that.getSortWeight(docB, docBmeta);
+		
+		//console.log(docA.name + ' vs ' + docB.name + ': ' + sortWeight + '   ' + groupWeightA + '    ' + groupWeightB);
+		//console.log(docAmeta);
+		//console.log(docBmeta);
+		
+		//if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
+		//if (sortWeight < -1) console.log("Sort weight out of range: " + sortWeight); 
+		
+		return sortWeight + groupWeightA - groupWeightB;
+	}
+	
+	/**
 	 * Called after filtering
 	 */
 	afterFilter(noAnimations) {
@@ -674,7 +701,8 @@ class DetailBehaviour {
 			const dataB = $(itemB.getElement()).find('.' + that.getItemContentClass()).data();
 			const docB = that.getById(dataB.id);
 				
-			const docAmeta = that.getItemRefTypeDescriptor(docA);
+			return that.compareDocuments(docA, docB);
+			/*const docAmeta = that.getItemRefTypeDescriptor(docA);
 			const docBmeta = that.getItemRefTypeDescriptor(docB);
 
 			//console.log('==================');
@@ -691,7 +719,7 @@ class DetailBehaviour {
 			//if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
 			//if (sortWeight < -1) console.log("Sort weight out of range: " + sortWeight); 
 			
-			return sortWeight + groupWeightA - groupWeightB;
+			return sortWeight + groupWeightA - groupWeightB;*/
 		});
 		
 		// Align the labels to the left for the selected parent item which is always first after sorting
@@ -1416,7 +1444,6 @@ class DetailBehaviour {
 		var d = Notes.getInstance().getData();
 		
 		var ret = [];
-		if (!doc) return ret;
 		
 		if (this.enableChildren) {
 			var children = d.getChildren(doc ? doc._id : '');
@@ -2076,6 +2103,61 @@ class DetailBehaviour {
 		return Document.getRelatedOrder(doc, (this.mode == 'ref') ? this.selectedParent : false);
 	}
 	
+	/**
+	 * Info about the neighbors of ID.
+	 */
+	getNeighborsFor(id, parentId) {
+		var n = Notes.getInstance();
+		var d = n.getData();
+		
+		const doc = d.getById(id);
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		
+		const parentDoc = parentId ? d.getById(parentId) : null;
+		
+		var children = (this.mode == 'ref') ? this.getRefEntries(parentDoc, true) : d.getChildren(parentId);
+		children.sort(this.compareDocuments);
+		
+		var ret = {
+			numDocuments: children.length,
+			numDocumentsBefore: 0,
+			numDocumentsAfter: 0,
+			documentBefore: null,
+			documentAfter: null
+		};
+		
+		if (parentId != doc.parent) {
+			// Start from beginning if we have another document
+			ret.documentAfter = children.length ? children[0] : null;
+			ret.numDocumentsAfter = children.length;
+			return ret;
+		}
+		
+		var before = true;
+		for(var c in children) {
+			const child = children[c];
+			
+			if (child._id == id) {
+				before = false;
+				
+				if (c > 0) {
+					ret.documentBefore = children[parseInt(c)-1];
+				}				
+				if (c < children.length - 1) {
+					ret.documentAfter = children[parseInt(c)+1];
+				}				
+			} else {
+				if (before) {
+					ret.numDocumentsBefore++;
+				} else {
+					ret.numDocumentsAfter++;
+				}		
+			}
+		}
+		
+		return ret;
+	}
+	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
@@ -2283,7 +2365,7 @@ class DetailBehaviour {
 			}
 					
 			this.grid.setSelected(data.id);
-			this.grid.openNode(data.id); //this.mode == 'ref');
+			this.grid.openNode(data.id);
 		}
 	}
 	
@@ -2327,7 +2409,7 @@ class DetailBehaviour {
 			
 		} else {
 			this.grid.setSelected(data.id);
-			this.grid.openNode(data.id); //, true);
+			this.grid.openNode(data.id);
 		}
 	}
 	
