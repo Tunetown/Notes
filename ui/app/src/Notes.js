@@ -775,10 +775,10 @@ class Notes {
 		var tree = NoteTree.getInstance();
 		
 		var id = that.getCurrentlyShownId();
-		if (!id) {
-			that.alert("No document opened");
+		/*if (!id) {
+			that.showAlert("No document opened");
 			return;
-		}
+		}*/
 		
 		tree.highlightDocument(id);
 	}
@@ -807,6 +807,12 @@ class Notes {
 			//t.unblock();
 			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		});
+	}
+	
+	editorPresentationModeButtonHandler(e) {
+		e.stopPropagation();
+		const n = Notes.getInstance();
+		n.togglePresentationMode();
 	}
 	
 	editorFavoritesButtonHandler(e) {
@@ -1073,8 +1079,14 @@ class Notes {
 			.on('click', this.editorCreateButtonHandler),
 
 			// Favorites
+			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") 
+			? 
 			$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
-			.on('click', this.editorFavoritesButtonHandler),
+			.on('click', this.editorFavoritesButtonHandler)
+			:			
+			$('<div id="presentationModeButton2" class="footerButton fa fa-expand-arrows-alt"></div>')
+			.on('click', this.editorPresentationModeButtonHandler),
+			
 		]);
 	}
 	
@@ -1961,7 +1973,7 @@ class Notes {
 		$('#headerRight').append(
 			this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="User Menu" class="fa fa-user headerButton" id="userMenuButton" onclick="event.stopPropagation();Notes.getInstance().showUserMenu();"></div>'), size),
 			this.setHeaderButtonSize($('<div class="alertHeaderNotification alertNotification conflictMarker fa fa-bell"></div>'), size, true, 0.04),
-			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="Setlist Mode" class="fa fa-expand-arrows-alt headerButton" id="presentationModeButton" onclick="event.stopPropagation();Notes.getInstance().togglePresentationMode();"></div>'), size),
+			//!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="Setlist Mode" class="fa fa-expand-arrows-alt headerButton" id="presentationModeButton" onclick="event.stopPropagation();Notes.getInstance().togglePresentationMode();"></div>'), size),
 		);
 		
 		this.#updatePresentationMode();
@@ -1989,9 +2001,20 @@ class Notes {
 		var vs = ClientState.getInstance().getViewSettings();
 		
 		const butt = $('#presentationModeButton');
-		butt.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
-		butt.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);
+		const butt2 = $('#presentationModeButton2');
 		
+		if (butt) {
+			butt.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
+			butt.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);	
+			butt.css('color', vs.enablePresentationMode ? 'red' : '#555');				
+		}
+		
+		if (butt2) {
+			butt2.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
+			butt2.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);
+			butt2.css('color', vs.enablePresentationMode ? 'red' : '#555');
+		}
+
 		this.updateDimensions();
 		this.#updatePresentationModeOverlayInfo();
 	}

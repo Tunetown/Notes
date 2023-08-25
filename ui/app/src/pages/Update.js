@@ -61,6 +61,7 @@ class Update {
 				$('<button class="btn btn-secondary updateRefreshBtn">Re-Scan...</button><br><br>')
 				.on('click', function(event) {
 					event.stopPropagation();
+					n.showAlert("Scan for Updates...", "I");
 					Update.getInstance().load();
 				}),
 				/*$('<button class="btn btn-secondary updateRefreshBtn">Validate Sources...</button><br><br>')

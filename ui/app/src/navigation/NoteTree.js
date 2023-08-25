@@ -840,6 +840,13 @@ class NoteTree {
 		Notes.getInstance().editorFavoritesButtonHandler(event);
 	}
 	
+	presentationModeHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+		
+		Notes.getInstance().editorPresentationModeButtonHandler(event);
+	}
+	
 	settingsHandler(event) {
 		var that = NoteTree.getInstance();
 		const newState = !that.isSettingsPanelVisible();
@@ -1160,8 +1167,13 @@ class NoteTree {
 				.on('click', this.createHandler),
 				
 			// Favorites
+			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode")
+			? 
 			$('<div class="fa fa-star footerButton"></div>')
-			.on('click', this.favoritesHandler),
+			.on('click', this.favoritesHandler) 
+			:
+			$('<div class="fa fa-expand-arrows-alt footerButton" id="presentationModeButton" ></div>')
+			.on('click', this.presentationModeHandler),
 			
 			/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
 				.on('click', this.settingsHandler),
@@ -1438,9 +1450,18 @@ class NoteTree {
 	 */
 	highlightDocument(id, noRouting) {
 		var n = Notes.getInstance();
+		
+		if (!id) {
+			if (noRouting) {
+				this.focus();
+			} else {
+				n.home();
+			}
+			return;
+		}
 		var doc = n.getData().getById(id);
 		if (!doc) {
-			n.alert("Document " + id + " not found");
+			n.showAlert("Document " + id + " not found");
 			return;
 		}	
 		
@@ -1610,7 +1631,7 @@ class NoteTree {
 		if (!el) return;
 		if (!el[0]) return;
 		
-		el[0].scrollIntoView();
+		el[0].scrollIntoView({block: "center"});
 		
 		this.behaviour.saveScrollPosition();
 	}

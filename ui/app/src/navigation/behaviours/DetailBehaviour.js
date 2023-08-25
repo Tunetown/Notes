@@ -137,13 +137,17 @@ class DetailBehaviour {
 	/**
 	 * Called when the home button of the tree has been pushed, if visible. 
 	 */
-	homeButtonPushed(event) {
-		this.resetScrollPosition('all');
+	homeButtonPushed(event) {	
+		const sy = this.scroll.getPosition().scrollY;	
 		
+		this.resetScrollPosition('all');
+				
 		if (this.grid.getSearchText()) {
 			this.grid.setSearchText('');
 			return;
 		}
+		
+		if (sy > 0) return;
 		
 		this.selectParentFromEvent();
 	}
