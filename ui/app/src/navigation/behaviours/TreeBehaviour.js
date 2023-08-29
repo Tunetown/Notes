@@ -332,6 +332,14 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Returns all related documents (children etc.) for the passed document.
+	 */
+	getRelatedDocuments(id) {
+		// TODO sort data!
+		return Notes.getInstance().getData().getChildren(id);
+	}
+
+	/**
 	 * Returns if the doc should be shown
 	 */
 	isItemVisible(doc, searchText) {  
@@ -345,7 +353,7 @@ class TreeBehaviour {
 		}
 	}
 	
-	isItemVisible(doc, searchText) {
+	/*isItemVisible(doc, searchText) {
 		const show = this.#doShowItem(doc);
 		
 		// If a search is going on, we show all items the search is positive for
@@ -354,7 +362,7 @@ class TreeBehaviour {
 		} else {
 			return show;
 		}
-	}
+	}*/
 	
 	#doShowItem(doc) {
 		// If the state is unclear, hide (this is the case when synchronizing for example)
@@ -657,7 +665,7 @@ class TreeBehaviour {
 	
 	/**
 	 * Info about the neighbors of ID.
-	 */
+	 *
 	getNeighborsFor(id) {
 		return {}; // TODO
 	}

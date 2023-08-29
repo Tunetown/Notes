@@ -521,6 +521,27 @@ class Routing {
 				});
 			});
 			
+			// Presentation (Setlist mode) for an item
+			this.get('#/:profile/aslist/:noteId', function(context) {
+				var noteId = this.params['noteId'];
+				if (!noteId) {
+					that.app.showAlert('No ID received', 'E');
+					return;
+				}
+				
+				that.app.startApp(this.params['profile'])
+				.then(function(data) {
+					return Promise.resolve(data.treePromise);
+				})
+				.then(function(data) {
+					that.app.resetPage();
+					return DocumentActions.getInstance().requestPresentationView(noteId);					
+				})
+				.catch(function(err) {
+					that.app.showAlert('Error loading presentation view: ' + err.message, 'E', err.messageThreadId);
+				});
+			});
+			
 			// Item
 			function openDocument(context, params, noteId) {
 				return that.app.startApp(params['profile'])

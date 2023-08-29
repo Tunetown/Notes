@@ -228,7 +228,7 @@ article {
 }
 
 /* ====================== Presentation Mode ========================= */
-
+/*
 #presentationModeOverlay {
 	height: 100%;
 	width: 100%;
@@ -299,8 +299,8 @@ article {
 	margin-right: 5px;
 }
 
-/*.presentationModeOverlayFlash {
-	opacity: 0;
+/* NEW -------------------------------------------------- */
+
+#setlistContent {
 	height: 100%;
-	width: 100%;
-}*/
+}

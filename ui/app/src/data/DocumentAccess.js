@@ -59,7 +59,7 @@ class DocumentAccess {
 	}
 		
 	/**
-	 * After this, the documents are loaded fully int the data instance.
+	 * After this, the documents are loaded fully into the data instance.
 	 */
 	loadDocuments(docs) {
 		if (!docs) return Promise.reject({ 

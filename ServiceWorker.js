@@ -68,7 +68,6 @@ const PRECACHE_URLS = [
   './ui/lib/neo4j/js/neo4jd3.js',
   './ui/lib/neo4j/js/d3.min.js',
   './ui/lib/localstorage-slim/localstorage-slim.js',
-  /*'./ui/lib/md5.min.js',*/
   
   './ui/lib/codemirror/lib/codemirror.js',
   './ui/lib/codemirror/mode/markdown/markdown.js',
@@ -147,6 +146,7 @@ const PRECACHE_URLS = [
   './ui/app/src/pages/Update.js',
   './ui/app/src/pages/Generate.js',
   './ui/app/src/pages/VerifyBackup.js',
+  './ui/app/src/pages/Setlist.js',
   './ui/app/src/import/Import.js',
   './ui/app/src/import/NotesImporter.js',
   './ui/app/src/export/NotesExporter.js',

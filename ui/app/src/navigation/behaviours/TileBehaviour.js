@@ -356,6 +356,14 @@ class TileBehaviour {
 	getById(id) {
 		return Notes.getInstance().getData().getById(id);
 	}
+	
+	/**
+	 * Returns all related documents (children etc.) for the passed document.
+	 */
+	getRelatedDocuments(id) {
+		// TODO sort data!
+		return Notes.getInstance().getData().getChildren(id);
+	}
 
 	/**
 	 * Returns if the doc should be shown
@@ -927,7 +935,7 @@ class TileBehaviour {
 	
 	/**
 	 * Info about the neighbors of ID.
-	 */
+	 *
 	getNeighborsFor(id) {
 		return {}; // TODO
 	}

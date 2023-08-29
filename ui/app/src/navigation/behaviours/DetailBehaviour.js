@@ -1441,8 +1441,10 @@ class DetailBehaviour {
 		return this.selectedParent ? this.selectedParent : '';
 	}
 	
+	
+	
 	/**
-	 * Returns all documents which are visible in ref mode. So far, only used for statistics.
+	 * Returns all documents which are visible in ref mode.
 	 */
 	getRefEntries(doc, ignoreParent) {
 		var d = Notes.getInstance().getData();
@@ -2108,8 +2110,22 @@ class DetailBehaviour {
 	}
 	
 	/**
-	 * Info about the neighbors of ID.
+	 * Returns all related documents (children etc.) for the passed document.
 	 */
+	getRelatedDocuments(id) {
+		var doc = Notes.getInstance().getData().getById(id);
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		
+		var children = (this.mode == 'ref') ? this.getRefEntries(doc, true) : d.getChildren(id);
+		
+		children.sort(this.compareDocuments);
+		
+		return children;
+	}
+	
+	/**
+	 * Info about the neighbors of ID. 
+	 *
 	getNeighborsFor(id, parentId) {
 		var n = Notes.getInstance();
 		var d = n.getData();

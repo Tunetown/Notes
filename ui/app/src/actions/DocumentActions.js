@@ -184,6 +184,25 @@ class DocumentActions {
 		});		
 	}
 	
+	/**
+	 * Request the presentation (setlist) view for a document.
+	 */
+	requestPresentationView(id) {
+		// Get related documents and load them
+		var children = NoteTree.getInstance().getRelatedDocuments(id);
+		
+		return DocumentAccess.getInstance().loadDocuments(children)
+		.then(function () {
+			// Load setlist page
+			Setlist.getInstance().load(id);
+			
+			// Execute callbacks
+    		Callbacks.getInstance().executeCallbacks('requestPresentationView', {
+    			id: id
+    		});
+		});
+	}
+	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 

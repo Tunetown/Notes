@@ -1851,11 +1851,20 @@ class NoteTree {
 	
 	/**
 	 * Returns an object containing info about the neighboring documents for ID.
-	 */
+	 *
 	getNeighborsFor(id, parentId) {
 		if (!this.behaviour) return {};
 		
 		return this.behaviour.getNeighborsFor(id, parentId);
+	}
+	
+	/**
+	 * Returns the child documents as shown by the navigation, in the correct order.
+	 */
+	getRelatedDocuments(id) {
+		if (!this.behaviour) throw new Error('Tree not set up yet');
+		
+		return this.behaviour.getRelatedDocuments(id);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1908,6 +1917,7 @@ class NoteTree {
 		
 		var searchText = this.getSearchText();
 
+		var n = Notes.getInstance();
 		var that = this;
 		function doFilter(resolve/*, reject*/) {
 			that.updateDomItems(true);
@@ -1934,6 +1944,8 @@ class NoteTree {
 					that.grid.grid.refreshItems();
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
+					
+					if (n.isMobile()) that.refreshColors();
 					//that.behaviour.restoreScrollPosition();
 					//console.log("Stop Filter")
 					resolve();
@@ -1944,6 +1956,8 @@ class NoteTree {
 					that.grid.grid.refreshItems();
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
+					
+					if (n.isMobile()) that.refreshColors();
 					//that.behaviour.restoreScrollPosition();
 					//console.log("Stop Filter")
 					resolve();
@@ -2066,7 +2080,7 @@ class NoteTree {
 		}
 
 		// Callback for setting the item colors
-		function setColor(doc/*, lvl*/) {
+		function setColor(doc) {
 			var el = element ? element : that.getItemContent(doc._id);
 			if (!el) return;
 			

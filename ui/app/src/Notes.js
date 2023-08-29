@@ -808,8 +808,10 @@ class Notes {
 	
 	editorPresentationModeButtonHandler(e) {
 		e.stopPropagation();
-		const n = Notes.getInstance();
-		n.togglePresentationMode();
+		//const n = Notes.getInstance();
+		//n.togglePresentationMode();
+		
+		// TODO
 	}
 	
 	editorFavoritesButtonHandler(e) {
@@ -925,7 +927,7 @@ class Notes {
 					Editor.getInstance().getContainerDom(teaser),
 					
 					// Presentation mode overlay
-					!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
+					/*!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
 					$('<div id="presentationModeOverlay" data-toggle="tooltip" title="Show/Hide toolbars"/>')
 					.on('click', function(e) {
 						e.stopPropagation();
@@ -991,7 +993,7 @@ class Notes {
 							
 							that.presentationModeSelectNext();
 						}),
-					),
+					),*/
 					
 					// Console
 					$('<div id="console" class="mainPanel"/>')				
@@ -1065,7 +1067,7 @@ class Notes {
 		ContextMenu.setupItemOptions(this.optionsMasterContainer);
 		
 		// Callbacks		
-		var that = this;
+		/*var that = this;
 		Callbacks.getInstance().registerCallback(
 			'presentationMode',
 			'openDocumentAndTree',
@@ -1075,13 +1077,13 @@ class Notes {
 					that.checkPresentationModeParent(docId);
 				}
 			}
-		);
+		);*/
 		
 		// We only do this once ;)
 		this.isDomSetup = true;
 	}
 	
-	presentationModeSelectPrevious() {
+	/*presentationModeSelectPrevious() {
 		const id = this.getCurrentlyShownId();
 		if (!id) return;
 		
@@ -1108,7 +1110,7 @@ class Notes {
 
 		this.routing.call(neighborInfo.documentAfter._id);
 
-	}
+	}*/
 		
 	/**
 	 * Sets up the footer for editors on mobile.
@@ -1651,19 +1653,19 @@ class Notes {
 	updateDimensions() {
 		const mobile = this.isMobile();
 		
-		const viewSettings = ClientState.getInstance().getViewSettings();
-		const presentationMode = !!viewSettings.enablePresentationMode;
+		//const viewSettings = ClientState.getInstance().getViewSettings();
+		//const presentationMode = !!viewSettings.enablePresentationMode;
 		
-		const sectionFullscreen = 
-			presentationMode &&
-			!!this.getCurrentEditor();
+		const sectionFullscreen = false; 
+			//presentationMode &&
+			//!!this.getCurrentEditor();
 			
-		const showAppElements = 
-			!presentationMode ||                            // Always show in normal operation
-			!this.getCurrentEditor() ||                     // Always show when no editor is open
-			!!this.presentationModeShowAppElements;         // Show manually inside presetation mode	
+		const showAppElements = true; 
+			//!presentationMode ||                            // Always show in normal operation
+			//!this.getCurrentEditor() ||                     // Always show when no editor is open
+			//!!this.presentationModeShowAppElements;         // Show manually inside presetation mode	
 		
-		const showPresentationModeOverlay = sectionFullscreen;
+		//const showPresentationModeOverlay = sectionFullscreen;
 
 		const hdrSize = this.getHeaderSize();
 		const ftrSize = this.getFooterSize();
@@ -1750,13 +1752,14 @@ class Notes {
 		this.setRoundedButtonSize(this.getRoundedButtonSize());
 		
 		// Presentation mode
-		const presentationModeOverlay = $('#presentationModeOverlay');
+		/*const presentationModeOverlay = $('#presentationModeOverlay');		
 		presentationModeOverlay.css('display', showPresentationModeOverlay ? 'block' : 'none');
-
+		*/
+		
 		clearTimeout(this.#animateDimensions);
 		setTimeout(this.#animateDimensions, 100);
 		
-		if (presentationMode) {
+		/*if (presentationMode) {
 			const leftOverlayInfo = $('#presentationModeInfoLeft');
 			const middleOverlayInfo = $('#presentationModeInfoMiddle');
 			const rightOverlayInfo = $('#presentationModeInfoRight');
@@ -1764,7 +1767,7 @@ class Notes {
 			leftOverlayInfo.css('height', '30px'); // TODO
 			middleOverlayInfo.css('height', '30px'); // TODO
 			rightOverlayInfo.css('height', '30px'); // TODO
-		}
+		}*/
 	}
 	
 	/**
@@ -1774,19 +1777,19 @@ class Notes {
 		var that = Notes.getInstance();
 		var t = NoteTree.getInstance();
 		
-		const viewSettings = ClientState.getInstance().getViewSettings();
-		const presentationMode = !!viewSettings.enablePresentationMode;
+		//const viewSettings = ClientState.getInstance().getViewSettings();
+		//const presentationMode = !!viewSettings.enablePresentationMode;
 		
-		const sectionFullscreen = 
-			presentationMode &&
-			!!that.getCurrentEditor();
+		//const sectionFullscreen = false; 
+			//presentationMode &&
+			//!!that.getCurrentEditor();
 			
-		const showAppElements = 
-			!presentationMode ||                            // Always show in normal operation
-			!that.getCurrentEditor() ||                     // Always show when no editor is open
-			!!that.presentationModeShowAppElements;         // Show manually inside presetation mode	
+		const showAppElements = true; 
+			//!presentationMode ||                            // Always show in normal operation
+			//!that.getCurrentEditor() ||                     // Always show when no editor is open
+			//!!that.presentationModeShowAppElements;         // Show manually inside presetation mode	
 		
-		const showPresentationModeOverlay = sectionFullscreen;
+		//const showPresentationModeOverlay = sectionFullscreen;
 
 		const hdrSize = that.getHeaderSize();
 		
@@ -2031,10 +2034,9 @@ class Notes {
 		$('#headerRight').append(
 			this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="User Menu" class="fa fa-user headerButton" id="userMenuButton" onclick="event.stopPropagation();Notes.getInstance().showUserMenu();"></div>'), size),
 			this.setHeaderButtonSize($('<div class="alertHeaderNotification alertNotification conflictMarker fa fa-bell"></div>'), size, true, 0.04),
-			//!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="Setlist Mode" class="fa fa-expand-arrows-alt headerButton" id="presentationModeButton" onclick="event.stopPropagation();Notes.getInstance().togglePresentationMode();"></div>'), size),
 		);
 		
-		this.#updatePresentationMode();
+		//this.#updatePresentationMode();
 		
 		// Update UI
 		if (!noUpdate) this.update();
@@ -2042,7 +2044,7 @@ class Notes {
 	
 	/**
 	 * Toggles presentation mode.
-	 */
+	 *
 	togglePresentationMode() {
 		var vs = ClientState.getInstance().getViewSettings();
 		vs.enablePresentationMode = !vs.enablePresentationMode;
@@ -2083,7 +2085,7 @@ class Notes {
 	/**
 	 * Check if the current document is a child of the selected parent in navigation,
 	 * and issue a warning if so.
-	 */
+	 *
 	checkPresentationModeParent(id) {
 		if (!id) return;
 		
@@ -2105,7 +2107,7 @@ class Notes {
 	
 	/**
 	 * Returns if the passed document is a child of the selected doc in navigation.
-	 */
+	 *
 	isPresentationModeSelectedParentValidFor(id) {
 		if (!id) return;
 		if (!this.getData()) return;
@@ -2133,7 +2135,7 @@ class Notes {
 
 	/**
 	 * In presentation mode, this updates the info fields.
-	 */
+	 *
 	#updatePresentationModeOverlayInfo() {
 		var vs = ClientState.getInstance().getViewSettings();
 		
@@ -2257,7 +2259,7 @@ class Notes {
 		this.updateHistoryButtons();
 		
 		// Presentation mode info
-		this.#updatePresentationModeOverlayInfo();
+		//this.#updatePresentationModeOverlayInfo();
 	}
 	
 	/**
