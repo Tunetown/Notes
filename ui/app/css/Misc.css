@@ -479,10 +479,11 @@ div.tox-tinymce {
 	top: 50%;
 	left: 50%;
 	max-width: 80%;
-	text-overflow: ellipsis;
+	text-overflow: fade;
 	transform: translate(-50%, -50%);
 	white-space: nowrap;
     overflow: hidden;
+    text-align: center;
 }
  
 .selectedFavorite {

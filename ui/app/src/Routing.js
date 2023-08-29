@@ -566,6 +566,8 @@ class Routing {
 				.then(function() {
 					NoteTree.getInstance().setSearchText();
 					NoteTree.getInstance().editorOpened(noteId);
+					
+					Callbacks.getInstance().executeCallbacks('openDocumentAndTree', noteId);
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
@@ -590,6 +592,8 @@ class Routing {
 				})
 				.then(function() {
 					if (token) NoteTree.getInstance().setSearchText(token);
+					
+					Callbacks.getInstance().executeCallbacks('openDocumentAndTree', noteId);
 				})
 				.catch(function(err) {
 					that.app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);

@@ -29,11 +29,11 @@ class Update {
 	/**
 	 * Loads the passed version history data into the versions view. doc is a cdb document
 	 */
-	load() {
+	load(manually) {
 		var n = Notes.getInstance();
 		n.setCurrentPage(this);
 		
-		n.triggerUpdateCheck();
+		n.triggerUpdateCheck(manually);
 		
 		n.setStatusText("About");
 		
@@ -61,8 +61,8 @@ class Update {
 				$('<button class="btn btn-secondary updateRefreshBtn">Re-Scan...</button><br><br>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					n.showAlert("Scan for Updates...", "I");
-					Update.getInstance().load();
+					n.showAlert("Scan for Updates...", "I", 'UpdateScanMessages');
+					Update.getInstance().load(true);
 				}),
 				/*$('<button class="btn btn-secondary updateRefreshBtn">Validate Sources...</button><br><br>')
 				.on('click', function(event) {

@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.15.a';
+const PRECACHE = 'notes_precache-v0.98.17.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -277,6 +277,18 @@ self.checkForUpdates = function(request, cache) {
 }
 
 /**
+ * Send a message to the UI.
+ */
+self.sendUserMessage = function(event, msg, type, groupId) {
+	event.source.postMessage({
+		requestId: 'userMessage',
+		type: type,
+		message: msg,
+		messageGroupId: groupId
+	});
+}
+
+/**
  * Listen to messages from the clients
  */
 self.addEventListener("message", (event) => {
@@ -296,6 +308,9 @@ self.addEventListener("message", (event) => {
 							console.log("SW: File is out of date, prompting user for update: " + checkResponse.url);
 							event.source.postMessage(checkResponse);
 						} else {
+							if (event.data.manually) {
+								self_.sendUserMessage(event, 'All sources are up to date', 'S', 'UpdateScanMessages');
+							}
 							//console.log("SW Version Check successful for " + checkResponse.url);
 						}
 					})
@@ -314,6 +329,7 @@ self.addEventListener("message", (event) => {
 					return; 
 				}
 				
+				var self_ = self;
 				self.clients.matchAll({
 					includeUncontrolled: false,
 					type: 'window',
@@ -321,11 +337,12 @@ self.addEventListener("message", (event) => {
 				.then((clients) => {
 					// Only update when we only have one client
 					if (clients.length > 1) {
-						event.source.postMessage({
+						self_.sendUserMessage(event, 'Please close all open windows of the app before updating and try again.', 'E');
+						/*event.source.postMessage({
 							requestId: 'userMessage',
 							type: 'E',
 							message: 'Please close all open windows of the app before updating and try again.'
-						});
+						});*/
 						
 						return;
 					}

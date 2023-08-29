@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.15';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.17';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -304,12 +304,13 @@ class Notes {
 	/**
 	 * Can be called to force the service worker to check for updates. 
 	 */
-	triggerUpdateCheck() {
+	triggerUpdateCheck(manually) {
 		navigator.serviceWorker.ready
   		.then( (registration) => {
 			if (registration.active) {
 				registration.active.postMessage({
-					requestId: 'checkUpdates'  
+					requestId: 'checkUpdates',
+					manually: manually  
 				});
 			}
 		});	
@@ -430,11 +431,12 @@ class Notes {
 			if (event.data.requestId) {
 				switch(event.data.requestId) {  
 					case 'userMessage': {
-						var msg = event.data.message ? event.data.message : 'SW Message internal Error: No message transmitted';
-						var type = event.data.type ? event.data.type : 'I';
+						const msg = event.data.message ? event.data.message : 'SW Message internal Error: No message transmitted';
+						const type = event.data.type ? event.data.type : 'I';
+						const messageGroupId = event.data.messageGroupId ? event.data.messageGroupId : '';
 						
 						console.log("User message from SW received: Type " + type + ", message: " + msg);
-						Notes.getInstance().showAlert(msg, type);
+						Notes.getInstance().showAlert(msg, type, messageGroupId);
 						
 						return; 
 					}
@@ -775,11 +777,6 @@ class Notes {
 		var tree = NoteTree.getInstance();
 		
 		var id = that.getCurrentlyShownId();
-		/*if (!id) {
-			that.showAlert("No document opened");
-			return;
-		}*/
-		
 		tree.highlightDocument(id);
 	}
 	
@@ -929,10 +926,56 @@ class Notes {
 					
 					// Presentation mode overlay
 					!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
-					$('<div id="presentationModeOverlay" data-toggle="tooltip" title="Show/Hide toolbars"/>').append(
+					$('<div id="presentationModeOverlay" data-toggle="tooltip" title="Show/Hide toolbars"/>')
+					.on('click', function(e) {
+						e.stopPropagation();
+						
+						that.togglePresentationModeShowAppElements();
+					})
+					.on('touchstart', function(e) {
+						if (!that.isMobile()) return;
+						e.stopPropagation();
+						
+						that.presentationModeDragStartX = Tools.extractX(e);
+						
+					})
+					.on('touchmove', function(e) {
+						if (!that.isMobile()) return;
+						e.stopPropagation();
+						
+						if (!that.presentationModeDragStartX) return;
+						
+						that.presentationModeDragDeltaX = Tools.extractX(e) - that.presentationModeDragStartX;
+						$('#article').css('transform', 'translateX(' + that.presentationModeDragDeltaX+ 'px)');
+					})
+					.on('touchend', function(e) {
+						if (!that.isMobile()) return;
+						e.stopPropagation();
+						
+						$('#article').css('transform', 'translateX(0px)');
+						
+						if (!that.presentationModeDragDeltaX) return;
+
+						if (that.presentationModeDragDeltaX < 60) {  // TODO Const
+							that.presentationModeSelectNext();
+						}
+						if (that.presentationModeDragDeltaX > 60) {  // TODO Const
+							that.presentationModeSelectPrevious();
+						}
+					})
+					.append(
 						// Info texts
 						$('<div id="presentationModeInfoLeft" />'),
-						$('<div id="presentationModeInfoMiddle" />'),
+						$('<div id="presentationModeInfoMiddle" />')
+						.on('click', function(e) {
+							if (!that.isMobile()) return;
+							
+							e.stopPropagation();
+		
+							var tree = NoteTree.getInstance();
+							var id = that.getCurrentlyShownId();
+							tree.highlightDocument(id);
+						}),
 						$('<div id="presentationModeInfoRight" />'),
 						
 						// Click overlays for L/R
@@ -940,42 +983,15 @@ class Notes {
 						.on('click', function(e) {
 							e.stopPropagation();
 							
-							// Child before
-							const id = that.getCurrentlyShownId();
-							if (!id) return;
-							
-							const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
-							if (!neighborInfo || !neighborInfo.documentBefore) return;
-							
-							if (!that.isMobile()) {
-								NoteTree.getInstance().setSelected(neighborInfo.documentBefore._id);
-							}
-							
-							that.routing.call(neighborInfo.documentBefore._id);
+							that.presentationModeSelectPrevious();
 						}),
 						$('<div id="presentationModeOverlayRight" data-toggle="tooltip" title="Go to next Document"/>')
 						.on('click', function(e) {
 							e.stopPropagation();
 							
-							// Child after
-							const id = that.getCurrentlyShownId();
-							if (!id) return;
-							
-							const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
-							if (!neighborInfo || !neighborInfo.documentAfter) return;
-							
-							if (!that.isMobile()) {
-								NoteTree.getInstance().setSelected(neighborInfo.documentAfter._id);
-							}
-
-							that.routing.call(neighborInfo.documentAfter._id);
+							that.presentationModeSelectNext();
 						}),
-					)
-					.on('click', function(e) {
-						e.stopPropagation();
-						
-						that.togglePresentationModeShowAppElements();
-					}),
+					),
 					
 					// Console
 					$('<div id="console" class="mainPanel"/>')				
@@ -1048,10 +1064,52 @@ class Notes {
 		// Setup the generically reused option buttons
 		ContextMenu.setupItemOptions(this.optionsMasterContainer);
 		
+		// Callbacks		
+		var that = this;
+		Callbacks.getInstance().registerCallback(
+			'presentationMode',
+			'openDocumentAndTree',
+			function(docId) {
+				var vs = ClientState.getInstance().getViewSettings();
+				if (vs.enablePresentationMode) {
+					that.checkPresentationModeParent(docId);
+				}
+			}
+		);
+		
 		// We only do this once ;)
 		this.isDomSetup = true;
 	}
 	
+	presentationModeSelectPrevious() {
+		const id = this.getCurrentlyShownId();
+		if (!id) return;
+		
+		const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
+		if (!neighborInfo || !neighborInfo.documentBefore) return;
+		
+		if (!this.isMobile()) {
+			NoteTree.getInstance().setSelected(neighborInfo.documentBefore._id);
+		}
+		
+		this.routing.call(neighborInfo.documentBefore._id);
+	}
+	
+	presentationModeSelectNext() {
+		const id = this.getCurrentlyShownId();
+		if (!id) return;
+		
+		const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
+		if (!neighborInfo || !neighborInfo.documentAfter) return;
+		
+		if (!this.isMobile()) {
+			NoteTree.getInstance().setSelected(neighborInfo.documentAfter._id);
+		}
+
+		this.routing.call(neighborInfo.documentAfter._id);
+
+	}
+		
 	/**
 	 * Sets up the footer for editors on mobile.
 	 */
@@ -1078,7 +1136,7 @@ class Notes {
 			$('<div id="createButton2" class="footerButton fa fa-plus"></div>')
 			.on('click', this.editorCreateButtonHandler),
 
-			// Favorites
+			// Presentation mode
 			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") 
 			? 
 			$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
@@ -1747,12 +1805,12 @@ class Notes {
 			header.animate({ top: '0px' }, animationOptions);
 			footer.animate({ bottom: '0px' }, animationOptions);
 			
-			//if (!that.isMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
+			if (!that.isMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
 		} else {
 			header.animate({ top: '-' + hdrSize + 'px' }, animationOptions);
 			footer.animate({ bottom: '-' + hdrSize + 'px' }, animationOptions);	
 			
-			//if (!that.isMobile()) nav.animate({ width: '0px' }, animationOptions);			
+			if (!that.isMobile()) nav.animate({ width: '0px' }, animationOptions);			
 		}
 	}
 	
@@ -1992,6 +2050,9 @@ class Notes {
 		
 		if (vs.enablePresentationMode) {
 			this.setPresentationModeShowAppElements();
+			
+			// Check if the current document is a child of the selected parent in navigation
+			this.checkPresentationModeParent(this.getCurrentlyShownId());
 		}
 		
 		this.#updatePresentationMode();
@@ -2017,6 +2078,44 @@ class Notes {
 
 		this.updateDimensions();
 		this.#updatePresentationModeOverlayInfo();
+	}
+	
+	/**
+	 * Check if the current document is a child of the selected parent in navigation,
+	 * and issue a warning if so.
+	 */
+	checkPresentationModeParent(id) {
+		if (!id) return;
+		
+		var doc = this.getData().getById(id);
+		if (!doc) throw new Error("Document " + id + " not found");
+		
+		var selected = NoteTree.getInstance().getFocusedId();
+		var selectedName = 'Root';
+		if (selected) {
+			var selDoc = this.getData().getById(selected); 
+			if (!selDoc) throw new Error("Document " + selected + " not found");
+			selectedName = selDoc.name;
+		}
+
+		if (selected != doc.parent) {
+			this.showAlert(doc.name + ' is not part of the selected presentation list (' + selectedName + ')', 'W', 'PresentationModeChecks');
+		}			
+	}
+	
+	/**
+	 * Returns if the passed document is a child of the selected doc in navigation.
+	 */
+	isPresentationModeSelectedParentValidFor(id) {
+		if (!id) return;
+		if (!this.getData()) return;
+		
+		var doc = this.getData().getById(id);
+		if (!doc) throw new Error("Document " + id + " not found");
+		
+		var selected = NoteTree.getInstance().getFocusedId();
+		
+		return (selected == doc.parent);
 	}
 	
 	/**
@@ -2055,13 +2154,17 @@ class Notes {
 		
 		const neighborInfo = t.getNeighborsFor(id, parentId);
 
-		if (parentId) {
-			const parentDoc = this.getData().getById(parentId);
-			if (parentDoc) {
-				midEl.html(parentDoc.name);	
-			}
+		if (!this.isPresentationModeSelectedParentValidFor(id)) {
+			midEl.html('');
 		} else {
-			midEl.html('Root');
+			if (parentId) {
+				const parentDoc = this.getData().getById(parentId);
+				if (parentDoc) {
+					midEl.html(parentDoc.name);	
+				}
+			} else {
+				midEl.html('Root');
+			}
 		}
 
 		if (neighborInfo.documentBefore) {

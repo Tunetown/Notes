@@ -951,7 +951,8 @@ class NoteTree {
 			),
 			
 			n.isMobile() ? null : $('<div id="footer"></div>'),
-/*
+			
+			/*
 			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
 				// Back Button
 				$('<div data-toggle="tooltip" title="Back" class="fa fa-arrow-left treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
@@ -1166,7 +1167,7 @@ class NoteTree {
 			$('<div class="fa fa-plus footerButton"></div>')
 				.on('click', this.createHandler),
 				
-			// Favorites
+			// Presentation mode
 			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode")
 			? 
 			$('<div class="fa fa-star footerButton"></div>')
