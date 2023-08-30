@@ -757,6 +757,13 @@ class Routing {
 	}
 	
 	/**
+	 * Calls the setlist view
+	 */
+	callPresentationView(id) {
+		this.call('aslist/' + id);
+	}
+	
+	/**
 	 * Call labels list of an item
 	 */
 	callLabelDefinitions(id) {

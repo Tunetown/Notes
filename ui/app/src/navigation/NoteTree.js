@@ -729,14 +729,14 @@ class NoteTree {
 		
 		const p = Database.getInstance().profileHandler.getCurrentProfile();
 		if (!p.autoSync) {
-			console.log(" -> Skipping pre-rendering of navigation items");
+			//console.log(" -> Skipping pre-rendering of navigation items");
 			return;
 		}
 	
 		const data = Notes.getInstance().getData();
 		if (!data) return;
 		
-		console.log(" -> Starting pre-rendering of navigation items (interval: " + Config.preRenderNavigationDomItemsInterval + "ms, " + data.data.size + " documents)");
+		//console.log(" -> Starting pre-rendering of navigation items (interval: " + Config.preRenderNavigationDomItemsInterval + "ms, " + data.data.size + " documents)");
 		
 		this.preRenderingStartTime = Date.now();
 		this.preRenderingNumDocs = 0;
@@ -754,8 +754,8 @@ class NoteTree {
 			var id = doc._id;
 			
 			if (that.preRenderingNumDocs > data.data.size * 1.4) {
-				const passedSecs = (Date.now() - this.preRenderingStartTime) / 1000;
-				console.log(" -> Pre-rendering of navigation items forcefully finished (" + that.preRenderingNumDocs + " docs processed in " + passedSecs.toFixed(2) + "s).");
+				//const passedSecs = (Date.now() - this.preRenderingStartTime) / 1000;
+				//console.log(" -> Pre-rendering of navigation items forcefully finished (" + that.preRenderingNumDocs + " docs processed in " + passedSecs.toFixed(2) + "s).");
 				return;
 			}
 			
@@ -779,8 +779,8 @@ class NoteTree {
 			return;
 		}		
 		
-		const passedSecs = (Date.now() - this.preRenderingStartTime) / 1000;
-		console.log(" -> Pre-rendering of navigation items finished (" + that.preRenderingNumDocs + " docs processed in " + passedSecs.toFixed(2) + "s).");
+		//const passedSecs = (Date.now() - this.preRenderingStartTime) / 1000;
+		//console.log(" -> Pre-rendering of navigation items finished (" + that.preRenderingNumDocs + " docs processed in " + passedSecs.toFixed(2) + "s).");
 	}
 	
 	/**
@@ -1168,13 +1168,13 @@ class NoteTree {
 				.on('click', this.createHandler),
 				
 			// Presentation mode
-			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode")
-			? 
+			//!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode")
+			//? 
 			$('<div class="fa fa-star footerButton"></div>')
 			.on('click', this.favoritesHandler) 
-			:
-			$('<div class="fa fa-expand-arrows-alt footerButton" id="presentationModeButton" ></div>')
-			.on('click', this.presentationModeHandler),
+			//:
+			//$('<div class="fa fa-play footerButton" id="presentationModeButton" ></div>')
+			//.on('click', this.presentationModeHandler),
 			
 			/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
 				.on('click', this.settingsHandler),
@@ -1708,7 +1708,6 @@ class NoteTree {
 	getContainerWidth() {
 		var state = ClientState.getInstance().getTreeState();
 		return (state && state.treeWidth) ? state.treeWidth : Config.defaultTreeWidth;
-		//return $('#' + this.treeNavContainerId).outerWidth();
 	}
 	
 	/**
@@ -1861,10 +1860,10 @@ class NoteTree {
 	/**
 	 * Returns the child documents as shown by the navigation, in the correct order.
 	 */
-	getRelatedDocuments(id) {
+	getRelatedDocuments(id, options) {
 		if (!this.behaviour) throw new Error('Tree not set up yet');
 		
-		return this.behaviour.getRelatedDocuments(id);
+		return this.behaviour.getRelatedDocuments(id, options);
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1982,25 +1981,49 @@ class NoteTree {
 	}
 	
 	/**
+	 * Returns if the document can be moved or if it is just a link or backling etc.
+	 * Only true children can be moved.
+	 */
+	canBeMoved(id) {
+		if (!this.behaviour) return false;
+		
+		return this.behaviour.canBeMoved(id);
+	}
+	
+	/**
 	 * Drop action.
 	 */
 	doDrop(src, tar, moveToSubOfTarget) {
 		var srcId = src.data().id;
     	var tarId = tar.data().id;
 
-    	var srcName = Notes.getInstance().getData().getById(srcId).name;
+		var srcDoc = Notes.getInstance().getData().getById(srcId);
+    	var srcName = srcDoc.name;
     	var tarName = tarId ? Notes.getInstance().getData().getById(tarId).name : 'Notebook root';
     	
-    	var doAsk = Settings.getInstance().settings.askBeforeMoving;
+    	const srcCanBeMoved = this.canBeMoved(srcId);
+    	if (!srcCanBeMoved && moveToSubOfTarget) {
+			Notes.getInstance().showAlert("Cannot move this document.", "I");
+			return;
+		}
+    	
+    	var doAsk = srcCanBeMoved && Settings.getInstance().settings.askBeforeMoving;
     	if (doAsk && !confirm("Move " + srcName + " to " + tarName + "?")) {
 			Notes.getInstance().showAlert("Moving cancelled.", "I");
 			return;
 		}
     	
-    	DocumentActions.getInstance().moveDocuments([srcId], tarId, moveToSubOfTarget)
-    	.catch(function(err) {
-    		Notes.getInstance().showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
-    	});
+    	if (srcCanBeMoved) {
+	    	DocumentActions.getInstance().moveDocuments([srcId], tarId, moveToSubOfTarget)
+	    	.catch(function(err) {
+	    		Notes.getInstance().showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+	    	});
+		} else {
+	    	DocumentActions.getInstance().saveChildOrders(srcDoc.parent)
+	    	.catch(function(err) {
+	    		Notes.getInstance().showAlert("Error reordering documents: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+	    	});			
+		}
 	}
 	
 	/**

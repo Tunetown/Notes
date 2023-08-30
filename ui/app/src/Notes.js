@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.17';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.18';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -808,10 +808,27 @@ class Notes {
 	
 	editorPresentationModeButtonHandler(e) {
 		e.stopPropagation();
-		//const n = Notes.getInstance();
-		//n.togglePresentationMode();
+
+		var that = Notes.getInstance();
 		
-		// TODO
+		if (that.#isPresentationmodeActive()) {
+			var id = Setlist.getInstance().getCurrentId();
+			if (!id) return;
+			
+			that.routing.call(id);
+			
+		} else {
+			var id = that.getCurrentlyShownId();
+			if (!id) return;
+			
+			var related = NoteTree.getInstance().getRelatedDocuments(id);
+			if (!related || related.length == 0) {
+				that.showAlert('This document has no related documents to present', 'I', 'PresentationMode');
+				return;
+			} 
+			
+			that.routing.callPresentationView(id);
+		}
 	}
 	
 	editorFavoritesButtonHandler(e) {
@@ -926,75 +943,6 @@ class Notes {
 					// Note Editor (for TinyMCE this is needed separately)
 					Editor.getInstance().getContainerDom(teaser),
 					
-					// Presentation mode overlay
-					/*!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? null : 
-					$('<div id="presentationModeOverlay" data-toggle="tooltip" title="Show/Hide toolbars"/>')
-					.on('click', function(e) {
-						e.stopPropagation();
-						
-						that.togglePresentationModeShowAppElements();
-					})
-					.on('touchstart', function(e) {
-						if (!that.isMobile()) return;
-						e.stopPropagation();
-						
-						that.presentationModeDragStartX = Tools.extractX(e);
-						
-					})
-					.on('touchmove', function(e) {
-						if (!that.isMobile()) return;
-						e.stopPropagation();
-						
-						if (!that.presentationModeDragStartX) return;
-						
-						that.presentationModeDragDeltaX = Tools.extractX(e) - that.presentationModeDragStartX;
-						$('#article').css('transform', 'translateX(' + that.presentationModeDragDeltaX+ 'px)');
-					})
-					.on('touchend', function(e) {
-						if (!that.isMobile()) return;
-						e.stopPropagation();
-						
-						$('#article').css('transform', 'translateX(0px)');
-						
-						if (!that.presentationModeDragDeltaX) return;
-
-						if (that.presentationModeDragDeltaX < 60) {  // TODO Const
-							that.presentationModeSelectNext();
-						}
-						if (that.presentationModeDragDeltaX > 60) {  // TODO Const
-							that.presentationModeSelectPrevious();
-						}
-					})
-					.append(
-						// Info texts
-						$('<div id="presentationModeInfoLeft" />'),
-						$('<div id="presentationModeInfoMiddle" />')
-						.on('click', function(e) {
-							if (!that.isMobile()) return;
-							
-							e.stopPropagation();
-		
-							var tree = NoteTree.getInstance();
-							var id = that.getCurrentlyShownId();
-							tree.highlightDocument(id);
-						}),
-						$('<div id="presentationModeInfoRight" />'),
-						
-						// Click overlays for L/R
-						$('<div id="presentationModeOverlayLeft" data-toggle="tooltip" title="Go to previous Document"/>')
-						.on('click', function(e) {
-							e.stopPropagation();
-							
-							that.presentationModeSelectPrevious();
-						}),
-						$('<div id="presentationModeOverlayRight" data-toggle="tooltip" title="Go to next Document"/>')
-						.on('click', function(e) {
-							e.stopPropagation();
-							
-							that.presentationModeSelectNext();
-						}),
-					),*/
-					
 					// Console
 					$('<div id="console" class="mainPanel"/>')				
 				])
@@ -1063,55 +1011,24 @@ class Notes {
 		// Also setup the navigation tree
 		NoteTree.getInstance().setupDom();
 	
+		addResizeListener($('#treenav')[0], function() {
+			if (that.isMobile()) return;
+			
+			const newWidth = $('#treenav').outerWidth();
+			if (!newWidth) return;
+
+			var state = ClientState.getInstance().getTreeState();
+			state.treeWidth = newWidth;
+			ClientState.getInstance().setTreeState(state);
+		});
+	
 		// Setup the generically reused option buttons
 		ContextMenu.setupItemOptions(this.optionsMasterContainer);
-		
-		// Callbacks		
-		/*var that = this;
-		Callbacks.getInstance().registerCallback(
-			'presentationMode',
-			'openDocumentAndTree',
-			function(docId) {
-				var vs = ClientState.getInstance().getViewSettings();
-				if (vs.enablePresentationMode) {
-					that.checkPresentationModeParent(docId);
-				}
-			}
-		);*/
 		
 		// We only do this once ;)
 		this.isDomSetup = true;
 	}
 	
-	/*presentationModeSelectPrevious() {
-		const id = this.getCurrentlyShownId();
-		if (!id) return;
-		
-		const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
-		if (!neighborInfo || !neighborInfo.documentBefore) return;
-		
-		if (!this.isMobile()) {
-			NoteTree.getInstance().setSelected(neighborInfo.documentBefore._id);
-		}
-		
-		this.routing.call(neighborInfo.documentBefore._id);
-	}
-	
-	presentationModeSelectNext() {
-		const id = this.getCurrentlyShownId();
-		if (!id) return;
-		
-		const neighborInfo = NoteTree.getInstance().getNeighborsFor(id, NoteTree.getInstance().getFocusedId());
-		if (!neighborInfo || !neighborInfo.documentAfter) return;
-		
-		if (!this.isMobile()) {
-			NoteTree.getInstance().setSelected(neighborInfo.documentAfter._id);
-		}
-
-		this.routing.call(neighborInfo.documentAfter._id);
-
-	}*/
-		
 	/**
 	 * Sets up the footer for editors on mobile.
 	 */
@@ -1144,7 +1061,7 @@ class Notes {
 			$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
 			.on('click', this.editorFavoritesButtonHandler)
 			:			
-			$('<div id="presentationModeButton2" class="footerButton fa fa-expand-arrows-alt"></div>')
+			$('<div id="presentationModeButton2" class="footerButton fa fa-play"></div>')
 			.on('click', this.editorPresentationModeButtonHandler),
 			
 		]);
@@ -1652,20 +1569,9 @@ class Notes {
 	 */
 	updateDimensions() {
 		const mobile = this.isMobile();
+		const cp = this.getCurrentPage();
 		
-		//const viewSettings = ClientState.getInstance().getViewSettings();
-		//const presentationMode = !!viewSettings.enablePresentationMode;
-		
-		const sectionFullscreen = false; 
-			//presentationMode &&
-			//!!this.getCurrentEditor();
-			
-		const showAppElements = true; 
-			//!presentationMode ||                            // Always show in normal operation
-			//!this.getCurrentEditor() ||                     // Always show when no editor is open
-			//!!this.presentationModeShowAppElements;         // Show manually inside presetation mode	
-		
-		//const showPresentationModeOverlay = sectionFullscreen;
+		const sectionFullscreen = cp && (typeof cp.shouldUseFullscreen == 'function') && cp.shouldUseFullscreen(); 
 
 		const hdrSize = this.getHeaderSize();
 		const ftrSize = this.getFooterSize();
@@ -1750,24 +1656,24 @@ class Notes {
 		
 		// Option icons
 		this.setRoundedButtonSize(this.getRoundedButtonSize());
-		
-		// Presentation mode
-		/*const presentationModeOverlay = $('#presentationModeOverlay');		
-		presentationModeOverlay.css('display', showPresentationModeOverlay ? 'block' : 'none');
-		*/
-		
+
+		// Presentation mode button icon
+		const pmButton = $('#presentationModeButton2');
+		if (pmButton) {
+			const isPlaying =  this.#isPresentationmodeActive();
+			
+			pmButton.toggleClass('fa-play', !isPlaying);
+			pmButton.toggleClass('fa-stop', isPlaying);
+		}
+
+		// Animated stuff		
 		clearTimeout(this.#animateDimensions);
 		setTimeout(this.#animateDimensions, 100);
-		
-		/*if (presentationMode) {
-			const leftOverlayInfo = $('#presentationModeInfoLeft');
-			const middleOverlayInfo = $('#presentationModeInfoMiddle');
-			const rightOverlayInfo = $('#presentationModeInfoRight');
-			
-			leftOverlayInfo.css('height', '30px'); // TODO
-			middleOverlayInfo.css('height', '30px'); // TODO
-			rightOverlayInfo.css('height', '30px'); // TODO
-		}*/
+	}
+	
+	#isPresentationmodeActive() {
+		const cp = this.getCurrentPage();
+		return cp && (typeof cp.presentationModeActive == 'function') && cp.presentationModeActive();
 	}
 	
 	/**
@@ -1776,20 +1682,9 @@ class Notes {
 	#animateDimensions() {
 		var that = Notes.getInstance();
 		var t = NoteTree.getInstance();
-		
-		//const viewSettings = ClientState.getInstance().getViewSettings();
-		//const presentationMode = !!viewSettings.enablePresentationMode;
-		
-		//const sectionFullscreen = false; 
-			//presentationMode &&
-			//!!that.getCurrentEditor();
-			
-		const showAppElements = true; 
-			//!presentationMode ||                            // Always show in normal operation
-			//!that.getCurrentEditor() ||                     // Always show when no editor is open
-			//!!that.presentationModeShowAppElements;         // Show manually inside presetation mode	
-		
-		//const showPresentationModeOverlay = sectionFullscreen;
+				
+		const cp = that.getCurrentPage();
+		const hideAppElements = that.isMobile() && cp && (typeof cp.shouldShowAppElements == 'function') && !cp.shouldShowAppElements(); 
 
 		const hdrSize = that.getHeaderSize();
 		
@@ -1804,16 +1699,16 @@ class Notes {
 		const header = $('header');
 		const nav = $('nav');
 			
-		if (showAppElements) {			
+		if (!hideAppElements) {			
 			header.animate({ top: '0px' }, animationOptions);
 			footer.animate({ bottom: '0px' }, animationOptions);
 			
-			if (!that.isMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
+			//if (!that.isMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
 		} else {
 			header.animate({ top: '-' + hdrSize + 'px' }, animationOptions);
 			footer.animate({ bottom: '-' + hdrSize + 'px' }, animationOptions);	
 			
-			if (!that.isMobile()) nav.animate({ width: '0px' }, animationOptions);			
+			//if (!that.isMobile()) nav.animate({ width: '0px' }, animationOptions);			
 		}
 	}
 	
@@ -2036,149 +1931,10 @@ class Notes {
 			this.setHeaderButtonSize($('<div class="alertHeaderNotification alertNotification conflictMarker fa fa-bell"></div>'), size, true, 0.04),
 		);
 		
-		//this.#updatePresentationMode();
-		
 		// Update UI
 		if (!noUpdate) this.update();
 	}
 	
-	/**
-	 * Toggles presentation mode.
-	 *
-	togglePresentationMode() {
-		var vs = ClientState.getInstance().getViewSettings();
-		vs.enablePresentationMode = !vs.enablePresentationMode;
-		ClientState.getInstance().saveViewSettings(vs);
-		
-		if (vs.enablePresentationMode) {
-			this.setPresentationModeShowAppElements();
-			
-			// Check if the current document is a child of the selected parent in navigation
-			this.checkPresentationModeParent(this.getCurrentlyShownId());
-		}
-		
-		this.#updatePresentationMode();
-	}
-
-	#updatePresentationMode() {
-		var vs = ClientState.getInstance().getViewSettings();
-		
-		const butt = $('#presentationModeButton');
-		const butt2 = $('#presentationModeButton2');
-		
-		if (butt) {
-			butt.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
-			butt.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);	
-			butt.css('color', vs.enablePresentationMode ? 'red' : '#555');				
-		}
-		
-		if (butt2) {
-			butt2.toggleClass('fa-expand-arrows-alt', !vs.enablePresentationMode);
-			butt2.toggleClass('fa-compress-arrows-alt', vs.enablePresentationMode);
-			butt2.css('color', vs.enablePresentationMode ? 'red' : '#555');
-		}
-
-		this.updateDimensions();
-		this.#updatePresentationModeOverlayInfo();
-	}
-	
-	/**
-	 * Check if the current document is a child of the selected parent in navigation,
-	 * and issue a warning if so.
-	 *
-	checkPresentationModeParent(id) {
-		if (!id) return;
-		
-		var doc = this.getData().getById(id);
-		if (!doc) throw new Error("Document " + id + " not found");
-		
-		var selected = NoteTree.getInstance().getFocusedId();
-		var selectedName = 'Root';
-		if (selected) {
-			var selDoc = this.getData().getById(selected); 
-			if (!selDoc) throw new Error("Document " + selected + " not found");
-			selectedName = selDoc.name;
-		}
-
-		if (selected != doc.parent) {
-			this.showAlert(doc.name + ' is not part of the selected presentation list (' + selectedName + ')', 'W', 'PresentationModeChecks');
-		}			
-	}
-	
-	/**
-	 * Returns if the passed document is a child of the selected doc in navigation.
-	 *
-	isPresentationModeSelectedParentValidFor(id) {
-		if (!id) return;
-		if (!this.getData()) return;
-		
-		var doc = this.getData().getById(id);
-		if (!doc) throw new Error("Document " + id + " not found");
-		
-		var selected = NoteTree.getInstance().getFocusedId();
-		
-		return (selected == doc.parent);
-	}
-	
-	/**
-	 * Inside presentation mode, this toggles if the app elements (hdr/ftr...) are shown.
-	 */
-	togglePresentationModeShowAppElements() {
-		this.setPresentationModeShowAppElements(!this.presentationModeShowAppElements);
-		
-		this.updateDimensions();
-	}
-	
-	setPresentationModeShowAppElements(show) {
-		this.presentationModeShowAppElements = !!show;
-	}
-
-	/**
-	 * In presentation mode, this updates the info fields.
-	 *
-	#updatePresentationModeOverlayInfo() {
-		var vs = ClientState.getInstance().getViewSettings();
-		
-		const leftEl = $('#presentationModeInfoLeft');
-		const midEl = $('#presentationModeInfoMiddle');
-		const rightEl = $('#presentationModeInfoRight');
-		leftEl.text('');
-		midEl.text('');
-		rightEl.text('');
-		
-		if (!vs.enablePresentationMode) return; 
-		
-		const id = this.getCurrentlyShownId();
-		if (!id) return;
-		
-		const t = NoteTree.getInstance();
-		const parentId = t.getFocusedId();
-		
-		const neighborInfo = t.getNeighborsFor(id, parentId);
-
-		if (!this.isPresentationModeSelectedParentValidFor(id)) {
-			midEl.html('');
-		} else {
-			if (parentId) {
-				const parentDoc = this.getData().getById(parentId);
-				if (parentDoc) {
-					midEl.html(parentDoc.name);	
-				}
-			} else {
-				midEl.html('Root');
-			}
-		}
-
-		if (neighborInfo.documentBefore) {
-			leftEl.html('(' + neighborInfo.numDocumentsBefore + ') <b>< ' + neighborInfo.documentBefore.name + '</b>');		
-		}
-		
-		if (neighborInfo.documentAfter) {
-			rightEl.html('<b>' + neighborInfo.documentAfter.name + ' ></b> (' + neighborInfo.numDocumentsAfter + ') ');	
-		}		
-	}
-	
-
 	/**
 	 * Shows or hides the changed marker.
 	 */
@@ -2257,9 +2013,6 @@ class Notes {
 		// Update button states
 		this.updateLinkageButtons();
 		this.updateHistoryButtons();
-		
-		// Presentation mode info
-		//this.#updatePresentationModeOverlayInfo();
 	}
 	
 	/**

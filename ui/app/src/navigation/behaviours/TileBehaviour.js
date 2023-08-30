@@ -53,6 +53,14 @@ class TileBehaviour {
 	}
 	
 	/**
+	 * Returns if the document can be moved or if it is just a link or backling etc.
+	 * Only true children can be moved.
+	 */
+	canBeMoved(id) {
+		return true;
+	}
+	
+	/**
 	 * Called after the search text has been set.
 	 */
 	afterSetSearchText(searchtext, data) {

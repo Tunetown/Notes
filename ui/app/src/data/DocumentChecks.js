@@ -331,8 +331,13 @@ class DocumentChecks {
 							errors.push({
 								message: 'Child of reference document detected: ' + refChildren[rr]._id,
 								messageThreadId: 'CheckRefsMessages',
-								id: doc._id,
-								type: 'E'
+								id: refChildren[rr]._id,
+								type: 'E',
+								solverReceipt: [{
+									action: 'setProperty',
+									propertyName: 'parent',
+									propertyValue: ''
+								}]
 							});	
 						}
 					}

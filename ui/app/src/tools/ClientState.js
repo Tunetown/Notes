@@ -489,7 +489,7 @@ class ClientState {
 	 * Saves the current tree state in a browser cookie.
 	 */
 	saveTreeState() {
-		var n = Notes.getInstance();
+		//var n = Notes.getInstance();
 		var t = NoteTree.getInstance();
 		
 		var state = this.getLocal(this.getTreeStateCid());
@@ -536,6 +536,13 @@ class ClientState {
 		}
 		
 		return state;
+	}
+	
+	/**
+	 * Saves the current tree state in a browser cookie.
+	 */
+	setTreeState(state) {
+		this.setLocal(this.getTreeStateCid(), state);
 	}
 	
 	/**

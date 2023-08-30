@@ -301,6 +301,91 @@ article {
 
 /* NEW -------------------------------------------------- */
 
+#setlistContainer {
+	height: 100%;
+	width: 100%;
+	position: absolute;
+	overflow: hidden;
+}
+
 #setlistContent {
 	height: 100%;
+	position: absolute;
+}
+
+.setlistItem {
+	height: 100%;
+	position: absolute;
+}
+
+#presentationModeOverlay {
+	height: 100%;
+	width: 100%;
+	position: absolute;
+	background-color: rgba(200,0,0,0.1);
+}
+
+#presentationModeOverlayLeft {
+	height: 80%;
+	width: 30%;
+	left: 0px;
+	bottom: 0px;
+	position: absolute;
+	overflow: hidden;
+	cursor: pointer;
+	background-color: rgba(0,200,0,0.1);
+}
+
+#presentationModeOverlayRight {
+	height: 80%;
+	width: 30%;
+	right: 0px;
+	bottom: 0px;
+	position: absolute;
+	overflow: hidden;
+	cursor: pointer;
+	background-color: rgba(0,0,200,0.1);
+}
+
+
+#presentationModeInfoLeft {
+	position: absolute;
+	left: 0px;
+	bottom: 0px;
+	width: 30%;
+	text-align: left;
+	
+	white-space: nowrap;                   
+    overflow: hidden;
+	text-overflow: ellipsis;
+	margin-left: 5px;
+}
+
+#presentationModeInfoMiddle {
+	position: absolute;
+	right: 35%;
+	bottom: 0px;
+	width: 30%;
+	text-align: center;
+	text-decoration: underline;
+	text-transform: uppercase;
+	
+	white-space: nowrap;                   
+    overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+#presentationModeInfoRight {
+	position: absolute;
+	right: 0px;
+	bottom: 0px;
+	width: 30%;
+	text-align: right;
+	
+	white-space: nowrap;                   
+    overflow: hidden;
+	text-overflow: ellipsis;
+	direction: rtl;
+
+	margin-right: 5px;
 }

@@ -39,6 +39,14 @@ class TreeBehaviour {
 	}
 	
 	/**
+	 * Returns if the document can be moved or if it is just a link or backling etc.
+	 * Only true children can be moved.
+	 */
+	canBeMoved(id) {
+		return true;
+	}
+
+	/**
 	 * If the behaviour supports history, this returns it, or false if not.
 	 */
 	getHistory() {

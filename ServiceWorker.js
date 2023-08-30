@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.17.a';
+const PRECACHE = 'notes_precache-v0.98.18.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -32,6 +32,7 @@ const PRECACHE_URLS = [
   './ui/lib/selectize/selectize.bootstrap3.min.css',
   './ui/lib/selectize/selectize.min.js',
   './ui/lib/jquery.color-2.1.2.min.js',
+  './ui/lib/detect-element-resize.js',
 
   './ui/lib/bootstrap/bootstrap.min.css',
   './ui/lib/fa/css/all.min.css',

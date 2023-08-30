@@ -1002,6 +1002,13 @@ class DocumentActions {
 		var t = NoteTree.getInstance();
 		
 		var docTarget = n.getData().getById(targetId);
+		if (docTarget.type == 'reference') {
+			return Promise.reject({
+				message: 'Cannot move into references.',
+				messageThreadId: 'MoveMessages'
+			});
+		}
+		
 		var docsInvolved = [docTarget];
 
 		var docsSrc = [];
@@ -1105,6 +1112,59 @@ class DocumentActions {
     			docsSrc: docsSrc,
     			docTarget: docTarget,
     			moveToSubOfTarget: moveToSubOfTarget,
+    			updateIds: updateIds
+    		});
+    		
+    		return Promise.resolve({ ok: true });
+    	})
+    	.then(function(/*data*/) {
+    		t.unblock();
+
+    		return Promise.resolve({ ok: true });
+    	});
+	}
+	
+	/**
+	 * Saves the order of items for the passed parent as visible in navigation, without changing anything else
+	 */
+	saveChildOrders(id) {
+		var n = Notes.getInstance();
+		var t = NoteTree.getInstance();
+
+		var doc = n.getData().getById(id);
+
+		var docsInvolved = [doc];
+		var siblings = t.reorderVisibleSiblings(doc, true);
+		for(var i in siblings) {
+			var sibling = n.getData().getById(siblings[i]);
+    		if (!sibling) {
+    			return Promise.reject({
+    				message: 'Document ' + siblings[i] + ' not found',
+					messageThreadId: 'MoveMessages'
+    			});
+    		}
+			docsInvolved.push(sibling);
+		}
+
+    	var updateIds = [];
+    	
+    	return DocumentAccess.getInstance().loadDocuments(docsInvolved)
+    	.then(function(/*resp*/) {
+    		var ouIds = t.reorderVisibleSiblings(doc);
+    		for(var i in ouIds) {
+    			updateIds.push(ouIds[i]);
+	    	}
+			
+			Callbacks.getInstance().executeCallbacks('reorderDocumentsBeforeSave', {
+				updateIds: updateIds
+			});
+			
+	    	// Save the new tree structure by updating the metadata of all touched objects.
+	    	return DocumentAccess.getInstance().saveItems(updateIds);
+    	})
+    	.then(function(/*data*/) {
+    		// Execute callbacks
+    		Callbacks.getInstance().executeCallbacks('reorderDocumentsAfterSave', {
     			updateIds: updateIds
     		});
     		

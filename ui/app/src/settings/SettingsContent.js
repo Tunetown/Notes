@@ -798,12 +798,15 @@ class SettingsContent {
 				$('<td colspan="2"/>').append(
 					$('<input type="text" value="' + NoteTree.getInstance().getContainerWidth() + '" />')
 					.on('change', function() {
-						if (!parseFloat(this.value)) this.value = "";
-						if (parseFloat(this.value) < 0) this.value = "";
+						if (!parseInt(this.value)) this.value = "";
+						if (parseInt(this.value) < 0) this.value = "";
 						
 						if (Notes.getInstance().isMobile()) return;
-						NoteTree.getInstance().setContainerWidth(parseInt(this.value));
-						ClientState.getInstance().saveTreeState();
+						
+						var state = ClientState.getInstance().getTreeState();
+						state.treeWidth = parseInt(this.value);
+						ClientState.getInstance().setTreeState(state);
+			
 						NoteTree.getInstance().refresh();
 					})
 				)

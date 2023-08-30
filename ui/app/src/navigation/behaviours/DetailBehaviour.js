@@ -993,6 +993,8 @@ class DetailBehaviour {
 						$('<input class="' + this.getSelectorInputClass() + '" type="checkbox" data-id="' + doc._id + '" />')
 					),
 					
+					//$('<div class="' + this.getDragHandleMobileClass() + ' fa fa-bars"></div>'),
+					
 					// Icon
 					$('<div class="' + this.getIconClass() + '"></div>'), 
 					
@@ -1087,7 +1089,10 @@ class DetailBehaviour {
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
 	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
-		const data = Notes.getInstance().getData();
+		const n = Notes.getInstance();
+		const data = n.getData();
+		const mobile = n.isMobile();
+		
 		const selectedDoc = data.getById(this.selectedParent);
 		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
 
@@ -1124,6 +1129,7 @@ class DetailBehaviour {
 		const textEl = itemContent.find('.treeitemtext-detail-text');
 		const markerLeftEl = itemContainer.find('.' + this.getItemLeftMarkerClass());
 		const markerRightEl = itemContainer.find('.' + this.getItemRightMarkerClass());
+		const dragHandleMobile = itemContainer.find('.' + this.getDragHandleMobileClass());
 
 		// Dimensions for the first element
 		const parentWidth = this.treeFontSize * 2;
@@ -1137,6 +1143,9 @@ class DetailBehaviour {
 		markerLeftEl.css('width', '16px');
 		markerLeftEl.css('color', 'darkgrey');
 		markerRightEl.css('display', 'none');
+				
+		// Mobile drag handles
+		dragHandleMobile.css('display', (!meta.isParentOfSelectedParent && !meta.isSelectedParent) ? 'flex' : 'none');
 					
 		var markerShown = false;
 		if ((!meta.isSelectedParent) && (this.mode == 'ref')) {
@@ -1441,17 +1450,30 @@ class DetailBehaviour {
 		return this.selectedParent ? this.selectedParent : '';
 	}
 	
-	
+	/**
+	 * Returns if the document can be moved or if it is just a link or backling etc.
+	 * Only true children can be moved.
+	 */
+	canBeMoved(id) {
+		if (!id) return false;
+		
+		var doc = Notes.getInstance().getData().getById(id);
+		if (!doc) throw new Error('Cannot find document ' + id);
+		
+		return (doc.parent == this.selectedParent);
+	}
 	
 	/**
 	 * Returns all documents which are visible in ref mode.
 	 */
-	getRefEntries(doc, ignoreParent) {
+	getRefEntries(doc, ignoreParent, options) {
 		var d = Notes.getInstance().getData();
+		
+		if (!options) options = this;
 		
 		var ret = [];
 		
-		if (this.enableChildren) {
+		if (options.enableChildren) {
 			var children = d.getChildren(doc ? doc._id : '');
 			for(var i=0; i<children.length; ++i) {
 				ret.push(children[i]);
@@ -1460,7 +1482,7 @@ class DetailBehaviour {
 		
 		if (!doc) return ret;
 		
-		if (this.enableRefs) {
+		if (options.enableRefs) {
 			var rs = d.getReferencesTo(doc._id);
 			for(var i=0; i<rs.length; ++i) {
 				if (rs[i].parent) {
@@ -1472,7 +1494,7 @@ class DetailBehaviour {
 			}
 		}
 		
-		if (this.enableParents && !ignoreParent) {
+		if (options.enableParents && !ignoreParent) {
 			if (doc.parent) {
 				var p = d.getById(doc.parent);
 				if (p) {
@@ -1482,7 +1504,7 @@ class DetailBehaviour {
 		}
 		
 		var refs = d.getAllReferences(doc);
-		if (this.enableLinks) {
+		if (options.enableLinks) {
 			for(var r=0; r<refs.length; ++r) {
 				if (refs[r].type != 'link') continue;
 				
@@ -1495,7 +1517,7 @@ class DetailBehaviour {
 			}
 		}
 		
-		if (this.enableBacklinks) {
+		if (options.enableBacklinks) {
 			var backlinks = this.getBacklinks(doc);
 			for(var r=0; r<backlinks.length; ++r) {
 				if (ignoreParent && (backlinks[r].doc._id == doc.parent)) continue;
@@ -1504,7 +1526,7 @@ class DetailBehaviour {
 			}
 		}
 		
-		if (this.enableSiblings && doc) {
+		if (options.enableSiblings && doc) {
 			var siblings = d.getChildren(doc.parent);
 			for(var r=0; r<siblings.length; ++r) {
 				if (siblings[r]._id == doc._id) continue;
@@ -1805,6 +1827,11 @@ class DetailBehaviour {
 	
 	getDragMarkerClass() {
 		return Notes.getInstance().isMobile() ? this.getDragHandleClass() : this.getDragHandleMarkerClass();
+		//return Notes.getInstance().isMobile() ? this.getDragHandleMobileClass() : this.getDragHandleMarkerClass();
+	}
+	
+	getDragHandleMobileClass() {
+		return "detailDragHandleMobile";
 	}
 	
 	/**
@@ -2112,11 +2139,11 @@ class DetailBehaviour {
 	/**
 	 * Returns all related documents (children etc.) for the passed document.
 	 */
-	getRelatedDocuments(id) {
+	getRelatedDocuments(id, options) {
 		var doc = Notes.getInstance().getData().getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
-		var children = (this.mode == 'ref') ? this.getRefEntries(doc, true) : d.getChildren(id);
+		var children = (this.mode == 'ref') ? this.getRefEntries(doc, true, options) : d.getChildren(id);
 		
 		children.sort(this.compareDocuments);
 		

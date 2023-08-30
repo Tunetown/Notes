@@ -151,6 +151,13 @@
 	opacity: 0.3;
 }
 
+.detailDragHandleMobile {
+	display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0.3;
+}
+
 .treeDetailTopSwitchbutton {
 	position: relative;
 	top: 50%;

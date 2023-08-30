@@ -52,7 +52,7 @@ class Behaviours {
 	}*/
 	
 	static modeIdDetailRef = 'detail-ref';
-	static modeIdDetailHierarchical = 'detail-hier';
+	//static modeIdDetailHierarchical = 'detail-hier';
 	static modeIdTiles = 'tiles';
 	static modeIdTree = 'tree';
 	
@@ -62,7 +62,7 @@ class Behaviours {
 	static getModeSelector(id, selectedMode) {
 		return $('<select id="' + id + '"></select>').append(
 			$('<option value="' + Behaviours.modeIdDetailRef + '">References</option>').prop('selected', Behaviours.modeIdDetailRef == selectedMode),
-			$('<option value="' + Behaviours.modeIdDetailHierarchical + '">Hierarchical</option>').prop('selected', Behaviours.modeIdDetailHierarchical == selectedMode),
+			//$('<option value="' + Behaviours.modeIdDetailHierarchical + '">Hierarchical</option>').prop('selected', Behaviours.modeIdDetailHierarchical == selectedMode),
 			$('<option value="' + Behaviours.modeIdTree + '">Tree</option>').prop('selected', Behaviours.modeIdTree == selectedMode),
 		);
 	}
@@ -78,6 +78,5 @@ class Behaviours {
 		case Behaviours.modeIdTree: return new TreeBehaviour(grid);
 		default: return new DetailBehaviour(grid, true);
 		} 
-		return null;
 	}
 }

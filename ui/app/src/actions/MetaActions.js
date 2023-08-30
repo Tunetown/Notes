@@ -30,6 +30,7 @@ class MetaActions {
 
 	constructor() {
 		this.meta = {};
+		this.lock = false;
 	}
 	
 	/**
@@ -85,6 +86,13 @@ class MetaActions {
 		var db;
 		var metadoc;
 		
+		if (this.lock) {
+			return Promise.reject({
+				message: 'Meta data is locked'
+			});
+		}
+		this.lock = true;
+		
 		return Database.getInstance().get()
 		.then(function(_db) {
 			db = _db;
@@ -101,22 +109,28 @@ class MetaActions {
 					}
 					return Promise.resolve();
 				}
+				that.lock = false;
 				return Promise.reject();
 			})
 		})
 		.then(function() {
 			if (!metadoc) {
+				that.lock = false;
 				throw new Error('No meta document created');
 			} 
 
+			var rev = metadoc._rev;
 			metadoc.meta = that.meta;
 			metadoc.timestamp = Date.now();
+			metadoc._rev = rev;
 			
 			return db.put(metadoc, {
 				force: true
 			});
 		})
 		.then(function (data) {
+			that.lock = false;
+			
 			if (!data.ok) {
 				return Promise.reject({
 					message: data.message,
