@@ -1,5 +1,5 @@
 /**
- * Shows a simple preview of an attachment, if possible.
+ * Shows a simple preview of an attachment, if possible. Using PDFJS lib.
  * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
  * 
@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class AttachmentPreview {
+class AttachmentPreviewJS {
 	
 	/**
 	 * Singleton factory
 	 */
 	static getInstance() {
-		if (!AttachmentPreview.instance) AttachmentPreview.instance = new AttachmentPreview();
-		return AttachmentPreview.instance;
+		if (!AttachmentPreviewJS.instance) AttachmentPreviewJS.instance = new AttachmentPreviewJS();
+		return AttachmentPreviewJS.instance;
 	}
 	
 	/**
@@ -63,10 +63,11 @@ class AttachmentPreview {
 	load(doc, url) {
 		var n = Notes.getInstance();
 		n.setCurrentPage(this);
+		var that = this;
 
 		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-download" onclick="event.stopPropagation();AttachmentPreview.getInstance().download();"></div>'),
-			$('<div type="button" data-toggle="tooltip" title="Options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();AttachmentPreview.getInstance().callOptions(event);"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-download" onclick="event.stopPropagation();AttachmentPreviewJS.getInstance().download();"></div>'),
+			$('<div type="button" data-toggle="tooltip" title="Options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();AttachmentPreviewJS.getInstance().callOptions(event);"></div>'),
 		]);		
 		
 		var atts = Document.getAttachments(doc);
@@ -79,9 +80,16 @@ class AttachmentPreview {
 		 
 		var attsize = Tools.convertFilesize(att.length);
 		
+		$('#contentContainer').empty();
+		
+		this.contentSize = {
+			width: $('#contentContainer').width(),
+			height: $('#contentContainer').height()
+		};
+		
 		// Set note name in the header
 		n.setStatusText(doc.name + ' (' + attsize + ')');
-		n.allowViewportScaling(true);
+		//n.allowViewportScaling(true);
 
 		if (doc.content_type && doc.content_type.startsWith('text/')) {
 			// Interpret as text: Load content and show in text area
@@ -98,6 +106,65 @@ class AttachmentPreview {
 			})
 			.fail(function(response, status, error) {
 				Notes.getInstance().showAlert('Server error ' + response.status + ': Please see the logs.');
+			});
+		} else 
+		if (doc.content_type && (doc.content_type == 'application/pdf')) {
+			 pdfjsLib.getDocument({
+				url: url,
+				ignoreErrors: true
+			}).promise
+			.then(function(pdf) {
+				var pdfContent = $('<span class="attachmentPdfContainer"/>');
+				
+				$('#contentContainer')
+				.append(
+					pdfContent
+				);
+
+				function loadPage(index, currentY) {
+					if (index >= pdf.numPages) return Promise.resolve();
+					
+					return pdf.getPage(index + 1) 
+					.then(function(page) {
+						var canvasJ = $('<canvas class="attachmentPdfCanvas"/>');
+						var canvas = canvasJ[0];
+						
+						var context = canvas.getContext('2d');						
+						var outputScale = window.devicePixelRatio || 1;
+						
+						var viewport = page.getViewport({ scale: 1 });
+						var scale = that.contentSize.width / viewport.width;
+						var scaledViewport = page.getViewport({ scale: scale });
+						
+						canvas.width = Math.floor(scaledViewport.width * outputScale);
+						canvas.height = Math.floor(scaledViewport.height * outputScale);
+						canvas.style.width = Math.floor(scaledViewport.width) + "px";
+						canvas.style.height =  Math.floor(scaledViewport.height) + "px";
+						
+						pdfContent.append(
+							canvasJ
+							.css('top', currentY + 'px')
+						);
+						
+						currentY += scaledViewport.height;
+								
+						var transform = outputScale !== 1
+						  ? [outputScale, 0, 0, outputScale, 0, 0]
+						  : null;
+						
+						var renderContext = {
+						  canvasContext: context,
+						  transform: transform,
+						  viewport: scaledViewport
+						};
+						
+						page.render(renderContext);
+						
+						return loadPage(index + 1, currentY);
+					});
+				}
+
+				loadPage(0, 0);				
 			});
 		} else {
 			// Try object tag to embed the content (for pdf/mp3/...)
@@ -185,16 +252,16 @@ class AttachmentPreview {
 					noDownload: true
 				})
 			);
-			
+
 			cont.append(
-				$('<div class="userbutton"><div class="fa fa-exchange-alt userbuttonIcon"></div>Use JS based viewer</div>')
+				$('<div class="userbutton"><div class="fa fa-exchange-alt userbuttonIcon"></div>Use native viewer</div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.hideOptions();	
 					
 					var vs = ClientState.getInstance().getViewSettings();
 					
-					vs.useNativePdfViewer = false;
+					vs.useNativePdfViewer = true;
 					
 					ClientState.getInstance().saveViewSettings(vs);
 					
@@ -208,58 +275,6 @@ class AttachmentPreview {
 	 * Check basic property correctness
 	 */
 	static checkBasicProps(doc, errors) {
-		if (doc.type != 'attachment') return;
-		
-		if (!doc.attachment_filename) {
-			errors.push({
-				message: 'attachment_filename missing',
-				id: doc._id,
-				type: 'E'
-			});		
-		}
-		
-		if (!doc._attachments) {
-			errors.push({
-				message: 'No attachment data',
-				id: doc._id,
-				type: 'E'
-			});		
-			return;
-		}
-		
-		var attname = 'attachment_data';
-		if (!doc._attachments[attname]) {
-			if (doc._attachments[doc.attachment_filename]) {
-				attname = doc.attachment_filename;
-				
-				errors.push({
-					message: 'Attachment uses deprecated name: ' + doc.attachment_filename + '. Re-upload it to solve this.',
-					id: doc._id,
-					type: 'I'
-				});		
-			} else {
-				errors.push({
-					message: 'Attachment data missing',
-					id: doc._id,
-					type: 'E'
-				});		
-			}
-		}
-		
-		if (!doc.content_type) {
-			errors.push({
-				message: 'Document content_type missing',
-				id: doc._id,
-				type: 'W'
-			});		
-		}
-		
-		if (doc._attachments[attname] && (doc._attachments[attname].content_type != doc.content_type)) {
-			errors.push({
-				message: 'Attachment mismatching content_types: ' + doc._attachments[attname].content_type + ' != ' + doc.content_type,
-				id: doc._id,
-				type: 'E'
-			});		
-		}
+		AttachmentPreview.checkBasicProps(doc, errors);
 	}
 }

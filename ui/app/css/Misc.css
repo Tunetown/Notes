@@ -591,3 +591,16 @@ div.tox-tinymce {
 	padding-left: 5px;
 	padding-right: 10px;
 }
+
+.attachmentPdfCanvas {
+	height: 100%;
+	width: 100%;
+	position: absolute;
+}
+
+.attachmentPdfContainer {
+	height: 100%;
+	width: 100%;
+	position: relative;
+	text-align: center;
+}

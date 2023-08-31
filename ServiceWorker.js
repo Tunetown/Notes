@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.18.a';
+const PRECACHE = 'notes_precache-v0.98.20.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -69,6 +69,8 @@ const PRECACHE_URLS = [
   './ui/lib/neo4j/js/neo4jd3.js',
   './ui/lib/neo4j/js/d3.min.js',
   './ui/lib/localstorage-slim/localstorage-slim.js',
+  './ui/lib/pdfjs/pdf.min.js',
+  './ui/lib/pdfjs/pdf.worker.min.js',
   
   './ui/lib/codemirror/lib/codemirror.js',
   './ui/lib/codemirror/mode/markdown/markdown.js',
@@ -135,6 +137,7 @@ const PRECACHE_URLS = [
   './ui/app/src/pages/Versions.js',
   './ui/app/src/pages/VersionView.js',
   './ui/app/src/pages/AttachmentPreview.js',
+  './ui/app/src/pages/AttachmentPreviewJS.js',
   './ui/app/src/pages/Console.js',
   './ui/app/src/pages/Trash.js',
   './ui/app/src/pages/RawView.js',

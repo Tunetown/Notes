@@ -216,6 +216,7 @@ class Document {
 		}
 
 		AttachmentPreview.checkBasicProps(doc, errors);
+		AttachmentPreviewJS.checkBasicProps(doc, errors);
 		Code.checkBasicProps(doc, errors);
 		Board.checkBasicProps(doc, errors);
 		

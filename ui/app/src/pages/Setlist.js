@@ -26,6 +26,9 @@ class Setlist {
 		return Setlist.instance;
 	}
 	
+	/**
+	 * Functions called by the Notes app class, mainly in updateDimensions()
+	 */
 	presentationModeActive() {
 		return true;
 	}	
@@ -48,33 +51,327 @@ class Setlist {
 	load(id) {
 		var n = Notes.getInstance();
 		var d = n.getData();
+		var that = this;
+		
 		var doc = d.getById(id);
 		if (!doc) throw new Error("Document " + id  + " not found");
 		
 		this.current = doc;
-		this.currentIndex = 0;
-		
-		this.children = NoteTree.getInstance().getRelatedDocuments(id, {
-			enableChildren: true,
-			enableRefs: true,
-			enableLinks: true,
-			enableParents: false,
-			enableBacklinks: false,
-			enableSiblings: false
-		});
-
-		n.setStatusText('Setlist: ' + doc.name + ' (' + (this.currentIndex+1) + ' of ' + this.children.length + ' items)');
 
 		n.setCurrentPage(this);
 
-		this.contentIndex = 0;
-		
-		this.#buildContent($('#contentContainer'));
-		this.#update();
-		
-		n.updateDimensions();
+		// Build buttons
+		n.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Setlist options..." id="setlistOptionsButton" class="fa fa-ellipsis-v"" />')
+			.on('click', function(e) {
+				e.stopPropagation();
+				
+				that.#callOptions();
+			}), 
+		]);
+
+		this.#loadPages(this.current, true)
+		.then(function(pages) {
+			that.pages = pages;
+
+			var toLoad = [];
+			for(var c in that.pages) {
+				toLoad.push(that.pages[c].doc);
+			}
+			
+			DocumentAccess.getInstance().loadDocuments(toLoad)
+			.then(function() {
+				that.#buildContent($('#contentContainer'));
+				that.#update();
+				
+				n.updateDimensions();
+			})
+		})
+		.catch(function(err) {
+			n.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+		});
 	}
 	
+	/**
+	 * Calls the setlist options
+	 */
+	#callOptions() {
+		var n = Notes.getInstance();
+		var that = this;
+
+		n.showMenu('editorOptions', function(cont) {
+			for(var p in that.pages) {
+				const page = that.pages[p];
+				
+				cont.append(
+					$('<div class="userbutton" data-index="' + p + '"/>')
+					.html((parseInt(p) + 1) + ': ' + page.name)
+					.on('click', function(event) {
+						event.stopPropagation();
+						
+						that.hideOptions();
+						
+						const index = $(this).data('index');
+						that.setCurrentIndex(index);
+					}),	
+				);
+			}
+		});
+	}
+	
+	/**
+	 * Hides all option menus for the editor
+	 */
+	hideOptions() {
+		var n = Notes.getInstance();
+		
+		n.hideMenu();
+		n.hideOptions();
+	}
+	
+	/**
+	 * Returns the array of pages to be shown, as promise. References are resolved, and multipage PDFs are 
+	 * spread across multiple pages.
+	 * 
+	 * If resolveEmptyDocs is set, documents with no content will be scalled for contained documents.
+	 * If there are any, the first PDF will be used. If no PDF is there, the first child with content is being used.
+	 */
+	#loadPages(doc, resolveEmptyDocs) {
+		var n = Notes.getInstance();
+		var d = n.getData();
+		
+		const relatedDocsOptions = {
+			enableChildren: true,
+			enableLinks: true,
+			enableRefs: false,
+			enableParents: false,
+			enableBacklinks: false,
+			enableSiblings: false
+		};
+
+		const children = NoteTree.getInstance().getRelatedDocuments(doc._id, relatedDocsOptions);
+
+		var meta = [];
+
+		/**
+		 * Resolve documents: By default, only references are being resolved. If resolveEmptyDocs is set,
+		 * also this is being done here.
+		 */
+		function resolveDocument(doc2) {
+			// Resolve reference docs
+			if (doc2.type == 'reference') {
+				var refDoc = d.getById(doc2.ref);
+				if (!refDoc) throw new Error('Document ' + doc2._id + ' has an invalid reference');
+				
+				doc2 = refDoc;
+			}
+			
+			if (!resolveEmptyDocs) {
+				return doc2;
+			}
+			
+			// Check if there is content
+			if ((doc2.type == 'note') && !doc2.contentSize) {
+				// No content: Scan children
+				const edChildren = NoteTree.getInstance().getRelatedDocuments(doc2._id, relatedDocsOptions);
+				
+				// Check for an attachment first
+				var found = false; 
+				for(var c in edChildren) {
+					var edchild = edChildren[c];
+					
+					if (edchild.type == 'attachment') {
+						console.log('Resolved ' + doc2.name + ' to first attachment');
+
+						doc2 = edchild;
+						found = true;
+						
+						break;
+					}
+				}
+				
+				if (!found) {
+					// Scan for filled notes if no attachment has been found
+					found = false;
+					
+					for(var c in edChildren) {
+						var edchild = edChildren[c];
+						
+						if ((edchild.type == 'note') && (edchild.contentSize)) {
+							console.log('Resolved ' + doc2.name + ' to first filled child note');
+
+							doc2 = edchild;
+							found = true;
+
+							break;
+						}
+					}
+				}
+			}
+			
+			return doc2;
+		}
+		
+		/**
+		 * Retrieve the meta entry index for the passed id.
+		 */
+		function retrieveMetaIndex(id) {
+			for(var m in meta) {
+				if (meta[m].doc._id == id) {
+					return m;
+				}
+			}
+			throw new Error('Meta index for ' + id + ' not found');
+		}
+
+		var promises = [];
+
+		// Get all meta information (load contents/parse PDFs). Multpage PDFs are still represented with one entry here.	
+		for(var c in children) {
+			var child = resolveDocument(children[c]);
+			
+			meta.push({
+				doc: child
+			});
+			
+			if (child.type == 'attachment') {
+				promises.push(
+					AttachmentActions.getInstance().getAttachmentUrl(child._id)
+					.then(function(data) {
+						if (!data.ok || !data.url) {
+							return Promise.reject({
+								message: data.message ? data.message : ('Error loading attachment ' + data.id)
+							})
+						}
+						
+						const mindex = retrieveMetaIndex(data.id);
+						meta[mindex].url = data.url;
+						
+						return new Promise(function(resolve, reject) {
+							if (meta[mindex].doc.content_type && meta[mindex].doc.content_type.startsWith('text/')) {
+								// Interpret as text: Load content and show in text area
+								$.ajax({
+									url: data.url, 
+									type: "get",
+									dataType: "text",
+									success: function(response) {
+										meta[mindex].content = response;
+										
+										resolve();
+									},
+								})
+								.fail(function(response, status, error) {
+									reject({
+										message: 'Server error ' + response.status + ': Please see the logs.'
+									})
+								});
+								
+							} else 
+							if (meta[mindex].doc.content_type && meta[mindex].doc.content_type == 'application/pdf') {
+								pdfjsLib.getDocument({
+									url: data.url,
+									ignoreErrors: true
+								}).promise
+								.then(function(pdf) {
+									meta[mindex].pdf = pdf;
+									
+									resolve();
+								})
+								.catch(function(response, status, error) {
+									reject({
+										message: 'Server error ' + response.status + ': Please see the logs.'
+									})
+								});
+							} else {
+								resolve();
+							}
+						});
+					})
+				);
+			}
+		}
+		
+		// Build pages array. This will contain separate entries for all pages of multi page PDFs
+		return Promise.all(promises)
+		.then(function() {
+			var pages = [];
+			for(var m in meta) {
+				var metaItem = meta[m];
+				
+				switch (metaItem.doc.type) {
+					case 'note':
+						pages.push({
+							doc: metaItem.doc,
+							name: metaItem.doc.name,
+							id: metaItem.doc._id
+						});
+						break;
+						
+					case 'reference':
+						pages.push({
+							doc: metaItem.doc,
+							name: metaItem.doc.name,
+							id: metaItem.doc._id
+						});
+						break;
+	
+					case 'attachment':
+						if (metaItem.content) {
+							pages.push({
+								doc: metaItem.doc,
+								name: metaItem.doc.name,
+								id: metaItem.doc._id,
+								content: metaItem.content,
+								url: metaItem.url
+							});
+														
+						} else 
+						if (metaItem.pdf) {
+							const numPages = metaItem.pdf.numPages;
+							
+							if (numPages == 1) {
+								pages.push({
+									doc: metaItem.doc,
+									pdf: metaItem.pdf,
+									pdfPage: 1,
+									name: metaItem.doc.name,
+									id: metaItem.doc._id,
+									url: metaItem.url
+								});
+							} else {
+								for(var p=0; p<numPages; ++p) {
+									pages.push({
+										doc: metaItem.doc,
+										pdf: metaItem.pdf,
+										pdfPage: p + 1,
+										name: metaItem.doc.name + ' Page ' + (p + 1),
+										id: metaItem.doc._id + '-page' + (p + 1),
+										url: metaItem.url
+									});
+								}
+							}
+						} else {
+							pages.push({
+								doc: metaItem.doc,
+								name: metaItem.doc.name,
+								id: metaItem.doc._id,
+								url: metaItem.url
+							});
+						}
+						break;
+						
+					default:
+						throw new Error('Invalid type: ' + child.type);
+				}
+			}	
+			
+			return Promise.resolve(pages);		
+		})
+	}
+	
+	/**
+	 * Build DOM
+	 */
 	#buildContent(containerElement) {
 		var n = Notes.getInstance();
 		var d = n.getData();
@@ -90,33 +387,13 @@ class Setlist {
 		
 		this.toggleShowAppElements(false);
 		
-		var index = 0;
-		for(var c in this.children) {
-			var child = this.children[c];
+		for(var c in this.pages) {
+			var page = this.pages[c];
 			
-			var el = null;
-			switch (child.type) {
-				case 'note':
-					el = this.#createNote(child, index);
-					break;
-					
-				case 'reference':
-					var ref = d.getById(child.ref);
-					if (!ref) throw new Error("Invaild reference in " + child._id + ": " + child.ref);
-					
-					el = this.#createNote(ref, index);
-					break;
-
-				case 'attachment':
-					el = this.#createAttachment(child, index);
-					break;
+			// Replace the stubbed docs if not loaded (only done at the first access)
+			if (!Document.isLoaded(page.doc)) {
+				page.doc = d.getById(page.doc._id);
 			}
-			
-			++index;
-			
-			if (!el) throw new Error('Could not resolve child type: ' + child.type);
-			
-			this.content.append(el);
 		}
 
 		var that = this;
@@ -125,18 +402,23 @@ class Setlist {
 			$('<div id="setlistContainer" />')
 			.append(
 				this.content
-				.css('width', this.children.length * this.contentSize.width)
+				.css('width', this.pages.length * this.contentSize.width)
 			),
 			
 			$('<div id="presentationModeOverlay"/>')
 			.on('click', function(e) {
 				e.stopPropagation();
 				
+				that.hideOptions();
+				
 				that.toggleShowAppElements(!that.shouldShowAppElements());
 			})
 			.on('touchstart', function(e) {
 				if (!n.isMobile()) return;
+				
 				e.stopPropagation();
+				
+				that.hideOptions();
 				
 				that.dragStartX = Tools.extractX(e);
 				that.dragDeltaX = 0;
@@ -146,6 +428,7 @@ class Setlist {
 			})
 			.on('touchmove', function(e) {
 				if (!n.isMobile()) return;
+				
 				e.stopPropagation();
 				
 				if (!that.dragStartX) return;
@@ -155,6 +438,7 @@ class Setlist {
 			})
 			.on('touchend', function(e) {
 				if (!n.isMobile()) return;
+				
 				e.stopPropagation();
 				
 				if (!that.dragDeltaX) {
@@ -180,6 +464,8 @@ class Setlist {
 					if (!n.isMobile()) return;
 					
 					e.stopPropagation();
+					
+					that.hideOptions();
 
 					var tree = NoteTree.getInstance();
 					var id = that.current._id;
@@ -190,16 +476,18 @@ class Setlist {
 				// Click overlays for L/R
 				$('<div id="presentationModeOverlayLeft" data-toggle="tooltip" title="Go to previous Document"/>')
 				.on('click', function(e) {
-					//if (n.isMobile()) return;
 					e.stopPropagation();
+					
+					that.hideOptions();
 					
 					that.toggleShowAppElements(false);
 					that.selectPrevious();
 				}),
 				$('<div id="presentationModeOverlayRight" data-toggle="tooltip" title="Go to next Document"/>')
 				.on('click', function(e) {
-					//if (n.isMobile()) return;
 					e.stopPropagation();
+
+					that.hideOptions();
 					
 					that.toggleShowAppElements(false);
 					that.selectNext();
@@ -208,37 +496,202 @@ class Setlist {
 		);
 	}
 	
+	/**
+	 * Create note content
+	 */
+	#createNote(page, index) {
+		if (!Document.isLoaded(page.doc)) throw new Error('Document ' + page.doc.name + ' is not loaded');
+		
+		var ret = $('<div class="setlistItem" id="setlist-' + page.doc._id + '"/>')
+		.css('width', this.contentSize.width + 'px')
+		.css('left', (index * this.contentSize.width) + 'px');
+
+		const content = page.doc.content ? page.doc.content : page.doc.name;
+
+		if (page.doc.editor && (page.doc.editor == 'code')) {
+			setTimeout(function() {
+				CodeMirror($('#setlist-' + page.doc._id)[0], {
+					value: content,
+					mode: (page.doc.editorParams && page.doc.editorParams.language) ? page.doc.editorParams.language : 'markdown',
+					readOnly: true
+				}, 0);				
+			})
+		} else {
+			ret.append(
+				$('<div class="mce-content-body" contenteditable="false" style="margin: 10px"/>').html(content)
+			);
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Create attachment content
+	 */
+	#createAttachment(page, index) {
+		var ret = $('<div class="setlistItem" id="setlist-' + page.doc._id + '"/>')
+		.css('width', this.contentSize.width + 'px')
+		.css('left', (index * this.contentSize.width) + 'px');
+		
+		var that = this;
+		if (page.doc.content_type && page.doc.content_type.startsWith('text/')) {
+			ret.append(
+				$('<textarea readonly class="preview textpreview">' + page.content + '</textarea>')
+			);
+				
+		} else if (page.doc.content_type && page.doc.content_type == 'application/pdf') {
+			var canvasJ = $('<canvas class="setlistPdfCanvas"/>');
+			var canvas = canvasJ[0];
+			
+			ret
+			.css('text-align', 'center')
+			.append(canvasJ);
+						
+			page.pdf.getPage(page.pdfPage ? page.pdfPage : 1) 
+			.then(function(page) {
+				var context = canvas.getContext('2d');						
+				var outputScale = window.devicePixelRatio || 1;
+				
+				var viewport = page.getViewport({ scale: 1 });
+				var scale = that.contentSize.width / viewport.width;
+				var scaledViewport = page.getViewport({ scale: scale });
+				
+				if (scaledViewport.height > that.contentSize.height) {
+					scale = that.contentSize.height / viewport.height;
+					scaledViewport = page.getViewport({ scale: scale });
+				}
+				
+				canvas.width = Math.floor(scaledViewport.width * outputScale);
+				canvas.height = Math.floor(scaledViewport.height * outputScale);
+				canvas.style.width = Math.floor(scaledViewport.width) + "px";
+				canvas.style.height =  Math.floor(scaledViewport.height) + "px";
+				
+				var transform = outputScale !== 1
+				  ? [outputScale, 0, 0, outputScale, 0, 0]
+				  : null;
+				
+				var renderContext = {
+				  canvasContext: context,
+				  transform: transform,
+				  viewport: scaledViewport
+				};
+				
+				page.render(renderContext);
+			});
+
+		} else {
+			// Try object tag to embed the content (for other document types...)
+			ret.append(
+				$('<object class="preview" data="' + page.url + '" type="' + page.doc.content_type + '" ><span id="previewteaser">Preview not available</span></object>')
+				.css('width', '100%')
+				.css('height', '100%')
+				.css('object-fit', 'contain')
+			);
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Returns the current page index
+	 */
+	getCurrentIndex() {
+		const id = this.current._id;
+		const vs = ClientState.getInstance().getViewSettings();
+		
+		if (vs.presentationModeIndex) {
+			for(var i in vs.presentationModeIndex) {
+				const index = vs.presentationModeIndex[i];
+				if ((index.id == id) && (index.hasOwnProperty('index'))) {
+					return index.index;
+				}
+			}
+		}
+		
+		return 0; 
+	}
+	
+	/**
+	 * Set the current page index
+	 */
+	setCurrentIndex(index) {
+		const id = this.current._id;
+		var vs = ClientState.getInstance().getViewSettings();
+
+		if (!vs.presentationModeIndex) {
+			vs.presentationModeIndex = [];
+		}
+			
+		var found = false;
+		for(var i in vs.presentationModeIndex) {
+			var indexItem = vs.presentationModeIndex[i];
+			if (indexItem.id == id) {
+				indexItem.index = index;
+				found = true;
+				break;
+			}
+		}
+		if (!found) {
+			vs.presentationModeIndex.push({
+				id: id,
+				index: index
+			});
+		}
+
+		ClientState.getInstance().saveViewSettings(vs);
+
+		this.#update();
+	}
+	
+	/**
+	 * Toggles if the app elements shall be shown
+	 */
 	toggleShowAppElements(show) {
 		this.showAppElements = show;
 		
 		Notes.getInstance().updateDimensions();
 	}
 	
+	/**
+	 * Select the previous page
+	 */
 	selectPrevious() {
-		if (this.currentIndex > 0) {
-			this.currentIndex--;
-			this.#update();
+		const curr = this.getCurrentIndex();
+		if (curr > 0) {
+			this.setCurrentIndex(curr - 1);
 		}
 	}
 	
+	/**
+	 * Select the next page
+	 */
 	selectNext() {
-		if (this.currentIndex < this.children.length-1) {
-			this.currentIndex++;
-			this.#update();
+		const curr = this.getCurrentIndex();
+		if (curr < this.pages.length - 1) {
+			this.setCurrentIndex(curr + 1);
 		}	
 	}
 	
+	/**
+	 * Update UI state of the setlist after changes
+	 */
 	#update() {
 		this.#updateInfoOverlays();
 		this.#updateClickOverlays();
+		this.#createMissingPages();
 		
+		Notes.getInstance().setStatusText('Setlist: ' + this.current.name + ' - ' + this.pages[this.getCurrentIndex()].name + ' (' + (this.getCurrentIndex() + 1) + ' of ' + this.pages.length + ')');
+
 		this.content.animate({
-			left: (- this.currentIndex * this.contentSize.width) + 'px'
+			left: (- this.getCurrentIndex() * this.contentSize.width) + 'px'
 		}, {
 			duration: 100
 		});
 	}
 	
+	/**
+	 * Udate click overlay properties
+	 */
 	#updateClickOverlays() {	
 		if (!Notes.getInstance().isMobile()) {
 			const leftEl = $('#presentationModeOverlayLeft');
@@ -251,8 +704,11 @@ class Setlist {
 		}
 	}
 		
+	/**
+	 * Udate info overlay properties and contents
+	 */
 	#updateInfoOverlays() {
-		const neighborInfo = this.#getNeighborInfo(this.currentIndex);
+		const neighborInfo = this.#getNeighborInfo(this.getCurrentIndex());
 		
 		const leftEl = $('#presentationModeInfoLeft');
 		const midEl = $('#presentationModeInfoMiddle');
@@ -260,8 +716,8 @@ class Setlist {
 
 		// Left info panel
 		leftEl.empty();
-		if (neighborInfo.documentBefore) {
-			leftEl.html('(' + neighborInfo.numDocumentsBefore + ') <b>< ' + neighborInfo.documentBefore.name + '</b>');		
+		if (neighborInfo.pageBefore) {
+			leftEl.html('(' + neighborInfo.numPagesBefore + ') <b>< ' + neighborInfo.pageBefore.name + '</b>');		
 		}
 		
 		// Middle info panel
@@ -270,8 +726,8 @@ class Setlist {
 		
 		// Right info panel
 		rightEl.empty();
-		if (neighborInfo.documentAfter) {
-			rightEl.html('<b>' + neighborInfo.documentAfter.name + ' ></b> (' + neighborInfo.numDocumentsAfter + ') ');	
+		if (neighborInfo.pageAfter) {
+			rightEl.html('<b>' + neighborInfo.pageAfter.name + ' ></b> (' + neighborInfo.numPagesAfter + ') ');	
 		}		
 		
 		// Sizes
@@ -281,63 +737,113 @@ class Setlist {
 	}
 	
 	/**
+	 * By default, no page content is being created. This ensures that the current page, as well
+	 * as the direct neighbors are rendered and ready to show.
+	 */
+	#createMissingPages() {
+		const index = this.getCurrentIndex();
+		
+		var that = this;
+
+		// First render the current page (should only happen at page load)
+		setTimeout(function() {
+			that.#renderPage(index);
+		}, 0);
+
+		// Render neighbor pages
+		if (index > 0) {
+			setTimeout(function() {
+				that.#renderPage(index - 1);
+			}, 0);
+		}
+
+		if (index < this.pages.length - 1) {
+			setTimeout(function() {
+				that.#renderPage(index + 1);
+			}, 0);
+		}
+
+		// Render neighbors of neighbors, too (makes scrolling more fluid) 
+		if (index > 1) {
+			setTimeout(function() {
+				that.#renderPage(index - 2);
+			}, 0);
+		}
+
+		if (index < this.pages.length - 2) {
+			setTimeout(function() {
+				that.#renderPage(index + 2);
+			}, 0);
+		}
+	}
+	
+	/**
+	 * Renders a page DOM.
+	 */
+	#renderPage(index) {
+		var page = this.pages[index];
+		if (page.isRendered) return;
+		
+		var el = null;
+
+		switch (page.doc.type) {
+			case 'note':
+				el = this.#createNote(page, index);
+				break;
+				
+			case 'reference':
+				throw new Error(page.doc._id + ': References must be resolved in #loadPages()');
+
+			case 'attachment':
+				el = this.#createAttachment(page, index);
+				break;
+		}
+		
+		if (!el) throw new Error('Could not resolve child type: ' + page.doc.type);
+		
+		this.content.append(el);
+		page.isRendered = true;
+		
+		//console.log("Rendered page " + index)
+	}
+	
+	/**
 	 * Info about the neighbors of the passed index.
 	 */
 	#getNeighborInfo(index) {
-		const doc = this.children[index];
-		if (!doc) throw new Error('Document ' + id + ' not found');
+		const currentPage = this.pages[index];
+		if (!currentPage) throw new Error('Page at index ' + index + ' not found');
 		
 		var ret = {
-			numDocuments: this.children.length,
-			numDocumentsBefore: 0,
-			numDocumentsAfter: 0,
-			documentBefore: null,
-			documentAfter: null
+			numPagesBefore: 0,
+			numPagesAfter: 0,
+			pageBefore: null,
+			pageAfter: null
 		};
 		
 		var before = true;
-		for(var c in this.children) {
-			const child = this.children[c];
+		for(var c in this.pages) {
+			const page = this.pages[c];
 			
-			if (child._id == doc._id) {
+			if (page.id == currentPage.id) {
 				before = false;
 				
 				if (c > 0) {
-					ret.documentBefore = this.children[parseInt(c)-1];
+					ret.pageBefore = this.pages[parseInt(c)-1];
 				}				
-				if (c < this.children.length - 1) {
-					ret.documentAfter = this.children[parseInt(c)+1];
+				if (c < this.pages.length - 1) {
+					ret.pageAfter = this.pages[parseInt(c)+1];
 				}				
 			} else {
 				if (before) {
-					ret.numDocumentsBefore++;
+					ret.numPagesBefore++;
 				} else {
-					ret.numDocumentsAfter++;
+					ret.numPagesAfter++;
 				}		
 			}
 		}
 		
 		return ret;
 	}
-	
-	
-	#createNote(doc, index) {
-		return $('<div class="setlistItem" />')
-		.css('background-color', Tools.getRandomColor())
-		.css('border', '10px solid ' + Tools.getRandomColor())
-		.css('width', this.contentSize.width + 'px')
-		.css('left', (index * this.contentSize.width) + 'px')
-		.html('<h1>' + index + '</h1>' + doc.name);
-	}
-	
-	#createAttachment(doc, index) {
-		return $('<div class="setlistItem" />')
-		.css('background-color', Tools.getRandomColor())
-		.css('border', '10px solid ' + Tools.getRandomColor())
-		.css('width', this.contentSize.width + 'px')
-		.css('left', (index * this.contentSize.width) + 'px')
-		.html('<h1>' + index + '</h1>' + doc.name);
-	}
-	
 }
 	

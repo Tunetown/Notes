@@ -1246,13 +1246,19 @@ class NoteTree {
 	 * Used by the behaviours to get the currently shown ID (editors only)
 	 */
 	getCurrentlyShownId() {
+		return Notes.getInstance().getCurrentlyShownId(true);
+		
+		/*
 		var e = Notes.getInstance().getCurrentEditor();
 		if (e) return e.getCurrentId();	
 		
 		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
 		if (attId) return attId;
 		
-		return false;
+		var attIdJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
+		if (attIdJS) return attIdJS;
+
+		return false;*/
 	}
 	
 	/**

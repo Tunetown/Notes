@@ -43,7 +43,8 @@ class VersionView {
 		if (doc.editor && (doc.editor == 'code')) {
 			CodeMirror($('#contentContainer')[0], {
 				value: data,
-				mode:  (doc.editorParams && doc.editorParams.language) ? doc.editorParams.language : 'javascript'
+				mode:  (doc.editorParams && doc.editorParams.language) ? doc.editorParams.language : 'markdown',
+				readOnly: true
 			});
 		} else {
 			$('#contentContainer').append(

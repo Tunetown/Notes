@@ -933,8 +933,10 @@ class Board {
 	 * Hides all option menus for the editor
 	 */
 	hideOptions() {
-		Notes.getInstance().hideMenu();
-		Notes.getInstance().hideOptions();
+		var n = Notes.getInstance();
+		
+		n.hideMenu();
+		n.hideOptions();
 	}
 	
 	/**

@@ -305,24 +305,32 @@ article {
 	height: 100%;
 	width: 100%;
 	position: absolute;
+	z-index: 100;
 	overflow: hidden;
 }
 
 #setlistContent {
 	height: 100%;
+	z-index: 100;
 	position: absolute;
 }
 
 .setlistItem {
 	height: 100%;
 	position: absolute;
+	z-index: 100;
+}
+
+.setlistPdfCanvas {
+	height: 100%;
+	width: 100%;
 }
 
 #presentationModeOverlay {
 	height: 100%;
 	width: 100%;
 	position: absolute;
-	background-color: rgba(200,0,0,0.1);
+	z-index: 200;
 }
 
 #presentationModeOverlayLeft {
@@ -333,7 +341,6 @@ article {
 	position: absolute;
 	overflow: hidden;
 	cursor: pointer;
-	background-color: rgba(0,200,0,0.1);
 }
 
 #presentationModeOverlayRight {
@@ -344,7 +351,6 @@ article {
 	position: absolute;
 	overflow: hidden;
 	cursor: pointer;
-	background-color: rgba(0,0,200,0.1);
 }
 
 
@@ -389,3 +395,4 @@ article {
 
 	margin-right: 5px;
 }
+

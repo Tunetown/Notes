@@ -60,7 +60,14 @@ class EditorActions {
 			})
 			.then(function(data) {
 				var url = URL.createObjectURL(data);
-				return AttachmentPreview.getInstance().load(doc, url);
+				
+				var vs = ClientState.getInstance().getViewSettings();
+				
+				if (vs.useNativePdfViewer) {
+					return AttachmentPreview.getInstance().load(doc, url);					
+				} else {
+					return AttachmentPreviewJS.getInstance().load(doc, url);
+				}
 			})
 			.then(function() {
 				// Execute callbacks

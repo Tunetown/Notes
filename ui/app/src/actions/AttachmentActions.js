@@ -62,14 +62,18 @@ class AttachmentActions {
 		}
 		
 		var doc = Notes.getInstance().getData().getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Item ' + id + ' does not exist',
-			messageThreadId: 'GetAttUrlMessages'
-		});
-		if (doc.type != 'attachment') return Promise.reject({
-			message: 'Item ' + doc.name + ' is no attachment',
-			messageThreadId: 'GetAttUrlMessages'
-		});
+		if (!doc) {
+			return Promise.reject({
+				message: 'Item ' + id + ' does not exist',
+				messageThreadId: 'GetAttUrlMessages'
+			});
+		}
+		if (doc.type != 'attachment') {
+			return Promise.reject({
+				message: 'Item ' + doc.name + ' is no attachment',
+				messageThreadId: 'GetAttUrlMessages'
+			});
+		}
 		
 		var that = this;
 		return Database.getInstance().get()

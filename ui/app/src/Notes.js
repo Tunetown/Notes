@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.18';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.20';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -687,6 +687,7 @@ class Notes {
 			}
 		}
 		AttachmentPreview.getInstance().unload();
+		AttachmentPreviewJS.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
 		Versions.getInstance().unload();
 		GraphView.getInstance().unload();
@@ -932,7 +933,8 @@ class Notes {
 			// Content
 			$('<section>').append([
 				// Navigation (grid)
-				$('<nav id="treenav"></nav>'),
+				$('<nav id="treenav"></nav>')
+				.css('width', ClientState.getInstance().getTreeState().treeWidth),  // Pre-set tree width here
 				
 				// Main content
 				$('<article id="article"></article>').append([
@@ -2080,6 +2082,9 @@ class Notes {
 		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
 		if (attId) return attId;
 		
+		var attIdJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
+		if (attIdJS) return attIdJS;
+
 		if (!editorsOnly) {
 			var versId = Versions.getInstance().currentId;
 			if (versId) return versId;
