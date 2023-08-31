@@ -26,6 +26,7 @@ html {
 	height: 100%;
 	margin: 0;
     padding: 0;	
+    overflow: hidden;
 }
 
 body {
@@ -39,6 +40,7 @@ body {
 
 #all {
 	height: 100vh;
+	overflow: hidden;
 }
 
 header {

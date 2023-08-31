@@ -185,7 +185,8 @@ Config.preRenderNavigationDomItemsInterval = 10;      /// Interval for pre-rende
 /**
  * Presentation (setlist) mode
  */
-Config.presentationModeAnimationTime = 100;           /// Time (ms) for the app elements (header, footer etc) to be blended in and out in presentation mode
+Config.presentationModeAnimationTime = 100;           /// Time (ms) for the app elements (header, footer etc) to be blended in and out in presentation mode (setlist)
+Config.presentationModeWakeLockDelay = 3000;          /// Time (ms) delay for acquiring the wake lock in setlists
 
 /**
  * TODO Description

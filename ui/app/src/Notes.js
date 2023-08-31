@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.22';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.24';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -934,6 +934,10 @@ class Notes {
 			// Content
 			$('<section>').append([
 				// Navigation (grid)
+				this.isMobile() 
+				? 
+				$('<nav id="treenav"></nav>') 
+				: 
 				$('<nav id="treenav"></nav>')
 				.css('width', ClientState.getInstance().getTreeState().treeWidth),  // Pre-set tree width here
 				
@@ -1038,33 +1042,33 @@ class Notes {
 	setupEditorFooter() {
 		this.setFooterContent([
 			// Back button used to navigate back to the tree in mobile mode
-			$('<div id="backButton2" class="footerButton fa fa-chevron-left"></div>')
+			$('<div id="backButton2" class="footerButton fa fa-chevron-left" data-toggle="tooltip" title="Navigate back"></div>')
 			.on('click', this.editorBackButtonHandler),
 			
 			// Forward button used to navigate back to the tree in mobile mode
-			$('<div id="forwardButton2" class="footerButton fa fa-chevron-right"></div>')
+			$('<div id="forwardButton2" class="footerButton fa fa-chevron-right" data-toggle="tooltip" title="Navigate forward"></div>')
 			.on('click', this.editorForwardButtonHandler),
 
 			// Home button used to navigate back to the tree root in mobile mode
 			this.isMobile() ? 
-				$('<div id="homeButton2" class="footerButton fa fa-map"></div>')
+				$('<div id="homeButton2" class="footerButton fa fa-map" data-toggle="tooltip" title="Show this document in the navigation panel"></div>')
 				.on('click', this.editorNavButtonHandler)
 				:
-				$('<div id="homeButton2" class="footerButton fa fa-home"></div>')
+				$('<div id="homeButton2" class="footerButton fa fa-home" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
 				.on('click', this.editorHomeButtonHandler),
 				,
 
 			// Create note
-			$('<div id="createButton2" class="footerButton fa fa-plus"></div>')
+			$('<div id="createButton2" class="footerButton fa fa-plus" data-toggle="tooltip" title="Create new item"></div>')
 			.on('click', this.editorCreateButtonHandler),
 
 			// Presentation mode
 			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") 
 			? 
-			$('<div id="favsButton2" class="footerButton fa fa-star"></div>')
+			$('<div id="favsButton2" class="footerButton fa fa-star" data-toggle="tooltip" title="Search favorites"></div>')
 			.on('click', this.editorFavoritesButtonHandler)
 			:			
-			$('<div id="presentationModeButton2" class="footerButton fa fa-play"></div>')
+			$('<div id="presentationModeButton2" class="footerButton fa fa-play" data-toggle="tooltip" title="Show contents of this item in presentation mode"></div>')
 			.on('click', this.editorPresentationModeButtonHandler),
 			
 		]);

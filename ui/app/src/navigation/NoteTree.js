@@ -1152,25 +1152,25 @@ class NoteTree {
 		//if (n.useFooter()) {
 		n.setFooterContent([
 			// Back Button
-			$('<div class="fa fa-chevron-left footerButton" id="treeBackButton"></div>')
+			$('<div class="fa fa-chevron-left footerButton" id="treeBackButton" data-toggle="tooltip" title="Navigate back"></div>')
 				.on('click', this.backHandler),
 				
 			// Forward Button
-			$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton"></div>')
+			$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton" data-toggle="tooltip" title="Navigate forward"></div>')
 				.on('click', this.forwardHandler),
 
 			// Home Button
-			$('<div class="fa fa-home footerButton" id="treeHomeButton"></div>')
+			$('<div class="fa fa-home footerButton" id="treeHomeButton" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
 				.on('click', this.homeHandler),
 			
 			// Create note
-			$('<div class="fa fa-plus footerButton"></div>')
+			$('<div class="fa fa-plus footerButton" data-toggle="tooltip" title="Create new item"></div>')
 				.on('click', this.createHandler),
 				
 			// Presentation mode
 			//!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode")
 			//? 
-			$('<div class="fa fa-star footerButton"></div>')
+			$('<div class="fa fa-star footerButton" data-toggle="tooltip" title="Search favorites"></div>')
 			.on('click', this.favoritesHandler) 
 			//:
 			//$('<div class="fa fa-play footerButton" id="presentationModeButton" ></div>')

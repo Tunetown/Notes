@@ -73,15 +73,7 @@ class Setlist {
 		n.setCurrentPage(this);
 
 		// Acquire wake lock
-		WakeLock.getInstance().lock()
-		.catch(function(err) {
-			if (err.notSupported) {
-				Notes.getInstance().showAlert('Warning: This device does not support staying awake.', 'W');	
-				
-			} else {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error activating wake lock', 'E');	
-			}
-		});
+		this.#activateWakeLock();
 		
 		// Build buttons
 		n.setButtons([ 
@@ -113,6 +105,24 @@ class Setlist {
 		.catch(function(err) {
 			n.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
+	}
+	
+	/**
+	 * Triggers the activation of a wake lock
+	 */
+	#activateWakeLock() {
+		setTimeout(function() {
+			WakeLock.getInstance().lock()
+			.catch(function(err) {
+				if (err.notSupported) {
+					Notes.getInstance().showAlert('Warning: This device does not support staying awake.', 'W');	
+					
+				} else {
+					Notes.getInstance().showAlert(err.message ? err.message : 'Error activating wake lock', 'E');	
+				}
+			});
+			
+		}, Config.presentationModeWakeLockDelay);
 	}
 	
 	/**
