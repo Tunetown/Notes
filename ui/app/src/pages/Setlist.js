@@ -26,6 +26,18 @@ class Setlist {
 		return Setlist.instance;
 	}
 	
+	unload() {
+		this.current = false;
+		this.pages = null;
+		this.contentSize = null;
+		
+		WakeLock.getInstance().release()
+		.catch(function(err) {
+			console.log(err);
+			//Notes.getInstance().showAlert(err.message ? err.message : 'Error releasing wake lock', 'E');
+		});
+	}
+
 	/**
 	 * Functions called by the Notes app class, mainly in updateDimensions()
 	 */
@@ -60,6 +72,17 @@ class Setlist {
 
 		n.setCurrentPage(this);
 
+		// Acquire wake lock
+		WakeLock.getInstance().lock()
+		.catch(function(err) {
+			if (err.notSupported) {
+				Notes.getInstance().showAlert('Warning: This device does not support staying awake.', 'W');	
+				
+			} else {
+				Notes.getInstance().showAlert(err.message ? err.message : 'Error activating wake lock', 'E');	
+			}
+		});
+		
 		// Build buttons
 		n.setButtons([ 
 			$('<div type="button" data-toggle="tooltip" title="Setlist options..." id="setlistOptionsButton" class="fa fa-ellipsis-v"" />')

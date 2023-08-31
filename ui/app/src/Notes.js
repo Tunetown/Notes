@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.20';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.22';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -688,6 +688,7 @@ class Notes {
 		}
 		AttachmentPreview.getInstance().unload();
 		AttachmentPreviewJS.getInstance().unload();
+		Setlist.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
 		Versions.getInstance().unload();
 		GraphView.getInstance().unload();

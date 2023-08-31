@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.20.a';
+const PRECACHE = 'notes_precache-v0.98.22.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -164,6 +164,7 @@ const PRECACHE_URLS = [
   './ui/app/src/tools/Callbacks.js',
   './ui/app/src/tools/Styles.js',
   './ui/app/src/tools/HistoryHandler.js',
+  './ui/app/src/tools/WakeLock.js',
   './ui/app/src/Config.js',
   './ui/app/src/Routing.js',
   './ui/app/src/Notes.js',
