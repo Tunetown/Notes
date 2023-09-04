@@ -172,7 +172,7 @@ class Code {
 		var n = Notes.getInstance();
 		
 		var txt = "";
-		if (doc) txt = doc.name + (n.isMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
+		if (doc) txt = doc.name + (Device.getInstance().isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
 
 		// Show loaded note in the header bar 
 		//var that = this;

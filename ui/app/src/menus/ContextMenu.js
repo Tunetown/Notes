@@ -80,9 +80,7 @@ class ContextMenu {
 			        	if (n.optionsIds.length != 1) return;
 			        	const id = n.optionsIds[0];
 			        	
-						NoteTree.getInstance().highlightDocument(id, !n.isMobile());	
-						//if (n.isMobile()) n.routing.call();
-						//NoteTree.getInstance().focus(n.optionsIds[0]);
+						NoteTree.getInstance().highlightDocument(id, !Device.getInstance().isLayoutMobile());	
 			        }),
 
 				// Relocate reference

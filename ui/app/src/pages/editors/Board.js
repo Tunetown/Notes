@@ -416,7 +416,7 @@ class Board {
 			
 			var itemWidth;
 			if (isCollapsed) itemWidth = 50;
-			else itemWidth = n.isMobile() ? mobileWidth : 300;  // TODO make last one adjustable
+			else itemWidth = Device.getInstance().isLayoutMobile() ? mobileWidth : 300;  // TODO make last one adjustable
 			boardWidth += itemWidth + 10;
 			
 			var boardCol = $('<div class="board-column" data-id="' + lists[l]._id + '"></div>');
@@ -516,7 +516,7 @@ class Board {
 				dragContainer: dragContainer[0],
 				dragStartPredicate: {
 					distance: 0,
-					delay: Notes.getInstance().isMobile() ? 200 : 0,  // Prevents false item moves on mobiles
+					delay: Device.getInstance().isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 				},
 				dragAutoScroll: {
 					targets: (item) => {
@@ -573,7 +573,7 @@ class Board {
 			dragHandle: '.board-column-header',
 			dragStartPredicate: {
 				distance: 50,
-				delay: Notes.getInstance().isMobile() ? 200 : 0,  // Prevents false item moves on mobiles
+				delay: Device.getInstance().isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 			},
 			dragAutoScroll: {
 				targets: (item) => {
@@ -854,7 +854,7 @@ class Board {
 		var n = Notes.getInstance();
 		
 		var txt = "";
-		if (doc) txt = doc.name + (n.isMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
+		if (doc) txt = doc.name + (Device.getInstance().isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
 
 		// Show loaded note in the header bar 
 		//var that = this;

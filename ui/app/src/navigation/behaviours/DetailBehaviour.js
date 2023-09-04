@@ -163,7 +163,7 @@ class DetailBehaviour {
 	 * Called after the back button in the app header has been pushed.
 	 */
 	appBackButtonPushed() {
-		if (Notes.getInstance().isMobile()) return;
+		if (Device.getInstance().isLayoutMobile()) return;
 		
 		if (this.history.canBack()) {
 			var h = this.history.back();
@@ -188,7 +188,7 @@ class DetailBehaviour {
 	 * Called after the forward button in the app header has been pushed.
 	 */
 	appForwardButtonPushed() {
-		if (Notes.getInstance().isMobile()) return;
+		if (Device.getInstance().isLayoutMobile()) return;
 		
 		if (this.history.canForward()) {
 			var h = this.history.forward();
@@ -305,11 +305,6 @@ class DetailBehaviour {
 	 * Called before the grid is initialized
 	 */
 	beforeInit() {
-		//if (Notes.getInstance().isMobile()) $('#treeBackButton').show();
-		//else $('#treeBackButton').hide();
-
-		//if (Notes.getInstance().isMobile()) $('#treeForwardButton').show();
-		//else $('#treeForwardButton').hide();
 		$('#treeBackButton').show();
 		$('#treeForwardButton').show();
 		
@@ -622,7 +617,7 @@ class DetailBehaviour {
 		var g = ClientState.getInstance().getLocalSettings();
 
 		if (g) {
-			if (Notes.getInstance().isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				if (g.detailItemHeightMobile) {
 					return parseFloat(g.detailItemHeightMobile);
 				}
@@ -1091,7 +1086,6 @@ class DetailBehaviour {
 	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
 		const n = Notes.getInstance();
 		const data = n.getData();
-		const mobile = n.isMobile();
 		
 		const selectedDoc = data.getById(this.selectedParent);
 		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
@@ -1826,8 +1820,8 @@ class DetailBehaviour {
 	}
 	
 	getDragMarkerClass() {
-		return Notes.getInstance().isMobile() ? this.getDragHandleClass() : this.getDragHandleMarkerClass();
-		//return Notes.getInstance().isMobile() ? this.getDragHandleMobileClass() : this.getDragHandleMarkerClass();
+		return Device.getInstance().isTouchAware() ? this.getDragHandleClass() : this.getDragHandleMarkerClass();
+		//return Device.getInstance().isTouchAware() ? this.getDragHandleMobileClass() : this.getDragHandleMarkerClass();
 	}
 	
 	getDragHandleMobileClass() {
@@ -2253,7 +2247,7 @@ class DetailBehaviour {
 		
 		if (!fromLinkage) {
 			// Open in editor when linked
-			if ((!Notes.getInstance().isMobile()) && (ClientState.getInstance().getLinkageMode('editor') == 'on')) {
+			if ((!Device.getInstance().isLayoutMobile()) && (ClientState.getInstance().getLinkageMode('editor') == 'on')) {
 				var currentId = this.grid.getCurrentlyShownId();
 				if (id && (currentId != id)) {
 					this.grid.openNodeByNavigation(id);
@@ -2461,7 +2455,7 @@ class DetailBehaviour {
 	}
 	
 	selectParentFromEvent(id, fromLinkage, noHistoryAdd) {
-		if (Notes.getInstance().isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			Notes.getInstance().routing.callProfileRootWithSelectedId(id);
 		} else {
 			this.selectParent(id, fromLinkage, noHistoryAdd);

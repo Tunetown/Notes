@@ -87,7 +87,7 @@ Config.CONTEXT_OPTIONS_YOFFSET = 30;
  * the bottom of the screen, not allowing the visible text to be too long.
  * 
  * On Desktops, always the full values are shown, this is only used 
- * if Notes.isMobile() is true.
+ * if Device.getInstance().isLayoutMobile() is true.
  */
 Config.MOBILE_MAX_SELECTOPTION_LENGTH = 40;
 

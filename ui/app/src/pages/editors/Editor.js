@@ -108,7 +108,7 @@ class Editor {
 			        });
 					editor.on('FullscreenStateChanged', function () {
 						// Get rid of mobile keyboard
-						if (Notes.getInstance().isMobile()) {
+						if (Device.getInstance().isTouchAware()) {
 							document.activeElement.blur();
 						}
 					});
@@ -190,7 +190,7 @@ class Editor {
 		var n = Notes.getInstance();
 		
 		var txt = "";
-		if (data) txt = data.name + (n.isMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
+		if (data) txt = data.name + (Device.getInstance().isLayoutMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
 
 		// Show loaded note in the header bar 
 		//var that = this;

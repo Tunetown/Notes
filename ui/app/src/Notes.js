@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.24';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.25';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -42,7 +42,7 @@ class Notes {
 		window.onerror = function errorHandler(msg, url, line, columnNo, error) {
 			// This is for mobile device debugging: On IOS, no JS errors are visible, so 
 			// we alert them here.
-			if (that.isMobile()) {
+			if (Device.getInstance().isTouchAware()) {
 				alert('Exception: ' + msg + ' in ' + url + ' line ' + line);
 			}
 			
@@ -63,19 +63,8 @@ class Notes {
 			cache: true
 		});
 		
-		// Reload or refresh page some milliseconds after resizing has stopped
-		this.currentMobileState = this.isReallyMobile();
-		window.onresize = function() {
-			if (that.resizeHandler) clearTimeout(that.resizeHandler);
-			that.resizeHandler = setTimeout(function() {
-				if (that.isReallyMobile() != that.currentMobileState) {
-					that.currentMobileState = that.isReallyMobile();
-					location.reload();
-				} else {
-					that.refresh();
-				}
-			}, 50);
-		}
+		// Init device handler
+		Device.getInstance().init();
 		
 		// Redirect console logging
 		Console.getInstance().init();
@@ -491,19 +480,6 @@ class Notes {
 	}
 		
 	/**
-	 * Disables the back swipe gesture. 
-	 * Taken from https://www.outsystems.com/forums/discussion/77514/disable-swipe-to-previous-screen-some-android-and-ios/
-	 *
-	disableBackSwipe() {
-		document.addEventListener('touchstart', function(e) {
-			var x = e.touches[0].pageX;
-			console.log(x);
-			if (x > 10 && x < window.innerWidth - 10) return;
-		    e.preventDefault();
-		}, { passive: false });
-	}
-	
-	/**
 	 * Load the DBs and start the app. This is called before any route and returns a promise,
 	 * after which the DB can be used.
 	 */
@@ -567,11 +543,6 @@ class Notes {
 		// Store URL as last loaded address
 		ClientState.getInstance().setLastOpenedUrl(location.href);
 		
-		// Disable back swiping for mobile devices
-		/*if (this.isMobile()) {
-			this.disableBackSwipe();
-		}*/
-				
 		// Initialize database instance with the user ID. This is started asynchronously. After the database(s)
 		// is/are up, the settings, notes tree and the last loaded note are requested independently.
 		return Database.getInstance().init()
@@ -721,7 +692,7 @@ class Notes {
 
 			NoteTree.getInstance().setupFooter();
 
-			if (this.isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				NoteTree.getInstance().refresh();
 			}
 		} else {
@@ -729,7 +700,7 @@ class Notes {
 
 			this.setupEditorFooter();
 
-			if (this.isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				$('#treenav').hide();
 				$('#editorNavButtons').show();
 				
@@ -737,7 +708,7 @@ class Notes {
 			}
 		}
 		
-		if (!this.isMobile()) {
+		if (!Device.getInstance().isLayoutMobile()) {
 			$('#backButton').show();
 			$('#forwardButton').show();
 		}
@@ -934,7 +905,7 @@ class Notes {
 			// Content
 			$('<section>').append([
 				// Navigation (grid)
-				this.isMobile() 
+				Device.getInstance().isLayoutMobile() 
 				? 
 				$('<nav id="treenav"></nav>') 
 				: 
@@ -1012,14 +983,14 @@ class Notes {
 				location.reload();
 			}),*/
 			
-			this.isMobile() ? $('<div id="footer"></div>') : null
+			Device.getInstance().isLayoutMobile() ? $('<div id="footer"></div>') : null
 		]);
 
 		// Also setup the navigation tree
 		NoteTree.getInstance().setupDom();
 	
 		addResizeListener($('#treenav')[0], function() {
-			if (that.isMobile()) return;
+			if (Device.getInstance().isLayoutMobile()) return;
 			
 			const newWidth = $('#treenav').outerWidth();
 			if (!newWidth) return;
@@ -1050,7 +1021,7 @@ class Notes {
 			.on('click', this.editorForwardButtonHandler),
 
 			// Home button used to navigate back to the tree root in mobile mode
-			this.isMobile() ? 
+			Device.getInstance().isLayoutMobile() ? 
 				$('<div id="homeButton2" class="footerButton fa fa-map" data-toggle="tooltip" title="Show this document in the navigation panel"></div>')
 				.on('click', this.editorNavButtonHandler)
 				:
@@ -1063,11 +1034,6 @@ class Notes {
 			.on('click', this.editorCreateButtonHandler),
 
 			// Presentation mode
-			!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") 
-			? 
-			$('<div id="favsButton2" class="footerButton fa fa-star" data-toggle="tooltip" title="Search favorites"></div>')
-			.on('click', this.editorFavoritesButtonHandler)
-			:			
 			$('<div id="presentationModeButton2" class="footerButton fa fa-play" data-toggle="tooltip" title="Show contents of this item in presentation mode"></div>')
 			.on('click', this.editorPresentationModeButtonHandler),
 			
@@ -1080,7 +1046,7 @@ class Notes {
 	toggleEditorLinkage() {
 		var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
 		
-		linkEditorMode = this.isMobile() ? 'off' : ((linkEditorMode == 'on') ? 'off' : 'on');
+		linkEditorMode = Device.getInstance().isLayoutMobile() ? 'off' : ((linkEditorMode == 'on') ? 'off' : 'on');
 		
 		ClientState.getInstance().setLinkageMode('editor', linkEditorMode);
 		
@@ -1110,7 +1076,7 @@ class Notes {
 		
 		var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
 		
-		$('#linkEditorButton').css('display', (this.isMobile() || (!t.supportsLinkEditorToNavigation()) || (!pageSupport)) ? 'none' : 'block');
+		$('#linkEditorButton').css('display', (Device.getInstance().isLayoutMobile() || (!t.supportsLinkEditorToNavigation()) || (!pageSupport)) ? 'none' : 'block');
 		$('#linkEditorButton').css('background-color', (linkEditorMode == 'on') ? '#c40cf7' : '#ffffff');
 		$('#linkEditorButton').css('color', (linkEditorMode == 'on') ? '#ffffff' : '#000000');
 		$('#linkEditorButton').attr('title', (linkEditorMode == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
@@ -1150,7 +1116,7 @@ class Notes {
 		NoteTree.getInstance().resetScrollPosition('all');
 		NoteTree.getInstance().focus("");
 		
-		if (this.isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			this.routing.call();			
 		}
 	}
@@ -1164,7 +1130,7 @@ class Notes {
 	 * Go back in browser history
 	 */
 	back() {
-		if (this.isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			this.browserBack();
 		} else {
 			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
@@ -1185,7 +1151,7 @@ class Notes {
 	 * Go forward in browser history
 	 */
 	forward() {
-		if (this.isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			this.browserForward();
 		} else {
 			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
@@ -1494,7 +1460,7 @@ class Notes {
 	getRoundedButtonSize() {
 		var g = ClientState.getInstance().getLocalSettings();
 		if (g) {
-			if (this.isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				if (g.optionTextSizeMobile) {
 					return parseFloat(g.optionTextSizeMobile);
 				}
@@ -1506,7 +1472,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? Config.defaultButtonSizeMobile : Config.defaultButtonSizeDesktop;
+		return Device.getInstance().isLayoutMobile() ? Config.defaultButtonSizeMobile : Config.defaultButtonSizeDesktop;
 	}
 	
 	/**
@@ -1527,7 +1493,7 @@ class Notes {
 	getHeaderSize() {
 		var g = ClientState.getInstance().getLocalSettings();
 		if (g) {
-			if (this.isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				if (g.headerSizeMobile) {
 					return parseFloat(g.headerSizeMobile);
 				}
@@ -1539,7 +1505,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? Config.defaultHeaderSizeMobile : Config.defaultHeaderSizeDesktop;
+		return Device.getInstance().isLayoutMobile() ? Config.defaultHeaderSizeMobile : Config.defaultHeaderSizeDesktop;
 	}
 	
 	/**
@@ -1548,7 +1514,7 @@ class Notes {
 	getFooterSize() {
 		var g = ClientState.getInstance().getLocalSettings();
 		if (g) {
-			if (this.isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				if (g.footerSizeMobile) {
 					return parseFloat(g.footerSizeMobile);
 				}
@@ -1560,7 +1526,7 @@ class Notes {
 		}
 		
 		// Default
-		return this.isMobile() ? Config.defaultFooterSizeMobile : Config.defaultFooterSizeDesktop;
+		return Device.getInstance().isLayoutMobile() ? Config.defaultFooterSizeMobile : Config.defaultFooterSizeDesktop;
 	}
 	
 	/**
@@ -1575,7 +1541,7 @@ class Notes {
 	 * Update the header CSS to its defined size.
 	 */
 	updateDimensions() {
-		const mobile = this.isMobile();
+		const mobile = Device.getInstance().isLayoutMobile();
 		const cp = this.getCurrentPage();
 		
 		const sectionFullscreen = cp && (typeof cp.shouldUseFullscreen == 'function') && cp.shouldUseFullscreen(); 
@@ -1668,7 +1634,7 @@ class Notes {
 		const pmButton = $('#presentationModeButton2');
 		if (pmButton) {
 			const isPlaying =  this.#isPresentationmodeActive();
-			
+
 			pmButton.toggleClass('fa-play', !isPlaying);
 			pmButton.toggleClass('fa-stop', isPlaying);
 		}
@@ -1680,7 +1646,7 @@ class Notes {
 	
 	#isPresentationmodeActive() {
 		const cp = this.getCurrentPage();
-		return cp && (typeof cp.presentationModeActive == 'function') && cp.presentationModeActive();
+		return !!(cp && (typeof cp.presentationModeActive == 'function') && cp.presentationModeActive());
 	}
 	
 	/**
@@ -1688,34 +1654,47 @@ class Notes {
 	 */
 	#animateDimensions() {
 		var that = Notes.getInstance();
-		var t = NoteTree.getInstance();
+		//var t = NoteTree.getInstance();
 				
 		const cp = that.getCurrentPage();
-		const hideAppElements = that.isMobile() && cp && (typeof cp.shouldShowAppElements == 'function') && !cp.shouldShowAppElements(); 
+		const hideAppElements = Device.getInstance().isLayoutMobile() && cp && (typeof cp.shouldShowAppElements == 'function') && !cp.shouldShowAppElements(); 
 
 		const hdrSize = that.getHeaderSize();
 		
-		const animationOptions = {
-			queue: false,
-			duration: Config.presentationModeAnimationTime
-		};
-		
-		const treeWidth = t.getContainerWidth();
+		//const treeWidth = t.getContainerWidth();
 		
 		const footer = $('#footer');
 		const header = $('header');
-		const nav = $('nav');
+		//const nav = $('nav');
 			
 		if (!hideAppElements) {			
-			header.animate({ top: '0px' }, animationOptions);
-			footer.animate({ bottom: '0px' }, animationOptions);
+			header.animate({ top: '0px' }, {
+				queue: false,
+				duration: Config.presentationModeAnimationTime
+			});
 			
-			//if (!that.isMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
+			footer.css('display', 'grid');
+			footer.animate({ bottom: '0px' }, {
+				queue: false,
+				duration: Config.presentationModeAnimationTime
+			});
+			
+			//if (!Device.getInstance().isLayoutMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
 		} else {
-			header.animate({ top: '-' + hdrSize + 'px' }, animationOptions);
-			footer.animate({ bottom: '-' + hdrSize + 'px' }, animationOptions);	
+			header.animate({ top: '-' + hdrSize + 'px' }, {
+				queue: false,
+				duration: Config.presentationModeAnimationTime
+			});
 			
-			//if (!that.isMobile()) nav.animate({ width: '0px' }, animationOptions);			
+			footer.animate({ bottom: '-' + hdrSize + 'px' }, {
+				queue: false,
+				duration: Config.presentationModeAnimationTime,
+				complete: function() {
+					footer.css('display', 'none');
+				}
+			});	
+			
+			//if (!Device.getInstance().isLayoutMobile()) nav.animate({ width: '0px' }, animationOptions);			
 		}
 	}
 	
@@ -1908,7 +1887,7 @@ class Notes {
 	 */
 	formatSelectOptionText(text) {
 		if (!text) return text;
-		if (this.isMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
+		if (Device.getInstance().isLayoutMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
 			return '...' + text.substring(text.length - Config.MOBILE_MAX_SELECTOPTION_LENGTH);
 		}
 		return text;
@@ -1971,7 +1950,7 @@ class Notes {
 		this.hideOptions();
 
 		// Focus
-		if (this.isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			$('#treenav').css('border', 'none');
 			$('#article').css('border', 'none');
 		} else {
@@ -2120,27 +2099,6 @@ class Notes {
 	}
 	
 	/**
-	 * Returns if we are on a small mobile device.
-	 */
-	isMobile() {
-		return this.currentMobileState;
-	}
-	
-	/**
-	 * Returns if we are on a small mobile device (unbuffered).
-	 */
-	isReallyMobile() {
-		var mode = ClientState.getInstance().getMobileOverride();
-		if (mode) {
-			if (mode == "mobile") return true;
-			if (mode == "desktop") return false;
-		}
-		
-		const vw = Math.max(document.documentElement.clientWidth || 0, window.innerWidth || 0)
-		return vw <= 800;
-	}
-	
-	/**
 	 * Alerting. If you pass a thread ID, all older messages with the same ID will be removed first.
 	 * Default type is "E". alwaysHideAtNewMessage can be used if you like to have the message disappearing whenever a new one comes in.
 	 * callbackFunction is optional and executed on clicking the message.
@@ -2263,7 +2221,7 @@ class Notes {
 		this.optionsIds = Tools.removeDuplicates(ids);
 		this.optionOptions = options;
 		
-		var x = (this.isMobile() ? pageX - $('#treebuttons').width() : pageX) + Config.CONTEXT_OPTIONS_XOFFSET;
+		var x = (Device.getInstance().isLayoutMobile() ? pageX - $('#treebuttons').width() : pageX) + Config.CONTEXT_OPTIONS_XOFFSET;
 		if (x < 0) x = 0;
 		
 		var y = pageY + Config.CONTEXT_OPTIONS_YOFFSET;

@@ -449,7 +449,7 @@ class LabelDefinitions {
 		var def = Document.getLabelDefinition(doc, id);
 		if (!def) return;
 		
-		if (Notes.getInstance().isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			Notes.getInstance().routing.call();
 		}
 		

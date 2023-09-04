@@ -614,7 +614,7 @@ class SettingsContent {
 						if (parseFloat(this.value) < Config.minHeaderSize || !parseFloat(this.value)) this.value = Config.minHeaderSize;
 						
 						var g = ClientState.getInstance().getLocalSettings();
-						if (n.isMobile()) {
+						if (Device.getInstance().isLayoutMobile()) {
 							g.headerSizeMobile = parseFloat(this.value);										
 						} else {
 							g.headerSizeDesktop = parseFloat(this.value);
@@ -634,7 +634,7 @@ class SettingsContent {
 						if (parseFloat(this.value) < Config.minButtonSize || !parseFloat(this.value)) this.value = Config.minButtonSize;
 						
 						var g = ClientState.getInstance().getLocalSettings();
-						if (n.isMobile()) {
+						if (Device.getInstance().isLayoutMobile()) {
 							g.optionTextSizeMobile = parseFloat(this.value);										
 						} else {
 							g.optionTextSizeDesktop = parseFloat(this.value);
@@ -659,7 +659,7 @@ class SettingsContent {
 						if (parseFloat(this.value) < Config.minFooterSize || !parseFloat(this.value)) this.value = Config.minFooterSize;
 						
 						var g = ClientState.getInstance().getLocalSettings();
-						if (n.isMobile()) {
+						if (Device.getInstance().isLayoutMobile()) {
 							g.footerSizeMobile = parseFloat(this.value);										
 						} else {
 							g.footerSizeDesktop = parseFloat(this.value);
@@ -793,7 +793,7 @@ class SettingsContent {
 		////////////////////////////////////////////////////////////////////////////////
 		
 		ret.rowsNavigationSettings = [
-			n.isMobile() ? null : $('<tr/>').append(
+			Device.getInstance().isLayoutMobile() ? null : $('<tr/>').append(
 				$('<td class="w-auto">Navigation Width</td>'),
 				$('<td colspan="2"/>').append(
 					$('<input type="text" value="' + NoteTree.getInstance().getContainerWidth() + '" />')
@@ -801,7 +801,7 @@ class SettingsContent {
 						if (!parseInt(this.value)) this.value = "";
 						if (parseInt(this.value) < 0) this.value = "";
 						
-						if (Notes.getInstance().isMobile()) return;
+						if (Device.getInstance().isLayoutMobile()) return;
 						
 						var state = ClientState.getInstance().getTreeState();
 						state.treeWidth = parseInt(this.value);
@@ -820,7 +820,7 @@ class SettingsContent {
 						if (parseFloat(this.value) < Config.minNavigationTextSize || !parseFloat(this.value)) this.value = Config.minNavigationTextSize;
 						
 						var g = ClientState.getInstance().getLocalSettings();
-						if (n.isMobile()) {
+						if (Device.getInstance().isLayoutMobile()) {
 							g.navTextSizeMobile = parseFloat(this.value);										
 						} else {
 							g.navTextSizeDesktop = parseFloat(this.value);
@@ -845,7 +845,7 @@ class SettingsContent {
 						if (parseFloat(this.value) < Config.minDetailNavigationItemHeight || !parseFloat(this.value)) this.value = Config.minDetailNavigationItemHeight;
 						
 						var g = ClientState.getInstance().getLocalSettings();
-						if (n.isMobile()) {
+						if (Device.getInstance().isLayoutMobile()) {
 							g.detailItemHeightMobile = parseFloat(this.value);										
 						} else {
 							g.detailItemHeightDesktop = parseFloat(this.value);
@@ -862,7 +862,7 @@ class SettingsContent {
 				),
 			),
 			
-			n.isMobile() ? null : $('<tr/>').append(
+			Device.getInstance().isTouchAware() ? null : $('<tr/>').append(
 				$('<td class="w-auto">Drag start delay time</td>'),
 				$('<td colspan="2"/>').append(
 					$('<input type="text" value="' + ClientState.getInstance().getViewSettings().dragDelayMillis + '" />')
@@ -886,7 +886,7 @@ class SettingsContent {
 						if (parseInt(this.value) < Config.minDetailNavigationAnimationDuration || !parseInt(this.value)) this.value = Config.minDetailNavigationAnimationDuration;
 						
 						var g = ClientState.getInstance().getLocalSettings();
-						if (n.isMobile()) {
+						if (Device.getInstance().isLayoutMobile()) {
 							g.navigationAnimationDurationMobile = parseInt(this.value);										
 						} else {
 							g.navigationAnimationDurationDesktop = parseInt(this.value);
@@ -996,7 +996,7 @@ class SettingsContent {
 			),
 			
 			$('<tr/>').append(
-				$('<td class="w-auto">Override View Mode</td>'),
+				$('<td class="w-auto">Override Layout Mode</td>'),
 				$('<td colspan="2" />').append(
 					$('<select></select>').append([
 						$('<option value="off">Off</option>'),
@@ -1010,6 +1010,27 @@ class SettingsContent {
 						
 						$(this).on('change', function(event) {
 							ClientState.getInstance().setMobileOverride($(this).val())
+							location.reload();
+						});
+					})
+				)
+			),
+			
+			$('<tr/>').append(
+				$('<td class="w-auto">Override Input Mode</td>'),
+				$('<td colspan="2" />').append(
+					$('<select></select>').append([
+						$('<option value="off">Off</option>'),
+						$('<option value="touch">Touch Input</option>'),
+						$('<option value="notouch">Mouse Input</option>'),
+					])
+					.each(function(i) {
+						var mode = ClientState.getInstance().getTouchAwareOverride();
+						if (!mode) mode = "off";
+						$(this).val(mode);
+						
+						$(this).on('change', function(event) {
+							ClientState.getInstance().setTouchAwareOverride($(this).val())
 							location.reload();
 						});
 					})
@@ -1149,28 +1170,6 @@ class SettingsContent {
 					})
 				)
 			),
-			
-			$('<tr/>').append(
-				$('<td class="w-auto">Enable Setlist Mode</td>'),
-				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled("SetlistMode") ? 'checked' : '') + ' />')
-					.each(function(i) {
-						var that = this;
-						setTimeout(function() {
-							new Switch(that, {
-								size: 'small',
-								onSwitchColor: '#337ab7',
-								disabled:  false,
-								onChange: function() {
-									ClientState.getInstance().enableExperimentalFunction("SetlistMode", !!this.getChecked());
-									location.reload();
-								}
-							});
-						}, 0);
-					})
-				)
-			),
-			
 			
 			/*$('<tr/>').append(
 				$('<td class="w-auto">Enable Undo/Redo</td>'),

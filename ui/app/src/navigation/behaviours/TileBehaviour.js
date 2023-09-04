@@ -955,7 +955,7 @@ class TileBehaviour {
 	 * Returns the base width to use internally
 	 */
 	getAvailableWidth() {
-		return this.grid.getContainerWidth() - (Notes.getInstance().isMobile() ? 1 : 20);  // Accounts for the scroll bar. TODO make pretty for all types of scroll bars? Very hard to get right
+		return this.grid.getContainerWidth() - (Device.getInstance().isLayoutMobile() ? 1 : 20);  // Accounts for the scroll bar. TODO make pretty for all types of scroll bars? Very hard to get right
 	}
 	
 	/**

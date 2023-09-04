@@ -54,6 +54,7 @@ class NoteTree {
 		this.updateLinkageButtons();
 
 		var n = Notes.getInstance();
+		var dev = Device.getInstance();
 		n.restoreEditorLinkage();
 
 		var ret = null;  // Promise to return
@@ -72,7 +73,7 @@ class NoteTree {
 				dragHandle: '.' + this.behaviour.getDragMarkerClass(),
 				contentClass: this.behaviour.getItemContentClass(),
 				moveIntoClass: this.behaviour.getMoveIntoClass(),
-				dragDelayMillis: n.isMobile() ? 0 : ClientState.getInstance().getViewSettings().dragDelayMillis,
+				dragDelayMillis: dev.isTouchAware() ? 0 : ClientState.getInstance().getViewSettings().dragDelayMillis,
 				scoreMatchingThreshold: this.behaviour.getScoreMatchingThreshold(),
 				
 				autoScrollTargets: {
@@ -333,7 +334,7 @@ class NoteTree {
 		var favSize = c.getViewSettings().favoritesSize;
 
 		const teaserWidth = Config.favoritesTeaserWidth;   // Width of the teasers
-		const margin = n.isMobile() ? Config.favoritesMarginMobile : Config.favoritesMarginDesktop;
+		const margin = Device.getInstance().isLayoutMobile() ? Config.favoritesMarginMobile : Config.favoritesMarginDesktop;
 		var leftTeaser = $('<div class="navteaser beforeFavScrollTeaser"></div>')
 			.css('height', (favSize + margin) + 'px')
 			.css('width', teaserWidth);
@@ -788,6 +789,7 @@ class NoteTree {
 	 */
 	commonButtonHandler(event) {
 		event.stopPropagation();
+		
 		const n = Notes.getInstance();
 		n.hideOptions();
 		n.setFocus(Notes.FOCUS_ID_NAVIGATION);
@@ -831,6 +833,14 @@ class NoteTree {
 			//that.unblock();
 			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		});
+	}
+	
+	searchNotebookHandler(event) {
+		var that = NoteTree.getInstance();
+		that.commonButtonHandler(event);
+
+		that.resetScrollPosition(that.getFocusedId());
+		$('#treeSearch').focus();
 	}
 	
 	favoritesHandler(event) {
@@ -950,7 +960,7 @@ class NoteTree {
 				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
 			
-			n.isMobile() ? null : $('<div id="footer"></div>'),
+			Device.getInstance().isLayoutMobile() ? null : $('<div id="footer"></div>'),
 			
 			/*
 			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
@@ -1167,23 +1177,10 @@ class NoteTree {
 			$('<div class="fa fa-plus footerButton" data-toggle="tooltip" title="Create new item"></div>')
 				.on('click', this.createHandler),
 				
-			// Presentation mode
-			//!ClientState.getInstance().experimentalFunctionEnabled("SetlistMode")
-			//? 
-			$('<div class="fa fa-star footerButton" data-toggle="tooltip" title="Search favorites"></div>')
-			.on('click', this.favoritesHandler) 
-			//:
-			//$('<div class="fa fa-play footerButton" id="presentationModeButton" ></div>')
-			//.on('click', this.presentationModeHandler),
-			
-			/*$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog footerButton" id="treeSettingsButton"></div>')
-				.on('click', this.settingsHandler),
-				/*.append(
-					$('<div id="treeSettingsPanel"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-					})
-				),*/
+			// Search
+			$('<div class="fa fa-search footerButton" data-toggle="tooltip" title="Search notebook"></div>')
+			.on('click', this.searchNotebookHandler) 
+			//.on('click', this.favoritesHandler) 
 			
 			// Link navigation to editor Button
 			/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
@@ -1213,7 +1210,7 @@ class NoteTree {
 	}
 	
 	updateLinkageButtons() {
-		if (Notes.getInstance().isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			$('#treeLinkButton').css('display', 'none');
 			return;
 		}
@@ -1306,7 +1303,7 @@ class NoteTree {
 		this.lastOpenedLinkTarget = false;
 		
 		// Focus if linked
-		/*if (Notes.getInstance().isMobile()) {
+		/*if (Device.getInstance().isLayoutMobile()) {
 			var doc = Notes.getInstance().getData().getById(id);
 			if (doc) {
 				this.focus(doc.parent, true);
@@ -1395,7 +1392,7 @@ class NoteTree {
 		if (doShow) {
 			const n = Notes.getInstance();
 			
-			$('#treeSettingsPanel').css('bottom', n.isMobile() ? '8px' : ((n.getRoundedButtonSize() * 2 + 30) + 'px'));
+			$('#treeSettingsPanel').css('bottom', Device.getInstance().isLayoutMobile() ? '8px' : ((n.getRoundedButtonSize() * 2 + 30) + 'px'));
 		}
 	}
 	
@@ -1678,7 +1675,7 @@ class NoteTree {
 	getTreeTextSize() {
 		var g = ClientState.getInstance().getLocalSettings();
 		if (g) {
-			if (Notes.getInstance().isMobile()) {
+			if (Device.getInstance().isLayoutMobile()) {
 				if (g.navTextSizeMobile) {
 					return parseFloat(g.navTextSizeMobile);
 				}
@@ -1690,7 +1687,7 @@ class NoteTree {
 		}
 		
 		// Default
-		return Notes.getInstance().isMobile() ? Config.defaultNavigationTextSizeMobile : Config.defaultNavigationTextSizeDesktop;
+		return Device.getInstance().isLayoutMobile() ? Config.defaultNavigationTextSizeMobile : Config.defaultNavigationTextSizeDesktop;
 	}
 	
 	/**
@@ -1950,7 +1947,7 @@ class NoteTree {
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
 					
-					if (n.isMobile()) that.refreshColors();
+					if (Device.getInstance().isLayoutMobile()) that.refreshColors();
 					//that.behaviour.restoreScrollPosition();
 					//console.log("Stop Filter")
 					resolve();
@@ -1962,7 +1959,7 @@ class NoteTree {
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
 					
-					if (n.isMobile()) that.refreshColors();
+					if (Device.getInstance().isLayoutMobile()) that.refreshColors();
 					//that.behaviour.restoreScrollPosition();
 					//console.log("Stop Filter")
 					resolve();

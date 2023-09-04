@@ -313,6 +313,23 @@ class ClientState {
 	}
 	
 	/**
+	 * Returns the mobile override mode.
+	 */
+	getTouchAwareOverride() {
+		var ret = this.getLocal(this.cidMobileOverride, true);
+		return ret.overridetouch;
+	}
+	
+	/**
+	 * Saves the passed mobile override mode. Values: 'touch' or 'notouch'
+	 */
+	setTouchAwareOverride(mode) {
+		this.setLocal(this.cidMobileOverride, {
+			overridetouch: mode
+		}, true);
+	}
+	
+	/**
 	 * Returns the URL of the last loaded page, or false if disabled.
 	 */
 	getLastOpenedUrl() {
@@ -495,7 +512,6 @@ class ClientState {
 		var state = this.getLocal(this.getTreeStateCid());
 		
 		t.behaviour.saveState(state);
-		//state.treeWidth = n.isMobile() ? state.treeWidth : ((t.getContainerWidth() > 100) ? t.getContainerWidth() : state.treeWidth);
 		
 		this.setLocal(this.getTreeStateCid(), state);
 	}
@@ -514,13 +530,13 @@ class ClientState {
 		var n = Notes.getInstance();
 		var t = NoteTree.getInstance();
 		
-		var state = this.getTreeState(); //this.getLocal(this.getTreeStateCid());
+		var state = this.getTreeState();
 	
 		// Behaviour specific fields
 		t.behaviour.restoreState(state);
 
 		// Tree width
-		if (!n.isMobile()) {
+		if (!Device.getInstance().isLayoutMobile()) {
 			t.setContainerWidth(state.treeWidth);				
 		}		
 	}
@@ -532,7 +548,7 @@ class ClientState {
 		var state = this.getLocal(this.getTreeStateCid());
 	
 		if (!state.treeWidth) {
-			state.treeWidth = Config.defaultTreeWidth; //n.isMobile() ? state.treeWidth : ((t.getContainerWidth() > 100) ? t.getContainerWidth() : state.treeWidth);
+			state.treeWidth = Config.defaultTreeWidth;
 		}
 		
 		return state;

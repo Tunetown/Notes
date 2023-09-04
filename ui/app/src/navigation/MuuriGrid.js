@@ -38,10 +38,10 @@ class MuuriGrid {
 	
 	static getAnimationDuration() {
 		var g = ClientState.getInstance().getLocalSettings();
-		const n = Notes.getInstance();
+		const dev = Device.getInstance();
 		
 		if (g) {
-			if (n.isMobile()) {
+			if (dev.isTouchAware()) {
 				if (g.navigationAnimationDurationMobile) {
 					return parseInt(g.navigationAnimationDurationMobile);
 				}
@@ -53,7 +53,7 @@ class MuuriGrid {
 		}
 		
 		// Default
-		return n.isMobile() ? Config.defaultDetailNavigationAnimationDurationMobile : Config.defaultDetailNavigationAnimationDurationDesktop;
+		return dev.isTouchAware() ? Config.defaultDetailNavigationAnimationDurationMobile : Config.defaultDetailNavigationAnimationDurationDesktop;
 	}
 	
 	/**

@@ -26,7 +26,7 @@ class PageMenu {
 		
 		if (!options) options = {};
 		
-		if (n.isMobile()) options.noOpenInNavigation = true;
+		if (Device.getInstance().isLayoutMobile()) options.noOpenInNavigation = true;
 		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;
 		
 		var openedDoc = n.getData().getById(editor.getCurrentId());
@@ -260,7 +260,7 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				NoteTree.getInstance().highlightDocument(editor.getCurrentId(), !n.isMobile());
+				NoteTree.getInstance().highlightDocument(editor.getCurrentId(), !Device.getInstance().isLayoutMobile());
 				
 				//NoteTree.getInstance().focus(editor.getCurrentId());				
 				//n.routing.call(editor.getCurrentId());

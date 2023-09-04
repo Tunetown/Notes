@@ -31,6 +31,8 @@ class Setlist {
 		this.pages = null;
 		this.contentSize = null;
 		
+		$(document).off('keydown', this.keyboardHandler);
+		
 		WakeLock.getInstance().release()
 		.catch(function(err) {
 			console.log(err);
@@ -46,7 +48,7 @@ class Setlist {
 	}	
 	
 	shouldUseFullscreen() {
-		return Notes.getInstance().isMobile();
+		return Device.getInstance().isLayoutMobile();
 	}
 	
 	shouldShowAppElements() {
@@ -74,6 +76,8 @@ class Setlist {
 
 		// Acquire wake lock
 		this.#activateWakeLock();
+		
+		$(document).on('keydown', this.keyboardHandler);
 		
 		// Build buttons
 		n.setButtons([ 
@@ -105,6 +109,88 @@ class Setlist {
 		.catch(function(err) {
 			n.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
+	}
+	
+	/**
+	 * Keyboard events
+	 */
+	keyboardHandler(event) {
+		var that = Setlist.getInstance();
+		
+		if (!that.current) return;
+
+		// Left arrow key
+		if (event.which == 37) {
+			that.#previous();
+		}
+
+		// Right arrow key
+		if (event.which == 39) {
+			that.#next();
+		}
+
+		// Up arrow key
+		if (event.which == 38) {
+			that.#previous();
+		}
+
+		// Down arrow key
+		if (event.which == 40) {
+			that.#next();
+		}
+
+		// Page up key
+		if (event.which == 33) {
+			that.#previous();
+		}
+
+		// Page down key
+		if (event.which == 34) {
+			that.#next();
+		}
+
+		// a key
+		if (event.which == 65) {
+			that.#previous();
+		}
+
+		// d key
+		if (event.which == 68) {
+			that.#next();
+		}
+
+		// w key
+		if (event.which == 87) {
+			that.#previous();
+		}
+
+		// s key
+		if (event.which == 83) {
+			that.#next();
+		}
+
+		// Space bar
+		if (event.which == 32) {
+			that.#next();
+		}
+		
+		// Pos 1 key
+		if (event.which == 36) {
+			that.hideOptions();
+					
+			that.toggleShowAppElements(false);
+			that.setCurrentIndex(0);
+		}
+
+		// End key
+		if (event.which == 35) {
+			that.hideOptions();
+					
+			that.toggleShowAppElements(false);
+			that.setCurrentIndex(that.pages.length - 1);
+		}
+
+		//console.log(event.which);
 	}
 	
 	/**
@@ -203,27 +289,27 @@ class Setlist {
 				return doc2;
 			}
 			
-			// Check if there is content
-			if ((doc2.type == 'note') && !doc2.contentSize) {
-				// No content: Scan children
+			// Check if we have to look for a contained PDF
+			if ((doc2.type == 'note')) { //} && !doc2.contentSize) {
+				// Scan children
 				const edChildren = NoteTree.getInstance().getRelatedDocuments(doc2._id, relatedDocsOptions);
 				
 				// Check for an attachment first
-				var found = false; 
+				//var found = false; 
 				for(var c in edChildren) {
 					var edchild = edChildren[c];
 					
 					if (edchild.type == 'attachment') {
-						console.log('Resolved ' + doc2.name + ' to first attachment');
+						//console.log('Resolved ' + doc2.name + ' to first attachment');
 
 						doc2 = edchild;
-						found = true;
+						//found = true;
 						
 						break;
 					}
 				}
 				
-				if (!found) {
+				/*if (!found) {
 					// Scan for filled notes if no attachment has been found
 					found = false;
 					
@@ -231,7 +317,7 @@ class Setlist {
 						var edchild = edChildren[c];
 						
 						if ((edchild.type == 'note') && (edchild.contentSize)) {
-							console.log('Resolved ' + doc2.name + ' to first filled child note');
+							//console.log('Resolved ' + doc2.name + ' to first filled child note');
 
 							doc2 = edchild;
 							found = true;
@@ -239,7 +325,7 @@ class Setlist {
 							break;
 						}
 					}
-				}
+				}*/
 			}
 			
 			return doc2;
@@ -301,9 +387,9 @@ class Setlist {
 								
 							} else 
 							if (meta[mindex].doc.content_type && meta[mindex].doc.content_type == 'application/pdf') {
-								pdfjsLib.getDocument({
+								var loadingTask = pdfjsLib.getDocument({
 									url: data.url,
-									ignoreErrors: true
+									stopAtErrors: true
 								}).promise
 								.then(function(pdf) {
 									meta[mindex].pdf = pdf;
@@ -408,6 +494,7 @@ class Setlist {
 	#buildContent(containerElement) {
 		var n = Notes.getInstance();
 		var d = n.getData();
+		var dev = Device.getInstance();
 		
 		containerElement.empty();
 		
@@ -447,7 +534,7 @@ class Setlist {
 				that.toggleShowAppElements(!that.shouldShowAppElements());
 			})
 			.on('touchstart', function(e) {
-				if (!n.isMobile()) return;
+				if (!dev.isTouchAware()) return;
 				
 				e.stopPropagation();
 				
@@ -460,7 +547,7 @@ class Setlist {
 				
 			})
 			.on('touchmove', function(e) {
-				if (!n.isMobile()) return;
+				if (!dev.isTouchAware()) return;
 				
 				e.stopPropagation();
 				
@@ -470,7 +557,7 @@ class Setlist {
 				that.content.css('left', that.dragStartLeft + that.dragDeltaX);
 			})
 			.on('touchend', function(e) {
-				if (!n.isMobile()) return;
+				if (!dev.isTouchAware()) return;
 				
 				e.stopPropagation();
 				
@@ -494,7 +581,7 @@ class Setlist {
 				$('<div id="presentationModeInfoLeft" />'),
 				$('<div id="presentationModeInfoMiddle" />')
 				.on('click', function(e) {
-					if (!n.isMobile()) return;
+					if (!dev.isTouchAware()) return;
 					
 					e.stopPropagation();
 					
@@ -511,22 +598,30 @@ class Setlist {
 				.on('click', function(e) {
 					e.stopPropagation();
 					
-					that.hideOptions();
-					
-					that.toggleShowAppElements(false);
-					that.selectPrevious();
+					that.#previous();
 				}),
 				$('<div id="presentationModeOverlayRight" data-toggle="tooltip" title="Go to next Document"/>')
 				.on('click', function(e) {
 					e.stopPropagation();
 
-					that.hideOptions();
-					
-					that.toggleShowAppElements(false);
-					that.selectNext();
+					that.#next();
 				}),
 			),
 		);
+	}
+	
+	#previous() {
+		this.hideOptions();
+					
+		this.toggleShowAppElements(false);
+		this.selectPrevious();
+	}
+	
+	#next() {
+		this.hideOptions();
+					
+		this.toggleShowAppElements(false);
+		this.selectNext();
 	}
 	
 	/**
@@ -726,7 +821,7 @@ class Setlist {
 	 * Udate click overlay properties
 	 */
 	#updateClickOverlays() {	
-		if (!Notes.getInstance().isMobile()) {
+		if (!Device.getInstance().isLayoutMobile()) {
 			const leftEl = $('#presentationModeOverlayLeft');
 			const rightEl = $('#presentationModeOverlayRight');
 

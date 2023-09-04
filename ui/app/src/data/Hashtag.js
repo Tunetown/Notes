@@ -208,7 +208,7 @@ class Hashtag {
 		
 		tag = Hashtag.trim(tag.toLowerCase());
 		
-		if (n.isMobile()) {
+		if (Device.getInstance().isLayoutMobile()) {
 			n.routing.callSearch('tag:' + tag);
 		} else {
 			NoteTree.getInstance().setSearchText('tag:' + tag);
