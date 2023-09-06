@@ -270,11 +270,4 @@ class AttachmentPreviewJS {
 			);
 		});
 	}
-	
-	/**
-	 * Check basic property correctness
-	 */
-	static checkBasicProps(doc, errors) {
-		AttachmentPreview.checkBasicProps(doc, errors);
-	}
 }

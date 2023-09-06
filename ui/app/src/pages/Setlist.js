@@ -34,10 +34,7 @@ class Setlist {
 		$(document).off('keydown', this.keyboardHandler);
 		
 		WakeLock.getInstance().release()
-		.catch(function(err) {
-			console.log(err);
-			//Notes.getInstance().showAlert(err.message ? err.message : 'Error releasing wake lock', 'E');
-		});
+		.catch(function(){});
 	}
 
 	/**
@@ -48,7 +45,7 @@ class Setlist {
 	}	
 	
 	shouldUseFullscreen() {
-		return Device.getInstance().isLayoutMobile();
+		return true; //Device.getInstance().isLayoutMobile();
 	}
 	
 	shouldShowAppElements() {
@@ -194,19 +191,34 @@ class Setlist {
 	}
 	
 	/**
-	 * Triggers the activation of a wake lock
+	 * Triggers the activation of a wake lock. If successMsg is set, the user will
+	 * be informed if the operation succeeded.
 	 */
 	#activateWakeLock() {
 		setTimeout(function() {
-			WakeLock.getInstance().lock()
-			.catch(function(err) {
-				if (err.notSupported) {
-					Notes.getInstance().showAlert('Warning: This device does not support staying awake.', 'W');	
-					
-				} else {
-					Notes.getInstance().showAlert(err.message ? err.message : 'Error activating wake lock', 'E');	
-				}
-			});
+			function activate(successMsg) {
+				WakeLock.getInstance().lock()
+				.then(function() {
+					if (successMsg) {
+						Notes.getInstance().showAlert('Display locked successfully.', 'S', "WakeLockMessages");
+					}
+				})
+				.catch(function(err) {
+					if (err.notSupported) {
+						Notes.getInstance().showAlert('Warning: This device does not support locking the screen.<br>The device may fall asleep.', 'W', "WakeLockMessages");	
+						
+					} else {
+						Notes.getInstance().showAlert('Error locking the screen.<br><b>Click here to retry...</b>', 'E', "WakeLockMessages", false, function() {
+							// Retry manually
+							activate(true);
+						});
+					}
+				});				
+			}
+			
+			WakeLock.getInstance().release()
+			.then(activate)
+			.catch(activate);
 			
 		}, Config.presentationModeWakeLockDelay);
 	}
@@ -777,7 +789,14 @@ class Setlist {
 	toggleShowAppElements(show) {
 		this.showAppElements = show;
 		
-		Notes.getInstance().updateDimensions();
+		var n = Notes.getInstance();
+		
+		if (!show) {
+			n.toggleShowNavigation(false);
+		} else {			
+			n.updateDimensions();
+		}
+		
 	}
 	
 	/**
@@ -821,7 +840,7 @@ class Setlist {
 	 * Udate click overlay properties
 	 */
 	#updateClickOverlays() {	
-		if (!Device.getInstance().isLayoutMobile()) {
+		if (!Device.getInstance().isLayoutMobile() && (Device.getInstance().getOrientation() != Device.ORIENTATION_PORTRAIT)) {
 			const leftEl = $('#presentationModeOverlayLeft');
 			const rightEl = $('#presentationModeOverlayRight');
 

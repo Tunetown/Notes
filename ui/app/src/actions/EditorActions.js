@@ -66,7 +66,8 @@ class EditorActions {
 				if (vs.useNativePdfViewer) {
 					return AttachmentPreview.getInstance().load(doc, url);					
 				} else {
-					return AttachmentPreviewJS.getInstance().load(doc, url);
+					//return AttachmentPreviewJS.getInstance().load(doc, url);
+					return AttachmentPreviewPDFium.getInstance().load(doc, url, data);
 				}
 			})
 			.then(function() {

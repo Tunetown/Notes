@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.25';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.29';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -659,6 +659,7 @@ class Notes {
 		}
 		AttachmentPreview.getInstance().unload();
 		AttachmentPreviewJS.getInstance().unload();
+		AttachmentPreviewPDFium.getInstance().unload();
 		Setlist.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
 		Versions.getInstance().unload();
@@ -682,6 +683,8 @@ class Notes {
 		$('#backButton').hide();
 		$('#editorNavButtons').hide();
 		$('#forwardButton').hide();
+		
+		//$('#showNavButton').hide();
 
 		$('#editor').hide();
 		$('#console').hide();
@@ -740,7 +743,18 @@ class Notes {
 	
 	editorHomeButtonHandler(e) {
 		e.stopPropagation();
-		Notes.getInstance().home();
+		
+		var that = Notes.getInstance();
+		/*
+		
+		if (that.#isPresentationmodeActive()) {
+			var id = Setlist.getInstance().getCurrentId();
+			if (id) {
+				that.routing.call(id);			
+			}
+		}*/
+			
+		that.home();
 	}
 	
 	editorNavButtonHandler(e) {
@@ -749,8 +763,22 @@ class Notes {
 		var that = Notes.getInstance();
 		var tree = NoteTree.getInstance();
 		
-		var id = that.getCurrentlyShownId();
-		tree.highlightDocument(id);
+		/*if (that.#isPresentationmodeActive()) {
+			var pid = Setlist.getInstance().getCurrentId();
+			if (pid) {
+				that.routing.call(pid);			
+			}
+		}*/
+		
+		const mobile = Device.getInstance().isLayoutMobile();
+		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+
+		if (upright) {
+			that.toggleShowNavigation(true);
+		} else {
+			var id = that.getCurrentlyShownId();
+			tree.highlightDocument(id);	
+		}
 	}
 	
 	editorLinkageButtonHandler(e) {
@@ -927,6 +955,9 @@ class Notes {
 				.on('click', function(event) {
 					that.setFocus(Notes.FOCUS_ID_EDITOR);
 				})
+				.on('touchstart', function(event) {
+					that.setFocus(Notes.FOCUS_ID_EDITOR);
+				})
 			]),
 			
 			// Header
@@ -934,6 +965,12 @@ class Notes {
 				$('<div id="progressBar"></div>'),
 				
 				$('<span id="headerLeft" />').append([
+					/*$('<span id="showNavButton" data-toggle="tooltip" title="Show/hide navigation panel" class="fa fa-bars headerButtonLeft headerElementLeft" />')
+					.on('click', function(e) {
+						e.stopPropagation();
+						that.toggleShowNavigation(!that.showNavigationInUprightMode);
+					}),*/
+
 					$('<span id="backButton" data-toggle="tooltip" title="Back" class="fa fa-chevron-left headerButtonLeft headerElementLeft" />')
 					.on('click', function(e) {
 						e.stopPropagation();
@@ -983,14 +1020,17 @@ class Notes {
 				location.reload();
 			}),*/
 			
-			Device.getInstance().isLayoutMobile() ? $('<div id="footer"></div>') : null
+			//Device.getInstance().isLayoutMobile() ? $('<div id="footer"></div>') : null
+			$('<div id="editorFooter" class="footer"></div>')
 		]);
 
 		// Also setup the navigation tree
 		NoteTree.getInstance().setupDom();
 	
-		addResizeListener($('#treenav')[0], function() {
+		addResizeListener($('#treenav')[0], function(/*event*/) {
 			if (Device.getInstance().isLayoutMobile()) return;
+			//if (that.isNavigationAnimating) return;
+			//if ((Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT) && !that.showNavigationInUprightMode) return;
 			
 			const newWidth = $('#treenav').outerWidth();
 			if (!newWidth) return;
@@ -1021,13 +1061,19 @@ class Notes {
 			.on('click', this.editorForwardButtonHandler),
 
 			// Home button used to navigate back to the tree root in mobile mode
-			Device.getInstance().isLayoutMobile() ? 
+			/*Device.getInstance().isLayoutMobile() ? 
 				$('<div id="homeButton2" class="footerButton fa fa-map" data-toggle="tooltip" title="Show this document in the navigation panel"></div>')
 				.on('click', this.editorNavButtonHandler)
 				:
 				$('<div id="homeButton2" class="footerButton fa fa-home" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
 				.on('click', this.editorHomeButtonHandler),
-				,
+			,*/
+			
+			$('<div id="navButton2" class="footerButton fa fa-map" data-toggle="tooltip" title="Show this document in the navigation panel"></div>')
+			.on('click', this.editorNavButtonHandler),
+				
+			$('<div id="homeButton2" class="footerButton fa fa-home" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
+			.on('click', this.editorHomeButtonHandler),
 
 			// Create note
 			$('<div id="createButton2" class="footerButton fa fa-plus" data-toggle="tooltip" title="Create new item"></div>')
@@ -1038,6 +1084,20 @@ class Notes {
 			.on('click', this.editorPresentationModeButtonHandler),
 			
 		]);
+	}
+	
+	/**
+	 * In upright mode, this toggles showing/hiding the navigation panel.
+	 */
+	toggleShowNavigation(show) {
+		this.showNavigationInUprightMode = show;
+		
+		this.update();
+		
+		setTimeout(function() {
+			NoteTree.getInstance().filter();
+			
+		}, Config.presentationModeAnimationTime + 2);
 	}
 	
 	/**
@@ -1105,6 +1165,8 @@ class Notes {
 	 */
 	setFocus(id) {
 		this.focusId = id;
+
+		if (id == Notes.FOCUS_ID_EDITOR) this.toggleShowNavigation(false);
 
 		this.update();
 	}
@@ -1533,8 +1595,35 @@ class Notes {
 	 * Adds the passed element(s) to the footer after clearing it. elements may be an element or a list of elements.
 	 */
 	setFooterContent(elements) {
-		$('#footer').empty();
-		if (elements) $('#footer').append(elements);
+		this.#clearFooters();
+		if (elements) this.#getFooter().append(elements);
+	}
+	
+	/**
+	 * Clear all footers.
+	 */
+	#clearFooters() {
+		$('#editorFooter').empty();
+		$('#navFooter').empty();
+	}
+	
+	/**
+	 * Returns the current footer element.
+	 */
+	#getFooter() {
+		const mobile = Device.getInstance().isLayoutMobile();
+		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+
+		return (mobile || upright) ? $('#editorFooter') : $('#navFooter');  
+	}
+	
+	#updateFooterVisibility() {
+		const mobile = Device.getInstance().isLayoutMobile();
+		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+
+		
+		$('#editorFooter').css('display', (mobile || upright) ? 'grid' : 'none');
+		$('#navFooter').css('display', (mobile || upright) ? 'none' : 'grid');
 	}
 	
 	/**
@@ -1542,35 +1631,51 @@ class Notes {
 	 */
 	updateDimensions() {
 		const mobile = Device.getInstance().isLayoutMobile();
+		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
 		const cp = this.getCurrentPage();
 		
-		const sectionFullscreen = cp && (typeof cp.shouldUseFullscreen == 'function') && cp.shouldUseFullscreen(); 
+		const sectionFullscreen = (mobile || upright) && cp && (typeof cp.shouldUseFullscreen == 'function') && cp.shouldUseFullscreen(); 
 
 		const hdrSize = this.getHeaderSize();
 		const ftrSize = this.getFooterSize();
 		const winWidth = $(window).width();
 		const winHeight = $(window).height();
+		const sectionHeight = (winHeight - (sectionFullscreen ? 0 : (hdrSize + ((mobile || upright) ? ftrSize : 0))));
 
 		// Common containers: All content
 		$('#all').css('height', winHeight + 'px');
 		
-		// Content area (Editors and nav)
+		// Middle area (Nav and Content)
 		const section = $('section');
 		section.css('top', (sectionFullscreen ? 0 : hdrSize) + 'px');   
-		section.css('height', (winHeight - (sectionFullscreen ? 0 : (hdrSize + (mobile ? ftrSize : 0)))) + 'px');
+		section.css('height', sectionHeight + 'px');
 		section.css('flex-direction', mobile ? 'column' : 'row');			
 
 		// Navigation area
 		const nav = $('nav');
 		if (nav) {
-			const navHeight = sectionFullscreen ? winHeight : (winHeight - hdrSize - (mobile ? ftrSize : 0));
-			nav.css('height', navHeight + 'px');
+			const navHeight = (winHeight - hdrSize - ((mobile || upright) ? ftrSize : 0));
+			//const navHeight = sectionFullscreen ? winHeight : (winHeight - hdrSize - (mobile ? ftrSize : 0));
+			//nav.css('height', navHeight + 'px');
+			nav.css('height', mobile ? '100%' : (navHeight + 'px'));
+
 			nav.css('min-height', navHeight + 'px');
 			nav.css('max-height', navHeight + 'px');			
 
 			nav.css('flex', mobile ? 2 : 'none');
-			nav.css('height', mobile ? '100%' : '');
-			nav.css('resize', mobile ? '' : 'horizontal');			
+			nav.css('resize', mobile ? '' : 'horizontal');
+			
+			nav.toggleClass('navFloating', !upright);			
+			nav.toggleClass('navFixed', upright);			
+		}
+		
+		// Content area
+		const article = $('article');
+		if (article) {
+			article.toggleClass('articleFloating', !upright);			
+			article.toggleClass('articleFixed', upright);
+			article.css('width', upright ? (winWidth + 'px') : '');
+			article.css('height', upright ? (sectionHeight + 'px') : '');
 		}
 
 		const navContainer = $('#treeContainer');
@@ -1582,7 +1687,8 @@ class Notes {
 		}			
 		
 		// Footer
-		const footer = $('#footer');
+		this.#updateFooterVisibility();
+		const footer = this.#getFooter(); //$('#footer');
 		if (footer) {
 			footer.css('display', 'grid'); 
 			footer.css('height', ftrSize + 'px');
@@ -1638,6 +1744,17 @@ class Notes {
 			pmButton.toggleClass('fa-play', !isPlaying);
 			pmButton.toggleClass('fa-stop', isPlaying);
 		}
+		
+		/*const headerShowNavButton = $('#showNavButton');
+		if (upright) {
+			headerShowNavButton.show();
+		} else {
+			headerShowNavButton.hide();
+		}*/
+		
+		const showFooterNavButton = (mobile || (upright && !this.showNavigationInUprightMode));
+		$('#navButton2').css('display', showFooterNavButton ? 'block' : 'none');
+		$('#homeButton2').css('display', showFooterNavButton ? 'none' : 'block');
 
 		// Animated stuff		
 		clearTimeout(this.#animateDimensions);
@@ -1654,19 +1771,23 @@ class Notes {
 	 */
 	#animateDimensions() {
 		var that = Notes.getInstance();
-		//var t = NoteTree.getInstance();
+		var t = NoteTree.getInstance();
 				
+		const mobile = Device.getInstance().isLayoutMobile();
+		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+
 		const cp = that.getCurrentPage();
-		const hideAppElements = Device.getInstance().isLayoutMobile() && cp && (typeof cp.shouldShowAppElements == 'function') && !cp.shouldShowAppElements(); 
+		const hideAppElements = (mobile || upright) && cp && (typeof cp.shouldShowAppElements == 'function') && !cp.shouldShowAppElements(); 
 
 		const hdrSize = that.getHeaderSize();
 		
-		//const treeWidth = t.getContainerWidth();
+		const treeWidth = t.getContainerWidth();
 		
-		const footer = $('#footer');
+		const footer = that.#getFooter(); //$('#footer');
 		const header = $('header');
-		//const nav = $('nav');
+		const nav = $('nav');
 			
+		// Show/Hide header and footer (presentation/Setlist mode)
 		if (!hideAppElements) {			
 			header.animate({ top: '0px' }, {
 				queue: false,
@@ -1679,7 +1800,6 @@ class Notes {
 				duration: Config.presentationModeAnimationTime
 			});
 			
-			//if (!Device.getInstance().isLayoutMobile()) nav.animate({ width: treeWidth + 'px' }, animationOptions);
 		} else {
 			header.animate({ top: '-' + hdrSize + 'px' }, {
 				queue: false,
@@ -1692,9 +1812,26 @@ class Notes {
 				complete: function() {
 					footer.css('display', 'none');
 				}
-			});	
-			
-			//if (!Device.getInstance().isLayoutMobile()) nav.animate({ width: '0px' }, animationOptions);			
+			});
+		}
+		
+		// Portrait mode
+		if (!mobile) {
+			if (upright && (!that.showNavigationInUprightMode)) {
+				nav.animate({ left: '-' + treeWidth+ 'px' }, {
+					queue: false,
+					duration: Config.presentationModeAnimationTime,
+					complete: function() {
+						nav.css('display', 'none');
+					}
+				});	
+			} else {
+				nav.css('display', 'block');
+				nav.animate({ left: '0px' }, {
+					queue: false,
+					duration: Config.presentationModeAnimationTime
+				});
+			}			
 		}
 	}
 	
@@ -1949,8 +2086,11 @@ class Notes {
 
 		this.hideOptions();
 
+		const mobile = Device.getInstance().isLayoutMobile();
+		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+
 		// Focus
-		if (Device.getInstance().isLayoutMobile()) {
+		if (mobile || upright) {
 			$('#treenav').css('border', 'none');
 			$('#article').css('border', 'none');
 		} else {
@@ -2068,6 +2208,9 @@ class Notes {
 		
 		var attIdJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
 		if (attIdJS) return attIdJS;
+
+		var attIdPDFium = AttachmentPreviewPDFium.getInstance().current ? AttachmentPreviewPDFium.getInstance().current._id : false;
+		if (attIdPDFium) return attIdPDFium;
 
 		if (!editorsOnly) {
 			var versId = Versions.getInstance().currentId;

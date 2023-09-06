@@ -38,6 +38,7 @@ class WakeLock {
 	 */
 	async lock() {
 		if (!this.isSupported()) {
+			console.log("Wake lock is not supported");
 			return Promise.reject({
 				message: "Wake lock is not supported",
 				notSupported: true
@@ -54,13 +55,11 @@ class WakeLock {
 			
 			console.log('Acquired wake lock');
 			
-			//wakeLock.onrelease = function(ev) {}
-  			//wakeLock.addEventListener('release', () => {});
-  						
 			return Promise.resolve();
 			
 		} catch (err) {
-			console.log(err);
+			console.log("Error requesting wake lock");
+			if (err) console.log(err);
 			
 			return Promise.reject({
 				message: "Error requesting wake lock",

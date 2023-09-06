@@ -960,7 +960,8 @@ class NoteTree {
 				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
 			
-			Device.getInstance().isLayoutMobile() ? null : $('<div id="footer"></div>'),
+			//Device.getInstance().isLayoutMobile() ? null : $('<div id="footer"></div>'),
+			$('<div id="navFooter" class="footer"></div>'),
 			
 			/*
 			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
@@ -1255,6 +1256,9 @@ class NoteTree {
 		var attIdJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
 		if (attIdJS) return attIdJS;
 
+		var attIdPDFium = AttachmentPreviewPDFium.getInstance().current ? AttachmentPreviewPDFium.getInstance().current._id : false;
+		if (attIdPDFium) return attIdPDFium;
+
 		return false;*/
 	}
 	
@@ -1428,7 +1432,10 @@ class NoteTree {
 		var bookmark = this.consumeBookmarkDocumentForNextFocus();
 		if (bookmark) {
 			this.#setSelectedAndScrollTo(bookmark);
-		}		
+		}
+		
+		Notes.getInstance().toggleShowNavigation(true);
+				
 		//this.setSelected(id);	
 	}
 	

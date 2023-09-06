@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.25.a';
+const PRECACHE = 'notes_precache-v0.98.29.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -138,6 +138,7 @@ const PRECACHE_URLS = [
   './ui/app/src/pages/VersionView.js',
   './ui/app/src/pages/AttachmentPreview.js',
   './ui/app/src/pages/AttachmentPreviewJS.js',
+  './ui/app/src/pages/AttachmentPreviewPDFium.js',
   './ui/app/src/pages/Console.js',
   './ui/app/src/pages/Trash.js',
   './ui/app/src/pages/RawView.js',
@@ -166,6 +167,8 @@ const PRECACHE_URLS = [
   './ui/app/src/tools/HistoryHandler.js',
   './ui/app/src/tools/WakeLock.js',
   './ui/app/src/tools/Device.js',
+  './ui/app/src/tools/PDFiumWrapper.js',
+  './ui/app/src/tools/PDFiumDocument.js',
   './ui/app/src/Config.js',
   './ui/app/src/Routing.js',
   './ui/app/src/Notes.js',
@@ -196,6 +199,9 @@ const PRECACHE_URLS = [
   './ui/lib/tinymce/skins/ui/oxide/skin.min.css',
   './ui/lib/tinymce/skins/ui/oxide/content.min.css',
   './ui/lib/tinymce/skins/content/default/content.min.css',
+  
+  './ui/lib/PDFium/pdfium.js',
+  './ui/lib/PDFium/pdfium.js.mem',
 
   './ui/app/images/NotesLogo_180.png',
   './ui/app/images/NotesLogo_192.png',

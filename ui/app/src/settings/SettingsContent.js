@@ -1000,7 +1000,8 @@ class SettingsContent {
 				$('<td colspan="2" />').append(
 					$('<select></select>').append([
 						$('<option value="off">Off</option>'),
-						$('<option value="desktop">Desktop</option>'),
+						$('<option value="landscape">Landscape</option>'),
+						$('<option value="portrait">Portrait</option>'),
 						$('<option value="mobile">Mobile</option>'),
 					])
 					.each(function(i) {

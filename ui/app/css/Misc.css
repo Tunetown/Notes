@@ -604,3 +604,8 @@ div.tox-tinymce {
 	position: relative;
 	text-align: center;
 }
+
+.attachmentPdfiumCanvas {
+	border-bottom: 1px solid grey;
+	
+}
