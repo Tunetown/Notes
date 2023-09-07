@@ -39,6 +39,8 @@ class AttachmentPreviewPDFium {
 	unload() {
 		this.current = false;
 		this.currentUrl = false;
+		
+		PDFiumWrapper.getInstance().destroyAll();
 	}
 	
 	/**
@@ -61,9 +63,9 @@ class AttachmentPreviewPDFium {
 	 * Loads the passed version history data into the versions view.
 	 */
 	load(doc, url, blob) {
+		var that = this;
 		var n = Notes.getInstance();
 		n.setCurrentPage(this);
-		var that = this;
 
 		n.setButtons([ 
 			$('<div type="button" data-toggle="tooltip" title="Download ' + doc.name + '" id="dnldButton" class="fa fa-download" onclick="event.stopPropagation();AttachmentPreviewPDFium.getInstance().download();"></div>'),
@@ -83,13 +85,12 @@ class AttachmentPreviewPDFium {
 		$('#contentContainer').empty();
 		
 		this.contentSize = {
-			width: $('#contentContainer').width(),
-			height: $('#contentContainer').height()
+			width: Math.floor($('#contentContainer').width()),
+			height: Math.floor($('#contentContainer').height())
 		};
 		
 		// Set note name in the header
 		n.setStatusText(doc.name + ' (' + attsize + ')');
-		//n.allowViewportScaling(true);
 
 		if (doc.content_type && doc.content_type.startsWith('text/')) {
 			// Interpret as text: Load content and show in text area
@@ -109,93 +110,24 @@ class AttachmentPreviewPDFium {
 			});
 		} else 
 		if (doc.content_type && (doc.content_type == 'application/pdf')) {
-			var pdfium = new PDFiumWrapper();
-			var doc = null;
-
-			pdfium.getDocument(blob)
-			.then(function(_doc) {
-				doc = _doc;
-				
-				var promises = [];
-
-				for(var p=0; p<doc.numPages; ++p) {
+			PDFiumWrapper.getInstance().getDocument(doc._id, blob, function(pdf) {
+				for(var p=0; p<pdf.numPages; ++p) {
 					var canvas = $('<canvas class="attachmentPdfiumCanvas"/>');
 				
 					$('#contentContainer').append(
 						canvas
 					);
 
-					promises.push(
-						doc.getPage(p).render(canvas[0], $('#contentContainer').width(), $('#contentContainer').height())
-					);
-				}
-				
-				return Promise.all(promises);
-			})
-			.then(function() {
-				doc.destroy();
-			})
-			.catch(function(err) {
-				Notes.getInstance().showAlert('PDFium error ' + err.message + ': Please see the logs.');
-			});		
-			 
-			 /*pdfjsLib.getDocument({
-				url: url,
-				ignoreErrors: true
-			}).promise
-			.then(function(pdf) {
-				var pdfContent = $('<span class="attachmentPdfContainer"/>');
-				
-				$('#contentContainer')
-				.append(
-					pdfContent
-				);
+					var page = pdf.getPage(p);
+					const dimensions = page.getDimensions();
+					const ratio = dimensions.height / dimensions.width;
 
-				function loadPage(index, currentY) {
-					if (index >= pdf.numPages) return Promise.resolve();
-					
-					return pdf.getPage(index + 1) 
-					.then(function(page) {
-						var canvasJ = $('<canvas class="attachmentPdfCanvas"/>');
-						var canvas = canvasJ[0];
-						
-						var context = canvas.getContext('2d');						
-						var outputScale = window.devicePixelRatio || 1;
-						
-						var viewport = page.getViewport({ scale: 1 });
-						var scale = that.contentSize.width / viewport.width;
-						var scaledViewport = page.getViewport({ scale: scale });
-						
-						canvas.width = Math.floor(scaledViewport.width * outputScale);
-						canvas.height = Math.floor(scaledViewport.height * outputScale);
-						canvas.style.width = Math.floor(scaledViewport.width) + "px";
-						canvas.style.height =  Math.floor(scaledViewport.height) + "px";
-						
-						pdfContent.append(
-							canvasJ
-							.css('top', currentY + 'px')
-						);
-						
-						currentY += scaledViewport.height;
-								
-						var transform = outputScale !== 1
-						  ? [outputScale, 0, 0, outputScale, 0, 0]
-						  : null;
-						
-						var renderContext = {
-						  canvasContext: context,
-						  transform: transform,
-						  viewport: scaledViewport
-						};
-						
-						page.render(renderContext);
-						
-						return loadPage(index + 1, currentY);
-					});
-				}
+					const w = (that.contentSize.width - 20);
 
-				loadPage(0, 0);				
-			});*/
+					page.render(canvas[0], w, w * ratio);
+				}
+			});
+
 		} else {
 			// Try object tag to embed the content (for pdf/mp3/...)
 			$('#contentContainer').append(
@@ -252,7 +184,7 @@ class AttachmentPreviewPDFium {
 		event.stopPropagation();
 		
 		var n = Notes.getInstance();
-		var that = this;
+		var that = AttachmentPreviewPDFium.getInstance();
 		
 		n.showMenu('attachmentOptions', function(cont) {
 			cont.append(
@@ -284,7 +216,7 @@ class AttachmentPreviewPDFium {
 			);
 
 			cont.append(
-				$('<div class="userbutton"><div class="fa fa-exchange-alt userbuttonIcon"></div>Use native viewer</div>')
+				$('<div class="userbutton"><div class="fa fa-eye userbuttonIcon"></div>Use native viewer</div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.hideOptions();	

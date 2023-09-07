@@ -83,7 +83,7 @@ class AttachmentPreview {
 		n.setStatusText(doc.name + ' (' + attsize + ')');
 		n.allowViewportScaling(true);
 
-		if (doc.content_type && doc.content_type.startsWith('text/')) {
+		if (!doc.content_type || doc.content_type.startsWith('text/')) {
 			// Interpret as text: Load content and show in text area
 			$.ajax({
 				url: url, 
@@ -187,7 +187,7 @@ class AttachmentPreview {
 			);
 			
 			cont.append(
-				$('<div class="userbutton"><div class="fa fa-exchange-alt userbuttonIcon"></div>Use JS based viewer</div>')
+				$('<div class="userbutton"><div class="fa fa-eye userbuttonIcon"></div>Use PDFium based viewer</div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.hideOptions();	

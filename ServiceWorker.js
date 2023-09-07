@@ -21,7 +21,7 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.29.a';
+const PRECACHE = 'notes_precache-v0.98.31.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -69,8 +69,6 @@ const PRECACHE_URLS = [
   './ui/lib/neo4j/js/neo4jd3.js',
   './ui/lib/neo4j/js/d3.min.js',
   './ui/lib/localstorage-slim/localstorage-slim.js',
-  './ui/lib/pdfjs/pdf.min.js',
-  './ui/lib/pdfjs/pdf.worker.min.js',
   
   './ui/lib/codemirror/lib/codemirror.js',
   './ui/lib/codemirror/mode/markdown/markdown.js',
@@ -85,6 +83,12 @@ const PRECACHE_URLS = [
   './ui/lib/codemirror/mode/sql/sql.js',
   './ui/lib/codemirror/addon/hint/show-hint.js',
   './ui/lib/codemirror/addon/mode/overlay.js',
+
+  './ui/lib/PDFiumJS/pdfium.js',
+  './ui/lib/PDFiumJS/pdfium.js.mem',
+  './ui/lib/PDFiumJS/PDFiumWorker.js',
+  './ui/lib/PDFiumJS/PDFiumDocument.js',
+  './ui/lib/PDFiumJS/PDFiumWrapper.js',
 
   './ui/app/doc/index.html',
   './ui/app/doc/overview.html',
@@ -137,7 +141,6 @@ const PRECACHE_URLS = [
   './ui/app/src/pages/Versions.js',
   './ui/app/src/pages/VersionView.js',
   './ui/app/src/pages/AttachmentPreview.js',
-  './ui/app/src/pages/AttachmentPreviewJS.js',
   './ui/app/src/pages/AttachmentPreviewPDFium.js',
   './ui/app/src/pages/Console.js',
   './ui/app/src/pages/Trash.js',
@@ -167,8 +170,6 @@ const PRECACHE_URLS = [
   './ui/app/src/tools/HistoryHandler.js',
   './ui/app/src/tools/WakeLock.js',
   './ui/app/src/tools/Device.js',
-  './ui/app/src/tools/PDFiumWrapper.js',
-  './ui/app/src/tools/PDFiumDocument.js',
   './ui/app/src/Config.js',
   './ui/app/src/Routing.js',
   './ui/app/src/Notes.js',
@@ -200,9 +201,6 @@ const PRECACHE_URLS = [
   './ui/lib/tinymce/skins/ui/oxide/content.min.css',
   './ui/lib/tinymce/skins/content/default/content.min.css',
   
-  './ui/lib/PDFium/pdfium.js',
-  './ui/lib/PDFium/pdfium.js.mem',
-
   './ui/app/images/NotesLogo_180.png',
   './ui/app/images/NotesLogo_192.png',
   './ui/app/images/NotesLogo_48.png',
@@ -406,24 +404,28 @@ self.addEventListener('fetch', function (event) {
 				if (response) {
 					// Found a cached file: Check server if it is still up to date (async, so the client does not have to wait).
 					// This also has to read the cache again to avoid double stream consumption.
-					self.checkForUpdates(event.request.clone(), cache)
-					.then(function (checkResponse) {
-						if (checkResponse.outOfDate) {
-							console.log("SW: File is out of date, prompting user for update: " + checkResponse.url);
-							
-							var self_ = self;
-							var clientId = event.clientId;
-							setTimeout(function() {
-								self_.messageToClient(clientId, checkResponse);
-							}, 3000);
-						} else {
-							//console.log("SW Version Check successful for " + checkResponse.url);
-						}
-					})
-					.catch(function (err) {
-						console.log("SW Version Check: Failed to check updates of  " + event.request.url + ", see following error:");
-						console.log(err);
-					});
+					var clone = event.request.clone();
+					var self_ = self;
+					var clientId = event.clientId;
+					
+					setTimeout(function() {
+						self.checkForUpdates(clone, cache)
+						.then(function (checkResponse) {
+							if (checkResponse.outOfDate) {
+								console.log("SW: File is out of date, prompting user for update: " + checkResponse.url);
+								
+								setTimeout(function() {
+									self_.messageToClient(clientId, checkResponse);
+								}, 3000);
+							} else {
+								//console.log("SW Version Check successful for " + checkResponse.url);
+							}
+						})
+						.catch(function (err) {
+							//console.log("SW Version Check: Failed to check updates of  " + event.request.url + ", see following error:");
+							//console.log(err);
+						});
+					}, 10);
 					
 					return Promise.resolve(response);
 				} else {

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>. 
  */
-class Notes { 
+class Notes {  
 	
 	/**
 	 * Singleton factory
@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.29';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.31';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -658,7 +658,6 @@ class Notes {
 			}
 		}
 		AttachmentPreview.getInstance().unload();
-		AttachmentPreviewJS.getInstance().unload();
 		AttachmentPreviewPDFium.getInstance().unload();
 		Setlist.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
@@ -2206,9 +2205,6 @@ class Notes {
 		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
 		if (attId) return attId;
 		
-		var attIdJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
-		if (attIdJS) return attIdJS;
-
 		var attIdPDFium = AttachmentPreviewPDFium.getInstance().current ? AttachmentPreviewPDFium.getInstance().current._id : false;
 		if (attIdPDFium) return attIdPDFium;
 
