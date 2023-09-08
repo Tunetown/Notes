@@ -334,7 +334,7 @@ class ClientState {
 	 */
 	getLastOpenedUrl() {
 		var ret = this.getLocal(this.cidLastOpenedUrl, true);
-		return ret.enabled ? ret.url : false;
+		return ret.enabled ? Routing.postProcessLastOpenedUrl(ret.url) : false;
 	}
 	
 	/**

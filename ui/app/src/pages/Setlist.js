@@ -88,7 +88,10 @@ class Setlist {
 			}), 
 		]);
 
-		this.#loadPages(this.current, true)
+		PDFiumWrapper.getInstance().initWorker()
+		.then(function() {
+			return that.#loadPages(that.current, true)
+		})
 		.then(function(pages) {
 			that.pages = pages;
 

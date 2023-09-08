@@ -21,7 +21,8 @@
 // Names of the two caches used in this version of the service worker.
 // Change to v2, etc. when you update any of the local resources, which will
 // in turn trigger the install event again.
-const PRECACHE = 'notes_precache-v0.98.31.a';
+const SW_VERSION = '0.98.32';
+const PRECACHE = 'notes_precache-v' + SW_VERSION +'.a';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -304,6 +305,13 @@ self.sendUserMessage = function(event, msg, type, groupId) {
 self.addEventListener("message", (event) => {
 	if (event.data.requestId) {
 		switch(event.data.requestId) {
+			case 'getVersion': {
+				event.source.postMessage({
+					requestId: 'version',
+					version: SW_VERSION
+				});
+				return;
+			}
 			case 'checkUpdates': {
 				// Checks one script for changes and sends an out of date message to the client if so.
 				var request = new Request(UPDATECHECK_SCRIPT);

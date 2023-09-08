@@ -46,7 +46,7 @@ class Update {
 		);
 		
 		headerContainer.append( 
-			$('<div><h3>Notes App</h3><p>Version ' + n.appVersion + '</p><p>(C) 2021-2022 Thomas Weber (tom-vibrant[at]gmx.de)</p><p>License: GPL v3</p></div><br>'),
+			$('<div><h3>Notes App</h3><p>Version ' + n.appVersion + '</p><p>(C) 2021-2022 Thomas Weber (tom-vibrant[at]gmx.de)</p><p>License: GPL v3</p><p>Service Worker Version: <span id="swVersion">Please wait...</span></p></div><br>'),
 		);
 		 
 		var files = n.outOfDateFiles;
@@ -81,7 +81,6 @@ class Update {
 				})
 			);
 			
-			var that = this;
 			this.contentContainer.append(
 				$('<a onclick="Update.getInstance().showDiff()" href="javascript:void(0);">Show files to be updated...</a>')
 			);
@@ -90,6 +89,23 @@ class Update {
 		n.setButtons([ 
 			$('<div type="button" data-toggle="tooltip" title="Select notebook..." class="fa fa-home" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile();"></div>'),
 		]);
+		
+		this.#triggerSWVersionLoad();
+	}
+	
+	#triggerSWVersionLoad() {
+		navigator.serviceWorker.ready
+  		.then( (registration) => {
+			if (registration.active) {
+				registration.active.postMessage({
+					requestId: 'getVersion'
+				});
+			}
+		});	
+	}
+	
+	setSWVersion(version) {
+		$('#swVersion').text(version);
 	}
 	
 	showDiff() {

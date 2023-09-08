@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.31';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.98.32';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -419,6 +419,10 @@ class Notes {
 			// User messages
 			if (event.data.requestId) {
 				switch(event.data.requestId) {  
+					case 'version':
+						Update.getInstance().setSWVersion(event.data.version);
+						return;
+					
 					case 'userMessage': {
 						const msg = event.data.message ? event.data.message : 'SW Message internal Error: No message transmitted';
 						const type = event.data.type ? event.data.type : 'I';

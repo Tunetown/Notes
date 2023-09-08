@@ -35,8 +35,6 @@ class PDFiumWrapper {
 	 * Load a document. callback is called on completion.
 	 */
 	getDocument(id, blob, callback) {
-		this.#initWorker();
-
 		if (!id) {
 			throw new Error('PDFium: You must provide an ID to any document');
 		}
@@ -61,10 +59,16 @@ class PDFiumWrapper {
 		
 		this.loadedDocs.set(id, doc)
 		
-		this.PDFiumWorker.postMessage({
-			command: 'loadDocument',
-			id: id,
-			data: blob
+		var that = this;
+		
+		return blob.arrayBuffer()
+		.then(function(arraybuffer) {
+			that.PDFiumWorker.postMessage({
+				command: 'loadDocument',
+				id: id,
+				data: arraybuffer,
+				timestamp: Date.now()
+			}, [arraybuffer]);			
 		});
 	}
 	
@@ -117,71 +121,99 @@ class PDFiumWrapper {
 	/**
 	 * Initialize the web worker if not yet done, and set up the message handler.
 	 */
-	#initWorker() {
+	initWorker() {
 		if (this.#isInitialized()) {
 			//console.log("PDFium worker already running");
-			return;
+			return Promise.resolve();
 		}
 		
 		/**
 		 * PDFium worker setup.
 		 */
 		this.PDFiumWorker = new Worker("ui/lib/PDFiumJS/PDFiumWorker.js");
+		var that = this;
 		
 		/**
 		 * Receive worker messages
 		 */
-		var that = this;
-		this.PDFiumWorker.onmessage = function(e) {
-			try {
-				switch (e.data.command) {
-					case 'documentLoaded':
-						// Document has been loaded
-						try {
-							var doc = that.getLoadedDocument(e.data.id);
-							doc.setPageInfo(e.data.pages);
-							
-							if (doc.callback) {
-								doc.callback(doc);
-								doc.callback = null;
+		return new Promise(function(resolve, reject) {
+			that.PDFiumWorker.onmessage = function(e) {
+				try {
+					switch (e.data.command) {
+						case 'consolemessage':
+							console.log(e.data.message);
+							break;
+	
+						case 'documentLoaded':
+							// Document has been loaded
+							try {
+								var doc = that.getLoadedDocument(e.data.id);
+								doc.setPageInfo(e.data.pages);
+								
+								if (doc.callback) {
+									doc.callback(doc);
+									doc.callback = null;
+								}
+								
+							} catch (err) {
+								console.log(err);
 							}
+							break;
 							
-						} catch (err) {
-							console.log(err);
-						}
-						break;
-						
-					case 'pageRendered':
-						try {
-							// Page has been rendered
-							var doc = that.getLoadedDocument(e.data.id);			
-							var page = doc.getPage(e.data.index);
-							page.applyToCanvas(e.data.image);
+						case 'pageRendered':
+							try {
+								// Page has been rendered
+								var doc = that.getLoadedDocument(e.data.id);			
+								var page = doc.getPage(e.data.index);
+								
+								page.applyToCanvas(
+									new ImageData( 
+	  									new Uint8ClampedArray(e.data.pixels),
+										e.data.width,
+										e.data.height 
+									)
+								);
+								
+							} catch (err) {
+								console.log(err);
+							}
+							break;
 							
-						} catch (err) {
-							console.log(err);
-						}
-						break;
-						
-					case 'error':
-						console.log("PDFium error: ");
-						console.log(e.data);
-						
-						Notes.getInstance().showAlert('PDFium error: ' + (e.data.error.message ? e.data.error.message : ''), 'E');
-						break;
-						
-					default:
-						throw new Error('Unknown or missing PDFiumWorker command: ' + e.data.command);
-				}	
-				
-			} catch (err) {
-				console.log("PDFium wrapper error: ");
-				console.log(err);
-				
-				Notes.getInstance().showAlert('PDFium error: ' + (err.message ? err.message : ''), 'E');
-			}
-		}
+						case 'error':
+							console.log("PDFium error: ");
+							console.log(e.data);
+							
+							Notes.getInstance().showAlert('PDFium error: ' + (e.data.error.message ? e.data.error.message : ''), 'E');
+							break;
+							
+						case 'ping':
+							const loadTime = Date.now() - e.data.startTimestamp;
+							
+							console.log("PDFiumWrapper: Loaded worker in " + loadTime + "ms");
+							
+							resolve({
+								loadTime: loadTime
+							});
+							break;
+							
+						default:
+							throw new Error('Unknown or missing PDFiumWorker command: ' + e.data.command);
+					}	
+					
+				} catch (err) {
+					console.log("PDFium wrapper error: ");
+					console.log(err);
+					
+					Notes.getInstance().showAlert('PDFium error: ' + (err.message ? err.message : ''), 'E');
+				}
+			}			
 
+			that.PDFiumWorker.postMessage({
+				command: 'ping',
+				message: 'Init',
+				startTimestamp: Date.now()
+			})
+		});
 	}
 }
 
@@ -218,6 +250,8 @@ class PDFiumWrapperDocument {
 		this.id = id;
 		this.callback = callback;
 		this.pages = false;
+		
+		this.startTime = Date.now();
 	}
 	
 	/**
@@ -235,6 +269,11 @@ class PDFiumWrapperDocument {
 		for (var p=0; p<info.length; ++p) {
 			this.pages.push(new PDFiumWrapperPage(this, info[p]));
 		}
+		
+		const endTime = Date.now();
+		const loadTime = endTime - this.startTime;
+		
+		console.log('PDFiumWrapper: Loaded document in ' + loadTime + 'ms (' + this.id + ')');
 	}
 	
 	/**
@@ -316,6 +355,8 @@ class PDFiumWrapperPage {
 	 * but you can also determine yourself what the size should be.
 	 */
 	render(canvas, width, height, callback) {
+		this.startTime = Date.now();
+		
 		if (!this.main.isLoaded()) {
 			throw new Error("Document not loaded");
 		}
@@ -367,6 +408,12 @@ class PDFiumWrapperPage {
 		ctx.putImageData(image, 0, 0);
 		
 		this.canvas = null;
+		
+		const endTime = Date.now();
+		const loadTime = endTime - this.startTime;
+		
+		console.log('PDFiumWrapper: Rendered page ' + this.index + ' in ' + loadTime + 'ms (' + this.main.id + ')');
+
 		
 		if (this.callback) {
 			this.callback(this);

@@ -16,8 +16,6 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-
-self.startLoadTime = Date.now();
 const showDebugMessages = true;
 
 /**
@@ -28,11 +26,21 @@ self.Module = {
 	noExitRuntime: true,
 	
 	print: function(msg) { 
-		if (showDebugMessages) console.log('PDFium Worker:', msg); 
+		if (showDebugMessages) {
+			//console.log('PDFium Worker:', msg);
+			self.postMessage({
+				command: 'consolemessage',
+				message: 'PDFium Worker: ' + msg
+			})
+		} 
 	},
 	
 	printErr: function(msg) { 
-		console.log('PDFium Worker:', msg); 
+		//console.log('PDFium Worker:', msg); 
+		self.postMessage({
+			command: 'consolemessage',
+			message: 'PDFium Worker: ' + msg			
+		})
 	},
 	
 	_main: function () {
@@ -64,10 +72,16 @@ self.Module = {
 		self.PDFiumJS.initialized = true;
 		
 		
-		const endTime = Date.now();
+		/*const endTime = Date.now();
 		const initTime = endTime - self.startLoadTime;
 		
-		if (showDebugMessages) console.log("PDFium Worker: Initialized in " + initTime + "ms");
+		if (showDebugMessages) {
+			//console.log("PDFium Worker: Initialized in " + initTime + "ms");
+			self.postMessage({
+				command: 'consolemessage',
+				message: "PDFium Worker: Initialized in " + initTime + "ms"
+			})
+		} */
 	}
 };
 
@@ -79,7 +93,16 @@ self.Module = {
 self.onmessage = function (e) {
 	var that = self;
 	switch (e.data.command) {
+		case 'ping':
+			that.postMessage(e.data);
+			break;
+			
 		case 'loadDocument':
+			const endTime = Date.now();
+			const loadTime = endTime - e.data.timestamp;
+			
+			console.log('PDFiumWrapper: Transferred ArrayBuffer in ' + loadTime + 'ms (' + e.data.id + ')');
+
 			self.loadDocument(e.data.id, e.data.data)
 			.then(function(doc) {
 				that.postMessage({
@@ -125,8 +148,10 @@ self.onmessage = function (e) {
 					command: 'pageRendered',
 					id: e.data.id,
 					index: e.data.index,
-					image: image
-				});			
+					pixels: image.data.buffer,
+					width: image.width,
+					height: image.height,
+				}, [image.data.buffer]);			
 			})
 			.catch(function(err) {
 				that.postMessage({
@@ -144,30 +169,30 @@ self.onmessage = function (e) {
 /**
  * Load a document
  */
-self.loadDocument = async function(id, blob) {
-	await self.waitReady();
-
+self.loadDocument = async function(id, arraybuffer) {
 	const startTime = Date.now();
+
+	await self.waitReady();
 
 	var buf = self.loadedDocs.get(id);
 	if (buf) return Promise.resolve(buf);
 
-	return new Promise(function(resolve/*, reject*/) {
-		var reader = new FileReader();
-		reader.onload = function(e) {
-			var doc = new PDFiumDocument(new Uint8Array(e.target.result));
-						
-			self.loadedDocs.set(id, doc);
-			
-			const endTime = Date.now();
-			const renderTime = endTime - startTime;
-		
-			if (showDebugMessages) console.log('PDFium Worker: Document loaded in ' + renderTime + 'ms (' + id + ')');
-		
-			resolve(doc);
-		};
-		reader.readAsArrayBuffer(blob);
-	});
+	var doc = new PDFiumDocument(new Uint8Array(arraybuffer));
+				
+	self.loadedDocs.set(id, doc);
+	
+	const endTime = Date.now();
+	const renderTime = endTime - startTime;
+
+	if (showDebugMessages) {
+		//console.log('PDFium Worker: Document loaded in ' + renderTime + 'ms (' + id + ')');
+		self.postMessage({
+			command: 'consolemessage',
+			message: 'PDFium Worker: Document loaded in ' + renderTime + 'ms (' + id + ')'
+		})
+	}
+
+	return Promise.resolve(doc);
 }
 
 /**
@@ -225,7 +250,13 @@ self.renderPage = async function(id, index, width, height, devicePixelRatio) {
 		const endTime = Date.now();
 		const renderTime = endTime - startTime;
 	
-		if (showDebugMessages) console.log('PDFium Worker: Page ' + index + ' rendered in ' + renderTime + 'ms (' + id + ')');
+		if (showDebugMessages) {
+			//console.log('PDFium Worker: Page ' + index + ' rendered in ' + renderTime + 'ms (' + id + ')');
+			self.postMessage({
+				command: 'consolemessage',
+				message: 'PDFium Worker: Page ' + index + ' rendered in ' + renderTime + 'ms (' + id + ')'
+			})
+		}
 		
 		return Promise.resolve(image);
 	}); 
