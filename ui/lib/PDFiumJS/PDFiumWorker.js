@@ -27,7 +27,6 @@ self.Module = {
 	
 	print: function(msg) { 
 		if (showDebugMessages) {
-			//console.log('PDFium Worker:', msg);
 			self.postMessage({
 				command: 'consolemessage',
 				message: 'PDFium Worker: ' + msg
@@ -36,7 +35,6 @@ self.Module = {
 	},
 	
 	printErr: function(msg) { 
-		//console.log('PDFium Worker:', msg); 
 		self.postMessage({
 			command: 'consolemessage',
 			message: 'PDFium Worker: ' + msg			
@@ -70,18 +68,6 @@ self.Module = {
 		self.loadedDocs = new Map();
 
 		self.PDFiumJS.initialized = true;
-		
-		
-		/*const endTime = Date.now();
-		const initTime = endTime - self.startLoadTime;
-		
-		if (showDebugMessages) {
-			//console.log("PDFium Worker: Initialized in " + initTime + "ms");
-			self.postMessage({
-				command: 'consolemessage',
-				message: "PDFium Worker: Initialized in " + initTime + "ms"
-			})
-		} */
 	}
 };
 
@@ -101,7 +87,12 @@ self.onmessage = function (e) {
 			const endTime = Date.now();
 			const loadTime = endTime - e.data.timestamp;
 			
-			console.log('PDFiumWrapper: Transferred ArrayBuffer in ' + loadTime + 'ms (' + e.data.id + ')');
+			if (showDebugMessages) {
+				self.postMessage({
+					command: 'consolemessage',
+					message: 'PDFiumWrapper: Transferred ArrayBuffer in ' + loadTime + 'ms (' + e.data.id + ')'
+				})
+			}
 
 			self.loadDocument(e.data.id, e.data.data)
 			.then(function(doc) {
@@ -185,7 +176,6 @@ self.loadDocument = async function(id, arraybuffer) {
 	const renderTime = endTime - startTime;
 
 	if (showDebugMessages) {
-		//console.log('PDFium Worker: Document loaded in ' + renderTime + 'ms (' + id + ')');
 		self.postMessage({
 			command: 'consolemessage',
 			message: 'PDFium Worker: Document loaded in ' + renderTime + 'ms (' + id + ')'
@@ -251,7 +241,6 @@ self.renderPage = async function(id, index, width, height, devicePixelRatio) {
 		const renderTime = endTime - startTime;
 	
 		if (showDebugMessages) {
-			//console.log('PDFium Worker: Page ' + index + ' rendered in ' + renderTime + 'ms (' + id + ')');
 			self.postMessage({
 				command: 'consolemessage',
 				message: 'PDFium Worker: Page ' + index + ' rendered in ' + renderTime + 'ms (' + id + ')'

@@ -405,7 +405,8 @@ class Setlist {
 								
 							} else 
 							if (meta[mindex].doc.content_type && meta[mindex].doc.content_type == 'application/pdf') {
-								PDFiumWrapper.getInstance().getDocument(meta[mindex].doc._id, data.blob, function(pdf) {
+								PDFiumWrapper.getInstance().getDocument(meta[mindex].doc._id, data.blob)
+								.then(function(pdf) {
 									meta[mindex].pdf = pdf;
 									
 									resolve();
@@ -721,7 +722,8 @@ class Setlist {
 				w = h * ratio;
 			}
 
-			pdfpage.render(canvas, Math.floor(w), Math.floor(h), function() {
+			pdfpage.render(canvas, Math.floor(w), Math.floor(h))
+			.then(function() {
 				el
 				.empty()
 				.append(canvasJ);

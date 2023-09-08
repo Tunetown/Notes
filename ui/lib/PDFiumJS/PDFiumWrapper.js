@@ -34,7 +34,7 @@ class PDFiumWrapper {
 	/**
 	 * Load a document. callback is called on completion.
 	 */
-	getDocument(id, blob, callback) {
+	async getDocument(id, blob) {
 		if (!id) {
 			throw new Error('PDFium: You must provide an ID to any document');
 		}
@@ -47,15 +47,10 @@ class PDFiumWrapper {
 		if (doc && doc.isLoaded()) {
 			console.log("PDFium: Using buffered document for " + id);
 			
-			if (callback) {
-				setTimeout(function() {
-					callback(doc);
-				}, 0);
-			}
-			return;
+			return Promise.resolve(doc);
 		}
 			
-		doc = new PDFiumWrapperDocument(this, id, callback);
+		doc = new PDFiumWrapperDocument(this, id);
 		
 		this.loadedDocs.set(id, doc)
 		
@@ -63,12 +58,20 @@ class PDFiumWrapper {
 		
 		return blob.arrayBuffer()
 		.then(function(arraybuffer) {
-			that.PDFiumWorker.postMessage({
-				command: 'loadDocument',
-				id: id,
-				data: arraybuffer,
-				timestamp: Date.now()
-			}, [arraybuffer]);			
+			return new Promise(function(resolve/*, reject*/) {
+				that.PDFiumWorker.postMessage({
+					command: 'loadDocument',
+					id: id,
+					data: arraybuffer,
+					timestamp: Date.now()
+				}, [arraybuffer]);			
+				
+				function finish(wdoc) {
+					resolve(wdoc);
+				}
+				
+				doc.registerDocumentLoadCallback(finish);
+			})
 		});
 	}
 	
@@ -121,7 +124,7 @@ class PDFiumWrapper {
 	/**
 	 * Initialize the web worker if not yet done, and set up the message handler.
 	 */
-	initWorker() {
+	async initWorker() {
 		if (this.#isInitialized()) {
 			//console.log("PDFium worker already running");
 			return Promise.resolve();
@@ -148,7 +151,7 @@ class PDFiumWrapper {
 							// Document has been loaded
 							try {
 								var doc = that.getLoadedDocument(e.data.id);
-								doc.setPageInfo(e.data.pages);
+								doc.finishDocument(e.data.pages);
 								
 								if (doc.callback) {
 									doc.callback(doc);
@@ -264,7 +267,7 @@ class PDFiumWrapperDocument {
 	/**
 	 * Load the document (set pages).
 	 */
-	setPageInfo(info) {
+	finishDocument(info) {
 		this.pages = [];
 		for (var p=0; p<info.length; ++p) {
 			this.pages.push(new PDFiumWrapperPage(this, info[p]));
@@ -274,6 +277,19 @@ class PDFiumWrapperDocument {
 		const loadTime = endTime - this.startTime;
 		
 		console.log('PDFiumWrapper: Loaded document in ' + loadTime + 'ms (' + this.id + ')');
+		
+		if (this.documentLoadCallback) {
+			this.documentLoadCallback(this);
+			this.documentLoadCallback = null;
+		}
+			
+	}
+	
+	/**
+	 * Register a callback after finishing a document.
+	 */
+	registerDocumentLoadCallback(cb) {
+		this.documentLoadCallback = cb;
 	}
 	
 	/**
@@ -348,13 +364,16 @@ class PDFiumWrapperPage {
 	}
 	
 	/**
-	 * Renders the page to the passed DOM canvas. This is done async, you can provide 
-	 * a callback after completion. 
+	 * Renders the page to the passed DOM canvas.
 	 *
 	 * The canvas dimensions will be set to the PDFs page size if w/h are not supported, 
 	 * but you can also determine yourself what the size should be.
 	 */
-	render(canvas, width, height, callback) {
+	async render(canvas, width, height) {
+		if (this.pageRenderedCallback) {
+			throw new Error("Page " + this.index + " is already rendering");
+		}
+		
 		this.startTime = Date.now();
 		
 		if (!this.main.isLoaded()) {
@@ -373,16 +392,21 @@ class PDFiumWrapperPage {
 		this.canvas.width = width * window.devicePixelRatio;
 		this.canvas.height = height * window.devicePixelRatio;
 		
-		this.callback = callback;
-		
-		this.main.wrapper.PDFiumWorker.postMessage({
-			command: 'renderPage',
-			id: this.main.id,
-			index: this.index,
-			width: width,
-			height: height,
-			devicePixelRatio: window.devicePixelRatio
-		});
+		var that = this;
+		return new Promise(function(resolve/*, reject*/) {
+			that.main.wrapper.PDFiumWorker.postMessage({
+				command: 'renderPage',
+				id: that.main.id,
+				index: that.index,
+				width: width,
+				height: height,
+				devicePixelRatio: window.devicePixelRatio
+			});
+			
+			that.pageRenderedCallback = function(page) {
+				resolve(page);
+			}
+		})
 	}
 	
 	/**
@@ -414,9 +438,9 @@ class PDFiumWrapperPage {
 		
 		console.log('PDFiumWrapper: Rendered page ' + this.index + ' in ' + loadTime + 'ms (' + this.main.id + ')');
 
-		
-		if (this.callback) {
-			this.callback(this);
+		if (this.pageRenderedCallback) {
+			this.pageRenderedCallback(this);
+			this.pageRenderedCallback = null;
 		}
 	}
 }

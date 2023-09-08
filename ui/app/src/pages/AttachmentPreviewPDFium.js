@@ -105,7 +105,7 @@ class AttachmentPreviewPDFium {
 					);
 				},
 			})
-			.fail(function(response, status, error) {
+			.fail(function(response/*, status, error*/) {
 				Notes.getInstance().showAlert('Server error ' + response.status + ': Please see the logs.');
 			});
 		} else 
@@ -114,24 +114,26 @@ class AttachmentPreviewPDFium {
 			
 			pdfium.initWorker()
 			.then(function() {
-				pdfium.getDocument(doc._id, blob, function(pdf) {
-					for(var p=0; p<pdf.numPages; ++p) {
-						var canvas = $('<canvas class="attachmentPdfiumCanvas"/>');
-					
-						$('#contentContainer').append(
-							canvas
-						);
-	
-						var page = pdf.getPage(p);
-						const dimensions = page.getDimensions();
-						const ratio = dimensions.height / dimensions.width;
-	
-						const w = (that.contentSize.width - 20);
-	
-						page.render(canvas[0], w, w * ratio);
-					}
-				});
+				return pdfium.getDocument(doc._id, blob);
 			})
+			.then(function(pdf) {
+				for(var p=0; p<pdf.numPages; ++p) {
+					var canvas = $('<canvas class="attachmentPdfiumCanvas"/>');
+				
+					$('#contentContainer').append(
+						canvas
+					);
+
+					var page = pdf.getPage(p);
+					
+					const dimensions = page.getDimensions();
+					const ratio = dimensions.height / dimensions.width;
+
+					const w = (that.contentSize.width - 20);
+
+					page.render(canvas[0], w, w * ratio);
+				}
+			});
 
 		} else {
 			// Try object tag to embed the content (for pdf/mp3/...)
