@@ -361,68 +361,87 @@ class Setlist {
 			throw new Error('Meta index for ' + id + ' not found');
 		}
 
-		var promises = [];
+		var numAttachmentDocs = 0;
 
 		// Get all meta information (load contents/parse PDFs). Multpage PDFs are still represented with one entry here.	
-		for(var c in children) {
-			var child = resolveDocument(children[c]);
+		//for(var c in children) {
+		async function processChild(childIndex) {
+			if (childIndex >= children.length) return Promise.resolve();
+			
+			const startTime = Date.now();
+			
+			var child = resolveDocument(children[childIndex]);
 			
 			meta.push({
 				doc: child
 			});
 			
+			async function processNext() {
+				return processChild(childIndex + 1);
+			}
+			
 			if (child.type == 'attachment') {
-				promises.push(
-					AttachmentActions.getInstance().getAttachmentUrl(child._id)
-					.then(function(data) {
-						if (!data.ok || !data.url) {
-							return Promise.reject({
-								message: data.message ? data.message : ('Error loading attachment ' + data.id)
-							})
-						}
-						
-						const mindex = retrieveMetaIndex(data.id);
-						meta[mindex].url = data.url;
-						
-						return new Promise(function(resolve, reject) {
-							if (!meta[mindex].doc.content_type || meta[mindex].doc.content_type.startsWith('text/')) {
-								// Interpret as text: Load content and show in text area
-								$.ajax({
-									url: data.url, 
-									type: "get",
-									dataType: "text",
-									success: function(response) {
-										meta[mindex].content = response;
-										
-										resolve();
-									},
-								})
-								.fail(function(response, status, error) {
-									reject({
-										message: 'Server error ' + response.status + ': Please see the logs.'
-									})
-								});
-								
-							} else 
-							if (meta[mindex].doc.content_type && meta[mindex].doc.content_type == 'application/pdf') {
-								PDFiumWrapper.getInstance().getDocument(meta[mindex].doc._id, data.blob)
-								.then(function(pdf) {
-									meta[mindex].pdf = pdf;
+				numAttachmentDocs++;
+				
+				return AttachmentActions.getInstance().getAttachmentUrl(child._id)
+				.then(function(data) {
+					if (!data.ok || !data.url) {
+						return Promise.reject({
+							message: data.message ? data.message : ('Error loading attachment ' + data.id)
+						})
+					}
+					
+					const mindex = retrieveMetaIndex(data.id);
+					meta[mindex].url = data.url;
+					
+					return new Promise(function(resolve, reject) {
+						if (!meta[mindex].doc.content_type || meta[mindex].doc.content_type.startsWith('text/')) {
+							// Interpret as text: Load content and show in text area
+							$.ajax({
+								url: data.url, 
+								type: "get",
+								dataType: "text",
+								success: function(response) {
+									meta[mindex].content = response;
 									
 									resolve();
-								});
-							} else {
+								},
+							})
+							.fail(function(response, status, error) {
+								reject({
+									message: 'Server error ' + response.status + ': Please see the logs.'
+								})
+							});
+							
+						} else 
+						if (meta[mindex].doc.content_type && meta[mindex].doc.content_type == 'application/pdf') {
+							PDFiumWrapper.getInstance().getDocument(meta[mindex].doc._id, data.blob)
+							.then(function(pdf) {
+								meta[mindex].pdf = pdf;
+								meta[mindex].pdfSize = data.blob.size;
+								
+								console.log('PDFium: Loaded PDF in ' + (Date.now() - startTime) + 'ms (' + child._id + ', ' + Tools.convertFilesize(data.blob.size) + ')');
+								
 								resolve();
-							}
-						});
-					})
-				);
+							});
+						} else {
+							resolve();
+						}
+					});
+				})
+				.then(processNext);
 			}
+			
+			return processNext();
 		}
 		
+		const startTime = Date.now();
+		
 		// Build pages array. This will contain separate entries for all pages of multi page PDFs
-		return Promise.all(promises)
+		return processChild(0)
 		.then(function() {
+			console.log('PDFium: -> Loaded ' + numAttachmentDocs + ' PDF documents in ' + (Date.now() - startTime) + 'ms');
+			
 			var pages = [];
 			for(var m in meta) {
 				var metaItem = meta[m];
@@ -463,6 +482,7 @@ class Setlist {
 									doc: metaItem.doc,
 									pdf: metaItem.pdf,
 									pdfPage: 0,
+									pdfSize: metaItem.pdfSize,
 									name: metaItem.doc.name,
 									id: metaItem.doc._id,
 									url: metaItem.url
@@ -472,6 +492,7 @@ class Setlist {
 									pages.push({
 										doc: metaItem.doc,
 										pdf: metaItem.pdf,
+										pdfSize: metaItem.pdfSize,
 										pdfPage: p,
 										name: metaItem.doc.name + ' Page ' + p,
 										id: metaItem.doc._id + '-page' + p,
@@ -652,26 +673,32 @@ class Setlist {
 	/**
 	 * Create note content
 	 */
-	#createNote(page, index, callback) {
-		if (!Document.isLoaded(page.doc)) throw new Error('Document ' + page.doc.name + ' is not loaded');
+	async #createNote(page, index) {
+		if (!Document.isLoaded(page.doc)) {
+			throw new Error('Document ' + page.doc.name + ' is not loaded');
+		}
 		
 		var el = $('#setlist-' + page.id);
-		if (!el) throw new Error('Page element not found for page ' + index);
+		if (!el) {
+			throw new Error('Page element not found for page ' + index);
+		}
 
 		const content = page.doc.content ? page.doc.content : page.doc.name;
 
 		if (page.doc.editor && (page.doc.editor == 'code')) {
-			setTimeout(function() {
-				el.empty();
-				
-				CodeMirror(el[0], { //$('#setlist-' + page.id)[0], {
-					value: content,
-					mode: (page.doc.editorParams && page.doc.editorParams.language) ? page.doc.editorParams.language : 'markdown',
-					readOnly: true
-				}, 0);	
-				
-				if (callback) callback(index);			
-			})
+			return new Promise(function(resolve, reject) {
+				setTimeout(function() {
+					el.empty();
+					
+					CodeMirror(el[0], { //$('#setlist-' + page.id)[0], {
+						value: content,
+						mode: (page.doc.editorParams && page.doc.editorParams.language) ? page.doc.editorParams.language : 'markdown',
+						readOnly: true
+					}, 0);
+					
+					resolve();	
+				})
+			});
 		} else {
 			el
 			.empty()
@@ -680,16 +707,18 @@ class Setlist {
 				.html(content)
 			);
 			
-			if (callback) callback(index);
+			return Promise.resolve();
 		}
 	}
 	
 	/**
 	 * Create attachment content
 	 */
-	#createAttachment(page, index, callback) {
+	async #createAttachment(page, index) {
 		var el = $('#setlist-' + page.id);
-		if (!el) throw new Error('Page element not found for page ' + index);
+		if (!el) {
+			throw new Error('Page element not found for page ' + index);
+		}
 		
 		var that = this;
 		if (!page.doc.content_type || page.doc.content_type.startsWith('text/')) {
@@ -699,7 +728,7 @@ class Setlist {
 				$('<textarea readonly class="preview textpreview">' + page.content + '</textarea>')
 			);
 			
-			if (callback) callback();
+			return Promise.resolve();
 				
 		} else 
 		if (page.doc.content_type && page.doc.content_type == 'application/pdf') {
@@ -722,13 +751,11 @@ class Setlist {
 				w = h * ratio;
 			}
 
-			pdfpage.render(canvas, Math.floor(w), Math.floor(h))
+			return pdfpage.render(canvas, Math.floor(w), Math.floor(h))
 			.then(function() {
 				el
 				.empty()
 				.append(canvasJ);
-				
-				if (callback) callback();
 			});
 						
 		} else {
@@ -742,7 +769,7 @@ class Setlist {
 				.css('object-fit', 'contain')
 			);
 			
-			if (callback) callback();
+			return Promise.resolve();
 		}
 	}
 	
@@ -901,9 +928,11 @@ class Setlist {
 	 * Starting from the current index, this loads all further pages asynchronously.
 	 */
 	#buildPages() {
-		this.#buildPagesRec(this.getCurrentIndex());
-		
-		this.numRenderingTasks = 0;
+		this.buildPagesStartTime = Date.now();
+		this.numRenderedpages = 0;
+		//this.numRenderingTasks = 0;
+
+		this.#buildPagesRec(this.#getNextRenderIndex());
 	}
 		
 	#buildPagesRec(index) {
@@ -913,186 +942,112 @@ class Setlist {
 		setTimeout(function() {
 			if (!that.current) return;
 
-			that.numRenderingTasks++;
-			console.log(' -> +Tasks: ' + that.numRenderingTasks);
+			//that.numRenderingTasks++;
+			//console.log(' -> +Tasks: ' + that.numRenderingTasks);
 
-			that.#renderPage(index, function() {
+			that.#renderPage(index)
+			.then(function() {
+				if (!that.current) return Promise.reject();
+
+				//that.numRenderingTasks--;
+				//console.log(' -> -Tasks: ' + that.numRenderingTasks);
 				
-				that.numRenderingTasks--;
-				console.log(' -> -Tasks: ' + that.numRenderingTasks);
+				// See which pages beneath the current one need to be rendered
+				var cindex = that.#getNextRenderIndex();
 				
-				// Then see which pages beneath the current one need to be rendered
-				setTimeout(function() {
-					if (!that.current) return;
-					
-					var cindex = that.getCurrentIndex();
-					
-					var page = that.pages[cindex];
-					while ((page.isRendered || page.isRenderingStarted) && (cindex > 0)) {
-						cindex--;
-						page = that.pages[cindex];
-					}
-					
-					if (!(page.isRendered || page.isRenderingStarted) ) {
-						that.#buildPagesRec(cindex);
-					}
-					
-				}, 1);			
-				
-				setTimeout(function() {
-					if (!that.current) return;
-					
-					var cindex = that.getCurrentIndex();
-					
-					var page = that.pages[cindex];
-					while ((page.isRendered || page.isRenderingStarted) && (cindex < that.pages.length - 1)) {
-						cindex++;
-						page = that.pages[cindex];
-					}
-					
-					if (!(page.isRendered || page.isRenderingStarted) ) {
-						that.#buildPagesRec(cindex);
-					}
-					
-				}, 1);			
+				if (cindex >= 0) {
+					that.#buildPagesRec(cindex);
+				} else {
+					console.log("PDFium: Finished rendering of " + that.numRenderedpages + " pages, took " + (Date.now() - that.buildPagesStartTime) + 'ms');
+				}
 			});
 		}, 1);
-
-		// Render items before
-		/*function renderBefore(i) {
-			if (i <= 0) return;
-			
-			setTimeout(function() {
-				that.#renderPage(i - 1, renderBefore);
-			}, 1);			
-		}
-		
-		// Render items after
-		function renderAfter(i) {
-			if (i >= that.pages.length - 1) return;
-			
-			setTimeout(function() {
-				that.#renderPage(i + 1, renderAfter);
-			}, 1);				
-		}
-
-		renderBefore(startIndex);
-		renderAfter(startIndex);
-*/
-		/*if (index > 0) {
-			setTimeout(function() {
-				that.#renderPage(index - 1);
-			}, 0);
-		}
-
-		if (index < this.pages.length - 1) {
-			setTimeout(function() {
-				that.#renderPage(index + 1);
-			}, 0);
-		}
-
-		// Render neighbors of neighbors, too (makes scrolling more fluid) 
-		if (index > 1) {
-			setTimeout(function() {
-				that.#renderPage(index - 2);
-			}, 0);
-		}
-
-		if (index < this.pages.length - 2) {
-			setTimeout(function() {
-				that.#renderPage(index + 2);
-			}, 0);
-		}
-	*/
 	}
 	
 	/**
-	 * By default, no page content is being created. This ensures that the current page, as well
-	 * as the direct neighbors are rendered and ready to show.
-	 *
-	#createMissingPages() {
-		const index = this.getCurrentIndex();
+	 * Returns the next page index to be rendered
+	 */
+	#getNextRenderIndex() {
+		var index = this.getCurrentIndex();
 		
-		var that = this;
-
-		// First render the current page (should only happen at page load)
-		setTimeout(function() {
-			that.#renderPage(index);
-		}, 0);
-
-		// Render neighbor pages
-		if (index > 0) {
-			setTimeout(function() {
-				that.#renderPage(index - 1);
-			}, 0);
+		// Is the current page rendered?
+		var page = this.pages[index];
+		if (!page.isRendered) return index;
+		
+		// Get the nearest page that has not been rendered already (upwards first)
+		var nextUp = index + 1;
+		while ((nextUp < this.pages.length) && this.pages[nextUp].isRendered) {
+			++nextUp;
+		} 
+		
+		var nextDn = index - 1;
+		while ((nextDn >= 0) && this.pages[nextDn].isRendered) {
+			--nextDn;
+		} 
+		
+		if ((nextUp < this.pages.length) && (nextDn >= 0)) {
+			const distUp = nextUp - index;
+			const distDn = index - nextDn;
+			
+			if (distUp <= distDn) {
+				return nextUp;
+			} else {
+				return nextDn;
+			}
+		} else
+		if (nextUp < this.pages.length) {
+			// Only up is available
+			return nextUp;
+		} else
+		if (nextDn >= 0) {
+			// Only down is available
+			return nextDn;
 		}
-
-		if (index < this.pages.length - 1) {
-			setTimeout(function() {
-				that.#renderPage(index + 1);
-			}, 0);
-		}
-
-		// Render neighbors of neighbors, too (makes scrolling more fluid) 
-		if (index > 1) {
-			setTimeout(function() {
-				that.#renderPage(index - 2);
-			}, 0);
-		}
-
-		if (index < this.pages.length - 2) {
-			setTimeout(function() {
-				that.#renderPage(index + 2);
-			}, 0);
-		}
+		
+		// All rendered
+		return -1;
 	}
 	
 	/**
 	 * Renders a page DOM.
 	 */
-	#renderPage(index, callback) {
-		if (!this.current) return;
+	async #renderPage(index) {
+		if (!this.current) return Promise.reject();
+		var that = this;
+		
+		const startTime = Date.now();
 		
 		if (index < 0) throw new Error('Invalid index: ' + index);
 		if (index > this.pages.length-1) throw new Error('Invalid index: ' + index);
 		
 		var page = this.pages[index];
-		if (page.isRendered) return;
-		if (page.isRenderingStarted) return;
+		if (page.isRendered) return Promise.resolve();
 
-		console.log("Rendering page " + index)
-
-		page.isRenderingStarted = true;
-		
+		//console.log("Rendering page " + index);
 		switch (page.doc.type) {
 			case 'note':
-				this.#createNote(page, index, function() {
+				return this.#createNote(page, index)
+				.then(function() {
 					page.isRendered = true;
-
-					setTimeout(function() {
-						if (callback) callback(index);
-					}, 0);
+					
+					//console.log("Page " + index + " rendered in " + (Date.now() - startTime) + 'ms (Note)');
 				});
-				break;
 				
 			case 'reference':
 				throw new Error(page.doc._id + ': References must be resolved in #loadPages()');
 
 			case 'attachment':
-				this.#createAttachment(page, index, function() {
+				return this.#createAttachment(page, index)
+				.then(function() {
 					page.isRendered = true;
-
-					setTimeout(function() {
-						if (callback) callback(index);
-					}, 0);
+					that.numRenderedpages++;
+					
+					console.log("PDFium: Page " + index + " rendered in " + (Date.now() - startTime) + 'ms (' + page.id + ', ' + Tools.convertFilesize(page.pdfSize) + ')');
 				});
-				break;
 				
 			default:
 				throw new Error('Could not resolve child type: ' + page.doc.type);
 		}
-		
-		//this.content.append(el);
 	}
 	
 	/**

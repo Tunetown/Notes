@@ -254,7 +254,7 @@ class PDFiumWrapperDocument {
 		this.callback = callback;
 		this.pages = false;
 		
-		this.startTime = Date.now();
+		//this.startTime = Date.now();
 	}
 	
 	/**
@@ -273,10 +273,10 @@ class PDFiumWrapperDocument {
 			this.pages.push(new PDFiumWrapperPage(this, info[p]));
 		}
 		
-		const endTime = Date.now();
-		const loadTime = endTime - this.startTime;
+		//const endTime = Date.now();
+		//const loadTime = endTime - this.startTime;
 		
-		console.log('PDFiumWrapper: Loaded document in ' + loadTime + 'ms (' + this.id + ')');
+		//console.log('PDFiumWrapper: Loaded document in ' + loadTime + 'ms (' + this.id + ')');
 		
 		if (this.documentLoadCallback) {
 			this.documentLoadCallback(this);
@@ -374,7 +374,7 @@ class PDFiumWrapperPage {
 			throw new Error("Page " + this.index + " is already rendering");
 		}
 		
-		this.startTime = Date.now();
+		//this.startTime = Date.now();
 		
 		if (!this.main.isLoaded()) {
 			throw new Error("Document not loaded");
@@ -433,10 +433,10 @@ class PDFiumWrapperPage {
 		
 		this.canvas = null;
 		
-		const endTime = Date.now();
-		const loadTime = endTime - this.startTime;
+		//const endTime = Date.now();
+		//const loadTime = endTime - this.startTime;
 		
-		console.log('PDFiumWrapper: Rendered page ' + this.index + ' in ' + loadTime + 'ms (' + this.main.id + ')');
+		//console.log('PDFiumWrapper: Rendered page ' + this.index + ' in ' + loadTime + 'ms (' + this.main.id + ')');
 
 		if (this.pageRenderedCallback) {
 			this.pageRenderedCallback(this);

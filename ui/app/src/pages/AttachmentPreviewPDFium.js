@@ -112,27 +112,47 @@ class AttachmentPreviewPDFium {
 		if (doc.content_type && (doc.content_type == 'application/pdf')) {
 			var pdfium = PDFiumWrapper.getInstance();
 			
+			var startTime;
+			
 			pdfium.initWorker()
 			.then(function() {
+				startTime = Date.now();
 				return pdfium.getDocument(doc._id, blob);
 			})
 			.then(function(pdf) {
-				for(var p=0; p<pdf.numPages; ++p) {
+				console.log('PDFium: Loaded document in ' + (Date.now() - startTime) + 'ms, ' + Tools.convertFilesize(blob.size));
+				
+				async function renderPage(index) {
+					if (index >= pdf.numPages) return Promise.resolve();
+					
+					const stime = Date.now();
+					
 					var canvas = $('<canvas class="attachmentPdfiumCanvas"/>');
 				
 					$('#contentContainer').append(
 						canvas
 					);
 
-					var page = pdf.getPage(p);
+					var page = pdf.getPage(index);
 					
 					const dimensions = page.getDimensions();
 					const ratio = dimensions.height / dimensions.width;
 
 					const w = (that.contentSize.width - 20);
 
-					page.render(canvas[0], w, w * ratio);
+					return page.render(canvas[0], w, w * ratio)
+					.then(function() {
+						console.log('PDFium: Rendered page ' + index + ' in ' + (Date.now() - stime) + 'ms');
+						
+						return renderPage(index + 1);
+					});
 				}
+				
+				startTime = Date.now();
+				renderPage(0)
+				.then(function() {
+					console.log('PDFium: Rendered all pages in ' + (Date.now() - startTime) + 'ms');
+				});
 			});
 
 		} else {

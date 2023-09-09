@@ -18,11 +18,8 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Names of the two caches used in this version of the service worker.
-// Change to v2, etc. when you update any of the local resources, which will
-// in turn trigger the install event again.
-const SW_VERSION = '0.98.32';
-const PRECACHE = 'notes_precache-v' + SW_VERSION +'.a';
+// Service Worker version (should match the Notes.js version)
+const SW_VERSION = '0.98.33';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -209,6 +206,8 @@ const PRECACHE_URLS = [
   './ui/app/images/NotesLogo_96.png',
   './ui/app/images/favicon.ico'
 ];
+
+const PRECACHE = 'notes_precache-v' + SW_VERSION +'.a';
 
 /**
  * This is used to check for updates on client request.

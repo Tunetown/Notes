@@ -131,13 +131,22 @@ class PDFiumPage {
 			throw new Error("Document already destroyed");
 		} 
 		
+		//const startTime = Date.now();
+		
 		var page = PDFiumJS.C.Doc_get_page(this.main.docInternal, this.index)
+
+		//console.log('Page render: got page at ' + (Date.now() - startTime) + "ms");
 		
 		width *= devicePixelRatio;
 		height *= devicePixelRatio;
 
-		var bitmap = PDFiumJS.C.Page_get_bitmap(page, width, height);
+		var bitmap = PDFiumJS.C.Page_get_bitmap(page, width, height);  // This is the expensive one!
+
+		//console.log('Page render: got bitmap at ' + (Date.now() - startTime) + "ms");
+
 		PDFiumJS.C.Page_destroy(page);
+		
+		//console.log('Page render: page destroyed at ' + (Date.now() - startTime) + "ms");
 		
 		var buf = PDFiumJS.C.Bitmap_get_buffer(bitmap);
 		var stride = PDFiumJS.C.Bitmap_get_stride(bitmap);
@@ -146,6 +155,8 @@ class PDFiumPage {
 		var ctx = canvas.getContext('2d');
 		var img = ctx.createImageData(width, height);
 		var data = img.data;
+		
+		//console.log('Page render: start copy at ' + (Date.now() - startTime) + "ms");
 		
 		var off = 0;
 		for(var h = 0; h < height; ++h) {
@@ -159,8 +170,12 @@ class PDFiumPage {
 				ptr += 4;
 			}
 		}
+		
+		//console.log('Page render: end copy at ' + (Date.now() - startTime) + "ms");
 
 		PDFiumJS.C.Bitmap_destroy(bitmap);
+
+		//console.log('Page render: bitmap destroyed at ' + (Date.now() - startTime) + "ms");
 
 		return img;
 	}
