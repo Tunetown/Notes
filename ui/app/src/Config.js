@@ -21,7 +21,7 @@ class Config {};
 /**
  * Layout constants
  */
-Config.mobileLayoutThresholdWidth = 800;   ///< If the screen is narrower than this, mobile layout will be used.
+Config.mobileLayoutThresholdWidth = 500;   ///< If the screen is narrower than this, mobile layout will be used.
 	
 /**
  * Settings defaults (notebook settings, stored per notebook in the database as settings document)

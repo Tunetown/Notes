@@ -23,11 +23,9 @@ class PDFiumDocument {
 	 */
 	constructor(arrayBuffer) {
 		this.fileId = PDFiumJS.opened_files.length;
-		
 		PDFiumJS.opened_files[this.fileId] = arrayBuffer;
-  
 		this.docInternal = PDFiumJS.C.Doc_new(this.fileId, arrayBuffer.length);
-		
+  
 		this.numPages = PDFiumJS.C.Doc_get_page_count(this.docInternal);
 	}
 	
@@ -126,27 +124,15 @@ class PDFiumPage {
 	/**
 	 * Renders the page to an image.
 	 */
-	render(width, height, devicePixelRatio) {
+	render(width, height) {//, devicePixelRatio) {
 		if (!this.main.docInternal) {
 			throw new Error("Document already destroyed");
 		} 
 		
-		//const startTime = Date.now();
-		
 		var page = PDFiumJS.C.Doc_get_page(this.main.docInternal, this.index)
-
-		//console.log('Page render: got page at ' + (Date.now() - startTime) + "ms");
-		
-		width *= devicePixelRatio;
-		height *= devicePixelRatio;
-
 		var bitmap = PDFiumJS.C.Page_get_bitmap(page, width, height);  // This is the expensive one!
 
-		//console.log('Page render: got bitmap at ' + (Date.now() - startTime) + "ms");
-
 		PDFiumJS.C.Page_destroy(page);
-		
-		//console.log('Page render: page destroyed at ' + (Date.now() - startTime) + "ms");
 		
 		var buf = PDFiumJS.C.Bitmap_get_buffer(bitmap);
 		var stride = PDFiumJS.C.Bitmap_get_stride(bitmap);
@@ -155,8 +141,6 @@ class PDFiumPage {
 		var ctx = canvas.getContext('2d');
 		var img = ctx.createImageData(width, height);
 		var data = img.data;
-		
-		//console.log('Page render: start copy at ' + (Date.now() - startTime) + "ms");
 		
 		var off = 0;
 		for(var h = 0; h < height; ++h) {
@@ -171,12 +155,20 @@ class PDFiumPage {
 			}
 		}
 		
-		//console.log('Page render: end copy at ' + (Date.now() - startTime) + "ms");
-
 		PDFiumJS.C.Bitmap_destroy(bitmap);
 
-		//console.log('Page render: bitmap destroyed at ' + (Date.now() - startTime) + "ms");
+		this.#throttle(throttlePageRenderTimeByMillis);
 
 		return img;
+	}
+	
+	#throttle(millis) {
+		if (millis <= 0) return;
+		
+		const start = Date.now();
+		
+		while (Date.now() - start < millis) {
+			;
+		}
 	}
 }

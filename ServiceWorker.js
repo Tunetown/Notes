@@ -19,7 +19,7 @@
  */
 
 // Service Worker version (should match the Notes.js version)
-const SW_VERSION = '0.98.33';
+const SW_VERSION = '0.99.0';
 
 // A list of local resources we always want to be cached.
 const PRECACHE_URLS = [
@@ -67,6 +67,8 @@ const PRECACHE_URLS = [
   './ui/lib/neo4j/js/neo4jd3.js',
   './ui/lib/neo4j/js/d3.min.js',
   './ui/lib/localstorage-slim/localstorage-slim.js',
+  './ui/lib/PDFjs/pdf.js',
+  './ui/lib/PDFjs/pdf.worker.js',
   
   './ui/lib/codemirror/lib/codemirror.js',
   './ui/lib/codemirror/mode/markdown/markdown.js',
@@ -139,7 +141,7 @@ const PRECACHE_URLS = [
   './ui/app/src/pages/Versions.js',
   './ui/app/src/pages/VersionView.js',
   './ui/app/src/pages/AttachmentPreview.js',
-  './ui/app/src/pages/AttachmentPreviewPDFium.js',
+  './ui/app/src/pages/AttachmentPreviewJS.js',
   './ui/app/src/pages/Console.js',
   './ui/app/src/pages/Trash.js',
   './ui/app/src/pages/RawView.js',
@@ -168,6 +170,7 @@ const PRECACHE_URLS = [
   './ui/app/src/tools/HistoryHandler.js',
   './ui/app/src/tools/WakeLock.js',
   './ui/app/src/tools/Device.js',
+  './ui/app/src/tools/PDFProxy.js',
   './ui/app/src/Config.js',
   './ui/app/src/Routing.js',
   './ui/app/src/Notes.js',

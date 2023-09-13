@@ -1253,8 +1253,8 @@ class NoteTree {
 		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
 		if (attId) return attId;
 		
-		var attIdPDFium = AttachmentPreviewPDFium.getInstance().current ? AttachmentPreviewPDFium.getInstance().current._id : false;
-		if (attIdPDFium) return attIdPDFium;
+		var attIdPDFJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
+		if (attIdPDFJS) return attIdPDFJS;
 
 		return false;*/
 	}

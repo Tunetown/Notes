@@ -17,6 +17,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 const showDebugMessages = false;
+const throttlePageRenderTimeByMillis = 0;
 
 /**
  * Pre-set emscripten module
@@ -74,6 +75,18 @@ self.Module = {
 /////////////////////////////////////////////////////////////////////////////////////////
 
 /**
+ * Queue a promise.
+ */
+self.queuePromise = function(promise) {
+	if (!self.queue) {
+		self.queue = promise;
+		return;
+	} else {
+		self.queue = self.queue.then(promise);
+	}
+}
+
+/**
  * Receive messages
  */
 self.onmessage = function (e) {
@@ -84,7 +97,7 @@ self.onmessage = function (e) {
 			break;
 			
 		case 'loadDocument':
-			const endTime = Date.now();
+			/*const endTime = Date.now();
 			const loadTime = endTime - e.data.timestamp;
 			
 			if (showDebugMessages) {
@@ -92,65 +105,74 @@ self.onmessage = function (e) {
 					command: 'consolemessage',
 					message: 'PDFiumWrapper: Transferred ArrayBuffer in ' + loadTime + 'ms (' + e.data.id + ')'
 				})
-			}
+			}*/
 
-			self.loadDocument(e.data.id, e.data.data)
-			.then(function(doc) {
-				that.postMessage({
-					command: 'documentLoaded',
-					id: e.data.id,
-					pages: doc.getPagesDescriptor()
-				}) 
-			})
-			.catch(function(err) {
-				that.postMessage({
-					command: 'error',
-					id: e.data.id,
-					error: err
-				}) 
-			});
+			self.queuePromise(
+				self.loadDocument(e.data.id, e.data.data)
+				.then(function(doc) {
+					that.postMessage({
+						command: 'documentLoaded',
+						id: e.data.id,
+						pages: doc.getPagesDescriptor()
+					}) 
+				})
+				.catch(function(err) {
+					that.postMessage({
+						command: 'error',
+						id: e.data.id,
+						error: err
+					}) 
+				})
+			);
 			break;
 
 		case 'destroyDocument':
-			self.destroyDocument(e.data.id)
-			.catch(function(err) {
-				that.postMessage({
-					command: 'error',
-					id: e.data.id,
-					error: err
-				}) 
-			});
+			self.queuePromise(
+				self.destroyDocument(e.data.id)
+				.catch(function(err) {
+					that.postMessage({
+						command: 'error',
+						id: e.data.id,
+						error: err
+					}) 
+				})
+			);
 			break;
 
 		case 'destroyAll':
-			self.destroyAll()
-			.catch(function(err) {
-				that.postMessage({
-					command: 'error',
-					error: err
-				}) 
-			});
+			self.queuePromise(
+				self.destroyAll()
+				.catch(function(err) {
+					that.postMessage({
+						command: 'error',
+						error: err
+					}) 
+				})
+			);
 			break;
 
 		case 'renderPage':
-			self.renderPage(e.data.id, e.data.index, e.data.width, e.data.height, e.data.devicePixelRatio)
-			.then(function(image) {
-				that.postMessage({
-					command: 'pageRendered',
-					id: e.data.id,
-					index: e.data.index,
-					pixels: image.data.buffer,
-					width: image.width,
-					height: image.height,
-				}, [image.data.buffer]);			
-			})
-			.catch(function(err) {
-				that.postMessage({
-					command: 'error',
-					id: e.data.id,
-					error: err
-				}) 
-			});
+			self.queuePromise(
+				self.renderPage(e.data.id, e.data.index, e.data.width, e.data.height) //, e.data.devicePixelRatio)
+				.then(function(image) {
+					that.postMessage({
+						command: 'pageRendered',
+						id: e.data.id,
+						index: e.data.index,
+						pixels: image.image.data.buffer,
+						width: image.image.width,
+						height: image.image.height,
+						renderTime: image.renderTime
+					}, [image.image.data.buffer]);			
+				})
+				.catch(function(err) {
+					that.postMessage({
+						command: 'error',
+						id: e.data.id,
+						error: err
+					}) 
+				})
+			);
 			break;
 	}
 }
@@ -175,12 +197,14 @@ self.loadDocument = async function(id, arraybuffer) {
 	const endTime = Date.now();
 	const renderTime = endTime - startTime;
 
-	if (showDebugMessages) {
+	/*if (showDebugMessages) {
 		self.postMessage({
 			command: 'consolemessage',
 			message: 'PDFium Worker: Document loaded in ' + renderTime + 'ms (' + id + ')'
 		})
-	}
+	}*/
+	
+	doc.loadTime = renderTime;
 
 	return Promise.resolve(doc);
 }
@@ -221,7 +245,7 @@ self.destroyAll = async function() {
 /**
  * Render a page
  */
-self.renderPage = async function(id, index, width, height, devicePixelRatio) {
+self.renderPage = async function(id, index, width, height) { //}, devicePixelRatio) {
 	await self.waitReady();
 	
 	const startTime = Date.now();
@@ -234,9 +258,9 @@ self.renderPage = async function(id, index, width, height, devicePixelRatio) {
 	var page = doc.getPage(index);
 	
 	return Promise.resolve(
-		page.render(width, height, devicePixelRatio)
-		
-	).then(function(image) {
+		page.render(width, height) //, devicePixelRatio)
+	)
+	.then(function(image) {
 		const endTime = Date.now();
 		const renderTime = endTime - startTime;
 	
@@ -247,7 +271,10 @@ self.renderPage = async function(id, index, width, height, devicePixelRatio) {
 			})
 		}
 		
-		return Promise.resolve(image);
+		return Promise.resolve({
+			image: image,
+			renderTime: renderTime
+		});
 	}); 
 }
 

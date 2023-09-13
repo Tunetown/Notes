@@ -33,10 +33,12 @@ class Setlist {
 		
 		$(document).off('keydown', this.keyboardHandler);
 		
+		if (this.pdfProxy) {
+			this.pdfProxy.getEngine().destroyAll();
+		}
+		
 		WakeLock.getInstance().release()
 		.catch(function(){});
-		
-		PDFiumWrapper.getInstance().destroyAll();
 	}
 
 	/**
@@ -73,8 +75,9 @@ class Setlist {
 
 		n.setCurrentPage(this);
 
-		// Acquire wake lock
 		this.#activateWakeLock();
+		
+		if (!this.pdfProxy) this.pdfProxy = new PDFProxy();
 		
 		$(document).on('keydown', this.keyboardHandler);
 		
@@ -88,10 +91,9 @@ class Setlist {
 			}), 
 		]);
 
-		PDFiumWrapper.getInstance().initWorker()
-		.then(function() {
-			return that.#loadPages(that.current, true)
-		})
+		console.log('PDF Proxy Engine: ' + this.pdfProxy.getEngine().name);
+
+		return that.#loadPages(that.current, true)
 		.then(function(pages) {
 			that.pages = pages;
 
@@ -115,158 +117,6 @@ class Setlist {
 	}
 	
 	/**
-	 * Keyboard events
-	 */
-	keyboardHandler(event) {
-		var that = Setlist.getInstance();
-		
-		if (!that.current) return;
-
-		// Left arrow key
-		if (event.which == 37) {
-			that.#previous();
-		}
-
-		// Right arrow key
-		if (event.which == 39) {
-			that.#next();
-		}
-
-		// Up arrow key
-		if (event.which == 38) {
-			that.#previous();
-		}
-
-		// Down arrow key
-		if (event.which == 40) {
-			that.#next();
-		}
-
-		// Page up key
-		if (event.which == 33) {
-			that.#previous();
-		}
-
-		// Page down key
-		if (event.which == 34) {
-			that.#next();
-		}
-
-		// a key
-		if (event.which == 65) {
-			that.#previous();
-		}
-
-		// d key
-		if (event.which == 68) {
-			that.#next();
-		}
-
-		// w key
-		if (event.which == 87) {
-			that.#previous();
-		}
-
-		// s key
-		if (event.which == 83) {
-			that.#next();
-		}
-
-		// Space bar
-		if (event.which == 32) {
-			that.#next();
-		}
-		
-		// Pos 1 key
-		if (event.which == 36) {
-			that.hideOptions();
-					
-			that.toggleShowAppElements(false);
-			that.setCurrentIndex(0);
-		}
-
-		// End key
-		if (event.which == 35) {
-			that.hideOptions();
-					
-			that.toggleShowAppElements(false);
-			that.setCurrentIndex(that.pages.length - 1);
-		}
-
-		//console.log(event.which);
-	}
-	
-	/**
-	 * Triggers the activation of a wake lock. If successMsg is set, the user will
-	 * be informed if the operation succeeded.
-	 */
-	#activateWakeLock() {
-		setTimeout(function() {
-			function activate(successMsg) {
-				WakeLock.getInstance().lock()
-				.then(function() {
-					if (successMsg) {
-						Notes.getInstance().showAlert('Display locked successfully.', 'S', "WakeLockMessages");
-					}
-				})
-				.catch(function(err) {
-					if (err.notSupported) {
-						Notes.getInstance().showAlert('Warning: This device does not support locking the screen.<br>The device may fall asleep.', 'W', "WakeLockMessages");	
-						
-					} else {
-						Notes.getInstance().showAlert('Error locking the screen.<br><b>Click here to retry...</b>', 'E', "WakeLockMessages", false, function() {
-							// Retry manually
-							activate(true);
-						});
-					}
-				});				
-			}
-			
-			WakeLock.getInstance().release()
-			.then(activate)
-			.catch(activate);
-			
-		}, Config.presentationModeWakeLockDelay);
-	}
-	
-	/**
-	 * Calls the setlist options
-	 */
-	#callOptions() {
-		var n = Notes.getInstance();
-		var that = this;
-
-		n.showMenu('editorOptions', function(cont) {
-			for(var p in that.pages) {
-				const page = that.pages[p];
-				
-				cont.append(
-					$('<div class="userbutton" data-index="' + p + '"/>')
-					.html((parseInt(p) + 1) + ': ' + page.name)
-					.on('click', function(event) {
-						event.stopPropagation();
-						
-						that.hideOptions();
-						
-						const index = $(this).data('index');
-						that.setCurrentIndex(index);
-					}),	
-				);
-			}
-		});
-	}
-	
-	/**
-	 * Hides all option menus for the editor
-	 */
-	hideOptions() {
-		var n = Notes.getInstance();
-		
-		n.hideMenu();
-		n.hideOptions();
-	}
-	
-	/**
 	 * Returns the array of pages to be shown, as promise. References are resolved, and multipage PDFs are 
 	 * spread across multiple pages.
 	 * 
@@ -274,6 +124,7 @@ class Setlist {
 	 * If there are any, the first PDF will be used. If no PDF is there, the first child with content is being used.
 	 */
 	#loadPages(doc, resolveEmptyDocs) {
+		var that = this;
 		var n = Notes.getInstance();
 		var d = n.getData();
 		
@@ -308,12 +159,11 @@ class Setlist {
 			}
 			
 			// Check if we have to look for a contained PDF
-			if ((doc2.type == 'note')) { //} && !doc2.contentSize) {
+			if ((doc2.type == 'note')) {
 				// Scan children
 				const edChildren = NoteTree.getInstance().getRelatedDocuments(doc2._id, relatedDocsOptions);
 				
 				// Check for an attachment first
-				//var found = false; 
 				for(var c in edChildren) {
 					var edchild = edChildren[c];
 					
@@ -321,29 +171,9 @@ class Setlist {
 						//console.log('Resolved ' + doc2.name + ' to first attachment');
 
 						doc2 = edchild;
-						//found = true;
-						
 						break;
 					}
 				}
-				
-				/*if (!found) {
-					// Scan for filled notes if no attachment has been found
-					found = false;
-					
-					for(var c in edChildren) {
-						var edchild = edChildren[c];
-						
-						if ((edchild.type == 'note') && (edchild.contentSize)) {
-							//console.log('Resolved ' + doc2.name + ' to first filled child note');
-
-							doc2 = edchild;
-							found = true;
-
-							break;
-						}
-					}
-				}*/
 			}
 			
 			return doc2;
@@ -415,12 +245,12 @@ class Setlist {
 							
 						} else 
 						if (meta[mindex].doc.content_type && meta[mindex].doc.content_type == 'application/pdf') {
-							PDFiumWrapper.getInstance().getDocument(meta[mindex].doc._id, data.blob)
+							that.pdfProxy.getEngine().getDocument(data.blob, data.url)
 							.then(function(pdf) {
 								meta[mindex].pdf = pdf;
 								meta[mindex].pdfSize = data.blob.size;
 								
-								console.log('PDFium: Loaded PDF in ' + (Date.now() - startTime) + 'ms (' + child._id + ', ' + Tools.convertFilesize(data.blob.size) + ')');
+								console.log('PDF Proxy: Loaded PDF in ' + (Date.now() - startTime) + 'ms (' + child._id + ', ' + Tools.convertFilesize(data.blob.size) + ')');
 								
 								resolve();
 							});
@@ -440,7 +270,7 @@ class Setlist {
 		// Build pages array. This will contain separate entries for all pages of multi page PDFs
 		return processChild(0)
 		.then(function() {
-			console.log('PDFium: -> Loaded ' + numAttachmentDocs + ' PDF documents in ' + (Date.now() - startTime) + 'ms');
+			console.log('PDF Proxy: -> Loaded ' + numAttachmentDocs + ' PDF documents in ' + (Date.now() - startTime) + 'ms');
 			
 			var pages = [];
 			for(var m in meta) {
@@ -656,18 +486,146 @@ class Setlist {
 		);
 	}
 	
-	#previous() {
-		this.hideOptions();
+	/**
+	 * Starting from the current index, this loads all further pages asynchronously.
+	 */
+	#buildPages() {
+		this.buildPagesStartTime = Date.now();
+		this.numRenderedpages = 0;
+
+		this.#buildPagesRec(this.#getNextRenderIndex());
+	}
+		
+	#buildPagesRec(index) {
+		var that = this;
+
+		// First render the current page
+		setTimeout(function() {
+			if (!that.current) return;
+			if (!that.pages) return;
+			
+			that.#renderPage(index)
+			.then(function() {
+				if (!that.current) return Promise.reject();
+				if (!that.pages) return Promise.reject();
+	
+				// See which pages beneath the current one need to be rendered
+				var cindex = that.#getNextRenderIndex();
+
+				if (cindex >= 0) {
+					that.#buildPagesRec(cindex);
+				} else {
+					console.log("PDF Proxy: Finished rendering of " + that.numRenderedpages + " pages, took " + (Date.now() - that.buildPagesStartTime) + 'ms');
 					
-		this.toggleShowAppElements(false);
-		this.selectPrevious();
+					that.#destroyPages();
+				}
+			});
+		}, 1);
 	}
 	
-	#next() {
-		this.hideOptions();
+	#destroyPages() {
+		for(var p in this.pages) {
+			var page = this.pages[p];
+			
+			if (page.pdf) {
+				page.pdf.destroy();
+				page.pdf = null;
+			}
+		}
+	}
+	
+	/**
+	 * Returns the next page index to be rendered
+	 */
+	#getNextRenderIndex() {
+		var index = this.getCurrentIndex();
+		
+		// Is the current page rendered?
+		var page = this.pages[index];
+		if (!page.isRendered && !page.isRendering) return index;
+		
+		// Get the nearest page that has not been rendered already (upwards first)
+		var nextUp = index + 1;
+		while ((nextUp < this.pages.length) && (this.pages[nextUp].isRendered || this.pages[nextUp].isRendering)) {
+			++nextUp;
+		} 
+		
+		var nextDn = index - 1;
+		while ((nextDn >= 0) && (this.pages[nextDn].isRendered || this.pages[nextDn].isRendering)) {
+			--nextDn;
+		} 
+		
+		if ((nextUp < this.pages.length) && (nextDn >= 0)) {
+			const distUp = nextUp - index;
+			const distDn = index - nextDn;
+			
+			if (distUp <= distDn) {
+				return nextUp;
+			} else {
+				return nextDn;
+			}
+		} else
+		if (nextUp < this.pages.length) {
+			// Only up is available
+			return nextUp;
+		} else
+		if (nextDn >= 0) {
+			// Only down is available
+			return nextDn;
+		}
+		
+		// All rendered
+		return -1;
+	}
+	
+	/**
+	 * Renders a page DOM.
+	 */
+	async #renderPage(index) {
+		if (!this.current) return Promise.reject();
+		if (!this.pages) return Promise.reject();
+		
+		var that = this;
+		
+		const startTime = Date.now();
+		
+		if (index < 0) throw new Error('Invalid index: ' + index);
+		if (index > this.pages.length-1) throw new Error('Invalid index: ' + index);
+		
+		var page = this.pages[index];
+		if (page.isRendered) return Promise.resolve();
+
+		page.isRendering = true;
+
+		switch (page.doc.type) {
+			case 'note':
+				return this.#createNote(page, index)
+				.then(function() {
+					page.isRendered = true;
+					page.isRendering = false;
 					
-		this.toggleShowAppElements(false);
-		this.selectNext();
+					//console.log("Page " + index + " rendered in " + (Date.now() - startTime) + 'ms (Note)');
+				});
+				
+			case 'reference':
+				throw new Error(page.doc._id + ': References must be resolved in #loadPages()');
+
+			case 'attachment':
+				return this.#createAttachment(page, index)
+				.then(function(data) {
+					page.isRendered = true;
+					page.isRendering = false;
+					
+					if (page.pdf) {
+						that.numRenderedpages++;
+	
+						console.log("PDF Proxy: Page " + index + " rendered in " + (Date.now() - startTime) + 'ms (' + page.id + ')'); //, ' + Tools.convertFilesize(data.renderSize) + ')');
+					}
+				});
+				
+			default:
+				throw new Error('Could not resolve child type: ' + page.doc.type);
+		}
 	}
 	
 	/**
@@ -737,25 +695,32 @@ class Setlist {
 
 			el.css('text-align', 'center');
 			
-			var pdfpage = page.pdf.getPage(page.pdfPage);
-			const dimensions = pdfpage.getDimensions();
-			const ratio = dimensions.width / dimensions.height;
-			const screenRatio = that.contentSize.width / that.contentSize.height;
-
-			var w, h;
-			if (ratio > screenRatio) {
-				w = that.contentSize.width;
-				h = w / ratio;
-			} else {
-				h = that.contentSize.height;				
-				w = h * ratio;
-			}
-
-			return pdfpage.render(canvas, Math.floor(w), Math.floor(h))
-			.then(function() {
-				el
-				.empty()
-				.append(canvasJ);
+			return page.pdf.getPage(page.pdfPage)
+			.then(function(proxyPage) {
+				const dimensions = proxyPage.getDimensions();
+				const ratio = dimensions.width / dimensions.height;
+				const screenRatio = that.contentSize.width / that.contentSize.height;
+	
+				var w, h;
+				if (ratio > screenRatio) {
+					w = that.contentSize.width;
+					h = w / ratio;
+				} else {
+					h = that.contentSize.height;				
+					w = h * ratio;
+				}
+	
+				return proxyPage.render(canvas, Math.floor(w), Math.floor(h))
+				.then(function(data) {
+					el
+					.empty()
+					.append(canvasJ);
+					
+					return Promise.resolve({
+						renderTime: data.renderTime,
+						//renderSize: data.renderSize
+					});
+				});
 			});
 						
 		} else {
@@ -771,6 +736,20 @@ class Setlist {
 			
 			return Promise.resolve();
 		}
+	}
+	
+	#previous() {
+		this.hideOptions();
+					
+		this.toggleShowAppElements(false);
+		this.selectPrevious();
+	}
+	
+	#next() {
+		this.hideOptions();
+					
+		this.toggleShowAppElements(false);
+		this.selectNext();
 	}
 	
 	/**
@@ -924,131 +903,7 @@ class Setlist {
 		rightEl.css('height', '30px'); // TODO
 	}
 	
-	/**
-	 * Starting from the current index, this loads all further pages asynchronously.
-	 */
-	#buildPages() {
-		this.buildPagesStartTime = Date.now();
-		this.numRenderedpages = 0;
-		//this.numRenderingTasks = 0;
 
-		this.#buildPagesRec(this.#getNextRenderIndex());
-	}
-		
-	#buildPagesRec(index) {
-		var that = this;
-
-		// First render the current page
-		setTimeout(function() {
-			if (!that.current) return;
-
-			//that.numRenderingTasks++;
-			//console.log(' -> +Tasks: ' + that.numRenderingTasks);
-
-			that.#renderPage(index)
-			.then(function() {
-				if (!that.current) return Promise.reject();
-
-				//that.numRenderingTasks--;
-				//console.log(' -> -Tasks: ' + that.numRenderingTasks);
-				
-				// See which pages beneath the current one need to be rendered
-				var cindex = that.#getNextRenderIndex();
-				
-				if (cindex >= 0) {
-					that.#buildPagesRec(cindex);
-				} else {
-					console.log("PDFium: Finished rendering of " + that.numRenderedpages + " pages, took " + (Date.now() - that.buildPagesStartTime) + 'ms');
-				}
-			});
-		}, 1);
-	}
-	
-	/**
-	 * Returns the next page index to be rendered
-	 */
-	#getNextRenderIndex() {
-		var index = this.getCurrentIndex();
-		
-		// Is the current page rendered?
-		var page = this.pages[index];
-		if (!page.isRendered) return index;
-		
-		// Get the nearest page that has not been rendered already (upwards first)
-		var nextUp = index + 1;
-		while ((nextUp < this.pages.length) && this.pages[nextUp].isRendered) {
-			++nextUp;
-		} 
-		
-		var nextDn = index - 1;
-		while ((nextDn >= 0) && this.pages[nextDn].isRendered) {
-			--nextDn;
-		} 
-		
-		if ((nextUp < this.pages.length) && (nextDn >= 0)) {
-			const distUp = nextUp - index;
-			const distDn = index - nextDn;
-			
-			if (distUp <= distDn) {
-				return nextUp;
-			} else {
-				return nextDn;
-			}
-		} else
-		if (nextUp < this.pages.length) {
-			// Only up is available
-			return nextUp;
-		} else
-		if (nextDn >= 0) {
-			// Only down is available
-			return nextDn;
-		}
-		
-		// All rendered
-		return -1;
-	}
-	
-	/**
-	 * Renders a page DOM.
-	 */
-	async #renderPage(index) {
-		if (!this.current) return Promise.reject();
-		var that = this;
-		
-		const startTime = Date.now();
-		
-		if (index < 0) throw new Error('Invalid index: ' + index);
-		if (index > this.pages.length-1) throw new Error('Invalid index: ' + index);
-		
-		var page = this.pages[index];
-		if (page.isRendered) return Promise.resolve();
-
-		//console.log("Rendering page " + index);
-		switch (page.doc.type) {
-			case 'note':
-				return this.#createNote(page, index)
-				.then(function() {
-					page.isRendered = true;
-					
-					//console.log("Page " + index + " rendered in " + (Date.now() - startTime) + 'ms (Note)');
-				});
-				
-			case 'reference':
-				throw new Error(page.doc._id + ': References must be resolved in #loadPages()');
-
-			case 'attachment':
-				return this.#createAttachment(page, index)
-				.then(function() {
-					page.isRendered = true;
-					that.numRenderedpages++;
-					
-					console.log("PDFium: Page " + index + " rendered in " + (Date.now() - startTime) + 'ms (' + page.id + ', ' + Tools.convertFilesize(page.pdfSize) + ')');
-				});
-				
-			default:
-				throw new Error('Could not resolve child type: ' + page.doc.type);
-		}
-	}
 	
 	/**
 	 * Info about the neighbors of the passed index.
@@ -1088,5 +943,156 @@ class Setlist {
 		
 		return ret;
 	}
-}
+		
+	/**
+	 * Keyboard events
+	 */
+	keyboardHandler(event) {
+		var that = Setlist.getInstance();
+		
+		if (!that.current) return;
+
+		// Left arrow key
+		if (event.which == 37) {
+			that.#previous();
+		}
+
+		// Right arrow key
+		if (event.which == 39) {
+			that.#next();
+		}
+
+		// Up arrow key
+		if (event.which == 38) {
+			that.#previous();
+		}
+
+		// Down arrow key
+		if (event.which == 40) {
+			that.#next();
+		}
+
+		// Page up key
+		if (event.which == 33) {
+			that.#previous();
+		}
+
+		// Page down key
+		if (event.which == 34) {
+			that.#next();
+		}
+
+		// a key
+		if (event.which == 65) {
+			that.#previous();
+		}
+
+		// d key
+		if (event.which == 68) {
+			that.#next();
+		}
+
+		// w key
+		if (event.which == 87) {
+			that.#previous();
+		}
+
+		// s key
+		if (event.which == 83) {
+			that.#next();
+		}
+
+		// Space bar
+		if (event.which == 32) {
+			that.#next();
+		}
+		
+		// Pos 1 key
+		if (event.which == 36) {
+			that.hideOptions();
+					
+			that.toggleShowAppElements(false);
+			that.setCurrentIndex(0);
+		}
+
+		// End key
+		if (event.which == 35) {
+			that.hideOptions();
+					
+			that.toggleShowAppElements(false);
+			that.setCurrentIndex(that.pages.length - 1);
+		}
+
+		//console.log(event.which);
+	}
 	
+	/**
+	 * Triggers the activation of a wake lock. If successMsg is set, the user will
+	 * be informed if the operation succeeded.
+	 */
+	#activateWakeLock() {
+		setTimeout(function() {
+			function activate(successMsg) {
+				WakeLock.getInstance().lock()
+				.then(function() {
+					if (successMsg) {
+						Notes.getInstance().showAlert('Display locked successfully.', 'S', "WakeLockMessages");
+					}
+				})
+				.catch(function(err) {
+					if (err.notSupported) {
+						Notes.getInstance().showAlert('Warning: This device does not support locking the screen.<br>The device may fall asleep.', 'W', "WakeLockMessages");	
+						
+					} else {
+						Notes.getInstance().showAlert('Error locking the screen.<br><b>Click here to retry...</b>', 'E', "WakeLockMessages", false, function() {
+							// Retry manually
+							activate(true);
+						});
+					}
+				});				
+			}
+			
+			WakeLock.getInstance().release()
+			.then(activate)
+			.catch(activate);
+			
+		}, Config.presentationModeWakeLockDelay);
+	}
+	
+	/**
+	 * Calls the setlist options
+	 */
+	#callOptions() {
+		var n = Notes.getInstance();
+		var that = this;
+
+		n.showMenu('editorOptions', function(cont) {
+			for(var p in that.pages) {
+				const page = that.pages[p];
+				
+				cont.append(
+					$('<div class="userbutton" data-index="' + p + '"/>')
+					.html((parseInt(p) + 1) + ': ' + page.name)
+					.on('click', function(event) {
+						event.stopPropagation();
+						
+						that.hideOptions();
+						
+						const index = $(this).data('index');
+						that.setCurrentIndex(index);
+					}),	
+				);
+			}
+		});
+	}
+	
+	/**
+	 * Hides all option menus for the editor
+	 */
+	hideOptions() {
+		var n = Notes.getInstance();
+		
+		n.hideMenu();
+		n.hideOptions();
+	}
+}

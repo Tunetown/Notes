@@ -19,14 +19,6 @@
  */
 class PDFiumWrapper {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!PDFiumWrapper.instance) PDFiumWrapper.instance = new PDFiumWrapper();
-		return PDFiumWrapper.instance;
-	}
-	
 	constructor() {
 		this.loadedDocs = new Map();
 	}
@@ -174,7 +166,8 @@ class PDFiumWrapper {
 	  									new Uint8ClampedArray(e.data.pixels),
 										e.data.width,
 										e.data.height 
-									)
+									),
+									e.data.renderTime
 								);
 								
 							} catch (err) {
@@ -253,8 +246,6 @@ class PDFiumWrapperDocument {
 		this.id = id;
 		this.callback = callback;
 		this.pages = false;
-		
-		//this.startTime = Date.now();
 	}
 	
 	/**
@@ -272,11 +263,6 @@ class PDFiumWrapperDocument {
 		for (var p=0; p<info.length; ++p) {
 			this.pages.push(new PDFiumWrapperPage(this, info[p]));
 		}
-		
-		//const endTime = Date.now();
-		//const loadTime = endTime - this.startTime;
-		
-		//console.log('PDFiumWrapper: Loaded document in ' + loadTime + 'ms (' + this.id + ')');
 		
 		if (this.documentLoadCallback) {
 			this.documentLoadCallback(this);
@@ -365,16 +351,17 @@ class PDFiumWrapperPage {
 	
 	/**
 	 * Renders the page to the passed DOM canvas.
+	 * 
+	 * If asyncCallback is provided, the promise will resolve after the worker has been
+	 * messaged, and you have to use asyncCallback to react after the worker has answered.
 	 *
 	 * The canvas dimensions will be set to the PDFs page size if w/h are not supported, 
 	 * but you can also determine yourself what the size should be.
 	 */
-	async render(canvas, width, height) {
+	async render(canvas, width, height, asyncCallback) {
 		if (this.pageRenderedCallback) {
 			throw new Error("Page " + this.index + " is already rendering");
 		}
-		
-		//this.startTime = Date.now();
 		
 		if (!this.main.isLoaded()) {
 			throw new Error("Document not loaded");
@@ -389,8 +376,16 @@ class PDFiumWrapperPage {
 		this.canvas.style.width = width + 'px';
 		this.canvas.style.height = height + 'px';
 		
-		this.canvas.width = width * window.devicePixelRatio;
-		this.canvas.height = height * window.devicePixelRatio;
+		// If the page is smaller than the display area, render to the original 
+		// page size, and zoom the canvas to the needed screen size afterwards
+		/*const dim = this.getDimensions();
+		if (dim.width < width) {
+			width = dim.width;
+			height = dim.height;			
+		}*/
+		
+		this.canvas.width = width;
+		this.canvas.height = height;
 		
 		var that = this;
 		return new Promise(function(resolve/*, reject*/) {
@@ -399,12 +394,22 @@ class PDFiumWrapperPage {
 				id: that.main.id,
 				index: that.index,
 				width: width,
-				height: height,
-				devicePixelRatio: window.devicePixelRatio
+				height: height
 			});
 			
-			that.pageRenderedCallback = function(page) {
-				resolve(page);
+			if (asyncCallback) {
+				that.pageRenderedCallback = function(page, renderTime, renderSize) {
+					asyncCallback(page, renderTime, renderSize);
+				}
+				resolve(this);
+			} else {
+				that.pageRenderedCallback = function(page, renderTime, renderSize) {
+					resolve({
+						page: page, 
+						renderTime: renderTime, 
+						renderSize: renderSize
+					});
+				}
 			}
 		})
 	}
@@ -423,7 +428,7 @@ class PDFiumWrapperPage {
 	/**
 	 * Internal: Apply the received image data to the buffered canvas (see render()).
 	 */
-	applyToCanvas(image) {
+	applyToCanvas(image, renderTime) {
 		if (!this.main.isLoaded()) {
 			throw new Error("Document not loaded");
 		}
@@ -433,13 +438,8 @@ class PDFiumWrapperPage {
 		
 		this.canvas = null;
 		
-		//const endTime = Date.now();
-		//const loadTime = endTime - this.startTime;
-		
-		//console.log('PDFiumWrapper: Rendered page ' + this.index + ' in ' + loadTime + 'ms (' + this.main.id + ')');
-
 		if (this.pageRenderedCallback) {
-			this.pageRenderedCallback(this);
+			this.pageRenderedCallback(this, renderTime, image.data.byteLength);
 			this.pageRenderedCallback = null;
 		}
 	}

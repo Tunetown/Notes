@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.98.33';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.99.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -662,7 +662,7 @@ class Notes {
 			}
 		}
 		AttachmentPreview.getInstance().unload();
-		AttachmentPreviewPDFium.getInstance().unload();
+		AttachmentPreviewJS.getInstance().unload();
 		Setlist.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
 		Versions.getInstance().unload();
@@ -931,6 +931,9 @@ class Notes {
 		
 		var teaser = $('<div id="teaser"><h4>No note has been loaded</h4><div>Please select a note in the navigation bar or create a new one.</div></div>');
 		
+		this.footer = $('<div id="editorFooter" class="footer"></div>');
+		this.footerAttached = true;
+		
 		var that = this;
 		$('#all').append([
 			// Content
@@ -1024,7 +1027,7 @@ class Notes {
 			}),*/
 			
 			//Device.getInstance().isLayoutMobile() ? $('<div id="footer"></div>') : null
-			$('<div id="editorFooter" class="footer"></div>')
+			this.footer
 		]);
 
 		// Also setup the navigation tree
@@ -1617,7 +1620,23 @@ class Notes {
 		const mobile = Device.getInstance().isLayoutMobile();
 		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
-		return (mobile || upright) ? $('#editorFooter') : $('#navFooter');  
+		return (mobile || upright) ? this.footer : $('#navFooter');  
+	}
+	
+	#attachFooter() {
+		if (this.#getFooter() != this.footer) return;
+		if (this.footerAttached) return;
+		
+		$('#all').append(this.footer);
+		this.footerAttached = true;
+	}
+	
+	#detachFooter() {
+		if (this.#getFooter() != this.footer) return;		
+		if (!this.footerAttached) return;
+		
+		this.footer.detach();
+		this.footerAttached = false;
 	}
 	
 	#updateFooterVisibility() {
@@ -1786,7 +1805,7 @@ class Notes {
 		
 		const treeWidth = t.getContainerWidth();
 		
-		const footer = that.#getFooter(); //$('#footer');
+		const footer = that.#getFooter(); 
 		const header = $('header');
 		const nav = $('nav');
 			
@@ -1797,7 +1816,8 @@ class Notes {
 				duration: Config.presentationModeAnimationTime
 			});
 			
-			footer.css('display', 'grid');
+			//footer.css('display', 'grid');
+			that.#attachFooter();
 			footer.animate({ bottom: '0px' }, {
 				queue: false,
 				duration: Config.presentationModeAnimationTime
@@ -1813,7 +1833,8 @@ class Notes {
 				queue: false,
 				duration: Config.presentationModeAnimationTime,
 				complete: function() {
-					footer.css('display', 'none');
+					//footer.css('display', 'none');
+					that.#detachFooter();		
 				}
 			});
 		}
@@ -2209,8 +2230,8 @@ class Notes {
 		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
 		if (attId) return attId;
 		
-		var attIdPDFium = AttachmentPreviewPDFium.getInstance().current ? AttachmentPreviewPDFium.getInstance().current._id : false;
-		if (attIdPDFium) return attIdPDFium;
+		var attIdPDFJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
+		if (attIdPDFJS) return attIdPDFJS;
 
 		if (!editorsOnly) {
 			var versId = Versions.getInstance().currentId;
