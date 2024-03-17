@@ -521,27 +521,6 @@ class Routing {
 				});
 			});
 			
-			// Presentation (Setlist mode) for an item
-			this.get('#/:profile/aslist/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				that.app.startApp(this.params['profile'])
-				.then(function(data) {
-					return Promise.resolve(data.treePromise);
-				})
-				.then(function(data) {
-					that.app.resetPage();
-					return DocumentActions.getInstance().requestPresentationView(noteId);					
-				})
-				.catch(function(err) {
-					that.app.showAlert('Error loading presentation view: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
 			// Item
 			function openDocument(context, params, noteId) {
 				return that.app.startApp(params['profile'])
@@ -722,8 +701,7 @@ class Routing {
 	 * Post processing for last opened URL
 	 */
 	static postProcessLastOpenedUrl(url) {
-		// Remove setlist token (Setlists may not be re-opened automatically)
-		return url.replace('/aslist/', '/')
+		return url;
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -762,13 +740,6 @@ class Routing {
 	 */
 	callRawView(id) {
 		this.call('raw/' + id);
-	}
-	
-	/**
-	 * Calls the setlist view
-	 */
-	callPresentationView(id) {
-		this.call('aslist/' + id);
 	}
 	
 	/**

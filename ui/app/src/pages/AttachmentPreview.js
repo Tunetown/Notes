@@ -185,22 +185,6 @@ class AttachmentPreview {
 					noDownload: true
 				})
 			);
-			
-			cont.append(
-				$('<div class="userbutton"><div class="fa fa-eye userbuttonIcon"></div>Use PDFium based viewer</div>')
-				.on('click', function(event) {
-					event.stopPropagation();
-					that.hideOptions();	
-					
-					var vs = ClientState.getInstance().getViewSettings();
-					
-					vs.useNativePdfViewer = false;
-					
-					ClientState.getInstance().saveViewSettings(vs);
-					
-					Notes.getInstance().routing.call(that.current._id);
-				})
-			);
 		});
 	}
 	

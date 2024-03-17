@@ -850,13 +850,6 @@ class NoteTree {
 		Notes.getInstance().editorFavoritesButtonHandler(event);
 	}
 	
-	presentationModeHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
-		
-		Notes.getInstance().editorPresentationModeButtonHandler(event);
-	}
-	
 	settingsHandler(event) {
 		var that = NoteTree.getInstance();
 		const newState = !that.isSettingsPanelVisible();
@@ -1245,18 +1238,6 @@ class NoteTree {
 	 */
 	getCurrentlyShownId() {
 		return Notes.getInstance().getCurrentlyShownId(true);
-		
-		/*
-		var e = Notes.getInstance().getCurrentEditor();
-		if (e) return e.getCurrentId();	
-		
-		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
-		if (attId) return attId;
-		
-		var attIdPDFJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
-		if (attIdPDFJS) return attIdPDFJS;
-
-		return false;*/
 	}
 	
 	/**

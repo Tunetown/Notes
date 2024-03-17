@@ -77,31 +77,31 @@ class Views {
 			} 
 			
 			// Design document exists: Check if the document has been modified
-			if (ddocPers.views) {
-				for (var v in views) {
-					var view = views[v];
-					if (ddocPers.views.hasOwnProperty(view.name)) {
-						var mapPers = ddocPers.views[view.name];
-						if (mapPers.map) {
-							var viewStr = view.map.toString();
-							if (mapPers.map == viewStr) {
-								// Not changed
-								//console.log(' -> MapReduce: View ' + view.name + ' is still up to date.');
-								continue;
-							} else {
-								console.log(' -> MapReduce: View ' + view.name + ' has been changed.');
-							} 
+			if (!ddocPers.views) {
+				ddocPers.views = {};	
+			}
+				
+			for (var v in views) {
+				var view = views[v];
+				if (ddocPers.views.hasOwnProperty(view.name)) {
+					var mapPers = ddocPers.views[view.name];
+					if (mapPers.map) {
+						var viewStr = view.map.toString();
+						if (mapPers.map == viewStr) {
+							// Not changed
+							//console.log(' -> MapReduce: View ' + view.name + ' is still up to date.');
+							continue;
 						} else {
-							console.log(' -> MapReduce: View ' + view.name + ' does not have a map function.');
-						}
+							console.log(' -> MapReduce: View ' + view.name + ' has been changed.');
+						} 
 					} else {
-						console.log(' -> MapReduce: View ' + view.name + ' does not exist.');
+						console.log(' -> MapReduce: View ' + view.name + ' does not have a map function.');
 					}
-					
-					changed.push(view);
+				} else {
+					console.log(' -> MapReduce: View ' + view.name + ' does not exist.');
 				}
-			} else {
-				ddocPers.views = {};
+				
+				changed.push(view);
 			}
 			
 			if (!changed.length) {

@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.99.0';      // Note: Also update the Cahce ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '0.99.1';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -53,6 +53,8 @@ class Notes {
 				Console.log('  at:    ' + url, 'E');
 				Console.log('  line:  ' + line, 'E');
 			} 
+			
+			console.trace();
 			
 			// Just let the default handler run.
 			return false;
@@ -363,34 +365,6 @@ class Notes {
 	} 
 	
 	/**
-	 * Check all sources against the MD5 hashes in this class.
-	 *
-	checkSources() {
-		var promises = [];
-		for (var [key, value] of this.sourceHashes) {
-			promises.push(
-				new Promise(function(resolve) {
-					var file = key;
-					var hash = value;
-					fetch(file)
-					.then(function(data) {
-						return data.text();
-					})
-					.then(function(text) {
-						var currentHash = md5(text);
-						
-						if (currentHash != hash) {
-							console.log(file + '  ' + currentHash + '  shoud be ' + hash);
-						}
-						resolve();
-					})
-				})
-			)
-		}
-		return Promise.all(promises);
-	}
-	
-	/**
 	 * Handlers incoming messages from the service worker.
 	 */
 	setupServiceWorkerMessageReceiver() { 
@@ -662,8 +636,6 @@ class Notes {
 			}
 		}
 		AttachmentPreview.getInstance().unload();
-		AttachmentPreviewJS.getInstance().unload();
-		Setlist.getInstance().unload();
 		LabelDefinitions.getInstance().unload();
 		Versions.getInstance().unload();
 		GraphView.getInstance().unload();
@@ -748,15 +720,6 @@ class Notes {
 		e.stopPropagation();
 		
 		var that = Notes.getInstance();
-		/*
-		
-		if (that.#isPresentationmodeActive()) {
-			var id = Setlist.getInstance().getCurrentId();
-			if (id) {
-				that.routing.call(id);			
-			}
-		}*/
-			
 		that.home();
 	}
 	
@@ -765,13 +728,6 @@ class Notes {
 		
 		var that = Notes.getInstance();
 		var tree = NoteTree.getInstance();
-		
-		/*if (that.#isPresentationmodeActive()) {
-			var pid = Setlist.getInstance().getCurrentId();
-			if (pid) {
-				that.routing.call(pid);			
-			}
-		}*/
 		
 		const mobile = Device.getInstance().isLayoutMobile();
 		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
@@ -808,31 +764,6 @@ class Notes {
 			//t.unblock();
 			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		});
-	}
-	
-	editorPresentationModeButtonHandler(e) {
-		e.stopPropagation();
-
-		var that = Notes.getInstance();
-		
-		if (that.#isPresentationmodeActive()) {
-			var id = Setlist.getInstance().getCurrentId();
-			if (!id) return;
-			
-			that.routing.call(id);
-			
-		} else {
-			var id = that.getCurrentlyShownId();
-			if (!id) return;
-			
-			var related = NoteTree.getInstance().getRelatedDocuments(id);
-			if (!related || related.length == 0) {
-				that.showAlert('This document has no related documents to present', 'I', 'PresentationMode');
-				return;
-			} 
-			
-			that.routing.callPresentationView(id);
-		}
 	}
 	
 	editorFavoritesButtonHandler(e) {
@@ -1084,11 +1015,6 @@ class Notes {
 			// Create note
 			$('<div id="createButton2" class="footerButton fa fa-plus" data-toggle="tooltip" title="Create new item"></div>')
 			.on('click', this.editorCreateButtonHandler),
-
-			// Presentation mode
-			$('<div id="presentationModeButton2" class="footerButton fa fa-play" data-toggle="tooltip" title="Show contents of this item in presentation mode"></div>')
-			.on('click', this.editorPresentationModeButtonHandler),
-			
 		]);
 	}
 	
@@ -1758,15 +1684,6 @@ class Notes {
 		// Option icons
 		this.setRoundedButtonSize(this.getRoundedButtonSize());
 
-		// Presentation mode button icon
-		const pmButton = $('#presentationModeButton2');
-		if (pmButton) {
-			const isPlaying =  this.#isPresentationmodeActive();
-
-			pmButton.toggleClass('fa-play', !isPlaying);
-			pmButton.toggleClass('fa-stop', isPlaying);
-		}
-		
 		/*const headerShowNavButton = $('#showNavButton');
 		if (upright) {
 			headerShowNavButton.show();
@@ -1783,11 +1700,6 @@ class Notes {
 		setTimeout(this.#animateDimensions, 100);
 	}
 	
-	#isPresentationmodeActive() {
-		const cp = this.getCurrentPage();
-		return !!(cp && (typeof cp.presentationModeActive == 'function') && cp.presentationModeActive());
-	}
-	
 	/**
 	 * Animated parts of updateDimensions()
 	 */
@@ -1798,47 +1710,13 @@ class Notes {
 		const mobile = Device.getInstance().isLayoutMobile();
 		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
-		const cp = that.getCurrentPage();
-		const hideAppElements = (mobile || upright) && cp && (typeof cp.shouldShowAppElements == 'function') && !cp.shouldShowAppElements(); 
-
-		const hdrSize = that.getHeaderSize();
-		
 		const treeWidth = t.getContainerWidth();
 		
-		const footer = that.#getFooter(); 
-		const header = $('header');
 		const nav = $('nav');
 			
-		// Show/Hide header and footer (presentation/Setlist mode)
-		if (!hideAppElements) {			
-			header.animate({ top: '0px' }, {
-				queue: false,
-				duration: Config.presentationModeAnimationTime
-			});
+		//footer.css('display', 'grid');
+		that.#attachFooter();
 			
-			//footer.css('display', 'grid');
-			that.#attachFooter();
-			footer.animate({ bottom: '0px' }, {
-				queue: false,
-				duration: Config.presentationModeAnimationTime
-			});
-			
-		} else {
-			header.animate({ top: '-' + hdrSize + 'px' }, {
-				queue: false,
-				duration: Config.presentationModeAnimationTime
-			});
-			
-			footer.animate({ bottom: '-' + hdrSize + 'px' }, {
-				queue: false,
-				duration: Config.presentationModeAnimationTime,
-				complete: function() {
-					//footer.css('display', 'none');
-					that.#detachFooter();		
-				}
-			});
-		}
-		
 		// Portrait mode
 		if (!mobile) {
 			if (upright && (!that.showNavigationInUprightMode)) {
@@ -2230,9 +2108,6 @@ class Notes {
 		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
 		if (attId) return attId;
 		
-		var attIdPDFJS = AttachmentPreviewJS.getInstance().current ? AttachmentPreviewJS.getInstance().current._id : false;
-		if (attIdPDFJS) return attIdPDFJS;
-
 		if (!editorsOnly) {
 			var versId = Versions.getInstance().currentId;
 			if (versId) return versId;
@@ -2340,6 +2215,11 @@ class Notes {
 		});
 		if (alwaysHideAtNewMessage) {
 			msgCont.data("alwaysHideAtNewMessage", true);
+		}
+		
+		// Call stack
+		if (type == 'E') {
+			console.trace();
 		}
 	}
 	

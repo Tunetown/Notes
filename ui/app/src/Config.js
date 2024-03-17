@@ -188,10 +188,9 @@ Config.useBufferedNavigationItemElements = true;      /// Dont create the DOM it
 Config.preRenderNavigationDomItemsInterval = 10;      /// Interval for pre-rendering DOM items for navigation. Set to 0 for disabling pre-creation.
 
 /**
- * Presentation (setlist) mode
+ * Presentation (setlist) mode TODO rename to treeAnimationTime
  */
 Config.presentationModeAnimationTime = 100;           /// Time (ms) for the app elements (header, footer etc) to be blended in and out in presentation mode (setlist)
-Config.presentationModeWakeLockDelay = 3000;          /// Time (ms) delay for acquiring the wake lock in setlists
 
 /**
  * TODO Description
