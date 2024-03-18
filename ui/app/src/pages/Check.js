@@ -117,7 +117,7 @@ class Check {
 				runner: function(onFinish) {
 					that.processCheck(
 						Database.getInstance().syncHandler.checkConsistency(function(msg, type) {
-							Console.log(msg, type);
+							console.log(msg, type);
 						}),
 						onFinish
 					);

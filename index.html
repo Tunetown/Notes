@@ -7,44 +7,21 @@
     <link rel="manifest" href="manifest.json" type="application/json">
 	<link rel="apple-touch-icon" href="ui/app/images/NotesLogo_180.png"/>
 	<link rel="apple-mobile-web-app-title" href="Notes" />
+    
+    <meta charset="UTF-8" />
     <meta id="themeColor" name="theme-color" content="#ff8080">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
 	
 	<link rel="shortcut icon" href="ui/app/images/favicon.ico">
 
-	<!-- Lib styles -->
-	<link rel="stylesheet" href="ui/lib/selectize/selectize.bootstrap3.min.css" />
-    <link rel="stylesheet" href="ui/lib/bootstrap/bootstrap.min.css">  
-	<link rel="stylesheet" href="ui/lib/fa/css/all.min.css">
-	<link rel="stylesheet" href="ui/lib/tinymce/skins/ui/oxide/skin.min.css">
-    <link rel="stylesheet" href="ui/lib/tinymce/skins/ui/oxide/content.min.css">
-    <link rel="stylesheet" href="ui/lib/tinymce/skins/content/default/content.min.css">
-    <link rel="stylesheet" href="ui/lib/switch/switch.css">
-    <link rel="stylesheet" href="ui/lib/codemirror/lib/codemirror.css">
-    <link rel="stylesheet" href="ui/lib/codemirror/addon/hint/show-hint.css">
-    <link rel="stylesheet" href="ui/lib/neo4j/css/neo4jd3.css">
-    	
-	<link rel="font" href="ui/lib/fa/webfonts/fa-solid-900.woff2" type="font/woff2">
-	<link rel="font" href="ui/lib/fa/webfonts/fa-regular-400.woff2" type="font/woff2">
-
-	<!-- Internal styles -->
-    <link rel="stylesheet" href="ui/app/css/Notes.css">
-    <link rel="stylesheet" href="ui/app/css/Header.css">
-    <link rel="stylesheet" href="ui/app/css/NoteTree.css">
-    <link rel="stylesheet" href="ui/app/css/TreeBehaviour.css">
-    <link rel="stylesheet" href="ui/app/css/TileBehaviour.css">
-    <link rel="stylesheet" href="ui/app/css/DetailBehaviour.css">
-    <link rel="stylesheet" href="ui/app/css/ReferenceBehaviour.css">
-    <link rel="stylesheet" href="ui/app/css/Misc.css">
-    <link rel="stylesheet" href="ui/app/css/Board.css">
-    <link rel="stylesheet" href="ui/app/css/Editor.css">
-</head>
-<body>
+ 	<script type="text/javascript" src="bootstrap.js"></script>
 	<script type="text/javascript">
     	window.onload = function() {
     		Notes.getInstance().init(); 
         }
     </script>
+</head>
+<body>
     
     <div id="all">
     </div>
@@ -374,129 +351,7 @@
     		<tbody id="messages"></tbody>
     	</table>
     </div>
-    
-    <script src="ui/lib/jquery-min.js"></script>      
-    
-    <script src="ui/lib/codemirror/lib/codemirror.js"></script>
-    <script src="ui/lib/codemirror/mode/javascript/javascript.js"></script>
-    <script src="ui/lib/codemirror/addon/hint/show-hint.js"></script>
-    <script src="ui/lib/codemirror/addon/mode/overlay.js"></script>
-    <script src="ui/lib/bootstrap/bootstrap.min.js"></script>     
-    <script src="ui/lib/tinymce/tinymce.min.js"></script>
-	<script src="ui/lib/muuri/muuri.min.js"></script>
-	<script src="ui/lib/pouchdb/pouchdb.min.js"></script>
-	<script src="ui/lib/pouchdb/pouchdb.find.min.js"></script>
-	<script src="ui/lib/pouchdb/pouchdb.authentication.min.js"></script>
-	<script src="ui/lib/FileSaver/FileSaver.min.js"></script>
-	<script src="ui/lib/switch/switch.js"></script>
-	<script src="ui/lib/showdown/showdown.min.js"></script>
-	<script src="ui/lib/jsdiff.min.js"></script>
-	<script src="ui/lib/sammy-latest.min.js"></script>
-    <script src="ui/lib/selectize/selectize.min.js"></script>
-    <script src="ui/lib/jquery.color-2.1.2.min.js"></script>
-    <script src="ui/lib/neo4j/js/neo4jd3.js"></script>
-    <script src="ui/lib/neo4j/js/d3.min.js"></script>
-    <script src="ui/lib/detect-element-resize.js"></script>
-    
-    <script src="ui/app/src/actions/AttachmentActions.js"></script>
-    <script src="ui/app/src/actions/BoardActions.js"></script>
-    <script src="ui/app/src/actions/DocumentActions.js"></script>
-    <script src="ui/app/src/actions/EditorActions.js"></script>
-    <script src="ui/app/src/actions/HistoryActions.js"></script>
-    <script src="ui/app/src/actions/LabelActions.js"></script>
-    <script src="ui/app/src/actions/ReferenceActions.js"></script>
-    <script src="ui/app/src/actions/SettingsActions.js"></script>
-    <script src="ui/app/src/actions/TrashActions.js"></script>
-    <script src="ui/app/src/actions/TreeActions.js"></script>
-    <script src="ui/app/src/actions/MetaActions.js"></script>
-    <script src="ui/app/src/actions/HashtagActions.js"></script>
-    <script src="ui/app/src/database/Database.js"></script>
-    <script src="ui/app/src/database/DatabaseSync.js"></script>
-    <script src="ui/app/src/database/ProfileHandler.js"></script>
-    <script src="ui/app/src/data/Data.js"></script>
-    <script src="ui/app/src/data/Graph.js"></script>
-    <script src="ui/app/src/data/Linkage.js"></script>
-    <script src="ui/app/src/data/Hashtag.js"></script>
-    <script src="ui/app/src/data/Document.js"></script>
-    <script src="ui/app/src/data/DocumentAccess.js"></script>
-    <script src="ui/app/src/data/DocumentChecks.js"></script>
-    <script src="ui/app/src/data/Views.js"></script>
-    <!-- <script src="ui/app/src/data/UndoManager.js"></script> -->
-    <script src="ui/app/src/navigation/behaviours/TreeBehaviour.js"></script>
-    <script src="ui/app/src/navigation/behaviours/DetailBehaviour.js"></script>
-    <script src="ui/app/src/navigation/behaviours/TileBehaviour.js"></script>
-    <script src="ui/app/src/navigation/NoteTree.js"></script>
-    <script src="ui/app/src/navigation/Behaviours.js"></script>
-    <script src="ui/app/src/navigation/MuuriGrid.js"></script>
-    <script src="ui/app/src/navigation/ScrollState.js"></script>
-    <script src="ui/app/src/navigation/ExpandedState.js"></script>
-    <script src="ui/app/src/menus/PageMenu.js"></script>
-    <script src="ui/app/src/menus/ContextMenu.js"></script>
-    <script src="ui/app/src/settings/SettingsContent.js"></script>
-    <script src="ui/app/src/pages/editors/Editor.js"></script>
-    <script src="ui/app/src/pages/editors/Board.js"></script>
-    <script src="ui/app/src/pages/editors/Code.js"></script>
-    <script src="ui/app/src/pages/Profiles.js"></script>
-    <script src="ui/app/src/pages/Conflict.js"></script>
-    <script src="ui/app/src/pages/Conflicts.js"></script>
-    <script src="ui/app/src/pages/LabelDefinitions.js"></script>
-    <script src="ui/app/src/pages/Hashtags.js"></script>
-    <script src="ui/app/src/pages/Versions.js"></script>
-    <script src="ui/app/src/pages/VersionView.js"></script>
-    <script src="ui/app/src/pages/AttachmentPreview.js"></script>
-    <script src="ui/app/src/pages/Console.js"></script>
-    <script src="ui/app/src/pages/Trash.js"></script>
-    <script src="ui/app/src/pages/RawView.js"></script>
-    <script src="ui/app/src/pages/GraphView.js"></script>
-    <script src="ui/app/src/pages/Settings.js"></script>
-    <script src="ui/app/src/pages/Check.js"></script>
-    <script src="ui/app/src/pages/CheckList.js"></script>
-    <script src="ui/app/src/pages/Refs.js"></script>
-    <script src="ui/app/src/pages/Help.js"></script>
-    <script src="ui/app/src/pages/Update.js"></script>
-    <script src="ui/app/src/pages/Generate.js"></script>
-    <script src="ui/app/src/pages/VerifyBackup.js"></script>
-    <script src="ui/app/src/import/Import.js"></script>
-    <script src="ui/app/src/import/NotesImporter.js"></script>
-    <script src="ui/app/src/export/NotesExporter.js"></script>
-    <script src="ui/app/src/import/TrelloImporter.js"></script>
-    <script src="ui/app/src/export/ObsidianExporter.js"></script>
-    <script src="ui/app/src/tools/Tools.js"></script>
-    <script src="ui/app/src/tools/TouchClickHandler.js"></script>
-    <script src="ui/app/src/tools/ClientState.js"></script>
-    <script src="ui/app/src/tools/OnlineSensor.js"></script>
-    <script src="ui/app/src/tools/ImageDialog.js"></script>
-    <script src="ui/app/src/tools/Callbacks.js"></script>
-    <script src="ui/app/src/tools/Styles.js"></script>
-    <script src="ui/app/src/tools/HistoryHandler.js"></script>
-    <script src="ui/app/src/tools/Device.js"></script>
-    <script src="ui/app/src/Config.js"></script>
-    <script src="ui/app/src/Routing.js"></script>
-    <script src="ui/app/src/Notes.js"></script>
 
-    <script src="ui/lib/tinymce/themes/silver/theme.min.js"></script>
-    <script src="ui/lib/tinymce/icons/default/icons.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/code/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/table/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/image/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/lists/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/advlist/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/charmap/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/codesample/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/emoticons/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/emoticons/js/emojis.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/fullscreen/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/hr/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/imagetools/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/link/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/media/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/print/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/searchreplace/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/textpattern/plugin.min.js"></script>
-    <script src="ui/lib/tinymce/plugins/toc/plugin.min.js"></script>
-    
-    <script src="ui/lib/localstorage-slim/localstorage-slim.js"></script>
-  
    	<script type="module">
 		import { downloadZip } from "./ui/lib/client-zip.js"
 		window.downloadZip = downloadZip;

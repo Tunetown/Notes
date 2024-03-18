@@ -523,18 +523,18 @@ class Database {
 	 */
 	replicateLocalTo(url) {
 		if (!this.dbLocal) {
-			Console.log("Replication is only possible when a remote DB instance is set up.", 'E');
+			console.log("Replication is only possible when a remote DB instance is set up.", 'E');
 			return Promise.reject({ message: 'No local db set up' });
 		}
 		
-		Console.log("Replicating local database to " + url + "...");
+		console.log("Replicating local database to " + url + "...");
 		
 		var that = this;
 		var dbr;
 		return this.createRemoteDatabase(url)
 		.then(function(data) {
 			if (!data.ok) {
-				Console.log("Error creating remote database for " + url + ": " + data.message, 'E');
+				console.log("Error creating remote database for " + url + ": " + data.message, 'E');
 				that.notifyOfflineState();
 				
 				return Promise.reject(data);
@@ -545,24 +545,24 @@ class Database {
 			
 		}).then(function(data) {
 			if (!data.ok) {
-				Console.log("Error: " + data.message, 'E');
+				console.log("Error: " + data.message, 'E');
 				that.notifyOfflineState();
 				
 				return Promise.reject(data);
 			}
 			
-			Console.log("Starting replication...");
+			console.log("Starting replication...");
 			
 			return new Promise(function(resolve, reject) {
 				PouchDB.replicate(that.dbLocal, dbr)
 				.on('change', function (info) {
-					Console.log(" -> Sending Changes...");
+					console.log(" -> Sending Changes...");
 					
 				}).on('paused', function (err) {
-					Console.log(" -> Paused...");
+					console.log(" -> Paused...");
 					
 				}).on('denied', function (err) {
-					Console.log(" -> Denied: " + err.message, 'E');
+					console.log(" -> Denied: " + err.message, 'E');
 					reject({
 						ok: false,
 						message: err.message,
@@ -570,15 +570,15 @@ class Database {
 					});
 					
 				}).on('complete', function (info) {
-					Console.log(" -> Replication finished, info: ");
-					Console.log(info);
+					console.log(" -> Replication finished, info: ");
+					console.log(info);
 					resolve({ 
 						ok: true, 
 						info: info 
 					});
 					
 				}).on('error', function (err) {
-					Console.log(" -> Error: " + err.message, 'E');
+					console.log(" -> Error: " + err.message, 'E');
 					reject({
 						ok: false,
 						message: err.message,
@@ -586,7 +586,7 @@ class Database {
 					});
 					
 				}).catch(function(err) {
-					Console.log(" -> Error: " + err.message, 'E');
+					console.log(" -> Error: " + err.message, 'E');
 					reject({
 						ok: false,
 						message: err.message,

@@ -310,8 +310,8 @@ class SettingsContent {
 						.catch(function(err) {
 							Notes.getInstance().showAlert("Error replicating to " + url);
 							
-							Console.log("Error replicating to " + url + ":", 'E');
-							Console.log(err);
+							console.log("Error replicating to " + url + ":", 'E');
+							console.log(err);
 						});
 					}),
 					
@@ -328,8 +328,8 @@ class SettingsContent {
 						.catch(function(err) {
 							Notes.getInstance().showAlert("Error replicating to " + url);
 							
-							Console.log("Error replicating to " + url + ":", 'E');
-							Console.log(err);
+							console.log("Error replicating to " + url + ":", 'E');
+							console.log(err);
 						});
 					}),
 					*/

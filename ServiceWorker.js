@@ -18,76 +18,86 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-// Service Worker version (should match the Notes.js version)
-const SW_VERSION = '0.99.0';
+self.importScripts('bootstrap.js');
+
+/**
+ * Service Worker version (should match the Seton.js version)
+ */ 
+const SW_VERSION = '1.0.0';
+
+/**
+ * Get list of files to cache from the bootstrapper
+ */
+const PRECACHE_URLS = SOURCE_LOADER.precacheUrls;
 
 // A list of local resources we always want to be cached.
+/*
 const PRECACHE_URLS = [
-  './',
-  './index.html',
-  './manifest.json',
+  './',                    // OK
+  './index.html',                    // OK
+  './manifest.json',                    // OK
 
-  './ui/lib/selectize/selectize.bootstrap3.min.css',
-  './ui/lib/selectize/selectize.min.js',
-  './ui/lib/jquery.color-2.1.2.min.js',
-  './ui/lib/detect-element-resize.js',
+  './ui/lib/selectize/selectize.bootstrap3.min.css', // OK
+  './ui/lib/selectize/selectize.min.js', // OK
+  './ui/lib/jquery.color-2.1.2.min.js', // OK
+  './ui/lib/detect-element-resize.js', // OK
 
-  './ui/lib/bootstrap/bootstrap.min.css',
-  './ui/lib/fa/css/all.min.css',
+  './ui/lib/bootstrap/bootstrap.min.css', // OK
+  './ui/lib/fa/css/all.min.css', // OK
 
-  './ui/lib/switch/switch.css',
-  './ui/lib/switch/switch.js',
-  './ui/lib/codemirror/lib/codemirror.css',
-  './ui/lib/codemirror/addon/hint/show-hint.css',
-  './ui/lib/neo4j/css/neo4jd3.css',
+  './ui/lib/switch/switch.css', // OK
+  './ui/lib/switch/switch.js', // OK
+  './ui/lib/codemirror/lib/codemirror.css', // OK
+  './ui/lib/codemirror/addon/hint/show-hint.css', // OK
+  './ui/lib/neo4j/css/neo4jd3.css', // OK
   
-  './ui/app/css/Notes.css',
-  './ui/app/css/Header.css',
-  './ui/app/css/NoteTree.css',
-  './ui/app/css/TreeBehaviour.css',
-  './ui/app/css/TileBehaviour.css',
-  './ui/app/css/DetailBehaviour.css',
-  './ui/app/css/ReferenceBehaviour.css',
-  './ui/app/css/Misc.css',
-  './ui/app/css/Board.css',
-  './ui/app/css/Editor.css',
+  './ui/app/css/Notes.css', // OK
+  './ui/app/css/Header.css', // OK
+  './ui/app/css/NoteTree.css', // OK
+  './ui/app/css/TreeBehaviour.css', // OK
+  './ui/app/css/TileBehaviour.css', // OK
+  './ui/app/css/DetailBehaviour.css', // OK
+  './ui/app/css/ReferenceBehaviour.css', // OK
+  './ui/app/css/Misc.css', // OK
+  './ui/app/css/Board.css', // OK
+  './ui/app/css/Editor.css', // OK
 
-  './ui/lib/jquery-min.js',
-  './ui/lib/bootstrap/bootstrap.min.js',     
-  './ui/lib/tinymce/tinymce.min.js',
-  './ui/lib/muuri/muuri.min.js',
-  './ui/lib/pouchdb/pouchdb.min.js',
-  './ui/lib/pouchdb/pouchdb.find.min.js',
-  './ui/lib/pouchdb/pouchdb.authentication.min.js',
-  './ui/lib/FileSaver/FileSaver.min.js',
-  './ui/lib/showdown/showdown.min.js',
-  './ui/lib/jsdiff.min.js',
-  './ui/lib/sammy-latest.min.js',
-  './ui/lib/client-zip.js',
-  './ui/lib/neo4j/js/neo4jd3.js',
-  './ui/lib/neo4j/js/d3.min.js',
-  './ui/lib/localstorage-slim/localstorage-slim.js',
+  './ui/lib/jquery-min.js', // OK
+  './ui/lib/bootstrap/bootstrap.min.js',   // OK   
+  './ui/lib/tinymce/tinymce.min.js', // OK
+  './ui/lib/muuri/muuri.min.js', // OK
+  './ui/lib/pouchdb/pouchdb.min.js', // OK
+  './ui/lib/pouchdb/pouchdb.find.min.js', // OK
+  './ui/lib/pouchdb/pouchdb.authentication.min.js', // OK
+  './ui/lib/FileSaver/FileSaver.min.js', // OK
+  './ui/lib/showdown/showdown.min.js', // OK
+  './ui/lib/jsdiff.min.js', // OK
+  './ui/lib/sammy-latest.min.js', // OK
+  './ui/lib/client-zip.js', // OK
+  './ui/lib/neo4j/js/neo4jd3.js',// OK
+  './ui/lib/neo4j/js/d3.min.js',// OK
+  './ui/lib/localstorage-slim/localstorage-slim.js',// OK
   
-  './ui/lib/codemirror/lib/codemirror.js',
-  './ui/lib/codemirror/mode/markdown/markdown.js',
-  './ui/lib/codemirror/mode/javascript/javascript.js',
-  './ui/lib/codemirror/mode/clike/clike.js',
-  './ui/lib/codemirror/mode/css/css.js',
-  './ui/lib/codemirror/mode/xml/xml.js',
-  './ui/lib/codemirror/mode/php/php.js',
-  './ui/lib/codemirror/mode/python/python.js',
-  './ui/lib/codemirror/mode/ruby/ruby.js',
-  './ui/lib/codemirror/mode/shell/shell.js',
-  './ui/lib/codemirror/mode/sql/sql.js',
-  './ui/lib/codemirror/addon/hint/show-hint.js',
-  './ui/lib/codemirror/addon/mode/overlay.js',
+  './ui/lib/codemirror/lib/codemirror.js',// OK
+  './ui/lib/codemirror/mode/markdown/markdown.js',// OK
+  './ui/lib/codemirror/mode/javascript/javascript.js',// OK
+  './ui/lib/codemirror/mode/clike/clike.js',// OK
+  './ui/lib/codemirror/mode/css/css.js',// OK
+  './ui/lib/codemirror/mode/xml/xml.js',// OK
+  './ui/lib/codemirror/mode/php/php.js',// OK
+  './ui/lib/codemirror/mode/python/python.js',// OK
+  './ui/lib/codemirror/mode/ruby/ruby.js',// OK
+  './ui/lib/codemirror/mode/shell/shell.js',// OK
+  './ui/lib/codemirror/mode/sql/sql.js',// OK
+  './ui/lib/codemirror/addon/hint/show-hint.js',// OK
+  './ui/lib/codemirror/addon/mode/overlay.js',// OK
 
-  './ui/app/doc/index.html',
-  './ui/app/doc/overview.html',
-  './ui/app/doc/technical.html',
-  './ui/app/doc/usage.html',
+  './ui/app/doc/index.html',                    // OK
+  './ui/app/doc/overview.html',                    // OK
+  './ui/app/doc/technical.html',                    // OK
+  './ui/app/doc/usage.html',                    // OK
 
-  './ui/app/src/actions/AttachmentActions.js',
+  './ui/app/src/actions/AttachmentActions.js',// OK
   './ui/app/src/actions/BoardActions.js',
   './ui/app/src/actions/DocumentActions.js',
   './ui/app/src/actions/EditorActions.js',
@@ -163,8 +173,8 @@ const PRECACHE_URLS = [
   './ui/app/src/Routing.js',
   './ui/app/src/Notes.js',
 
-  './ui/lib/fa/webfonts/fa-solid-900.woff2',
-  './ui/lib/fa/webfonts/fa-regular-400.woff2',
+  './ui/lib/fa/webfonts/fa-solid-900.woff2',  // OK
+  './ui/lib/fa/webfonts/fa-regular-400.woff2', // OK
   
   './ui/lib/tinymce/themes/silver/theme.min.js',
   './ui/lib/tinymce/icons/default/icons.min.js',
@@ -190,13 +200,14 @@ const PRECACHE_URLS = [
   './ui/lib/tinymce/skins/ui/oxide/content.min.css',
   './ui/lib/tinymce/skins/content/default/content.min.css',
   
-  './ui/app/images/NotesLogo_180.png',
-  './ui/app/images/NotesLogo_192.png',
-  './ui/app/images/NotesLogo_48.png',
-  './ui/app/images/NotesLogo_512.png',
-  './ui/app/images/NotesLogo_96.png',
-  './ui/app/images/favicon.ico'
+  './ui/app/images/NotesLogo_180.png',                    // OK
+  './ui/app/images/NotesLogo_192.png',                    // OK
+  './ui/app/images/NotesLogo_48.png',                    // OK
+  './ui/app/images/NotesLogo_512.png',                    // OK
+  './ui/app/images/NotesLogo_96.png',                    // OK
+  './ui/app/images/favicon.ico'                    // OK
 ];
+*/
 
 const PRECACHE = 'notes_precache-v' + SW_VERSION +'.a';
 

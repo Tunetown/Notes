@@ -227,8 +227,8 @@ class TrelloImporter {
 			}
 		}
 		
-		Console.log(' -> Lists to import: ' + listCnt, 'I');
-		Console.log(' -> Cards to import: ' + cardCnt, 'I');
+		console.log(' -> Lists to import: ' + listCnt, 'I');
+		console.log(' -> Cards to import: ' + cardCnt, 'I');
 
 		if (!confirm('Do you want to import ' + cardCnt + ' cards holding ' + Tools.convertFilesize(JSON.stringify(docs).length + attachmentsSize) + ' of data?')) {
 			return Promise.reject({
@@ -241,11 +241,11 @@ class TrelloImporter {
 		return NotesImporter.importDocuments(docs)
 		.then(function(data) {
 			if (!data.ok) {
-				Console.log('Error in Trello import: ' + data.message, 'E');
+				console.log('Error in Trello import: ' + data.message, 'E');
 				return Promise.reject(data);
 			}
 			
-			Console.log('Finished Trello import.', 'S');
+			console.log('Finished Trello import.', 'S');
 			return Promise.resolve({
 				message: 'Finished Trello import.',
 				messageThreadId: 'ImportProcessMessages',
@@ -315,7 +315,7 @@ class TrelloImporter {
 			size = resp.size;
 		})
 		.catch(function(err) {
-			Console.log('Error downloading file: ' + url, 'W');
+			console.log('Error downloading file: ' + url, 'W');
 		});
 		
 		return {

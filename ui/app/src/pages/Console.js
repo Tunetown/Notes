@@ -32,40 +32,74 @@ class Console {
 	 * Adapted from https://stackoverflow.com/questions/19846078/how-to-read-from-chromes-console-in-javascript
 	 */
 	init() {
-		// Set the standard log to stdlog
+		// Create wrappers to the standard log functions
 		console.stdlog = console.log.bind(console);
+		console.stdinfo = console.info.bind(console);
+		console.stdwarn = console.warn.bind(console);
+		console.stderror = console.error.bind(console);
 		
-		// Se a new log function which records everything before doing normal log output.
-		console.log = function(){
-			// Standard logging to browser console
-			console.stdlog.apply(console, arguments);
-
-			// Logging to the app console (done recursively to parse all deep types if possible)
-			if (!arguments) {
-				return;
-			}
-			
-			function logit(arg) {
+		/**
+		 * Helper function, which does the acrtual logging
+		 */
+		function logit(arg, type) {
+			try {
 				if (typeof(arg) == "array") {
 					for(var l in arg) {
 						logit(arg[l]);
 					}
 				} else if (typeof(arg) == "object") {
-					Console.getInstance().logInternal(JSON.stringify(arg, null, 4), 'J');
+					Console.getInstance().#log(JSON.stringify(arg, null, 4), type);
 				} else { 
-					Console.getInstance().logInternal(arg, 'J');
+					Console.getInstance().#log(arg, type);
 				}
+			} catch (e) {
+				Console.getInstance().#log(e.stack, 'E');
 			}
-		
+		}
+	
+
+		// Set a new log functions which records everything before doing normal log output.
+		console.info = function() {
+			console.stdinfo.apply(console, arguments);     // Standard logging to browser console
+			if (!arguments) return;                       // Logging to the app console (done recursively to parse all deep types if possible)
+			
 			for(var l in arguments) {
-				logit(arguments[l]);
+				logit(arguments[l], 'I');
 			}
 		}
 		
+		console.log = function() {
+			console.stdlog.apply(console, arguments);     // Standard logging to browser console
+			if (!arguments) return;                       // Logging to the app console (done recursively to parse all deep types if possible)
+			
+			for(var l in arguments) {
+				logit(arguments[l], 'L');
+			}
+		}
+
+		console.warn = function() {
+			console.stdwarn.apply(console, arguments);     // Standard logging to browser console
+			if (!arguments) return;                       // Logging to the app console (done recursively to parse all deep types if possible)
+			
+			for(var l in arguments) {
+				logit(arguments[l], 'W');
+			}
+		}
+
+		console.error = function() {
+			console.stderror.apply(console, arguments);     // Standard logging to browser console
+			if (!arguments) return;                       // Logging to the app console (done recursively to parse all deep types if possible)
+			
+			for(var l in arguments) {
+				logit(arguments[l], 'E');
+			}
+		}
+
+		// Get persisted messages from memory
 		var cs = ClientState.getInstance().getConsoleSettings();
 		if (cs.log) {
 			for (var l in cs.log) {
-				this.log(
+				this.#log(
 					cs.log[l].msg,
 					cs.log[l].type,
 					true	
@@ -73,7 +107,7 @@ class Console {
 			}
 		}
 
-		this.log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');		
+		this.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');		
 	}
 	
 	/**
@@ -86,7 +120,7 @@ class Console {
 		if (cs.log) cs.log = [];
 		ClientState.getInstance().saveConsoleSettings(cs);
 		
-		this.log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');
+		this.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');
 	}
 	
 	/**
@@ -129,52 +163,29 @@ class Console {
 	}
 	
 	/**
-	 * Static wrapper for log()
+	 * Logging (internal for all types).
 	 */
-	static log(txt, type) {
-		Console.getInstance().log(txt, type);
-	}
-	
-	/**
-	 * Loads the passed version history data into the versions view.
-	 * Asynchronously executed.
-	 *
-	 * dontPersist is just internally used here to add the logs from local storage in init().
-	 */
-	log(txt, type, dontPersist) {
-		if (dontPersist) {
-			this.logInternal(txt, type, true);
-			return;
-		}
+	#log(txt, type, dontPersist) {
+		if (!txt) return;
+		if (!type) type = "I";
 		
-		if (typeof(txt) == "array") {
-			for(var l in txt) {
-				this.log(txt[l], type);
-			}
-		} else if (typeof(txt) == "object") {
-			Console.getInstance().logInternal(JSON.stringify(txt, null, 4), type);
-		} else { 
-			Console.getInstance().logInternal(txt, type);
-		}
-	}
-	
-	/**
-	 * Internally used by log(...).
-	 */
-	logInternal(txt, type, dontPersist) {
-		var stack = new Error().stack;
 		var timestamp = new Date().toLocaleTimeString();
+
+		// Stack (on doubleclick)		
+		var stack = '';
+		switch(type) {
+			case 'E':
+				stack = this.#getStack();
+				break; 
+			case 'W':
+				stack = this.#getStack();
+				break;
+		}
 		
+		// Call non-blocking
 		setTimeout(function() {
-			if (!type) type = "I";
-			
-			if (!txt || txt.length == 0) {
-				type = 'B';
-				txt = '.';
-			} else {
-				if (!dontPersist) {
-					txt = timestamp + ": " + txt;
-				}
+			if (!dontPersist) {
+				txt = timestamp + " " + txt;
 			}
 
 			if (!dontPersist) {
@@ -191,14 +202,16 @@ class Console {
 			
 			$('#console').append(
 				$('<div data-stack="' + stack + '" class="console-line console-type-' + type + ' ' + (txt ? '' : ' console-emptyline') + '"/>').html(txt)
-				.on('dblclick', function(e) {
+				.on('click', function(e) {
 					e.stopPropagation();
-
+					const stackAttr = $(this).attr('data-stack');
+					if (!stackAttr) return;
+					
 					if ($(this).children().length > 0) {
 						$(this).html(txt);
 					} else {
 						$(this).append(
-							$('<div class=".consoleStack"></div>').html($(this).attr('data-stack').substr(6))
+							$('<div class="console-stack"></div>').html(stackAttr.substr(6))
 						);
 					}
 				})
@@ -206,5 +219,20 @@ class Console {
 			
 			Console.getInstance().scrollToBottom();
 		}, 0);
+	}
+	
+	/**
+	 * Returns call stack with this file removed
+	 */
+	#getStack() {
+		var err = new Error().stack.split(/\r?\n/);
+		
+		var ret = '';
+		for(var e in err) {
+			if (err[e].includes('Console.js')) continue;
+			
+			ret += err[e] + "\n";
+		}
+		return ret;
 	}
 }

@@ -89,7 +89,7 @@ class NotesImporter {
 		for(var i in data) {
 			var doc = data[i];
 			
-			Console.log(' -> Importing ' + doc.name + ' (' + Tools.convertFilesize(JSON.stringify(doc).length) + ')');
+			console.log(' -> Importing ' + doc.name + ' (' + Tools.convertFilesize(JSON.stringify(doc).length) + ')');
 				
 			if (NotesExporter.isInternalDocument(doc._id)) {
 				console.log(" -> Internal file, keeping id: " + doc._id);
@@ -106,7 +106,7 @@ class NotesImporter {
 			
 			// All IDs are renewed
 			var newId = d.generateIdFrom(doc.name);
-			Console.log('    New ID for ' + doc._id + ': ' + newId, 'W');
+			console.log('    New ID for ' + doc._id + ': ' + newId, 'W');
 			jsonString = jsonString.replaceAll('"' + doc._id + '"', '"' + newId + '"');
 		}
 		
@@ -137,10 +137,10 @@ class NotesImporter {
 			if (!doc.parent) {
 				if (options.useRootItem) {
 					// Root items go directly under the new root item
-					Console.log(' -> Set parent to new root item: ' + doc.name);
+					console.log(' -> Set parent to new root item: ' + doc.name);
 					doc.parent = rootId;					
 				} else {
-					Console.log(' -> Checked OK (root item): ' + doc.name);
+					console.log(' -> Checked OK (root item): ' + doc.name);
 				}
 			} else {
 				var found = false;
@@ -152,14 +152,14 @@ class NotesImporter {
 				}
 				if (!found) {
 					if (options.useRootItem) {
-						Console.log(' -> Parent ' + doc.parent + ' not found for ' + doc.name + ', putting into new root');
+						console.log(' -> Parent ' + doc.parent + ' not found for ' + doc.name + ', putting into new root');
 						doc.parent = rootId;
 					} else {
-						Console.log(' -> Parent ' + doc.parent + ' not found for ' + doc.name + ', putting into root');
+						console.log(' -> Parent ' + doc.parent + ' not found for ' + doc.name + ', putting into root');
 						doc.parent = '';
 					}
 				} else {
-					Console.log(' -> Checked OK: ' + doc.name);
+					console.log(' -> Checked OK: ' + doc.name);
 				}
 			}
 		}
@@ -169,7 +169,7 @@ class NotesImporter {
 			data.push(root);
 		}
 		
-		Console.log(' -> Documents to import: ' + data.length, 'I');
+		console.log(' -> Documents to import: ' + data.length, 'I');
 
 		if (!confirm('Do you want to import ' + data.length + ' documents holding ' + Tools.convertFilesize(jsonString.length) + ' of data?')) {
 			return Promise.reject({
@@ -182,11 +182,11 @@ class NotesImporter {
 		return NotesImporter.importDocuments(data, options.importInternal)
 		.then(function(data) {
 			if (!data.ok) {
-				Console.log('Error in import: ' + data.message, 'E');
+				console.log('Error in import: ' + data.message, 'E');
 				return Promise.reject(data);
 			}
 			
-			Console.log('Finished import.', 'S');
+			console.log('Finished import.', 'S');
 			return Promise.resolve({
 				message: 'Finished import.',
 				messageThreadId: 'ImportProcessMessages',

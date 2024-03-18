@@ -51,7 +51,7 @@ class Import {
     		
 			$('#importDialog').modal('hide');
 			
-			Console.log('File Import: Loading ' + file.name, 'I');
+			console.log('File Import: Loading ' + file.name, 'I');
 			
 			n.routing.callConsole();
 			
@@ -91,7 +91,7 @@ class Import {
 			reader.readAsText(file);
 		})
 		.then(function(data) {
-			Console.log('Received ' + Tools.convertFilesize(data.json.length) + ' of data from ' + file.name, 'I');
+			console.log('Received ' + Tools.convertFilesize(data.json.length) + ' of data from ' + file.name, 'I');
 			
 			return that.importer.process(data.json, file.name);
 		})

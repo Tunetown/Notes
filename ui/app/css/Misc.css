@@ -165,10 +165,10 @@ div.tox-tinymce {
  * Console view
  */
 #console {
-	background-color: black;
+	background-color: white;
 	font-family: Courier;
-	padding: 10px;
-	color: lightblue;
+	padding: 8px;
+	color: black;
 	overflow: auto;
 	white-space: nowrap; /*pre-wrap;*/
 	max-width: 100%;
@@ -176,26 +176,30 @@ div.tox-tinymce {
 	z-index: 9999;
 } 
 
+.console-stack {
+	white-space: pre;	
+}
+
 .console-emptyline {
 	color: black;
 }
 
-.console-type-I {
+.console-line {
+	border-radius: 5px;
+	width: fit-content;	
+	min-width: 100%;
+	padding-left: 6px;
+	margin-bottom: 2px;
 }
-.console-type-S {
-	color: #8cff66;
-}
+
 .console-type-W {
-	color: orange;
+	background-color: #fff2ca;
 }
 .console-type-E {
-	color: red;
-}
-.console-type-J {
-	color: grey;
+	background-color: #ffd8d8;
 }
 .console-type-B {
-	color: #00000000;
+	color: white;  /* empty message */
 }
 
 /**

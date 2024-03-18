@@ -27,7 +27,7 @@ class Notes {
 	}
 	
 	constructor() { 
-		this.appVersion = '0.99.1';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '1.0.0';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -39,6 +39,12 @@ class Notes {
 	 */
 	init() { 
 		var that = this;
+
+		// Redirect console logging
+		Console.getInstance().init();
+		
+		console.info('Notes v' + this.appVersion);
+		
 		window.onerror = function errorHandler(msg, url, line, columnNo, error) {
 			// This is for mobile device debugging: On IOS, no JS errors are visible, so 
 			// we alert them here.
@@ -47,11 +53,11 @@ class Notes {
 			}
 			
 			if (error && error.stack) {
-				Console.log(error.stack, 'E');
+				console.log(error.stack, 'E');
 			} else {
-				Console.log(msg, 'E');
-				Console.log('  at:    ' + url, 'E');
-				Console.log('  line:  ' + line, 'E');
+				console.log(msg, 'E');
+				console.log('  at:    ' + url, 'E');
+				console.log('  line:  ' + line, 'E');
 			} 
 			
 			console.trace();
@@ -68,9 +74,6 @@ class Notes {
 		// Init device handler
 		Device.getInstance().init();
 		
-		// Redirect console logging
-		Console.getInstance().init();
-
 		// Set up database callbacks.
 		this.setupDatabaseCallbacks();
 		
@@ -2145,8 +2148,6 @@ class Notes {
 	showAlert(msg, type, threadID, alwaysHideAtNewMessage, callbackFunction) {
 		if (!type) type = 'E';
 		
-		Console.log('Message type ' + type + ': ' + msg, type);
-		
 		var msgEl = $('<div class="singleMessageContainer">' + msg + '</div>');
 		var msgCont = $('<tr></tr>').append($('<td class="singleMessageContainerTd"></td>').append(msgEl));
 		var fadeTime = 0;
@@ -2155,22 +2156,27 @@ class Notes {
 		case 'E':
 			msgEl.addClass("btn btn-danger");
 			fadeTime = Config.MESSAGE_ERROR_FADEOUT_AFTER_MS;
+			console.error(msg);
 			break;
 		case 'W':
 			msgEl.addClass("btn btn-warning");
 			fadeTime = Config.MESSAGE_WARNING_FADEOUT_AFTER_MS;
+			console.warn(msg);
 			break;
 		case 'S':
 			msgEl.addClass("btn btn-success");
 			fadeTime = Config.MESSAGE_SUCCESS_FADEOUT_AFTER_MS;			
+			console.log(msg);
 			break;
 		case 'I':
 			msgEl.addClass("btn btn-info");
 			fadeTime = Config.MESSAGE_INFO_FADEOUT_AFTER_MS;
+			console.log(msg);
 			break;
 		default:
 			msgEl.addClass("btn btn-danger");
 			fadeTime = Config.MESSAGE_OTHERS_FADEOUT_AFTER_MS; 
+			console.error(msg);
 			break;
 		}
 
@@ -2215,11 +2221,6 @@ class Notes {
 		});
 		if (alwaysHideAtNewMessage) {
 			msgCont.data("alwaysHideAtNewMessage", true);
-		}
-		
-		// Call stack
-		if (type == 'E') {
-			console.trace();
 		}
 	}
 	

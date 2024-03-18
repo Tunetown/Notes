@@ -429,7 +429,7 @@ class DatabaseSync {
 	 * the local and remote databases if in cloned/offline mode.
 	 */
 	checkConsistency(logCallback) {
-		if (!logCallback) logCallback = Console.log;
+		if (!logCallback) logCallback = console.log;
 		
 		var dbLocal = this.dbHandler.dbLocal;
 		var dbRemote = this.dbHandler.dbRemote;

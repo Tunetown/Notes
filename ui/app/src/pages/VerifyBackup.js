@@ -79,7 +79,7 @@ class VerifyBackup {
 			return;
 	    }
     		
-		Console.log('File Import: Loading ' + file.name, 'I');
+		console.log('File Import: Loading ' + file.name, 'I');
 			
 		var that = this;
 		setTimeout(function() {
@@ -130,7 +130,7 @@ class VerifyBackup {
 			});
 		})
 		.then(function(data) {
-			Console.log('Received ' + Tools.convertFilesize(data.json.length) + ' of data from ' + file.name, 'I');
+			console.log('Received ' + Tools.convertFilesize(data.json.length) + ' of data from ' + file.name, 'I');
 			
 			return that.#getDiff(dataLocal, data.json, file.name); 
 		})
