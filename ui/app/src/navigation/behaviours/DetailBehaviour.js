@@ -18,6 +18,8 @@
  */
 class DetailBehaviour {
 	
+	TODO getInstance, refMode always true
+	
 	constructor(grid, refMode) {
 		this.grid = grid;             // NoteTree instance
 		

@@ -82,7 +82,6 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/css/Header.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/NoteTree.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/TreeBehaviour.css', tag: 'link', type: 'stylesheet' },
-    { src: './ui/app/css/TileBehaviour.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/DetailBehaviour.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/ReferenceBehaviour.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/Misc.css', tag: 'link', type: 'stylesheet' },

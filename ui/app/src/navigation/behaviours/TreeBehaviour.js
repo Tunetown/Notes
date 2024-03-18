@@ -18,11 +18,18 @@
  */
 class TreeBehaviour {
 	
-	constructor(grid) {
-		this.grid = grid;   // NoteTree instance
+	#app = null;
+	#grid = null;
+	
+	#expander = null;
+	#scroll = null
+	
+	constructor(app, grid) {
+		this.#app = app;
+		this.#grid = grid;   // NoteTree instance
 		
-		this.expander = new ExpandedState(this);
-		this.scroll = new ScrollState(this.grid.treeContainerId, 'tree');
+		this.#expander = new ExpandedState(this.#app, this);
+		this.#scroll = new ScrollState(this.#grid.treeContainerId, 'tree');
 	}
 	
 	/**
@@ -108,21 +115,21 @@ class TreeBehaviour {
 	 * Should save the current scroll position.
 	 */
 	saveScrollPosition() {
-		this.scroll.savePosition();
+		this.#scroll.savePosition();
 	}
 	
 	/**
 	 * Restore scroll position
 	 */
 	restoreScrollPosition() {
-		this.scroll.restorePosition();
+		this.#scroll.restorePosition();
 	}
 	
 	/**
 	 * Internally used to reset scroll position
 	 */
 	resetScrollPosition(parent) {
-		this.scroll.resetPosition(parent);
+		this.#scroll.resetPosition(parent);
 	}
 	
 	/**
@@ -143,14 +150,14 @@ class TreeBehaviour {
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	backButtonPushed(event) {
-		Notes.getInstance().back(); 
+		this.#app.back(); 
 	}
 	
 	/**
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	forwardButtonPushed(event) {
-		Notes.getInstance().forward();
+		this.#app.forward();
 	}
 	
 	/**
@@ -163,14 +170,14 @@ class TreeBehaviour {
 	 * Called after the back button in the app header has been pushed.
 	 */
 	appBackButtonPushed() {
-		Notes.getInstance().browserBack(); 
+		this.#app.browserBack(); 
 	}
 	
 	/**
 	 * Called after the forward button in the app header has been pushed.
 	 */
 	appForwardButtonPushed() {
-		Notes.getInstance().browserForward();
+		this.#app.browserForward();
 	}
 	
 	/**
@@ -178,7 +185,7 @@ class TreeBehaviour {
 	 */
 	saveState(state) {
 		if (!state.tree) state.tree = {};
-		state.tree.expanded = this.expander.getExpanded();
+		state.tree.expanded = this.#expander.getExpanded();
 	}
 
 	/**
@@ -186,7 +193,7 @@ class TreeBehaviour {
 	 */
 	restoreState(state) {
 		if (state.tree) {
-			this.expander.restoreTreeState(state.tree.expanded);
+			this.#expander.restoreTreeState(state.tree.expanded);
 		}
 	}
 	
@@ -232,15 +239,15 @@ class TreeBehaviour {
 	 * Called before filtering
 	 */
 	beforeFilter(noAnimations) {
-		this.treeFontSize = this.grid.getTreeTextSize();
+		this.treeFontSize = this.#grid.getTreeTextSize();
 	}
 	
 	/**
 	 * Called after filtering
 	 */
 	afterFilter(noAnimations) {
-		this.grid.grid.grid.refreshSortData();
-		this.grid.grid.grid.sort('treeSort');
+		this.#grid.grid.grid.refreshSortData();
+		this.#grid.grid.grid.sort('treeSort');
 	}
 	
 	/**
@@ -250,7 +257,7 @@ class TreeBehaviour {
 		var that = this;
 		return {
 			treeSort: function (item, element) {
-				var d = Notes.getInstance().getData();
+				var d = that.#app.getData();
 				var data = $(element).find('.' + that.getItemContentClass()).data(); 
 				var doc = d.getById(data.id);
 				
@@ -321,7 +328,7 @@ class TreeBehaviour {
 		tags.css('min-height', this.treeFontSize + 'px');
 		tags.css('max-height', this.treeFontSize + 'px');
 		
-		var data = Notes.getInstance().getData();
+		var data = this.#app.getData();
 		var hasChildren = data.hasChildren(doc._id);
 		var iconEl = itemContent.find('.' + this.getIconClass());
 		iconEl.toggleClass('folder', hasChildren);
@@ -336,7 +343,7 @@ class TreeBehaviour {
 	}
 	
 	getById(id) {
-		return Notes.getInstance().getData().getById(id);
+		return this.#app.getData().getById(id);
 	}
 	
 	/**
@@ -344,7 +351,7 @@ class TreeBehaviour {
 	 */
 	getRelatedDocuments(id) {
 		// TODO sort data!
-		return Notes.getInstance().getData().getChildren(id);
+		return this.#app.getData().getChildren(id);
 	}
 
 	/**
@@ -355,22 +362,11 @@ class TreeBehaviour {
 		
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
-			return Notes.getInstance().getData().evaluateSearch(doc, searchText, show);
+			return this.#app.getData().evaluateSearch(doc, searchText, show);
 		} else {
 			return show;
 		}
 	}
-	
-	/*isItemVisible(doc, searchText) {
-		const show = this.#doShowItem(doc);
-		
-		// If a search is going on, we show all items the search is positive for
-		if (searchText) {
-			return Notes.getInstance().getData().evaluateSearch(doc, searchText, show);
-		} else {
-			return show;
-		}
-	}*/
 	
 	#doShowItem(doc) {
 		// If the state is unclear, hide (this is the case when synchronizing for example)
@@ -379,7 +375,7 @@ class TreeBehaviour {
 		// Always show root items
 		if (!doc.parentDoc) return true;
 		
-		if (!this.expander.isExpanded(doc.parent)) return false;
+		if (!this.#expander.isExpanded(doc.parent)) return false;
 
 		return this.#doShowItem(doc.parentDoc);
 	}
@@ -388,22 +384,15 @@ class TreeBehaviour {
 	 * Returns if the document has children.
 	 */
 	hasChildren(doc) {
-		var data = Notes.getInstance().getData();
+		var data = this.#app.getData();
 		return data.hasChildren(doc._id);
-	}
-	
-	/**
-	 * Returns the children of the document.
-	 *
-	getChildren(doc) {
-		return Notes.getInstance().getData().getChildren(doc ? doc._id : '');
 	}
 	
 	/**
 	 * Returns if the item is opened
 	 */
 	isItemOpened(doc) {
-		return this.expander.isExpanded(doc._id);
+		return this.#expander.isExpanded(doc._id);
 	}
 	
 	/**
@@ -433,7 +422,7 @@ class TreeBehaviour {
 		if (!ids.length) return;
 		
 		// Show drag handle
-		var node = this.grid.getItemContent(ids[ids.length-1]);
+		var node = this.#grid.getItemContent(ids[ids.length-1]);
 		$(node).find('.' + this.getDragHandleClass()).css('display', 'block');
 	}
 	
@@ -450,7 +439,7 @@ class TreeBehaviour {
 	 * Called after dropping, before the data is saved.
 	 */
 	afterDropBeforeSave(docsSrc, docTarget, moveToSubOfTarget) {
-		this.grid.block();
+		this.#grid.block();
 	}
 	
 	/**
@@ -459,12 +448,12 @@ class TreeBehaviour {
 	afterDrop(docSrc, docTarget, moveToSubOfTarget) {
 		if (moveToSubOfTarget) {
 			// If we moved into another item, we also expand it
-			this.expander.expandPathTo(docTarget, true);
+			this.#expander.expandPathTo(docTarget, true);
 			//this.focus(docTarget._id);
 		}
 
-		this.grid.destroy();
-		this.grid.init(true);
+		this.#grid.destroy();
+		this.#grid.init(true);
 		
 		return Promise.resolve({ ok: true }); 
 	}
@@ -473,8 +462,8 @@ class TreeBehaviour {
 	 * Sets focus on the given document.
 	 */
 	focus(id, fromLinkage) {
-		var doc = Notes.getInstance().getData().getById(id);
-		this.expander.expandPathTo(doc ? doc.parentDoc : "");
+		var doc = this.#app.getData().getById(id);
+		this.#expander.expandPathTo(doc ? doc.parentDoc : "");
 	}
 	
 	supportsLinkEditorToNavigation() {
@@ -489,9 +478,9 @@ class TreeBehaviour {
 	 * Opens the given document in the navigation.
 	 */
 	open(id) {
-		var doc = Notes.getInstance().getData().getById(id);
-		this.expander.expandPathTo(doc);
-		this.grid.setSelected(id);
+		var doc = this.#app.getData().getById(id);
+		this.#expander.expandPathTo(doc);
+		this.#grid.setSelected(id);
 	}
 	
 	/**
@@ -531,7 +520,7 @@ class TreeBehaviour {
 	 * dropInto denotes if the user wants to drop into or nebeath the target.
 	 */
 	isDropAllowed(src, tar, dropInto) {
-		return !Notes.getInstance().getData().isChildOf(tar.data().id, src.data().id);
+		return !this.#app.getData().isChildOf(tar.data().id, src.data().id);
 	}
 	
 	/**
@@ -550,7 +539,7 @@ class TreeBehaviour {
 	 * Receives the document type, returns a string containing the class(es).
 	 */
 	getIconStyleClass(isOpened, docIn) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var doc = Document.getTargetDoc(docIn);
 		
 		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
@@ -558,9 +547,9 @@ class TreeBehaviour {
 		if (d.hasChildren(doc._id)) return isOpened ? 'fa fa-caret-down' : 'fa fa-caret-right';
 		
 		switch (doc.type) {
-		case 'note':       return 'fa fa-file'; 
-		case 'reference':  return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
-		case 'attachment': return 'fa fa-paperclip';             
+			case 'note':       return 'fa fa-file'; 
+			case 'reference':  return 'fa fa-long-arrow-alt-right';   // Should not be called anymore! Refs are shown differently now.
+			case 'attachment': return 'fa fa-paperclip';             
 		}
 		return '';
 	}
@@ -671,13 +660,6 @@ class TreeBehaviour {
 	reset() {
 	}
 	
-	/**
-	 * Info about the neighbors of ID.
-	 *
-	getNeighborsFor(id) {
-		return {}; // TODO
-	}
-
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -718,8 +700,8 @@ class TreeBehaviour {
 	 */
 	callOptionsWithId(ids, x, y) {
 		if (!ids.length) return;
-		this.grid.setSelected(ids[ids.length-1]);
-		this.grid.callOptionsWithId(ids, x, y);
+		this.#grid.setSelected(ids[ids.length-1]);
+		this.#grid.callOptionsWithId(ids, x, y);
 	}
 	
 	/**
@@ -728,14 +710,14 @@ class TreeBehaviour {
 	onSelectEvent(event) {
 		var data = $(event.currentTarget).parent().data();
 
-		this.grid.itemClicked(event, data.id);
+		this.#grid.itemClicked(event, data.id);
 
 		this.saveScrollPosition();
 		
-		if (Notes.getInstance().hideOptions()) return;
+		if (this.#app.hideOptions()) return;
 		
-		this.grid.setSelected(data.id);
-		this.grid.openNode(data.id);
+		this.#grid.setSelected(data.id);
+		this.#grid.openNode(data.id);
 	}
 	
 	/**
@@ -744,24 +726,24 @@ class TreeBehaviour {
 	onTreeEvent(event) {
 		var data = $(event.currentTarget).parent().parent().data();
 
-		this.grid.itemClicked(event, data.id);
+		this.#grid.itemClicked(event, data.id);
 
 		this.saveScrollPosition();
 		
-		if (Notes.getInstance().hideOptions()) return;
+		if (this.#app.hideOptions()) return;
 		
-		if (this.grid.getSearchText().length > 0) {
-			this.grid.setSearchText('');
+		if (this.#grid.getSearchText().length > 0) {
+			this.#grid.setSearchText('');
 		}
 				
-		this.grid.setSelected(data.id);
+		this.#grid.setSelected(data.id);
 		
 		// Expand/collapse
-		if (Notes.getInstance().getData().hasChildren(data.id)) {
-			if (this.expander.isExpanded(data.id)) {
-				this.expander.collapseById(data.id);
+		if (this.#app.getData().hasChildren(data.id)) {
+			if (this.#expander.isExpanded(data.id)) {
+				this.#expander.collapseById(data.id);
 			} else {
-				this.expander.expandById(data.id);
+				this.#expander.expandById(data.id);
 			}
 		}
 	}
@@ -770,12 +752,5 @@ class TreeBehaviour {
 	 * Called when the user double clicks on the tree area
 	 */
 	onNavigationDoubleClick() {
-		/*
-		// Reload navigation (dor debugging)
-		TreeActions.getInstance().requestTree()
-		.then(function(data) {
-			Notes.getInstance().showAlert(data.message ? data.message : 'Refreshed navigation from database.', "S", data.messageThreadId);
-		});
-		*/
 	}
 }

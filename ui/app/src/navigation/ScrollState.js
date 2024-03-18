@@ -18,6 +18,8 @@
  */
 class ScrollState {
 	
+	TODO getInstance
+	
 	constructor(containerElementId, appId) {
 		this.containerElementId = containerElementId;
 		this.appId = appId;

@@ -18,7 +18,11 @@
  */
 class ExpandedState {
 	
-	constructor(behaviour) {
+	#app = null;
+	
+	constructor(app, behaviour) {
+		this.#app = app;
+		
 		this.behaviour = behaviour;
 		this.expanded = [];
 	}
@@ -69,7 +73,7 @@ class ExpandedState {
 		
 		this.expanded.push(id);
 
-		ClientState.getInstance().saveTreeState();
+		this.#app.state.saveTreeState();
 		
 		this.behaviour.beforeExpand(id, noFilter);
 		
@@ -91,7 +95,7 @@ class ExpandedState {
 		var i = this.expanded.indexOf(id);
 		this.expanded.splice(i, 1);
 
-		ClientState.getInstance().saveTreeState();
+		this.#app.state.saveTreeState();
 		
 		this.behaviour.beforeCollapse(id, noFilter);
 		

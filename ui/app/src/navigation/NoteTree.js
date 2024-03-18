@@ -18,6 +18,8 @@
  */
 class NoteTree {
 	
+	TODO getInstance
+	
 	/**
 	 * Singleton factory
 	 */

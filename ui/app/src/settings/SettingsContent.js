@@ -18,6 +18,8 @@
  */
 class SettingsContent {
 	
+	TODO getInstance
+	
 	constructor() {
 		this.nextSectionId = 1;
 	}

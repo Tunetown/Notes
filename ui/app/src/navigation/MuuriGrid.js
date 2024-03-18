@@ -18,6 +18,8 @@
  */
 class MuuriGrid {
 
+TODO getInstance
+
 	constructor(el, options) {
 		this.options = options;
     	
