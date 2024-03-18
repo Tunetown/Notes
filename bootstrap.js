@@ -150,7 +150,7 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/actions/ReferenceActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/SettingsActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/TrashActions.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/actions/TreeActions.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/actions/NavigationActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/MetaActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/HashtagActions.js', tag: 'script', type: 'text/javascript' },
     
