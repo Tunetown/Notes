@@ -18,12 +18,20 @@
  */
 class NotesExporter {
 	
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
+	}
+	
 	/**
 	 * Export (download) documents. Expects an array of IDs.
 	 */
 	export(ids) {
 		var db;
-		return Database.getInstance().get()
+		
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			
@@ -54,7 +62,7 @@ class NotesExporter {
 			// For debugging
 			console.log(' -> ' + Tools.convertFilesize(dataString.length) + ' of data loaded in export request');
 
-			window.saveAs(url, Settings.getInstance().settings.dbAccountName + ' Raw Export ' + new Date().toLocaleString() + '.txt');
+			window.saveAs(url, that.#app.settings.settings.dbAccountName + ' Raw Export ' + new Date().toLocaleString() + '.txt');
 			
 			return Promise.resolve({
 				ok: true
@@ -67,8 +75,9 @@ class NotesExporter {
 	 */
 	exportDatabase() {
 		var db;
-		//var that = this;
-		return Database.getInstance().get()
+		
+		var that = this;
+		return this.#app.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			
@@ -102,7 +111,7 @@ class NotesExporter {
 			// For debugging
 			console.log(' -> ' + Tools.convertFilesize(dataString.length) + ' of data loaded in export request');
 
-			window.saveAs(url, Settings.getInstance().settings.dbAccountName + ' Raw Export ' + new Date().toLocaleString() + '.txt');
+			window.saveAs(url, that.#app.settings.settings.dbAccountName + ' Raw Export ' + new Date().toLocaleString() + '.txt');
 			
 			return Promise.resolve({
 				ok: true,

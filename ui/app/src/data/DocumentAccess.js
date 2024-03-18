@@ -18,12 +18,10 @@
  */
 class DocumentAccess {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!DocumentAccess.instance) DocumentAccess.instance = new DocumentAccess();
-		return DocumentAccess.instance;
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
 	}
 	
 	/**
@@ -31,8 +29,7 @@ class DocumentAccess {
 	 * and is driven by an ID array instead of an array of doc instances.
 	 */
 	loadDocumentsById(ids) {
-		var n = Notes.getInstance();
-		var d = n.getData();
+		var d = this.#app.getData();
 		if (!d) {
 			return Promise.reject({
 				message: 'Data handler still uninitialized',
@@ -88,7 +85,7 @@ class DocumentAccess {
 			});
 		}
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.allDocs({
 				conflicts: true,
@@ -156,7 +153,7 @@ class DocumentAccess {
 	 */
 	loadAllDocuments() {
 		var all = [];
-		Notes.getInstance().getData().each(function(doc) {
+		this.#app.getData().each(function(doc) {
 			all.push(doc);
 		});
 		
@@ -167,7 +164,7 @@ class DocumentAccess {
 	 * Returns a promise holding allDocs data including documents and conflicts (not attachments!), used for checks.
 	 */
 	getAllDocs() {
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.allDocs({
 				conflicts: true,
@@ -237,12 +234,11 @@ class DocumentAccess {
 	 * Deletion of raw documents (for check solvers)
 	 */
 	deleteDbDocument(id) {
-		var n = Notes.getInstance();
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		this.#app.getData().resetChildrenBuffers();
 		
 		var db;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.get(id);
@@ -269,12 +265,11 @@ class DocumentAccess {
 	 * Save raw document (for check solvers)
 	 */
 	saveDbDocument(doc) {
-		var n = Notes.getInstance();
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		this.#app.getData().resetChildrenBuffers();
 		
 		var db;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.put(doc);
@@ -284,40 +279,6 @@ class DocumentAccess {
 				ok: data.ok,
 				message: 'Saved ' + doc._id,
 				messageThreadId: 'SaveDbDocMessages'
-			});
-		});
-	}
-	
-	/**
-	 * Save raw document without revision (load it beforehand). Used by UndoManager.
-	 *
-	saveDbDocumentIgnoringRevision(doc) {
-		var n = Notes.getInstance();
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
-		
-		var db;
-		var oldDoc;
-		return Database.getInstance().get()
-		.then(function(dbRef) {
-			db = dbRef;
-			
-			return db.get(doc._id);
-		})
-		.then(function(oldDocRef) {
-			oldDoc = oldDocRef;
-			
-			doc._rev = oldDoc._rev;
-			
-			console.log(doc);
-			return db.put(doc);
-		})
-		.then(function(data) {
-			return Promise.resolve({
-				ok: data.ok,
-				oldDoc: oldDoc,
-				message: 'Saved ' + doc._id,
-				messageThreadId: 'SaveDbDocumentIgnoringRevisionMessages'
 			});
 		});
 	}
@@ -334,18 +295,16 @@ class DocumentAccess {
 			messageThreadId: 'SaveItemMessages'
 		});
 			
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveItemMessages'
 		});
 		
-		n.getData().resetBacklinks();
-		if (!dontResetChildrenBuffers) n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		if (!dontResetChildrenBuffers) this.#app.getData().resetChildrenBuffers();
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			Document.lock(id);
 
@@ -381,10 +340,9 @@ class DocumentAccess {
 			message: 'No docs passed',
 			messageThreadId: 'SaveItemsMessages'
 		});
-		var n = Notes.getInstance();
 			
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		this.#app.getData().resetChildrenBuffers();
 			
 		// Remove duplicates
 		ids = Tools.removeDuplicates(ids);
@@ -400,7 +358,7 @@ class DocumentAccess {
 			}
 			Document.lock(ids[l]);
 			
-			var doc = n.getData().getById(ids[l]);
+			var doc = this.#app.getData().getById(ids[l]);
 			if (!doc) {
 				return Promise.reject({
 					message: 'Document ' + ids[l] + ' not found',
@@ -413,13 +371,14 @@ class DocumentAccess {
 		}
 		
 		// Save them
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.bulkDocs(docs);
 		})
 		.then(function (data) {
 			// Update revisions
-			var d = n.getData();
+			var d = that.#app.getData();
 			for(var i in data || []) {
 				var dd = d.getById(data[i].id);
 				if (!dd) {

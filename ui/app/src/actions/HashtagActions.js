@@ -18,12 +18,12 @@
  */
 class HashtagActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!HashtagActions.instance) HashtagActions.instance = new HashtagActions();
-		return HashtagActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
@@ -33,8 +33,7 @@ class HashtagActions {
 		if (!tag) return Promise.resolve();
 		tag = tag.toLowerCase();
 		
-		const m = MetaActions.getInstance();
-		var meta = m.meta[Hashtag.metaFileName];
+		var meta = this.#app.actions.meta.meta[Hashtag.metaFileName];
 		if (!meta) meta = {};
 		
 		const hash = Tools.hashCode(tag);
@@ -46,9 +45,9 @@ class HashtagActions {
 		
 		meta[hash].color = color;
 		
-		m.meta[Hashtag.metaFileName] = meta;
+		this.#app.actions.meta.meta[Hashtag.metaFileName] = meta;
 		
-		return m.saveGlobalMeta();
+		return this.#app.actions.meta.saveGlobalMeta();
 	}
 	
 	/**
@@ -65,18 +64,18 @@ class HashtagActions {
 			});
 		}
 		
-		const n = Notes.getInstance();
-		const docs = n.getData().getDocumentsWithTag(tag);
+		const docs = this.#app.getData().getDocumentsWithTag(tag);
 		const tagColor = Hashtag.getColor(tag);
+		var that = this;
 		
 		// Load documents
-		return DocumentAccess.getInstance().loadDocuments(docs)
+		return this.#documentAccess.loadDocuments(docs)
 		.then(function() {
 			var promises = [];
 			
 			for (var i in docs) {
 				// Re-load document from data instance
-				var doc = n.getData().getById(docs[i]._id);
+				var doc = that.#app.getData().getById(docs[i]._id);
 				if (!doc) {
 					return Promise.reject({
 						message: 'Document ' + docs[i]._id + ' not found'
@@ -100,7 +99,7 @@ class HashtagActions {
 				
 				// Collect promises to change the content.
 				promises.push(
-					DocumentActions.getInstance().save(doc._id, newContent)
+					that.#app.actions.document.save(doc._id, newContent)
 				);
 			}
 			
@@ -108,11 +107,11 @@ class HashtagActions {
 		})
 		.then(function() {
 			// Set color for new tag
-			return HashtagActions.getInstance().setColor(newTag, tagColor);
+			return that.setColor(newTag, tagColor);
 		})
 		.then(function() {
 			// Reload tree
-			return TreeActions.getInstance().requestTree();
+			return that.#app.actions.nav.requestTree();
 		})
 		.then(function() {
 			return Promise.resolve({

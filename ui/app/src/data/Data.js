@@ -18,11 +18,15 @@
  */
 class Data {
 	
+	#app = null;
+	
 	/**
 	 * Create instance with a bulk data array (as received from a 
 	 * getAll request to PouchDB as the rows array).
 	 */
-	constructor(bulkData, nestedDocPropName) {
+	constructor(app, bulkData, nestedDocPropName) {
+		this.#app = app;
+		
 		this.prepareData(bulkData, nestedDocPropName);
 		
 		this.linkedPathElementClass = "linkedPathElement";
@@ -76,7 +80,7 @@ class Data {
 		if (this.data.size > Config.dontCheckConflictsGloballyBeyondNumRecords) {
 			console.log('WARNING: No global conflict checks, too much data!');
 			
-			Notes.getInstance().showAlert('The notebook has become very large (' + this.data.size + ' documents). Consider splitting the notebook soon! <br>Some functionality will be disabled.', 'W');
+			that.#app.showAlert('The notebook has become very large (' + this.data.size + ' documents). Consider splitting the notebook soon! <br>Some functionality will be disabled.', 'W');
 			
 			checkRootConflicts = false;
 		}

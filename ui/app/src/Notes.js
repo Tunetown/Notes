@@ -18,14 +18,6 @@
  */
 class Notes {  
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Notes.instance) Notes.instance = new Notes();
-		return Notes.instance;
-	}
-	
 	constructor() { 
 		this.appVersion = '1.0.0';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
 
@@ -37,47 +29,31 @@ class Notes {
 	/**
 	 * Called initially on window load.
 	 */
-	init() { 
+	run() { 
 		var that = this;
 
-		// Redirect console logging
-		Console.getInstance().init();
+		// Redirect console logging (statically, the logs are collected for all instances in one place
+		// because the standard console is also static)
+		Console.init();
 		
+		// Print version
 		console.info('Notes v' + this.appVersion);
 		
-		window.onerror = function errorHandler(msg, url, line, columnNo, error) {
-			// This is for mobile device debugging: On IOS, no JS errors are visible, so 
-			// we alert them here.
-			if (Device.getInstance().isTouchAware()) {
-				alert('Exception: ' + msg + ' in ' + url + ' line ' + line);
-			}
-			
-			if (error && error.stack) {
-				console.log(error.stack, 'E');
-			} else {
-				console.log(msg, 'E');
-				console.log('  at:    ' + url, 'E');
-				console.log('  line:  ' + line, 'E');
-			} 
-			
-			console.trace();
-			
-			// Just let the default handler run.
-			return false;
-		}
+		// Global error handling
+		this.#initGlobalErrorHandler();
 
 		// Enable caches for late loading of JS scripts
 		$.ajaxSetup({
 			cache: true
 		});
 		
-		// Init device handler
-		Device.getInstance().init();
+		// Init handlers
+		this.#initHandlers();
 		
-		// Set up database callbacks.
+		// Initialize database
 		this.setupDatabaseCallbacks();
 		
-		// CTRL-S key to save
+		// CTRL-S key to save TODO put somewhere else
 		$(window).bind('keydown', function(event) {
 		    if (event.ctrlKey || event.metaKey) {
 		        switch (String.fromCharCode(event.which).toLowerCase()) {
@@ -90,7 +66,7 @@ class Notes {
 		            	 
 		            	that.showAlert("Saving " + e.current.name + "...", "I", "SaveMessages"); 
 		            
-		            	DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
+		            	that.actions.document.save(e.getCurrentId(), e.getContent())
 						.then(function(data) {
 		            		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 		            	})
@@ -105,6 +81,8 @@ class Notes {
 
 		// Messages/Alerts box setup
 		this.showAlert("Welcome!", "I", false, true);
+		
+		// Hide messages on click TODO modularize
 		$('#messages').click(function() { 
 			$('#messages').empty();
 		});	
@@ -116,13 +94,69 @@ class Notes {
 		this.routing.run();
 	}
 	
+	#initHandlers() {
+		this.device = new Device(this);
+		this.state = new ClientState(this);
+
+		Document.setApp(this); // TODO
+		HashTag.setApp(this); // TODO
+		
+		this.documentAccess = new DocumentAccess(this);
+		this.documentChecks = new Dthis.documentChecks(this);
+		this.views = new Views(this);
+		
+		this.actions = {
+			attachment: new AttachmentActions(this, this.documentAccess),	
+			board: new BoardActions(this, this.documentAccess),	
+			document: new DocumentActions(this, this.documentAccess),	
+			editor: new EditorActions(this, this.documentAccess),	
+			hashtag: new HashtagActions(this, this.documentAccess),	
+			history: new HistoryActions(this, this.documentAccess),	
+			label: new LabelActions(this, this.documentAccess),	
+			meta: new MetaActions(this, this.documentAccess),	
+			reference: new ReferenceActions(this, this.documentAccess),	
+			settings: new SettingsActions(this, this.documentAccess),	
+			trash: new TrashActions(this, this.documentAccess),	
+			nav: new NavigationActions(this, this.documentAccess),	
+		};
+	}
+	
+	/**
+	 * This is for mobile device debugging: On IOS, no JS errors are visible, so
+	 * we alert them here. 
+	 */
+	#initGlobalErrorHandler() {
+		var that = this;
+		window.onerror = function errorHandler(msg, url, line, columnNo, error) {
+			if (that.device.isTouchAware()) {
+				alert('Exception: ' + msg + ' in ' + url + ' line ' + line);
+			}
+			
+			if (error && error.stack) {
+				console.error(error.stack);
+			} else {
+				console.error(msg);
+				console.error('  at:    ' + url);
+				console.error('  line:  ' + line);
+			} 
+			
+			console.trace();
+			
+			// Just let the default handler run.
+			return false;
+		}
+	}
+	
 	/**
 	 * Sets all callback handlers for the database
 	 */
 	setupDatabaseCallbacks() {
 		var that = this;
 		
-		Database.getInstance().options({
+		this.db = new Database({
+			// State handler
+			state: this.state,
+			
 			// Called whenever the DB instance has the doubt that there could be offline state.
 			notifyOfflineCallback: function() {
 				that.notifyOfflineState();
@@ -136,10 +170,10 @@ class Notes {
 			// Profile callbacks: These connect the profile handler to the local storage class ClientState.
 			profileOptions: {
 				saveProfilesCallback: function(arr) {
-					ClientState.getInstance().saveProfiles({ profiles: arr });
+					that.state.saveProfiles({ profiles: arr });
 				},
 				getProfilesCallback: function() {
-					return ClientState.getInstance().getProfiles().profiles;
+					return that.state.getProfiles().profiles;
 				}
 			},
 			
@@ -157,12 +191,12 @@ class Notes {
 				
 				// Called after manually syncing. Just reloads the tree.
 				onManualSyncFinishedCallback: function() {
-					return Views.getInstance().updateViews()
+					return that.views.updateViews()
 					.then(function(resp) {
 						if (resp.docCreated) {
 							that.showAlert('Successfully initialized database views.', 'S');
 						}
-						return TreeActions.getInstance().requestTree();
+						return that.actions.nav.requestTree();
 					});
 				},
 				
@@ -176,7 +210,7 @@ class Notes {
 					if (!that.updatedViews) {
 						that.updatedViews = true;
 
-						Views.getInstance().updateViews()
+						that.views.updateViews()
 						.catch(function(err) {
 							that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
@@ -186,7 +220,6 @@ class Notes {
 				// Called when the live sync (autoSync) gets changes. Checks if the changes are relevant to the tree or the
 				// opened document, and reloads whatever needs to be reloaded.
 				onLiveSyncChangeCallback: function(change, change_seq, final_seq) {
-					//var a = Actions.getInstance();
 					var e = that.getCurrentEditor();
 					
 					// Check if we need to update anything. This only applies when we get changes from the remote (pull).
@@ -211,7 +244,7 @@ class Notes {
 										e.stopDelayedSave();
 										that.showAlert('Warning: ' + (doc.name ? doc.name : doc._id) + ' has been changed remotely. If you save now, the remote version will be overwritten! Reload the app to keep the server version.', 'W');
 									} else {
-										DocumentActions.getInstance().request(doc._id)
+										that.actions.document.request(doc._id)
 										.catch(function(err) {
 											that.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
 										})
@@ -225,15 +258,15 @@ class Notes {
 						if (change_seq == final_seq) {
 							that.showProgressBar(1);
 							
-							Views.getInstance().updateViews()
+							that.views.updateViews()
 							.then(function(resp) {
-								return MetaActions.getInstance().requestGlobalMeta()
+								return that.actions.meta.requestGlobalMeta()
 								.catch(function(err) {
 									that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 								});
 							})
 							.then(function() {
-								return TreeActions.getInstance().requestTree();
+								return that.actions.nav.requestTree();
 							})
 							.catch(function(err) {
 								that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
@@ -252,7 +285,7 @@ class Notes {
 									// Update global meta document if changed
 									console.log("Sync: -> Re-requesting global metadata");
 									
-									MetaActions.getInstance().requestGlobalMeta()
+									that.actions.meta.requestGlobalMeta()
 									.catch(function(err) {
 										that.showAlert('Error requesting global metadata: ' + err.message, 'E', err.messageThreadId);
 									});
@@ -261,7 +294,7 @@ class Notes {
 									if (Document.containsTreeRelevantChanges(doc)) {
 										console.log("Sync: -> Re-requesting tree, document " + (doc.name ? doc.name : doc._id) + " had relevant changes");
 									
-										TreeActions.getInstance().requestTree()
+										that.actions.nav.requestTree()
 										.catch(function(err) {
 											that.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 										});
@@ -326,16 +359,18 @@ class Notes {
 	 * Check if the loaded profile is available offline. If not, issue a warning message.	 
 	 */
 	triggerUnSyncedCheck() {
-		var d = Database.getInstance();
-		var p = d.profileHandler.getCurrentProfile(); 
+		var p = this.db.profileHandler.getCurrentProfile();
+		
 		if (p.url && (p.url != 'local') && !p.clone) {
+			var that = this; 
+		
 			this.showAlert(
 				'Warning: This notebook is not available offline. This may be slow with larger documents.', 
 				'W', 
 				'UnSyncedMessages',
 				false, 
 				function(msgElement, event) {
-					Notes.getInstance().routing.callSettings();
+					that.routing.callSettings();
 				}
 			);
 		}
@@ -370,25 +405,26 @@ class Notes {
 	/**
 	 * Handlers incoming messages from the service worker.
 	 */
-	setupServiceWorkerMessageReceiver() { 
+	setupServiceWorkerMessageReceiver() {
+		var that = this; 
 		navigator.serviceWorker.addEventListener('message', (event) => {
 			// Out of date files
 			if (event.data.outOfDate) {
-				if (Notes.getInstance().outOfDateFiles.length == 0) { 
+				if (that.outOfDateFiles.length == 0) { 
 					setTimeout(function() {
-						Notes.getInstance().showAlert(
+						that.showAlert(
 							"An update is available for this App. Please see the About page in the user menu to install it.", 
 							"W", 
 							"UpdateMessage", 
 							false, 
 							function(msgElement, event) {
-								Notes.getInstance().routing.callUpdatePage();
+								that.routing.callUpdatePage();
 							}
 						);
 					}, 100); 
 				}
  
-				Notes.getInstance().outOfDateFiles.push(event.data.url);
+				that.outOfDateFiles.push(event.data.url);
 				
 				return;
 			}		
@@ -397,7 +433,7 @@ class Notes {
 			if (event.data.requestId) {
 				switch(event.data.requestId) {  
 					case 'version':
-						Update.getInstance().setSWVersion(event.data.version);
+						Update.getIstance().setSWVersion(event.data.version); // TODO
 						return;
 					
 					case 'userMessage': {
@@ -406,7 +442,7 @@ class Notes {
 						const messageGroupId = event.data.messageGroupId ? event.data.messageGroupId : '';
 						
 						console.log("User message from SW received: Type " + type + ", message: " + msg);
-						Notes.getInstance().showAlert(msg, type, messageGroupId);
+						that.showAlert(msg, type, messageGroupId);
 						
 						return; 
 					}
@@ -414,7 +450,7 @@ class Notes {
 						console.log("Service Worker triggers unregistering...");
 
 						if (!confirm("Reinstall now? No notebook data will get lost.")) {
-							Notes.getInstance().showAlert("Action cancelled", 'I', "UpdateMessage");
+							that.showAlert("Action cancelled", 'I', "UpdateMessage");
 							return;
 						}
 
@@ -423,7 +459,7 @@ class Notes {
 							return registration.unregister();
 						})
 						.then(function(success) {
-							Notes.getInstance().showAlert("Wait for the installation to complete...", 'I', "UpdateMessage");
+							that.showAlert("Wait for the installation to complete...", 'I', "UpdateMessage");
 							setTimeout(function() {
 								console.log("Reload page for the new SW to be installed");
 								location.reload();
@@ -446,16 +482,18 @@ class Notes {
 	 */	
 	registerServiceWorker() {
 		if ('serviceWorker' in navigator) {
+			var that = this;
+			
 		    navigator.serviceWorker
 				.register('ServiceWorker.js')
 				.then(function(registration) {
 					console.log('ServiceWorker registration successful with scope ' + registration.scope);
 					
 					// Messages from the service worker
-					Notes.getInstance().setupServiceWorkerMessageReceiver();
+					that.setupServiceWorkerMessageReceiver();
 				}, function(err) {
 					console.log('ServiceWorker registration failed: ', err);
-					Notes.getInstance().showAlert('ServiceWorker registration failed: ' + err, "E");
+					that.showAlert('ServiceWorker registration failed: ' + err, "E");
 			    });
 		}
 	}
@@ -479,9 +517,7 @@ class Notes {
 		if (profile) {
 			// Import profile from URL
 			try {
-				var d = Database.getInstance();
-
-				if (d.profileHandler.importProfile(profile)) {
+				if (this.db.profileHandler.importProfile(profile)) {
 					// Reset databases: We have a new connection profile which has to be set up from scratch
 					that.updatedViews = false;
 					
@@ -499,7 +535,7 @@ class Notes {
 				
 				// In case of an error loading the profile, we show the profile selection page.
 				this.resetPage();
-				Profiles.getInstance().load();
+				this.loadPage(new ProfilesPage());
 				this.update();
 				
 				return Promise.reject({
@@ -522,21 +558,21 @@ class Notes {
 		}
 				
 		// Store URL as last loaded address
-		ClientState.getInstance().setLastOpenedUrl(location.href);
+		this.state.setLastOpenedUrl(location.href);
 		
 		// Initialize database instance with the user ID. This is started asynchronously. After the database(s)
 		// is/are up, the settings, notes tree and the last loaded note are requested independently.
-		return Database.getInstance().init()
+		return this.db.init()
 		.then(function(data) {
 			// Update views in online mode if necessary (only do this the first time this is called at page load).
 			// NOTE: Here we want to keep the chain short because this is always run for all routes,
 			//       so we only do this the first time the app launches. In the pull requests during sync,
 			//       the views are always checked as there is no hurry there.
-			if (!Database.getInstance().profileHandler.getCurrentProfile().clone) {
+			if (!that.db.profileHandler.getCurrentProfile().clone) {
 				if (!that.updatedViews) {
 					that.updatedViews = true;
 
-					return Views.getInstance().updateViews()
+					return that.views.updateViews()
 					.then(function(resp) {
 						return Promise.resolve(data);
 					});
@@ -546,8 +582,6 @@ class Notes {
 			return Promise.resolve(data);
 		})
 		.then(function(data) {
-			var d = Database.getInstance();
-
 			// The tree and note requests can run in parallel from here on
 			// for the most pages. For the others we also return the tree and
 			// settings request promises so that following then() handlers can 
@@ -556,19 +590,19 @@ class Notes {
 			var settingsPromise = null;
 			
 			if (data.initialised) {
-				settingsPromise = SettingsActions.getInstance().requestSettings()
+				settingsPromise = that.actions.settings.requestSettings()
 				.catch(function(err) {
 					that.showAlert('Error getting settings: ' + err.message, 'E', err.messageThreadId);
 				});
 				
-				treePromise = TreeActions.getInstance().requestTree()
+				treePromise = that.actions.nav.requestTree()
 				.catch(function(err) {
 					that.showAlert('Error loading TOC: ' + err.message, 'E', err.messageThreadId);
 				});
 			}
 			
 			// Show remote DB status in loaded note display in the header on startup
-			d.checkRemoteConnection()
+			that.db.checkRemoteConnection()
 			.then(function(resp) {
 				if (!resp.ok) $('#loadedNote').html(resp.status);
 			})
@@ -584,7 +618,7 @@ class Notes {
 		})
 		.then(function(data) {
 			// Load global metadata and the return the app start result from the previous step.
-			return MetaActions.getInstance().requestGlobalMeta()
+			return that.actions.meta.requestGlobalMeta()
 			.then(function() {
 				return Promise.resolve(data);				
 			})
@@ -625,7 +659,8 @@ class Notes {
 		if (e) {
 			if (e.isDirty() && (!this.editorInRestoreMode())) {
 				var that = this;
-				DocumentActions.getInstance().save(e.getCurrentId(), e.getContent())
+				
+				this.actions.document.save(e.getCurrentId(), e.getContent())
 				.then(function(data) {
 	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 	        		e.unload();
@@ -638,11 +673,7 @@ class Notes {
 				e.unload();	
 			}
 		}
-		AttachmentPreview.getInstance().unload();
-		LabelDefinitions.getInstance().unload();
-		Versions.getInstance().unload();
-		GraphView.getInstance().unload();
-		
+
 		this.setCurrentEditor();
 		this.setCurrentPage();
 		
@@ -671,112 +702,100 @@ class Notes {
 			$('#contentContainer').hide();
 			$('#treenav').show();
 
-			NoteTree.getInstance().setupFooter();
+			this.nav.setupFooter();
 
-			if (Device.getInstance().isLayoutMobile()) {
-				NoteTree.getInstance().refresh();
+			if (this.device.isLayoutMobile()) {
+				this.nav.refresh();
 			}
 		} else {
 			$('#contentContainer').show();
 
 			this.setupEditorFooter();
 
-			if (Device.getInstance().isLayoutMobile()) {
+			if (this.device.isLayoutMobile()) {
 				$('#treenav').hide();
 				$('#editorNavButtons').show();
 				
-				NoteTree.getInstance().initEditorNavButtons();
+				this.nav.initEditorNavButtons();
 			}
 		}
 		
-		if (!Device.getInstance().isLayoutMobile()) {
+		if (!this.device.isLayoutMobile()) {
 			$('#backButton').show();
 			$('#forwardButton').show();
 		}
 		
-		const nbName = Settings.getInstance().settings.dbAccountName;
+		const nbName = this.settings.settings.dbAccountName;
 		if (nbName) {
 			this.setWindowTitle('Notes | ' + nbName);			
 		}
 		
 		this.setFocus(Notes.FOCUS_ID_EDITOR);
-		//this.update();
-				
-		//Database.getInstance().setAutoLoginBlock(false);
 	}
 
 	setWindowTitle(title) {
-			document.title = title; 
+		document.title = title; 
 	}
 	
 	editorBackButtonHandler(e) {
 		e.stopPropagation();
-		Notes.getInstance().back();
+		this.back();
 	}
 				
 	editorForwardButtonHandler(e) {
 		e.stopPropagation();
-		Notes.getInstance().forward();
+		this.forward();
 	}
 	
 	editorHomeButtonHandler(e) {
 		e.stopPropagation();
-		
-		var that = Notes.getInstance();
-		that.home();
+		this.home();
 	}
 	
 	editorNavButtonHandler(e) {
 		e.stopPropagation();
 		
-		var that = Notes.getInstance();
-		var tree = NoteTree.getInstance();
-		
-		const mobile = Device.getInstance().isLayoutMobile();
-		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+		const mobile = this.device.isLayoutMobile();
+		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
 		if (upright) {
-			that.toggleShowNavigation(true);
+			this.toggleShowNavigation(true);
 		} else {
-			var id = that.getCurrentlyShownId();
-			tree.highlightDocument(id);	
+			var id = this.getCurrentlyShownId();
+			this.nav.highlightDocument(id);	
 		}
 	}
 	
 	editorLinkageButtonHandler(e) {
 		e.stopPropagation();
-		Notes.getInstance().toggleEditorLinkage();
+		this.toggleEditorLinkage();
 	}
 	
 	editorCreateButtonHandler(e) {
 		e.stopPropagation();
 		
-		const n = Notes.getInstance();
-		const t = NoteTree.getInstance();
-		
-		//t.block();
-		
-		DocumentActions.getInstance().create(t.behaviour.getNewItemParent())
+		var that = this;
+		this.actions.document.create(this.nav.behaviour.getNewItemParent())
 		.then(function(data) {
 			//t.unblock();
 			if (data.message) {
-				n.showAlert(data.message, "S", data.messageThreadId);
+				that.showAlert(data.message, "S", data.messageThreadId);
 			}
 		})
 		.catch(function(err) {
 			//t.unblock();
-			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+			that.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		});
 	}
 	
 	editorFavoritesButtonHandler(e) {
 		e.stopPropagation();
 		
-		const n = Notes.getInstance();
-		var selector = n.getFavoritesSelector('footerFavoritesSelector');
+		var selector = this.getFavoritesSelector('footerFavoritesSelector');
 		selector.val('');
 		
-		n.showGenericDialog(
+		var that = this;
+		this.showGenericDialog(
 			// Init
 			function(dialog, e, resolve, reject) {
 				dialog.find('.modal-content').append(
@@ -787,7 +806,7 @@ class Notes {
 				        	var target = this.value;
 					        
 							dialog.modal('hide');
-							Notes.getInstance().routing.call(target);
+							that.routing.call(target);
 						})
 					)
 				);
@@ -812,9 +831,9 @@ class Notes {
 	 * Delivers a select element containing the favorites and pinned (starred) documents.
 	 */
 	getFavoritesSelector(elementId) {
-		const favs = NoteTree.getInstance().getFavorites();
+		const favs = this.nav.getFavorites();
 
-		var favoritesNum = ClientState.getInstance().getViewSettings().favoritesNum;
+		var favoritesNum = this.state.getViewSettings().favoritesNum;
 		
 		var selector =  $('<select id="' + elementId + '"></select>');
 		
@@ -873,12 +892,12 @@ class Notes {
 			// Content
 			$('<section>').append([
 				// Navigation (grid)
-				Device.getInstance().isLayoutMobile() 
+				this.device.isLayoutMobile() 
 				? 
 				$('<nav id="treenav"></nav>') 
 				: 
 				$('<nav id="treenav"></nav>')
-				.css('width', ClientState.getInstance().getTreeState().treeWidth),  // Pre-set tree width here
+				.css('width', this.nav.getTreeState().treeWidth),  // Pre-set tree width here
 				
 				// Main content
 				$('<article id="article"></article>').append([
@@ -887,7 +906,7 @@ class Notes {
 					$('<div id="contentContainer" class="mainPanel"/>').append(teaser),
 					
 					// Note Editor (for TinyMCE this is needed separately)
-					Editor.getInstance().getContainerDom(teaser),
+					Editor.getIstance().getContainerDom(teaser),  // TODO
 					
 					// Console
 					$('<div id="console" class="mainPanel"/>')				
@@ -905,11 +924,6 @@ class Notes {
 				$('<div id="progressBar"></div>'),
 				
 				$('<span id="headerLeft" />').append([
-					/*$('<span id="showNavButton" data-toggle="tooltip" title="Show/hide navigation panel" class="fa fa-bars headerButtonLeft headerElementLeft" />')
-					.on('click', function(e) {
-						e.stopPropagation();
-						that.toggleShowNavigation(!that.showNavigationInUprightMode);
-					}),*/
 
 					$('<span id="backButton" data-toggle="tooltip" title="Back" class="fa fa-chevron-left headerButtonLeft headerElementLeft" />')
 					.on('click', function(e) {
@@ -924,11 +938,36 @@ class Notes {
 					}),
 					
 					$('<span id="syncStatus" />').append([
-						$('<span onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();" data-toggle="tooltip" title="Synchronizing to remote database..." class="fa fa-sync headerButtonLeft headerElementLeft" id="syncStatusSyncing"/>'),
-						$('<span onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();" data-toggle="tooltip" title="Sync Status: OK" class="fa fa-check headerButtonLeft headerElementLeft" id="syncStatusOk" />'),
-						$('<span onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();" data-toggle="tooltip" title="Sync Status: Out of sync" class="fa fa-bolt headerButtonLeft headerElementLeft" id="syncStatusDirty" />'),
-						$('<span onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();" data-toggle="tooltip" title="Sync Status: Unknown" class="fa fa-question headerButtonLeft headerElementLeft" id="syncStatusUnknown" />'),
-						$('<span onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();" data-toggle="tooltip" title="Sync Status: Paused" class="fa fa-pause headerButtonLeft headerElementLeft" id="syncStatusPaused" />'),
+						$('<span data-toggle="tooltip" title="Synchronizing to remote database..." class="fa fa-sync headerButtonLeft headerElementLeft" id="syncStatusSyncing"/>')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.db.syncHandler.syncManually();
+						}),
+						
+						$('<span data-toggle="tooltip" title="Sync Status: OK" class="fa fa-check headerButtonLeft headerElementLeft" id="syncStatusOk" />')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.db.syncHandler.syncManually();
+						}),
+						
+						$('<span data-toggle="tooltip" title="Sync Status: Out of sync" class="fa fa-bolt headerButtonLeft headerElementLeft" id="syncStatusDirty" />')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.db.syncHandler.syncManually();
+						}),
+						
+						$('<span data-toggle="tooltip" title="Sync Status: Unknown" class="fa fa-question headerButtonLeft headerElementLeft" id="syncStatusUnknown" />')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.db.syncHandler.syncManually();
+						}),
+						
+						$('<span data-toggle="tooltip" title="Sync Status: Paused" class="fa fa-pause headerButtonLeft headerElementLeft" id="syncStatusPaused" />')
+						.on('click', function(e) {
+							e.stopPropagation();
+							that.db.syncHandler.syncManually();
+						}),
+						
 					]),
 
 					$('<span id="onlineStatusContainer" />').append([
@@ -936,7 +975,6 @@ class Notes {
 					]),
 					
 					$('<span id="headerPathContainer" />'),
-					//.on('click', this.headerSelectDocumentHandler),
 
 					$('<span id="headerText"></span>').append([
 						$('<span id="loadedNote"></span>'),
@@ -952,36 +990,26 @@ class Notes {
 				// Show user menu
 				that.showUserMenu();
 			}),
-			/*.on('dblclick', function(e) {
-				e.stopPropagation();
-
-				// Refresh on header click
-				if (!confirm('Reload app?')) return;
-				location.reload();
-			}),*/
 			
-			//Device.getInstance().isLayoutMobile() ? $('<div id="footer"></div>') : null
 			this.footer
 		]);
 
 		// Also setup the navigation tree
-		NoteTree.getInstance().setupDom();
+		this.nav.setupDom();
 	
 		addResizeListener($('#treenav')[0], function(/*event*/) {
-			if (Device.getInstance().isLayoutMobile()) return;
-			//if (that.isNavigationAnimating) return;
-			//if ((Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT) && !that.showNavigationInUprightMode) return;
+			if (that.device.isLayoutMobile()) return;
 			
 			const newWidth = $('#treenav').outerWidth();
 			if (!newWidth) return;
 
-			var state = ClientState.getInstance().getTreeState();
+			var state = that.state.getTreeState();
 			state.treeWidth = newWidth;
-			ClientState.getInstance().setTreeState(state);
+			that.state.setTreeState(state);
 		});
 	
 		// Setup the generically reused option buttons
-		ContextMenu.setupItemOptions(this.optionsMasterContainer);
+		(new ContextMenu(this)).setupItemOptions(this.optionsMasterContainer);
 		
 		// We only do this once ;)
 		this.isDomSetup = true;
@@ -991,33 +1019,35 @@ class Notes {
 	 * Sets up the footer for editors on mobile.
 	 */
 	setupEditorFooter() {
+		var that = this;
 		this.setFooterContent([
 			// Back button used to navigate back to the tree in mobile mode
 			$('<div id="backButton2" class="footerButton fa fa-chevron-left" data-toggle="tooltip" title="Navigate back"></div>')
-			.on('click', this.editorBackButtonHandler),
+			.on('click', function(e) {
+				return that.editorBackButtonHandler(e);
+			}),
 			
 			// Forward button used to navigate back to the tree in mobile mode
 			$('<div id="forwardButton2" class="footerButton fa fa-chevron-right" data-toggle="tooltip" title="Navigate forward"></div>')
-			.on('click', this.editorForwardButtonHandler),
+			.on('click', function(e) {
+				return that.editorForwardButtonHandler(e);
+			}),
 
-			// Home button used to navigate back to the tree root in mobile mode
-			/*Device.getInstance().isLayoutMobile() ? 
-				$('<div id="homeButton2" class="footerButton fa fa-map" data-toggle="tooltip" title="Show this document in the navigation panel"></div>')
-				.on('click', this.editorNavButtonHandler)
-				:
-				$('<div id="homeButton2" class="footerButton fa fa-home" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
-				.on('click', this.editorHomeButtonHandler),
-			,*/
-			
 			$('<div id="navButton2" class="footerButton fa fa-map" data-toggle="tooltip" title="Show this document in the navigation panel"></div>')
-			.on('click', this.editorNavButtonHandler),
+			.on('click', function(e) {
+				return that.editorNavButtonHandler(e);
+			}),
 				
 			$('<div id="homeButton2" class="footerButton fa fa-home" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
-			.on('click', this.editorHomeButtonHandler),
+			.on('click', function(e) {
+				return that.editorHomeButtonHandler(e);
+			}),
 
 			// Create note
 			$('<div id="createButton2" class="footerButton fa fa-plus" data-toggle="tooltip" title="Create new item"></div>')
-			.on('click', this.editorCreateButtonHandler),
+			.on('click', function(e) {
+				return that.editorCreateButtonHandler(e);
+			}),
 		]);
 	}
 	
@@ -1029,8 +1059,9 @@ class Notes {
 		
 		this.update();
 		
+		var that = this;
 		setTimeout(function() {
-			NoteTree.getInstance().filter();
+			that.nav.filter();
 			
 		}, Config.presentationModeAnimationTime + 2);
 	}
@@ -1039,11 +1070,11 @@ class Notes {
 	 * Toggle linkage from navigation to editor 
 	 */
 	toggleEditorLinkage() {
-		var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
+		var linkEditorMode = this.state.getLinkageMode('editor');
 		
-		linkEditorMode = Device.getInstance().isLayoutMobile() ? 'off' : ((linkEditorMode == 'on') ? 'off' : 'on');
+		linkEditorMode = this.device.isLayoutMobile() ? 'off' : ((linkEditorMode == 'on') ? 'off' : 'on');
 		
-		ClientState.getInstance().setLinkageMode('editor', linkEditorMode);
+		this.state.setLinkageMode('editor', linkEditorMode);
 		
 		this.updateLinkageButtons();
 		
@@ -1061,17 +1092,15 @@ class Notes {
 	 * Update the linkage button's appearance.
 	 */
 	updateLinkageButtons() {
-		var t = NoteTree.getInstance();
-		
 		var page = this.getCurrentPage();
 		var pageSupport = (!!this.getCurrentEditor()) || (page && 
 		       (typeof page.supportsLinkageFromNavigation == 'function') && 
 		       page.supportsLinkageFromNavigation()
 		);
 		
-		var linkEditorMode = ClientState.getInstance().getLinkageMode('editor');
+		var linkEditorMode = this.state.getLinkageMode('editor');
 		
-		$('#linkEditorButton').css('display', (Device.getInstance().isLayoutMobile() || (!t.supportsLinkEditorToNavigation()) || (!pageSupport)) ? 'none' : 'block');
+		$('#linkEditorButton').css('display', (this.device.isLayoutMobile() || (!this.nav.supportsLinkEditorToNavigation()) || (!pageSupport)) ? 'none' : 'block');
 		$('#linkEditorButton').css('background-color', (linkEditorMode == 'on') ? '#c40cf7' : '#ffffff');
 		$('#linkEditorButton').css('color', (linkEditorMode == 'on') ? '#ffffff' : '#000000');
 		$('#linkEditorButton').attr('title', (linkEditorMode == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
@@ -1110,16 +1139,17 @@ class Notes {
 	 * Go home to the navigation root
 	 */
 	home() {
-		NoteTree.getInstance().resetScrollPosition('all');
-		NoteTree.getInstance().focus("");
+		this.nav.resetScrollPosition('all');
+		this.nav.focus("");
 		
-		if (Device.getInstance().isLayoutMobile()) {
+		if (this.device.isLayoutMobile()) {
 			this.routing.call();			
 		}
 	}
 		
 	browserBack() {
-		ClientState.getInstance().setLastOpenedUrl();
+		this.state.setLastOpenedUrl();
+		
 		history.back();
 	}
 	
@@ -1127,11 +1157,11 @@ class Notes {
 	 * Go back in browser history
 	 */
 	back() {
-		if (Device.getInstance().isLayoutMobile()) {
+		if (this.device.isLayoutMobile()) {
 			this.browserBack();
 		} else {
 			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
-				NoteTree.getInstance().appBackButtonPushed();
+				this.nav.appBackButtonPushed();
 			} else {
 				// Editor focussed
 				this.browserBack();
@@ -1140,7 +1170,7 @@ class Notes {
 	}
 	
 	browserForward() {
-		ClientState.getInstance().setLastOpenedUrl();
+		this.state.setLastOpenedUrl();
 		history.forward();
 	}
 		
@@ -1148,11 +1178,11 @@ class Notes {
 	 * Go forward in browser history
 	 */
 	forward() {
-		if (Device.getInstance().isLayoutMobile()) {
+		if (this.device.isLayoutMobile()) {
 			this.browserForward();
 		} else {
 			if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
-				NoteTree.getInstance().appForwardButtonPushed();
+				this.nav.appForwardButtonPushed();
 			} else {
 				// Editor focussed
 				this.browserForward();
@@ -1171,12 +1201,12 @@ class Notes {
 		forwardButt.css('color', '');
 
 		if (this.getFocusId() == Notes.FOCUS_ID_NAVIGATION) {
-			const history = NoteTree.getInstance().getHistory();
+			const history = this.nav.getHistory();
 			
 			if (history) {
 				const deactivatedColor = Tools.blendColors(0.2, this.getMainColor(), this.getTextColor());
 				
-				backButt.css('color', (NoteTree.getInstance().historyCanBack() ? '' : deactivatedColor));
+				backButt.css('color', (this.nav.historyCanBack() ? '' : deactivatedColor));
 				forwardButt.css('color', (history.canForward() ? '' : deactivatedColor));
 			}
 		}
@@ -1224,7 +1254,7 @@ class Notes {
 	 * Re-trigger the current location / refresh routing.
 	 */
 	refresh() {
-		NoteTree.getInstance().refresh();
+		this.nav.refresh();
 		this.routing.refresh();
 	}
 	
@@ -1232,9 +1262,9 @@ class Notes {
 	 * Updates the sync status icon below the tree, according to the database sync status.
 	 */
 	updateSyncStatus() {
-		var state = Database.getInstance().syncHandler.syncState;
+		var state = this.db.syncHandler.syncState;
 		if (!state || state == "") {
-			if (Database.getInstance().profileHandler.getCurrentProfile().clone) {
+			if (this.db.profileHandler.getCurrentProfile().clone) {
 				state = "unknown";
 			} else {
 				state = "offline";
@@ -1283,29 +1313,13 @@ class Notes {
 	 * Hides all menus.
 	 */
 	hideMenu() {
-		$(document).off('click', this.hideMenuHandler);
-		$(document).off('keydown', this.menuKeydownHandler);
+		$(document).off('click.hideMenuHandler');
+		$(document).off('keydown.menuKeydownHandler');
 		
 		$('#userMenuContainer').empty();
 		this.menuId = false;
 	}
 	
-	/**
-	 * Wrapper of hideMenu for use as event handler
-	 */
-	hideMenuHandler() {
-		Notes.getInstance().hideMenu();
-	}
-
-	menuKeydownHandler(event) {
-		if(event.which == 27) {
-			event.stopPropagation();
-			
-			var n = Notes.getInstance();
-			n.hideMenu();
-	    }
-	}
-		
 	/**
 	 * Shows a menu. If the same options are already shown, it hides the menu again.
 	 */
@@ -1325,16 +1339,25 @@ class Notes {
 		this.menuId = menuId;
 		this.update(true);
 		
-		$(document).on('click', this.hideMenuHandler);
-		$(document).on('keydown', this.menuKeydownHandler);
+		var that = this;
+		$(document).on('click.hideMenuHandler', function() {
+			that.hideMenu();
+		});
+		$(document).on('keydown.menuKeydownHandler', function(e) {
+			if(e.which == 27) {
+				e.stopPropagation();
+				
+				that.hideMenu();
+		    }
+		});
 	}
 	
 	/**
 	 * Returns what the notebook should be shown to be named like.
 	 */
 	getCurrentNotebookVisibleName() {
-		const s = Settings.getInstance().settings;
-		const p = Database.getInstance().profileHandler;
+		const s = this.settings.settings;
+		const p = this.db.profileHandler;
 		
 		return (s.dbAccountName ? s.dbAccountName : ProfileHandler.extractDatabaseName(p.getCurrentProfile().url));
 	}
@@ -1351,94 +1374,97 @@ class Notes {
 				$('<div class="userbuttonPassive"><div class="fa fa-user userbuttonIcon"></div>' + that.getCurrentNotebookVisibleName() + '</div>'),
 				$('<div class="userbuttonLine"></div>'),
 
-				$('<div class="userbutton" id="selProfileMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile()"><div class="fa fa-home userbuttonIcon"></div>Select Notebook</div>'),
+				// Select notebook
+				$('<div class="userbutton" id="selProfileMenuItem"><div class="fa fa-home userbuttonIcon"></div>Select Notebook</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callSelectProfile();
+				}),
 				
-				!ClientState.getInstance().experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? null :
-				$('<div class="userbutton" id="graphMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callGraphView()"><div class="fa fa-project-diagram userbuttonIcon"></div>Graph</div>'),
+				// Graph
+				!that.state.experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? null :
+				$('<div class="userbutton" id="graphMenuItem"><div class="fa fa-project-diagram userbuttonIcon"></div>Graph</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callGraphView();
+				}),
 				
-				$('<div class="userbutton" id="conflictsMenuItem" onclick="event.stopPropagation();Notes.getInstance().routing.callConflicts()"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>'),
+				// Conflicts
+				$('<div class="userbutton" id="conflictsMenuItem"><div class="fa fa-bell userbuttonIcon"></div>Conflicts</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callConflicts();
+				}),
+				
 				$('<div class="userbuttonLine"></div>'),
 
-				/*!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
-				$('<div class="userbutton" id="undoMenuItem" onclick="event.stopPropagation();Notes.getInstance().undo()"><div class="fa fa-undo userbuttonIcon"></div>Undo' + that.getNextUndoStepName() + '</div>'),
+				// Synchronize manually
+				$('<div class="userbutton" id="syncMenuButton"><div class="fa fa-sync userbuttonIcon"></div>Synchronize</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.db.syncHandler.syncManually();
+				}),
 				
-				!ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? null :
-				$('<div class="userbutton" id="redoMenuItem" onclick="event.stopPropagation();Notes.getInstance().redo()"><div class="fa fa-redo userbuttonIcon"></div>Redo' + that.getNextRedoStepName() + '</div>'),
-				*/
-				$('<div class="userbuttonLine"></div>'),
+				// Settings
+				$('<div class="userbutton"><div class="fa fa-cog userbuttonIcon"></div>Settings</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callSettings();
+				}),
 				
-				$('<div class="userbutton" id="syncMenuButton" onclick="event.stopPropagation();Database.getInstance().syncHandler.syncManually();"><div class="fa fa-sync userbuttonIcon"></div>Synchronize</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callSettings()"><div class="fa fa-cog userbuttonIcon"></div>Settings</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callHashtags()"><div class="fa fa-hashtag userbuttonIcon"></div>All Hashtags</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callLabelDefinitions()"><div class="fa fa-tags userbuttonIcon"></div>All Labels</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callConsole()"><div class="fa fa-terminal userbuttonIcon"></div>Console</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().routing.callTrash()"><div class="fa fa-trash userbuttonIcon"></div>Trash</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callDocumentation()},100)"><div class="fa fa-question userbuttonIcon"></div>Help</div>'),
-				$('<div class="userbutton" onclick="event.stopPropagation();Notes.getInstance().hideMenu();setTimeout(function(){Notes.getInstance().routing.callAbout()},100)"><div class="fa fa-info userbuttonIcon"></div>About...</div>'),
+				// All hashtags
+				$('<div class="userbutton"><div class="fa fa-hashtag userbuttonIcon"></div>All Hashtags</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callHashtags();
+				}),
+				
+				// All labels
+				$('<div class="userbutton"><div class="fa fa-tags userbuttonIcon"></div>All Labels</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callLabelDefinitions();
+				}),
+				
+				// Console
+				$('<div class="userbutton"><div class="fa fa-terminal userbuttonIcon"></div>Console</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callConsole();
+				}),
+				
+				// Trash bin
+				$('<div class="userbutton"><div class="fa fa-trash userbuttonIcon"></div>Trash</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.routing.callTrash();
+				}),
+				
+				// Help
+				$('<div class="userbutton"><div class="fa fa-question userbuttonIcon"></div>Help</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.hideMenu();
+					
+					setTimeout(function() {
+						that.routing.callDocumentation();
+					},100);
+				}),
+				$('<div class="userbutton"><div class="fa fa-info userbuttonIcon"></div>About...</div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.hideMenu();
+					
+					setTimeout(function() {
+						that.routing.callAbout();
+					},100);
+				}),
 			]);
 			 
-			$('#syncMenuButton').css('display', Database.getInstance().profileHandler.getCurrentProfile().clone ? 'block' : 'none');
+			$('#syncMenuButton').css('display', that.db.profileHandler.getCurrentProfile().clone ? 'block' : 'none');
 		});
 	}
 
-	/**
-	 * Get the name of the next possible undo step.
-	 *
-	getNextUndoStepName() {
-		if (!UndoManager.getInstance().canUndo()) return ' not possible';
-		
-		return ' ' + UndoManager.getInstance().getNextUndoStep().name;
-	}
-	
-	/**
-	 * Get the name of the next possible undo step.
-	 *
-	getNextRedoStepName() {
-		if (!UndoManager.getInstance().canRedo()) return ' not possible';
-		
-		return ' ' + UndoManager.getInstance().getNextRedoStep().name;
-	}
-
-	/**
-	 * Trigger undo.
-	 *
-	undo() {
-		this.hideMenu();
-		
-		if (!UndoManager.getInstance().canUndo()) {
-			this.showAlert('No undo possible', 'I', 'UndoMessages');
-			return;
-		}
-		
-		var that = this;
-		UndoManager.getInstance().undo()
-		.then(function(stepdata) {
-			that.showAlert('Rolled back step "' + stepdata.name + '"', 'I', 'UndoMessages');
-			//that.routing.refresh();
-			location.reload();
-		});
-	}
-	
-	/**
-	 * Trigger redo.
-	 *
-	redo() {
-		this.hideMenu();
-		
-		if (!UndoManager.getInstance().canRedo()) {
-			this.showAlert('No redo possible', 'I', 'UndoMessages');
-			return;
-		}
-		
-		var that = this;
-		UndoManager.getInstance().redo()
-		.then(function(stepdata) {
-			that.showAlert('Re-done step "' + stepdata.name + '"', 'I', 'UndoMessages');
-			//that.routing.refresh();
-			location.reload();
-		});
-	}
-	
 	/**
 	 * Adjusts the size of all rounded buttons.
 	 */
@@ -1455,9 +1481,9 @@ class Notes {
 	}
 	
 	getRoundedButtonSize() {
-		var g = ClientState.getInstance().getLocalSettings();
+		var g = this.state.getLocalSettings();
 		if (g) {
-			if (Device.getInstance().isLayoutMobile()) {
+			if (this.device.isLayoutMobile()) {
 				if (g.optionTextSizeMobile) {
 					return parseFloat(g.optionTextSizeMobile);
 				}
@@ -1469,7 +1495,7 @@ class Notes {
 		}
 		
 		// Default
-		return Device.getInstance().isLayoutMobile() ? Config.defaultButtonSizeMobile : Config.defaultButtonSizeDesktop;
+		return this.device.isLayoutMobile() ? Config.defaultButtonSizeMobile : Config.defaultButtonSizeDesktop;
 	}
 	
 	/**
@@ -1488,9 +1514,9 @@ class Notes {
 	 * Returns the header size.
 	 */
 	getHeaderSize() {
-		var g = ClientState.getInstance().getLocalSettings();
+		var g = this.state.getLocalSettings();
 		if (g) {
-			if (Device.getInstance().isLayoutMobile()) {
+			if (this.device.isLayoutMobile()) {
 				if (g.headerSizeMobile) {
 					return parseFloat(g.headerSizeMobile);
 				}
@@ -1502,16 +1528,16 @@ class Notes {
 		}
 		
 		// Default
-		return Device.getInstance().isLayoutMobile() ? Config.defaultHeaderSizeMobile : Config.defaultHeaderSizeDesktop;
+		return this.device.isLayoutMobile() ? Config.defaultHeaderSizeMobile : Config.defaultHeaderSizeDesktop;
 	}
 	
 	/**
 	 * Returns the (main, means: mobile) footer size.
 	 */
 	getFooterSize() {
-		var g = ClientState.getInstance().getLocalSettings();
+		var g = this.state.getLocalSettings();
 		if (g) {
-			if (Device.getInstance().isLayoutMobile()) {
+			if (this.device.isLayoutMobile()) {
 				if (g.footerSizeMobile) {
 					return parseFloat(g.footerSizeMobile);
 				}
@@ -1523,7 +1549,7 @@ class Notes {
 		}
 		
 		// Default
-		return Device.getInstance().isLayoutMobile() ? Config.defaultFooterSizeMobile : Config.defaultFooterSizeDesktop;
+		return this.device.isLayoutMobile() ? Config.defaultFooterSizeMobile : Config.defaultFooterSizeDesktop;
 	}
 	
 	/**
@@ -1546,8 +1572,8 @@ class Notes {
 	 * Returns the current footer element.
 	 */
 	#getFooter() {
-		const mobile = Device.getInstance().isLayoutMobile();
-		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+		const mobile = this.device.isLayoutMobile();
+		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
 		return (mobile || upright) ? this.footer : $('#navFooter');  
 	}
@@ -1569,8 +1595,8 @@ class Notes {
 	}
 	
 	#updateFooterVisibility() {
-		const mobile = Device.getInstance().isLayoutMobile();
-		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+		const mobile = this.device.isLayoutMobile();
+		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
 		
 		$('#editorFooter').css('display', (mobile || upright) ? 'grid' : 'none');
@@ -1581,8 +1607,8 @@ class Notes {
 	 * Update the header CSS to its defined size.
 	 */
 	updateDimensions() {
-		const mobile = Device.getInstance().isLayoutMobile();
-		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+		const mobile = this.device.isLayoutMobile();
+		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
 		const cp = this.getCurrentPage();
 		
 		const sectionFullscreen = (mobile || upright) && cp && (typeof cp.shouldUseFullscreen == 'function') && cp.shouldUseFullscreen(); 
@@ -1644,7 +1670,7 @@ class Notes {
 			footer.css('display', 'grid'); 
 			footer.css('height', ftrSize + 'px');
 			
-			const maxFooterTextSize = (mobile ? winWidth : NoteTree.getInstance().getContainerWidth()) / 5 - 10;
+			const maxFooterTextSize = (mobile ? winWidth : this.nav.getContainerWidth()) / 5 - 10;
 			footer.css('font-size', Math.min(Math.max(ftrSize / 1.6, 10), maxFooterTextSize) + 'px');		
 		}
 		
@@ -1687,42 +1713,36 @@ class Notes {
 		// Option icons
 		this.setRoundedButtonSize(this.getRoundedButtonSize());
 
-		/*const headerShowNavButton = $('#showNavButton');
-		if (upright) {
-			headerShowNavButton.show();
-		} else {
-			headerShowNavButton.hide();
-		}*/
-		
 		const showFooterNavButton = (mobile || (upright && !this.showNavigationInUprightMode));
 		$('#navButton2').css('display', showFooterNavButton ? 'block' : 'none');
 		$('#homeButton2').css('display', showFooterNavButton ? 'none' : 'block');
 
-		// Animated stuff		
-		clearTimeout(this.#animateDimensions);
-		setTimeout(this.#animateDimensions, 100);
+		// Animated stuff	
+		var that = this;
+		function animateDimensions() {
+			that.#animateDimensions();	
+		};
+		clearTimeout(animateDimensions);
+		setTimeout(animateDimensions, 100);
 	}
 	
 	/**
 	 * Animated parts of updateDimensions()
 	 */
 	#animateDimensions() {
-		var that = Notes.getInstance();
-		var t = NoteTree.getInstance();
-				
-		const mobile = Device.getInstance().isLayoutMobile();
-		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+		const mobile = this.device.isLayoutMobile();
+		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
-		const treeWidth = t.getContainerWidth();
+		const treeWidth = this.nav.getContainerWidth();
 		
 		const nav = $('nav');
 			
 		//footer.css('display', 'grid');
-		that.#attachFooter();
+		this.#attachFooter();
 			
 		// Portrait mode
 		if (!mobile) {
-			if (upright && (!that.showNavigationInUprightMode)) {
+			if (upright && (!this.showNavigationInUprightMode)) {
 				nav.animate({ left: '-' + treeWidth+ 'px' }, {
 					queue: false,
 					duration: Config.presentationModeAnimationTime,
@@ -1773,7 +1793,12 @@ class Notes {
 				clickCallback(event);
 			});
 		} else {
-			$('#loadedNote').on('click', this.headerSelectDocumentHandler);
+			var that = this;
+			function headerSelectDocumentHandler(e) {
+				return that.#headerSelectDocument(e);
+			}
+			
+			$('#loadedNote').on('click', headerSelectDocumentHandler);
 			//$('#loadedNote').css('cursor', 'auto');
 		}
 
@@ -1783,14 +1808,14 @@ class Notes {
 	/**
 	 * Event handler which lets the user select another document to open.
 	 */
-	headerSelectDocumentHandler(e) {
+	#headerSelectDocument(e) {
 		e.stopPropagation();
 		
-		const n = Notes.getInstance();
-		var selector = n.getMoveTargetSelector(false, true);
+		var selector = this.getMoveTargetSelector(false, true);
 		selector.val('');
 		
-		n.showGenericDialog(
+		var that = this;
+		this.showGenericDialog(
 			// Init
 			function(dialog, e, resolve, reject) {
 				dialog.find('.modal-content').append(
@@ -1801,7 +1826,7 @@ class Notes {
 				        	var target = this.value;
 					        
 							dialog.modal('hide');
-							Notes.getInstance().routing.call(target);
+							that.routing.call(target);
 						})
 					)
 				);
@@ -1929,7 +1954,7 @@ class Notes {
 	 */
 	formatSelectOptionText(text) {
 		if (!text) return text;
-		if (Device.getInstance().isLayoutMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
+		if (this.device.isLayoutMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
 			return '...' + text.substring(text.length - Config.MOBILE_MAX_SELECTOPTION_LENGTH);
 		}
 		return text;
@@ -1954,8 +1979,16 @@ class Notes {
 		}
 		
 		// Add standard buttons and alert notification.
+		var that = this;
 		$('#headerRight').append(
-			this.setHeaderButtonSize($('<div type="button" data-toggle="tooltip" title="User Menu" class="fa fa-user headerButton" id="userMenuButton" onclick="event.stopPropagation();Notes.getInstance().showUserMenu();"></div>'), size),
+			this.setHeaderButtonSize(
+				$('<div type="button" data-toggle="tooltip" title="User Menu" class="fa fa-user headerButton" id="userMenuButton"></div>')
+				.on('click', function(e) {
+					e.stopPropagation();
+					that.showUserMenu();
+				}), 
+				size
+			),
 			this.setHeaderButtonSize($('<div class="alertHeaderNotification alertNotification conflictMarker fa fa-bell"></div>'), size, true, 0.04),
 		);
 		
@@ -1991,8 +2024,8 @@ class Notes {
 
 		this.hideOptions();
 
-		const mobile = Device.getInstance().isLayoutMobile();
-		const upright = !mobile && (Device.getInstance().getOrientation() == Device.ORIENTATION_PORTRAIT); 
+		const mobile = this.device.isLayoutMobile();
+		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
 
 		// Focus
 		if (mobile || upright) {
@@ -2004,9 +2037,8 @@ class Notes {
 		}
 
 		// Update tree (hide options and update selected item to match the editor)
-		var t = NoteTree.getInstance();
-		t.updateSelectedState();
-		t.setTreeTextSize(t.getTreeTextSize());
+		this.nav.updateSelectedState();
+		this.nav.setTreeTextSize(this.nav.getTreeTextSize());
 		
 		this.updateSyncStatus();
 		
@@ -2020,6 +2052,7 @@ class Notes {
 		if ($('#headerLeft').offset()) {
 			$('#headerLeft').width('');
 			$('.headerMoveSelector').css('max-width', '');
+			
 			var loadedNoteRightX = $('#headerLeft').offset().left + $('#headerLeft').width();
 			var buttonsTopLeftX = $('#headerRight').offset().left;
 			
@@ -2052,7 +2085,7 @@ class Notes {
 	addFavorite(doc) {
 		if (!doc) return;
 		
-		var favorites = ClientState.getInstance().getFavorites();
+		var favorites = this.state.getFavorites();
 		var hash = Tools.hashCode(doc._id);
 		
 		if (!favorites["doc" + hash]) {
@@ -2064,9 +2097,9 @@ class Notes {
 			favorites["doc" + hash].rank ++;
 		}
 		
-		ClientState.getInstance().saveFavorites(favorites);
+		this.state.saveFavorites(favorites);
 		
-		NoteTree.getInstance().updateFavorites();
+		this.nav.updateFavorites();
 	}
 	
 	/**
@@ -2075,16 +2108,16 @@ class Notes {
 	removeFavorite(id) {
 		if (!id) return;
 		
-		var favorites = ClientState.getInstance().getFavorites();
+		var favorites = this.state.getFavorites();
 		var hash = Tools.hashCode(id);
 		
 		if (!favorites["doc" + hash]) return;
 
 		favorites["doc" + hash] = false;
 		
-		ClientState.getInstance().saveFavorites(favorites);
+		this.state.saveFavorites(favorites);
 		
-		NoteTree.getInstance().updateFavorites();
+		this.nav.updateFavorites();
 	}
 	
 	/**
@@ -2096,9 +2129,9 @@ class Notes {
 			return;
 		}
 		
-		ClientState.getInstance().saveFavorites({});
+		this.state.saveFavorites({});
 		
-		NoteTree.getInstance().updateFavorites();
+		this.nav.updateFavorites();
 	}
 	
 	/**
@@ -2108,14 +2141,14 @@ class Notes {
 		var e = this.getCurrentEditor();
 		if (e) return e.getCurrentId();
 		
-		var attId = AttachmentPreview.getInstance().current ? AttachmentPreview.getInstance().current._id : false;
+		var attId = AttachmentPreview.getIstance().current ? AttachmentPreview.getIstance().current._id : false;   // TODO
 		if (attId) return attId;
 		
 		if (!editorsOnly) {
-			var versId = Versions.getInstance().currentId;
+			var versId = Versions.getIstance().currentId;   // TODO
 			if (versId) return versId;
 			
-			var labelsId = LabelDefinitions.getInstance().current ? LabelDefinitions.getInstance().current._id : false;
+			var labelsId = LabelDefinitions.getIstance().current ? LabelDefinitions.getIstance().current._id : false;   // TODO
 			if (labelsId) return labelsId;
 		}
 		
@@ -2133,7 +2166,7 @@ class Notes {
 		if (!current) return Promise.resolve();
 	
 		var that = this;
-		return DocumentAccess.getInstance().loadDocumentsById([current])
+		return this.documentAccess.loadDocumentsById([current])
 		.then(function(data) {
 			e.load(that.getData().getById(current));
 			return Promise.resolve();
@@ -2266,7 +2299,7 @@ class Notes {
 		this.optionsIds = Tools.removeDuplicates(ids);
 		this.optionOptions = options;
 		
-		var x = (Device.getInstance().isLayoutMobile() ? pageX - $('#treebuttons').width() : pageX) + Config.CONTEXT_OPTIONS_XOFFSET;
+		var x = (this.device.isLayoutMobile() ? pageX - $('#treebuttons').width() : pageX) + Config.CONTEXT_OPTIONS_XOFFSET;
 		if (x < 0) x = 0;
 		
 		var y = pageY + Config.CONTEXT_OPTIONS_YOFFSET;
@@ -2280,7 +2313,10 @@ class Notes {
 		this.updateOptionStyles();
 		
 		// Add global removal handler
-		$(document).on('click', this.hideOptionsHandler);
+		var that = this;
+		$(document).on('click.hideOptionsHandler', function() {
+			that.hideOptions();
+		});
 	}
 	
 	/**
@@ -2345,7 +2381,7 @@ class Notes {
 	 */
 	hideOptions() {
 		// Remove the close handler
-		$(document).off('click', this.hideOptionsHandler);
+		$(document).off('click.hideOptionsHandler');
 		
 		var visible = $('#treebuttons').css('display') != 'none';
 		if (visible) {
@@ -2353,25 +2389,16 @@ class Notes {
 		}
 		
 		// TODO Also implement with callbacks!
-		var t = NoteTree.getInstance();
-		if (t.behaviour) {
-			t.showRootOptions(true);
-			t.showSettingsPanel(false);
-			t.behaviour.afterHideOptionMenus(visible);
-			t.deselectFavorites();
+		if (this.nav.behaviour) {
+			this.nav.showRootOptions(true);
+			this.nav.showSettingsPanel(false);
+			this.nav.behaviour.afterHideOptionMenus(visible);
+			this.nav.deselectFavorites();
 		}
 		
 		return visible;
 	}
 	
-	/**
-	 * Wrapper of hideOptions without return value, to be used as event handler.
-	 */
-	hideOptionsHandler() {
-		// NOTE: There is no this scope when this is used as handler.
-		Notes.getInstance().hideOptions();
-	}
-
 	/**
 	 * Color changes can have aftermath in multiple places where an item is shown. This
 	 * registers a callback for the given callback ID. Set the callbacks to null to disable.
@@ -2483,14 +2510,14 @@ class Notes {
 		var bgColor = docs[0].backColor;
 		
 		var that = this;
-		DocumentAccess.getInstance().loadDocuments(docs)
+		this.documentAccess.loadDocuments(docs)
 		.then(function(resp) {
 			for(var d in docs) {
 				docs[d].color = color;
 				docs[d].backColor = bgColor;
 			}
 			
-			return DocumentAccess.getInstance().saveItems(ids);
+			return that.documentAccess.saveItems(ids);
 		})
 		.catch(function(err) {
     		that.showAlert("Error saving metadata: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);

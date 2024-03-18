@@ -18,12 +18,16 @@
  */
 class DocumentActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!DocumentActions.instance) DocumentActions.instance = new DocumentActions();
-		return DocumentActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	#imageDialog = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
+		
+		this.#imageDialog = new ImageDialog(this.#app);
 	}
 	
 	/**
@@ -38,7 +42,8 @@ class DocumentActions {
 		var db;
 		var doc;
 
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.get(id, { 
@@ -58,7 +63,7 @@ class DocumentActions {
 					messageThreadId: 'RequestMessages'
 				});
 				
-				Notes.getInstance().routing.call(data.ref);
+				that.#app.routing.call(data.ref);
 				
 				return Promise.resolve({
 					ok: true
@@ -73,8 +78,8 @@ class DocumentActions {
 				}
 				
 				if (e.needsTreeData()) {
-					if (!Notes.getInstance().getData()) {
-						return TreeActions.getInstance().requestTree();
+					if (!that.#app.getData()) {
+						return that.#app.actions.nav.requestTree();
 					} else {
 						return Promise.resolve({
 							ok: true
@@ -103,15 +108,15 @@ class DocumentActions {
 			}
 			
 			// Update data model
-			if (Notes.getInstance().getData()) {
-				var docPers = Notes.getInstance().getData().getById(id);
+			if (that.#app.getData()) {
+				var docPers = that.#app.getData().getById(id);
 				if (docPers) {
 					Document.update(docPers, doc);
 					Document.setLoaded(docPers);
 				}
 				
 				if (doc.type == 'reference') {
-					var docPersTarget = Notes.getInstance().getData().getById(doc.ref);
+					var docPersTarget = that.#app.getData().getById(doc.ref);
 					if (docPersTarget) {
 						Document.update(docPersTarget, data);
 						Document.setLoaded(docPersTarget);
@@ -123,10 +128,10 @@ class DocumentActions {
 			var targetDoc = doc;
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('loadDocument', docs);
+			that.#app.callbacks.executeCallbacks('loadDocument', docs);
 
 			// Open document in editor
-			return EditorActions.getInstance().requestEditor(targetDoc); 
+			return that.#app.actions.editor.requestEditor(targetDoc); 
 		})
 		.catch(function(err) {
 			if (err.status == 404) {
@@ -147,7 +152,8 @@ class DocumentActions {
 		var db;
 		var docCurrent;
 		
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.get(id);
@@ -159,10 +165,10 @@ class DocumentActions {
 			});
 		})
 		.then(function (docConflict) {
-			Conflict.getInstance().load(docConflict, docCurrent);
+			that.#app.loadPage(new ConflictPage(docConflict, docCurrent));
 			
 			// Execute callbacks
-    		Callbacks.getInstance().executeCallbacks('requestConflict', {
+    		that.#app.callbacks.executeCallbacks('requestConflict', {
     			docConflict: docConflict,
     			docCurrent: docCurrent
     		});
@@ -173,12 +179,13 @@ class DocumentActions {
 	 * Request the raw JSON view for the document.
 	 */
 	requestRawView(id) {
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.get(id);
 		})
 		.then(function(data) {
-			RawView.getInstance().load(data);
+			that.#app.loadPage(new RawPage(data));
 			
 			return Promise.resolve({ ok: true });
 		});		
@@ -191,9 +198,7 @@ class DocumentActions {
 	 * Creates one or more documents (in case of attachments multiple selection) in the passed parent ID.
 	 */
 	create(id) {
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc && (id.length > 0)) return Promise.reject({
 			message: 'Item ' + id + ' does not exist',
 			messageThreadId: 'CreateMessages'
@@ -205,18 +210,18 @@ class DocumentActions {
 		});
 
 		var existingRefs = [];
-		n.getData().each(function(doc) {
+		this.#app.getData().each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var refSelector = n.getMoveTargetSelector(existingRefs, true);
+		var refSelector = this.#app.getMoveTargetSelector(existingRefs, true);
 
-		var e = n.getCurrentEditor();
+		var e = this.#app.getCurrentEditor();
 		refSelector.val('');
 		
 		var typeSelector = Document.getAvailableTypeSelect('createTypeInput');
 
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetChildrenBuffers();
 
 		var type;
 		var name;
@@ -239,7 +244,7 @@ class DocumentActions {
 					$('#refCell').css('display', (this.value == 'reference') ? 'block' : 'none');
 					
 					if (e && (this.value == 'reference')) {
-						var cur = n.getData().getById(e.getCurrentId());
+						var cur = that.#app.getData().getById(e.getCurrentId());
 						if (cur) {
 							$('#createNameInput').val(cur.name);
 						}
@@ -265,7 +270,7 @@ class DocumentActions {
 				refSelector
 				.on('change', function(/*event*/) {
 					if ($('#createTypeInput').val() == 'reference') {
-						var tdoc = n.getData().getById(this.value);
+						var tdoc = that.#app.getData().getById(this.value);
 						if (tdoc) {
 							$('#createNameInput').val(tdoc.name);
 						}
@@ -298,7 +303,7 @@ class DocumentActions {
 
 				if (that.createTimeoutHandler) clearTimeout(that.createTimeoutHandler);
 				that.createTimeoutHandler = setTimeout(function() {
-					var ex = n.getData().documentNameExists(val);
+					var ex = that.#app.getData().documentNameExists(val);
 					$('#createWarnIcon').css('display', ex ? 'inline-block' : 'none');
 					$('#createWarnText').css('display', ex ? 'inline-block' : 'none');
 				}, 300);
@@ -337,7 +342,7 @@ class DocumentActions {
 				type = $('#createTypeInput').val();
 			    
 				if (!type) {
-					n.showAlert('Please specify a type for the new document.', 'E', 'CreateMessages');
+					that.#app.showAlert('Please specify a type for the new document.', 'E', 'CreateMessages');
 					return;
 				}
 				
@@ -345,15 +350,15 @@ class DocumentActions {
 		    		files = $('#customFile')[0].files;
 		    		
 		    		if (!files || !files.length) {
-		    			n.showAlert('Please select a file to upload.', 'E', 'CreateMessages');
+		    			that.#app.showAlert('Please select a file to upload.', 'E', 'CreateMessages');
 						return;
 				    }
 		    		
-		    		var maxMB = parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
+		    		var maxMB = parseFloat(that.#app.settings.settings.maxUploadSizeMB);
 		    		if (maxMB) {
 			    		for(var f in files) {
 				    		if (files[f].size > (maxMB * 1024 * 1024)) {
-				    			n.showAlert('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.', 'E', 'CreateMessages');
+				    			that.#app.showAlert('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.', 'E', 'CreateMessages');
 								return;
 				    		}
 			    		}
@@ -367,19 +372,19 @@ class DocumentActions {
 		    		
 		    	} else if (type == 'reference') {
 		    		if (!name) {
-		    			n.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
+		    			that.#app.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
 						return;
 				    }
 		    		
 		    		refTarget = refSelector.val();
 		    		
 		    		if (!refTarget) {
-		    			n.showAlert('Please specify target for the reference document.', 'E', 'CreateMessages');
+		    			that.#app.showAlert('Please specify target for the reference document.', 'E', 'CreateMessages');
 						return;
 		    		}
 		    	} else {
 		    		if (!name) {
-		    			n.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
+		    			that.#app.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
 						return;
 				    }
 		    	}
@@ -394,7 +399,7 @@ class DocumentActions {
 			});
 		})
 		.then(function(/*data*/) {
-			return Database.getInstance().get();
+			return that.#app.db.get();
 		})
 		.then(function(dbRef) {
 			db = dbRef;
@@ -405,7 +410,7 @@ class DocumentActions {
 					var strippedName = Document.stripAttachmentName(file.name);
 					
 				    var data = {
-						_id: n.getData().generateIdFrom(file.name),
+						_id: that.#app.getData().generateIdFrom(file.name),
 						type: "attachment",
 						name: file.name,
 						parent: id,
@@ -430,7 +435,7 @@ class DocumentActions {
 				
 			} else {
 				var data = {
-					_id: n.getData().generateIdFrom(name),
+					_id: that.#app.getData().generateIdFrom(name),
 					type: type,
 					name: name,
 					parent: id,
@@ -441,12 +446,12 @@ class DocumentActions {
 				if (type == 'reference') {
 					data.ref = refTarget;
 				} else {
-					data.editor = Settings.getInstance().settings.defaultNoteEditor;
+					data.editor = that.#app.settings.settings.defaultNoteEditor;
 					data.content = "";
 					
-					if ((data.editor == 'code') && Settings.getInstance().settings.defaultCodeLanguage) {
+					if ((data.editor == 'code') && that.#app.settings.settings.defaultCodeLanguage) {
 						data.editorParams = {
-							language: Settings.getInstance().settings.defaultCodeLanguage
+							language: that.#app.settings.settings.defaultCodeLanguage
 						}
 					}
 				}
@@ -484,21 +489,17 @@ class DocumentActions {
 			// Asynchronously request the document, if the parent is not part of a kanban board
 			if (data.rows.length == 1) {
 				var doc = data.rows[0].doc;
-				
-				/*if (!Document.isPartOfBoard(doc)) {
-					n.routing.call(doc._id);
-				}*/
 			}
 			
 			for(var d in data.rows) {
 				var doc = data.rows[d].doc;
 				
 				// Update data model
-				n.getData().add(doc);
+				that.#app.getData().add(doc);
 			}
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('create', newIds);
+			that.#app.callbacks.executeCallbacks('create', newIds);
 			
 			return Promise.resolve({
 				ok: true,
@@ -518,10 +519,9 @@ class DocumentActions {
 			messageThreadId: "SaveMessages"
 		});
 			
-		var n = Notes.getInstance();
-		var e = n.getCurrentEditor();
+		var e = this.#app.getCurrentEditor();
 		
-		var data = n.getData().getById(id);
+		var data = this.#app.getData().getById(id);
 		if (!data) {
 			return Promise.reject({
 				message: 'Document ' + id + ' not found',
@@ -531,7 +531,8 @@ class DocumentActions {
 		
 		var reloadTree = false;
 
-		return DocumentAccess.getInstance().loadDocuments([data])
+		var that = this;
+		return this.#documentAccess.loadDocuments([data])
 		.then(function(/*resp*/) {
 			if (Document.getContent(data) == content) {
 				if (e) e.resetDirtyState();
@@ -542,12 +543,6 @@ class DocumentActions {
 					messageThreadId: "SaveMessages"
 				});
 			}
-			
-			// Undo step
-			/*UndoManager.getInstance().addDocumentBased({
-				name: 'Save content of "' + (data.name ? data.name : data._id) + '"',
-				doc: Document.clone(n.getData().getById(data._id))
-			})*/
 			
 			// Create version
 			var versionName = false;
@@ -567,7 +562,7 @@ class DocumentActions {
 			
 			// Reduce old versions
 			var deletedVersions = [];
-			if (Settings.getInstance().settings.reduceHistory) {
+			if (that.#app.settings.settings.reduceHistory) {
 				deletedVersions = Document.reduceVersions(data);
 			} else {
 				console.log(" -> Versioning: WARNING: History Reduction is disabled");
@@ -589,7 +584,7 @@ class DocumentActions {
 			Document.checkTags(data, null, brokenLinkErrors);
 			reloadTree = (brokenLinkErrors.length > 0);
 			
-			return DocumentAccess.getInstance().saveItem(id, true);
+			return that.#documentAccess.saveItem(id, true);
 		})
 		.then(function (dataResp) {
 			if (!dataResp.abort) {
@@ -598,17 +593,17 @@ class DocumentActions {
 					e.setCurrent(data);				
 					e.resetDirtyState();
 				}
-				n.update();
+				that.#app.update();
 				
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('save', data);
+				that.#app.callbacks.executeCallbacks('save', data);
 				
 				console.log("Successfully saved " + data.name);
 				
 				if (reloadTree) {
 					console.log("Save: -> Re-requesting tree, document " + (data.name ? data.name : data._id) + " had relevant changes");
 					
-					return TreeActions.getInstance().requestTree()
+					return that.#app.actions.nav.requestTree()
 					.then(function() {
 						return Promise.resolve({ 
 							ok: true,
@@ -619,7 +614,7 @@ class DocumentActions {
 					});
 				} else {
 					// Update sorting
-					NoteTree.getInstance().updateSort();
+					that.#app.nav.updateSort();
 				}
 				
 				return Promise.resolve({ 
@@ -640,13 +635,11 @@ class DocumentActions {
 	 * You have to call deleteItemPermanently to fully delete a note.
 	 */
 	deleteItems(ids, noConfirm) {
-		var n = Notes.getInstance();
-		
 		// Collect docs and children
 		var docs = [];
 		var children = [];
 		for(var i in ids) {
-			var doc = n.getData().getById(ids[i]);
+			var doc = this.#app.getData().getById(ids[i]);
 			if (!doc) return Promise.reject({ 
 				message: 'Document ' + ids[i] + ' not found',
 				messageThreadId: "DeleteMessages"
@@ -659,7 +652,7 @@ class DocumentActions {
 				e.unload();
 			}
 			
-			var docChildren = n.getData().getChildren(ids[i], true);
+			var docChildren = that.#app.getData().getChildren(ids[i], true);
 			for(var c in docChildren) {
 				children.push(docChildren[c]);
 			}
@@ -684,14 +677,14 @@ class DocumentActions {
 		
 		for(var i in docs) {
 			var doc = docs[i];
-			var crefs = n.getData().getReferencesTo(doc._id);
+			var crefs = this.#app.getData().getReferencesTo(doc._id);
 			for(var o in crefs || []) {
 				addContainedRef(crefs[o]);
 			}
 		}
 
 		for(var c in children) {
-			var crefs = n.getData().getReferencesTo(children[c]._id);
+			var crefs = this.#app.getData().getReferencesTo(children[c]._id);
 			for(var o in crefs || []) {
 				addContainedRef(crefs[o]);
 			}
@@ -700,7 +693,7 @@ class DocumentActions {
 		if (containedRefs.length) { 
 			var str = '';
 			for(var o in containedRefs) {
-				str += n.getData().getReadablePath(containedRefs[o]._id) + '\n';
+				str += this.#app.getData().getReadablePath(containedRefs[o]._id) + '\n';
 			}
 			
 			return Promise.reject({
@@ -727,22 +720,23 @@ class DocumentActions {
 			docs.push(children[l]);
 		}
 		
-		return DocumentAccess.getInstance().loadDocuments(docs)
+		var that = this;
+		return this.#documentAccess.loadDocuments(docs)
 		.then(function(/*resp*/) {
 			var ids = [];
 			for(var d in docs) {
 				var doc = docs[d];
 				doc.deleted = true;
 				Document.addChangeLogEntry(doc, 'deleted');
-				console.log('Deleting ' + n.getData().getReadablePath(doc._id));
+				console.log('Deleting ' + that.#app.getData().getReadablePath(doc._id));
 				ids.push(doc._id);
 			}
 			
-			return DocumentAccess.getInstance().saveItems(ids);
+			return that.#documentAccess.saveItems(ids);
 		})
 		.then(function (/*data*/) {
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('delete', docs);
+			that.#app.callbacks.executeCallbacks('delete', docs);
 
 			return Promise.resolve({
 				ok: true,
@@ -756,9 +750,7 @@ class DocumentActions {
 	 * Rename items in general.
 	 */
 	renameItem(id) {
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Item ' + id + ' not found',
 			messageThreadId: 'RenameMessages'
@@ -773,7 +765,8 @@ class DocumentActions {
 			});
 		}
 
-		return DocumentAccess.getInstance().loadDocuments([doc])
+		var that = this;
+		return this.#documentAccess.loadDocuments([doc])
 		.then(function(/*resp*/) {
 			Document.addChangeLogEntry(doc, 'renamed', {
 				from: doc.name,
@@ -781,11 +774,11 @@ class DocumentActions {
 			});
 			doc.name = name;
 				
-			return DocumentAccess.getInstance().saveItem(id)
+			return that.#documentAccess.saveItem(id)
 		})
 		.then(function (/*data*/) {
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('rename', doc);
+			that.#app.callbacks.executeCallbacks('rename', doc);
 			
 			return Promise.resolve({
 				ok: true,
@@ -804,23 +797,21 @@ class DocumentActions {
 			messageThreadId: 'CopyMessages'
 		});
 		
-		var n = Notes.getInstance();
-		
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'CopyMessages'
 		});
 		
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		this.#app.getData().resetChildrenBuffers();
 		
 		var db;
 		var newDoc;
 		var that = this;
-		return DocumentAccess.getInstance().loadDocuments([doc])
+		return this.#documentAccess.loadDocuments([doc])
 		.then(function(/*resp*/) {
-			return Database.getInstance().get();
+			return that.#app.db.get();
 		})
 		.then(function(dbRef) {
 			db = dbRef;
@@ -843,7 +834,7 @@ class DocumentActions {
 			
 			// Create a new note with the content of the original.
 			newDoc = {
-				_id: n.getData().generateIdFrom(name),
+				_id: that.#app.getData().generateIdFrom(name),
 				type: doc.type,
 				name: name,
 				parent: doc.parent,
@@ -865,10 +856,10 @@ class DocumentActions {
 		})
 		.then(function(data) {
 			newDoc._rev = data.rev;
-			n.getData().add(newDoc);
+			that.#app.getData().add(newDoc);
 			
 			// Execute callbacks
-    		Callbacks.getInstance().executeCallbacks('copy', newDoc);
+    		that.#app.callbacks.executeCallbacks('copy', newDoc);
     		
 			return that.request(newDoc._id);
 		})
@@ -888,7 +879,7 @@ class DocumentActions {
 		ids = Tools.removeDuplicates(ids);
 		
 		for(var i in ids) {
-			var doc = Notes.getInstance().getData().getById(ids[i]);
+			var doc = this.#app.getData().getById(ids[i]);
 			if (!doc) return Promise.reject({
 				message: 'Document ' + ids[i] + ' not found',
 				messageThreadId: 'MoveMessages'
@@ -908,11 +899,11 @@ class DocumentActions {
 		for(var i in ids) {
 			existingRefs.push(ids[i]);
 		}
-		Notes.getInstance().getData().each(function(doc) {
+		this.#app.getData().each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var selector = Notes.getInstance().getMoveTargetSelector(existingRefs);
+		var selector = this.#app.getMoveTargetSelector(existingRefs);
 		selector.val(docs[0].parent);
 		selector.css('max-width', '100%');
 		
@@ -944,7 +935,7 @@ class DocumentActions {
 	        	
 	        	that.moveDocuments(ids, target, true)
 	        	.then(function(/*data*/) {
-	        		var tdoc = Notes.getInstance().getData().getById(target);
+	        		var tdoc = this.#app.getData().getById(target);
 	        		
 					resolve({
 						ok: true,
@@ -979,10 +970,7 @@ class DocumentActions {
 	 * With moveToSubOfTarget you control if the note shall be moved as a subnode of target (true) or beneath the target (false).
 	 */
 	moveDocuments(ids, targetId, moveToSubOfTarget) {
-		var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-		
-		var docTarget = n.getData().getById(targetId);
+		var docTarget = this.#app.getData().getById(targetId);
 		if (docTarget.type == 'reference') {
 			return Promise.reject({
 				message: 'Cannot move into references.',
@@ -994,7 +982,7 @@ class DocumentActions {
 
 		var docsSrc = [];
     	for(var i in ids) {
-    		var doc = n.getData().getById(ids[i]);
+    		var doc = this.#app.getData().getById(ids[i]);
     		if (!doc) {
     			return Promise.reject({
     				message: 'Document ' + ids[i] + ' not found',
@@ -1007,9 +995,9 @@ class DocumentActions {
     	
     	var parentsChildren;
     	if (!targetId || moveToSubOfTarget) {
-    		parentsChildren = n.getData().getChildren(targetId);
+    		parentsChildren = this.#app.getData().getChildren(targetId);
     	} else {
-    		parentsChildren = n.getData().getChildren(docTarget.parent);
+    		parentsChildren = this.#app.getData().getChildren(docTarget.parent);
     	}
     	
     	for(var i in parentsChildren) {
@@ -1018,9 +1006,10 @@ class DocumentActions {
     	
     	if (!moveToSubOfTarget) {
 			for(var s in docsSrc) {
-	    		var siblings = t.reorderVisibleSiblings(docsSrc[s], true);
+	    		var siblings = this.#app.nav.reorderVisibleSiblings(docsSrc[s], true);
+	    		
 	    		for(var i in siblings) {
-					var sibling = n.getData().getById(siblings[i]);
+					var sibling = this.#app.getData().getById(siblings[i]);
 		    		if (!sibling) {
 		    			return Promise.reject({
 		    				message: 'Document ' + siblings[i] + ' not found',
@@ -1033,8 +1022,8 @@ class DocumentActions {
     	}
 
     	var updateIds = [];
-    	
-    	return DocumentAccess.getInstance().loadDocuments(docsInvolved)
+    	var that = this;
+    	return this.#documentAccess.loadDocuments(docsInvolved)
     	.then(function(/*resp*/) {
 	    	if (!targetId || moveToSubOfTarget) {
 	    		for(var s in docsSrc) {
@@ -1044,7 +1033,7 @@ class DocumentActions {
 	    					to: targetId
 	    				});
 	    				
-	    				n.getData().setParent(docsSrc[s]._id, targetId);
+	    				that.#app.getData().setParent(docsSrc[s]._id, targetId);
 	    				updateIds.push(docsSrc[s]._id);
 	    			}
 	    		}
@@ -1056,7 +1045,7 @@ class DocumentActions {
 		    				to: docTarget.parent
 		    			});
 		    			
-		    			n.getData().setParent(docsSrc[s]._id, docTarget.parent);
+		    			that.#app.getData().setParent(docsSrc[s]._id, docTarget.parent);
 		    			updateIds.push(docsSrc[s]._id);
 		    		}
 	    		}
@@ -1069,7 +1058,7 @@ class DocumentActions {
 		    	// We just take the order of items the grid gives us, and even when the items might not all be there, this makes sense as it
 		    	// always resembles the order the user sees (if he sees any).
 		    	if (!moveToSubOfTarget) {
-		    		var ouIds = t.reorderVisibleSiblings(docsSrc[s]);
+		    		var ouIds = that.#app.nav.reorderVisibleSiblings(docsSrc[s]);
 		    		for(var i in ouIds) {
 		    			updateIds.push(ouIds[i]);
 		    		}
@@ -1077,7 +1066,7 @@ class DocumentActions {
 	    	}
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('moveDocumentBeforeSave', {
+			that.#app.callbacks.executeCallbacks('moveDocumentBeforeSave', {
 				docsSrc: docsSrc,
 				docTarget: docTarget,
 				moveToSubOfTarget: moveToSubOfTarget,
@@ -1085,11 +1074,11 @@ class DocumentActions {
 			});
 			
 	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return DocumentAccess.getInstance().saveItems(updateIds);
+	    	return that.#documentAccess.saveItems(updateIds);
     	})
     	.then(function(/*data*/) {
     		// Execute callbacks
-    		Callbacks.getInstance().executeCallbacks('moveDocumentAfterSave', {
+    		that.#app.callbacks.executeCallbacks('moveDocumentAfterSave', {
     			docsSrc: docsSrc,
     			docTarget: docTarget,
     			moveToSubOfTarget: moveToSubOfTarget,
@@ -1109,15 +1098,12 @@ class DocumentActions {
 	 * Saves the order of items for the passed parent as visible in navigation, without changing anything else
 	 */
 	saveChildOrders(id) {
-		var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 
 		var docsInvolved = [doc];
-		var siblings = t.reorderVisibleSiblings(doc, true);
+		var siblings = this.#app.nav.reorderVisibleSiblings(doc, true);
 		for(var i in siblings) {
-			var sibling = n.getData().getById(siblings[i]);
+			var sibling = this.#app.getData().getById(siblings[i]);
     		if (!sibling) {
     			return Promise.reject({
     				message: 'Document ' + siblings[i] + ' not found',
@@ -1129,23 +1115,24 @@ class DocumentActions {
 
     	var updateIds = [];
     	
-    	return DocumentAccess.getInstance().loadDocuments(docsInvolved)
+    	var that = this;
+    	return this.#documentAccess.loadDocuments(docsInvolved)
     	.then(function(/*resp*/) {
-    		var ouIds = t.reorderVisibleSiblings(doc);
+    		var ouIds = that.#app.nav.reorderVisibleSiblings(doc);
     		for(var i in ouIds) {
     			updateIds.push(ouIds[i]);
 	    	}
 			
-			Callbacks.getInstance().executeCallbacks('reorderDocumentsBeforeSave', {
+			that.#app.callbacks.executeCallbacks('reorderDocumentsBeforeSave', {
 				updateIds: updateIds
 			});
 			
 	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return DocumentAccess.getInstance().saveItems(updateIds);
+	    	return that.#documentAccess.saveItems(updateIds);
     	})
     	.then(function(/*data*/) {
     		// Execute callbacks
-    		Callbacks.getInstance().executeCallbacks('reorderDocumentsAfterSave', {
+    		that.#app.callbacks.executeCallbacks('reorderDocumentsAfterSave', {
     			updateIds: updateIds
     		});
     		
@@ -1162,9 +1149,7 @@ class DocumentActions {
 	 * Sets the star flag of an item.
 	 */
 	setStarFlag(id, flagActive) {
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Item ' + id + ' not found',
 			messageThreadId: 'StarMessages'
@@ -1176,21 +1161,20 @@ class DocumentActions {
 				nothingChanged: true
 			});
 		}
-			
-		return DocumentAccess.getInstance().loadDocuments([doc])
+		
+		var that = this;	
+		return this.#documentAccess.loadDocuments([doc])
 		.then(function(/*resp*/) {
 			doc.star = !!flagActive;
 				
-			return DocumentAccess.getInstance().saveItem(id)
+			return that.#documentAccess.saveItem(id)
 		})
 		.then(function (data) {
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('setStar', doc);
+			that.#app.callbacks.executeCallbacks('setStar', doc);
 			
 			return Promise.resolve({
 				ok: true,
-				//message: "Successfully set star flag.",
-				//messageThreadId: 'StarMessages'
 			});
 		});
 	}
@@ -1201,7 +1185,7 @@ class DocumentActions {
 	deleteChangeLog(id) {
 		var db;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			Document.lock(id);
@@ -1249,17 +1233,15 @@ class DocumentActions {
 	undeleteItem(id) {
 		var db;
 		
-		var n = Notes.getInstance();
-		
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		this.#app.getData().resetChildrenBuffers();
 		
 		var doc = null;
 		var that = this;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
-			return db.query(Views.getInstance().getViewDocId() + '/deleted', {
+			return db.query(that.#app.views.getViewDocId() + '/deleted', {
 				include_docs: true
 			});
 		})
@@ -1292,7 +1274,7 @@ class DocumentActions {
 			});
 			
 			// Reset parent if not existing anymore
-			if (doc.parent && !n.getData().getById(doc.parent)) {
+			if (doc.parent && !that.#app.getData().getById(doc.parent)) {
 				doc.parent = "";
 			}
 			
@@ -1308,13 +1290,13 @@ class DocumentActions {
 				
 				Document.updateMeta(undeleteDocs[i]);
 				
-				console.log('Undeleting ' + n.getData().getReadablePath(undeleteDocs[i]._id));
+				console.log('Undeleting ' + that.#app.getData().getReadablePath(undeleteDocs[i]._id));
 			}
 
 			return db.bulkDocs(undeleteDocs);
 		})
 		.then(function (/*data*/) {
-			return TreeActions.getInstance().requestTree();
+			return that.#app.actions.nav.requestTree();
 		})
 		.then(function (/*data*/) {
 			return Promise.resolve({
@@ -1343,15 +1325,14 @@ class DocumentActions {
 	 * Delete trashed item
 	 */
 	deleteItemPermanently(id, rev) {
-		var n = Notes.getInstance();
-		
 		var db;
 		var doc;
 		
-		n.getData().resetBacklinks();
-		n.getData().resetChildrenBuffers();
+		this.#app.getData().resetBacklinks();
+		this.#app.getData().resetChildrenBuffers();
 		
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			
@@ -1384,12 +1365,12 @@ class DocumentActions {
 			}
 			
 			if (rev) {
-				n.routing.call(id);
+				that.#app.routing.call(id);
 				
-				return TreeActions.getInstance().requestTree();
+				return that.#app.actions.nav.requestTree();
 			} else {
-				n.resetPage();
-				return TrashActions.getInstance().showTrash();
+				that.#app.resetPage();
+				return that.#app.actions.trash.showTrash();
 			}
 		})
 		.then(function (/*dataResp*/) {
@@ -1417,7 +1398,7 @@ class DocumentActions {
 		
 		var docs = [];
 		for(var i in ids) {
-			var doc = Notes.getInstance().getData().getById(ids[i]);
+			var doc = this.#app.getData().getById(ids[i]);
 			if (!doc) return Promise.reject({
 				message: 'Document ' + ids[i] + ' not found',
 				messageThreadId: 'SetItemBgImageMessages'
@@ -1434,7 +1415,7 @@ class DocumentActions {
 		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
 		
 		var that = this;
-		return ImageDialog.getInstance().askForImage(
+		return this.#imageDialog.askForImage(
 			docs[0],
 			displayName,
 			docs[0].backImage,
@@ -1460,14 +1441,11 @@ class DocumentActions {
 	 * Saves the passed image data to the passed documents.
 	 */
 	saveItemBackgroundImage(ids, backImage) {
-		var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-
 		ids = Tools.removeDuplicates(ids);
 
 		var docsSrc = [];
     	for(var i in ids) {
-    		var doc = n.getData().getById(ids[i]);
+    		var doc = this.#app.getData().getById(ids[i]);
     		if (!doc) {
     			return Promise.reject({
     				message: 'Document ' + ids[i] + ' not found',
@@ -1477,7 +1455,8 @@ class DocumentActions {
     		docsSrc.push(doc);
     	}
     	
-    	return DocumentAccess.getInstance().loadDocuments(docsSrc)
+    	var that = this;
+    	return this.#documentAccess.loadDocuments(docsSrc)
     	.then(function(resp) {
 	    	for(var s in docsSrc) {
 	    		docsSrc[s].backImage = backImage;
@@ -1489,20 +1468,20 @@ class DocumentActions {
 	    	}
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('saveItemBackgroundImageeBeforeSave', {
+			that.#app.callbacks.executeCallbacks('saveItemBackgroundImageeBeforeSave', {
 				docsSrc: docsSrc,
 				backImage: backImage
 			});
 		
 	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return DocumentAccess.getInstance().saveItems(ids);
+	    	return that.#documentAccess.saveItems(ids);
     	})
     	.then(function(/*data*/) {
-			return TreeActions.getInstance().requestTree();
+			return that.#app.actions.nav.requestTree();
 		})
     	.then(function(/*data*/) {
     		// Execute callbacks
-    		Callbacks.getInstance().executeCallbacks('saveItemBackgroundImageAfterSave', {
+    		that.#app.callbacks.executeCallbacks('saveItemBackgroundImageAfterSave', {
     			docsSrc: docsSrc,
     			backImage: backImage
     		});
@@ -1510,7 +1489,7 @@ class DocumentActions {
     		return Promise.resolve({ ok: true });
     	})
     	.then(function(/*data*/) {
-			return Notes.getInstance().reloadCurrentEditor();
+			return that.#app.reloadCurrentEditor();
 		})
     	.then(function(/*data*/) {
     		t.unblock();
@@ -1524,7 +1503,7 @@ class DocumentActions {
 	 * Returns a promise with the backImage data for the document.
 	 */
 	loadItemBackgroundImage(id) {
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) {
 			return Promise.reject({
 				message: 'Document ' + id + ' not found',
@@ -1544,10 +1523,11 @@ class DocumentActions {
 		}
 
 		var db;
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
-			return db.query(Views.getInstance().getViewDocId() + '/bgimage', {
+			return db.query(that.#app.views.getViewDocId() + '/bgimage', {
 				key: id
 			});
 		})
@@ -1570,7 +1550,7 @@ class DocumentActions {
 			//console.log(' -> Late Loader: Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
 			
 			// Update data model
-			if (Notes.getInstance().getData()) {
+			if (that.#app.getData()) {
 				if (doc) {
 					doc.backImage = backImage;
 					
@@ -1579,7 +1559,7 @@ class DocumentActions {
 			}
 
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('loadItemBackgroundImage', {
+			that.#app.callbacks.executeCallbacks('loadItemBackgroundImage', {
 				id: id,
 				backImage: backImage
 			});

@@ -18,19 +18,19 @@
  */
 class ReferenceActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!ReferenceActions.instance) ReferenceActions.instance = new ReferenceActions();
-		return ReferenceActions.instance;
-	}
+	#app = null;
+	#documentAccess = null;
 	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
+	}
+
 	/**
 	 * Sets (retargets) a new reference target. id must be a reference.
 	 */
 	setReference(id) {
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SetRefMessages'
@@ -42,15 +42,15 @@ class ReferenceActions {
 		});
 		
 		var existingRefs = [id];
-		Notes.getInstance().getData().each(function(doc) {
+		this.#app.getData().each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var selector = Notes.getInstance().getMoveTargetSelector(existingRefs, true);
+		var selector = this.#app.getMoveTargetSelector(existingRefs, true);
 		selector.val(doc.ref);
 		
-		var refDoc = Notes.getInstance().getData().getById(doc.ref);
-		var parentDoc = Notes.getInstance().getData().getById(doc.parent);
+		var refDoc = this.#app.getData().getById(doc.ref);
+		var parentDoc = this.#app.getData().getById(doc.parent);
 		
 		var that = this;
 		$('#moveTargetSelectorList').empty();
@@ -67,11 +67,11 @@ class ReferenceActions {
 		        	$('#moveTargetSelector').modal('hide');
 
 					if (ret && ret.message) {
-						Notes.getInstance().showAlert(ret.message, 'S');
+						that.#app.showAlert(ret.message, 'S');
 					}
 				})
 				.catch(function(err) {
-					if (err && err.message) alert(err.message);
+					if (err && err.message) that.#app.showAlert(err.message, 'E');
 				});
 			})
 		);
@@ -98,13 +98,13 @@ class ReferenceActions {
 	        		return;
 	        	}
 	        	
-				var tdoc = Notes.getInstance().getData().getById(target);
+				var tdoc = that.#app.getData().getById(target);
 	        	if (!tdoc) {
-					Notes.getInstance().showAlert('Target not found: ' + target, 'E', 'SetRefMessages');
+					that.#app.showAlert('Target not found: ' + target, 'E', 'SetRefMessages');
 					return;
 				}
 				
-	        	DocumentAccess.getInstance().loadDocuments([doc])
+	        	that.#documentAccess.loadDocuments([doc])
 	        	.then(function(/*data*/) {
 					Document.addChangeLogEntry(doc, 'referenceChanged', {
 						oldRev: doc.ref,
@@ -113,7 +113,7 @@ class ReferenceActions {
 					
 					doc.ref = target;
 					
-					return DocumentAccess.getInstance().saveItem(id)
+					return that.#documentAccess.saveItem(id)
 				})
 				.then(function(/*data*/) {
 					resolve({
@@ -186,20 +186,21 @@ class ReferenceActions {
 			return '';
 		}
 		
-		return DocumentAccess.getInstance().loadDocuments([referenceDoc, parentDoc])
+		var that = this;
+		return this.#documentAccess.loadDocuments([referenceDoc, parentDoc])
     	.then(function(/*data*/) {
-			return DocumentActions.getInstance().save(parentDoc._id, getLinkText() + parentDoc.content);
+			return that.#app.actions.document.save(parentDoc._id, getLinkText() + parentDoc.content);
 		})
 		.then(function(/*data*/) {
-			return DocumentActions.getInstance().deleteItems([referenceDoc._id], true);
+			return that.#app.actions.document.deleteItems([referenceDoc._id], true);
 		})
 		.then(function(/*data*/) {
-			if (Notes.getInstance().getCurrentlyShownId() == parentDoc._id) {
+			if (that.#app.getCurrentlyShownId() == parentDoc._id) {
 				// Refresh Editor as well
-				Notes.getInstance().routing.call(parentDoc._id);
+				that.#app.routing.call(parentDoc._id);
 			}
 			
-			return TreeActions.getInstance().requestTree();
+			return that.#app.actions.nav.requestTree();
 		})
 		.then(function(/*data*/) {
 			return Promise.resolve({
@@ -214,20 +215,18 @@ class ReferenceActions {
 	 * Creates a new reference for ID.
 	 */
 	createReference(id) {
-		var n = Notes.getInstance();
-
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'CreateRefMessages'
 		});
 		
 		var existingRefs = [id];
-		n.getData().each(function(doc) {
+		this.#app.getData().each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var selector = n.getMoveTargetSelector(existingRefs, false);
+		var selector = this.#app.getMoveTargetSelector(existingRefs, false);
 		
 		$('#createReferenceDialogContent').empty();
 		$('#createReferenceDialogContent').append(selector);
@@ -237,11 +236,13 @@ class ReferenceActions {
 			sortField: 'text'
 		});
 
+		var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#createReferenceDialogSubmitButton').off('click');
 			$('#createReferenceDialogSubmitButton').on('click', function(/*event*/) {
 				$('#createReferenceDialog').off('hidden.bs.modal');
 	        	$('#createReferenceDialog').modal('hide');
+	        	
 	        	var target = selector.val();
 	        	if (target == "_cancel") {
 	        		reject({
@@ -255,7 +256,7 @@ class ReferenceActions {
 				// Here, target can be empty for a ref at root level.
 				if (target.length > 0) {
 					// If there is a target, it has to really exist
-					var tdoc = n.getData().getById(target);
+					var tdoc = that.#app.getData().getById(target);
 		        	if (!tdoc) {
 						reject({
 							message: 'Target not found: ' + target,
@@ -267,7 +268,7 @@ class ReferenceActions {
 				
 				// Create new document
 				var data = {
-					_id: n.getData().generateIdFrom(doc.name),
+					_id: that.#app.getData().generateIdFrom(doc.name),
 					type: 'reference',
 					name: doc.name,
 					parent: target,
@@ -285,7 +286,7 @@ class ReferenceActions {
 				var db;
 				var newIds = [];
 				
-				return Database.getInstance().get()
+				return that.#app.db.get()
 				.then(function(dbRef) {
 					db = dbRef;
 					return db.bulkDocs([data]);
@@ -310,9 +311,9 @@ class ReferenceActions {
 				})
 				.then(function(/*data*/) {
 					// Execute callbacks and reload data
-					Callbacks.getInstance().executeCallbacks('createReference', newIds);
+					that.#app.callbacks.executeCallbacks('createReference', newIds);
 					
-					return TreeActions.getInstance().requestTree();
+					return that.#app.actions.nav.requestTree();
 				})
 				.then(function(/*data*/) {
 					// Everything went fine

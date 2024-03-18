@@ -16,14 +16,14 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class TreeActions {
+class NavigationActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!TreeActions.instance) TreeActions.instance = new TreeActions();
-		return TreeActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
@@ -32,12 +32,11 @@ class TreeActions {
 	requestTree() {
 		var db;
 		var that = this; 
-		var t = NoteTree.getInstance();
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
-			return db.query(Views.getInstance().getViewDocId() + '/toc');
+			return db.query(that.#app.views.getViewDocId() + '/toc');
 		})
 		.then(function(data) {
 			// For debugging
@@ -46,14 +45,15 @@ class TreeActions {
 			}
 
 			// Set new data in a new data container
-			Notes.getInstance().setData(new Data(data.rows ? data.rows : [], 'value'));
+			that.#app.setData(new Data(data.rows ? data.rows : [], 'value'));
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('requestTree');
+			that.#app.callbacks.executeCallbacks('requestTree');
 			
 			// (Re)load tree
-			t.destroy();
-			return t.init();
+			that.#app.nav.destroy();
+			
+			return that.#app.nav.init();
 		})
 		.then(function() {
 			return Promise.resolve({
@@ -74,9 +74,9 @@ class TreeActions {
 	 * Fallback for requestTree in case the TOC views are missing.
 	 */
 	requestTreeFallback() {
-		var t = NoteTree.getInstance();
+		var that = this;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.allDocs({
 				conflicts: true,
@@ -88,14 +88,15 @@ class TreeActions {
 			console.log(' -> TOC Loader: Views not found, using fallback: ' + Tools.convertFilesize(JSON.stringify(data.rows).length) + ' loaded in ' + data.rows.length + ' documents');
 			
 			// Set new data in a new data container
-			Notes.getInstance().setData(new Data(data.rows ? data.rows : [], 'doc'));
+			that.#app.setData(new Data(data.rows ? data.rows : [], 'doc'));
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('requestTree');
+			that.#app.callbacks.executeCallbacks('requestTree');
 
 			// (Re)load tree
-			t.destroy();
-			return t.init();
+			that.#app.nav.destroy();
+			
+			return that.#app.nav.init();
 		})
 		.then(function() {
 			return Promise.resolve({

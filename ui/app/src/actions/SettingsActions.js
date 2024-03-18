@@ -18,27 +18,29 @@
  */
 class SettingsActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!SettingsActions.instance) SettingsActions.instance = new SettingsActions();
-		return SettingsActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
 	 * Request the settings for the user
 	 */
 	requestSettings() {
-		return Database.getInstance().get()
+		var that = this;
+		
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.get(Settings.settingsDocId);
 		})
 		.then(function (data) {
-			Settings.getInstance().set(data);
+			that.#app.settings.set(data);
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('requestSettings', data);
+			that.#app.callbacks.executeCallbacks('requestSettings', data);
     		
 			return Promise.resolve({ ok: true });
 		})
@@ -65,13 +67,14 @@ class SettingsActions {
 		
 		var db;
 		var doc;
-		return Database.getInstance().get()
+		
+		return this.#app.db.get()
 		.then(function(_db) {
 			db = _db;
 			return db.get(Settings.settingsDocId);
 		})
 		.then(function (oldDoc) {
-			doc = Settings.getInstance().get();
+			doc = that.#app.settings.get();
 			doc._id = Settings.settingsDocId;
 			doc._rev = oldDoc._rev;
 			
@@ -89,7 +92,7 @@ class SettingsActions {
 		})
 		.then(function (/*data*/) {
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('saveSettings', doc);
+			that.#app.callbacks.executeCallbacks('saveSettings', doc);
     		
 			return Promise.resolve({
 				message: "Saved settings.",
@@ -105,13 +108,15 @@ class SettingsActions {
 	 * Check settings consistency
 	 */
 	checkSettings() {
-		return Database.getInstance().get()
+		var that = this;
+		
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.get(Settings.settingsDocId);
 		})
 		.then(function (data) {
 			var errors = [];
-			var ret = Settings.getInstance().checkSettings(data, errors);
+			var ret = that.#app.settings.checkSettings(data, errors);
 			return Promise.resolve({
 				propertiesChecked: ret.numPropsChecked,
 				errors: errors,
@@ -119,7 +124,7 @@ class SettingsActions {
 			});
 		})
 		.then(function(data) {
-			return Database.getInstance().checkConflicts(Settings.settingsDocId)
+			return that.#app.db.checkConflicts(Settings.settingsDocId)
 			.then(function(data2) {
 				var resp = Tools.mergeCheckResponses([data, data2]);
 				resp.numChecked = 1;

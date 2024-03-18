@@ -268,7 +268,7 @@ class Code {
 				),
 			)
 			.append(
-				PageMenu.get(that, {
+				new PageMenu(that.#app).get(that, {
 					//downloadMimeType: 'text/plain',
 					//downloadFilename: that.current.name + '.txt' 
 				})

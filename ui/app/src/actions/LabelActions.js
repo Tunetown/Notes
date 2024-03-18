@@ -18,12 +18,12 @@
  */
 class LabelActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!LabelActions.instance) LabelActions.instance = new LabelActions();
-		return LabelActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
@@ -31,14 +31,14 @@ class LabelActions {
 	 */
 	requestLabelDefinitions(id) {
 		var db;
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.get(id);
 		})
 		.then(function (data) {
-			var l = LabelDefinitions.getInstance();
-			l.load(data);
+			that.#app.loadPage(new LabelDefinitionsPage(data));
 			
 			return Promise.resolve({ ok: true });
 		});
@@ -53,9 +53,7 @@ class LabelActions {
 			messageThreadId: 'SaveLabelMessages' 
 		});
 		
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveLabelMessages'
@@ -63,11 +61,12 @@ class LabelActions {
 		
 		Document.addChangeLogEntry(doc, 'labelDefinitionsChanged');	
 			
-		return DocumentAccess.getInstance().saveItem(id)
+		var that = this;
+		return this.#app.saveItem(id)
 		.then(function(dataResp) {
 			if (!dataResp.abort) {
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('saveLabelDefinitions', [doc]);
+				that.#app.callbacks.executeCallbacks('saveLabelDefinitions', [doc]);
 				
 				console.log("Successfully saved label definitions of " + doc.name);
 				
@@ -92,9 +91,7 @@ class LabelActions {
 			messageThreadId: 'SaveLabelMessages'
 		});
 		
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveLabelMessages'
@@ -102,11 +99,12 @@ class LabelActions {
 		
 		Document.addChangeLogEntry(doc, 'labelsChanged');	
 			
-		return DocumentAccess.getInstance().saveItem(id)
+		var that = this;
+		return this.#documentAccess.saveItem(id)
 		.then(function(dataResp) {
 			if (!dataResp.abort) {
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('saveLabels', doc);
+				that.#app.callbacks.executeCallbacks('saveLabels', doc);
 				
 				console.log("Successfully saved labels of " + doc.name);
 				
@@ -126,7 +124,7 @@ class LabelActions {
 	 * This is reusing the move target input modal dialog.
 	 */
 	moveLabelDefinition(id, labelId) {
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'MoveLabelMessages'
@@ -146,6 +144,7 @@ class LabelActions {
 		$('#moveTargetSelectorList').append(selector);
 
 		var tdoc;
+		var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#moveSubmitButton').off('click');
 			$('#moveSubmitButton').on('click', function(/*event*/) {
@@ -161,13 +160,13 @@ class LabelActions {
 	        		return;
 	        	}
 
-	        	tdoc = Notes.getInstance().getData().getById(target);
+	        	tdoc = that.#app.getData().getById(target);
 	        	if (!tdoc) {
-	        		Notes.getInstance().showAlert('Please select a target document.', 'E', 'MoveMessages');
+	        		that.#app.showAlert('Please select a target document.', 'E', 'MoveMessages');
 	        		return;
 	        	}
 	       
-	        	DocumentAccess.getInstance().loadDocuments([doc, tdoc])
+	        	that.#documentAccess.loadDocuments([doc, tdoc])
 	        	.then(function(/*resp*/) {
 	        		Document.removeLabelDefinition(doc, labelId);
 	        		Document.addChangeLogEntry(doc, 'labelDefinitionsChanged');	
@@ -175,11 +174,11 @@ class LabelActions {
 	        		Document.addLabelDefinition(tdoc, def);
 	        		Document.addChangeLogEntry(tdoc, 'labelDefinitionsChanged');	
 	        		
-	        		return DocumentAccess.getInstance().saveItems([doc._id, tdoc._id]);
+	        		return that.#documentAccess.saveItems([doc._id, tdoc._id]);
 	        	})
 	        	.then(function(/*data*/) {
 	        		// Execute callbacks
-					Callbacks.getInstance().executeCallbacks('saveLabelDefinitions', [doc, tdoc]);
+					that.#app.callbacks.executeCallbacks('saveLabelDefinitions', [doc, tdoc]);
 					
 					resolve({
 						ok: true,
@@ -217,7 +216,7 @@ class LabelActions {
 		var selector = $('<select></select>');
 		var ids = [];
 
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
 		d.each(function(doc) {
 			ids.push({
@@ -234,7 +233,7 @@ class LabelActions {
 		
 		for(var i in ids) {
 			selector.append(
-				$('<option value="' + ids[i].id + '">' + Notes.getInstance().formatSelectOptionText(ids[i].text) + '</option>')
+				$('<option value="' + ids[i].id + '">' + this.#app.formatSelectOptionText(ids[i].text) + '</option>')
 			);
 		}
 		return selector;
@@ -268,8 +267,7 @@ class LabelActions {
 			});
 		}
 
-		const n = Notes.getInstance();
-		const labels = n.getData().getActiveLabelDefinitions(doc._id);
+		const labels = this.#app.getData().getActiveLabelDefinitions(doc._id);
 		
 		if (labels.length == 0) {
 			return Promise.reject({
@@ -301,7 +299,8 @@ class LabelActions {
 			return '';
 		}
 		
-		return DocumentAccess.getInstance().loadDocuments([doc])
+		var that = this;
+		return this.#documentAccess.loadDocuments([doc])
     	.then(function(/*data*/) {
 			// Set tag colors (do not overwrite any existing ones!)
 			var promises = [];
@@ -313,31 +312,31 @@ class LabelActions {
 				if (Hashtag.hasColor(tag)) continue;
 				
 				// No color in meta data: Add the label color for the tag
-				promises.push(HashtagActions.getInstance().setColor(tag, label.color));
+				promises.push(that.#app.actions.hashtag.setColor(tag, label.color));
 			}
 			
 			return Promise.all(promises);
 		})
 		.then(function(/*data*/) {
 			// Set new content
-			return DocumentActions.getInstance().save(doc._id, getTagsText(labels) + doc.content);
+			return that.#app.actions.document.save(doc._id, getTagsText(labels) + doc.content);
 		})
 		.then(function(/*data*/) {
-			return DocumentAccess.getInstance().loadDocumentsById([doc._id])
+			return that.#documentAccess.loadDocumentsById([doc._id])
 		})
 		.then(function(/*data*/) {
 			// Remove labels
-			doc = n.getData().getById(doc._id);
+			doc = that.#app.getData().getById(doc._id);
 			doc.labels = [];
-			return DocumentAccess.getInstance().saveItem(doc._id);
+			return that.#documentAccess.saveItem(doc._id);
 		})
 		.then(function(/*data*/) {
-			return TreeActions.getInstance().requestTree();
+			return that.#app.actions.nav.requestTree();
 		})
 		.then(function(/*data*/) {
-			if (Notes.getInstance().getCurrentlyShownId() == doc._id) {
+			if (that.#app.getCurrentlyShownId() == doc._id) {
 				// Refresh Editor as well
-				Notes.getInstance().routing.call(doc._id);
+				that.#app.routing.call(doc._id);
 			}
 			
 			return Promise.resolve({

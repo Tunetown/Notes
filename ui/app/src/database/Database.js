@@ -19,16 +19,12 @@
  */
 class Database {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Database.instance) Database.instance = new Database();
-		return Database.instance;
-	}
+	#state = null;
 	
 	/**
-	 * Must be called before usage of the class. Following options are available:
+	 * Following options are available:
+	 * 
+	 * state:                 State handler
 	 * 
 	 * notifyOfflineCallback: Called when there could potentially be a 
 	 *                        problem with the Internet connection. The
@@ -45,8 +41,10 @@ class Database {
 	 * profileOptions:        Callbacks for the profile handler, see ProfileHandler constructor.
 	 *                        Mandatory.
 	 */
-	options(o) {
-		this.options = o;
+	constructor(options) {
+		this.options = options;  // TODO private
+		
+		this.#state = options.state;
 		
 		this.profileHandler = new ProfileHandler(this, this.options.profileOptions);
 		this.syncHandler = new DatabaseSync(this, this.options.syncOptions);
@@ -243,11 +241,11 @@ class Database {
 
 								// Trust the device?
 								if (trust) {
-									ClientState.getInstance().setTrustedDeviceCredentials(usr, pwd);
+									that.#state.setTrustedDeviceCredentials(usr, pwd);
 									
 									
 								} else {
-									ClientState.getInstance().setTrustedDeviceCredentials();
+									that.#state.setTrustedDeviceCredentials();
 								}
 
 								resolve({
@@ -307,8 +305,8 @@ class Database {
 					}
 					
 					// Is this device trusted?
-					if (ClientState.getInstance().isDeviceTrusted()) {
-						const trustedCredentials = ClientState.getInstance().getTrustedDeviceCredentials();
+					if (that.#state.isDeviceTrusted()) {
+						const trustedCredentials = that.#state.getTrustedDeviceCredentials();
 						console.log('Device is trusted: ' + trustedCredentials.user);
 						
 						doLogin(trustedCredentials.user, trustedCredentials.password, true);

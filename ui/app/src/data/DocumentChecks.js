@@ -18,12 +18,10 @@
  */
 class DocumentChecks {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!DocumentChecks.instance) DocumentChecks.instance = new DocumentChecks();
-		return DocumentChecks.instance;
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
 	}
 	
 	/**
@@ -77,7 +75,7 @@ class DocumentChecks {
 		var docs = [];
 		var db;
 
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.allDocs({
@@ -158,7 +156,7 @@ class DocumentChecks {
 		var docs = [];
 		var db;
 
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.allDocs({
@@ -239,7 +237,7 @@ class DocumentChecks {
 		var docRevs = [];
 		var db;
 
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.allDocs({

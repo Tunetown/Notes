@@ -18,25 +18,25 @@
  */
 class HistoryActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!HistoryActions.instance) HistoryActions.instance = new HistoryActions();
-		return HistoryActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
 	 * Show history for the note.
 	 */
 	showHistory(id) {
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.get(id);
 		})
 		.then(function (data) {
-			var v = Versions.getInstance();
-			v.load(data);
+			that.#app.loadPage(new VersionsPage(data));
 			
 			return Promise.resolve({ ok: true });
 		});
@@ -48,8 +48,9 @@ class HistoryActions {
 	requestVersion(id, name, callDirectly) { 
 		var db;
 		var doc;
+		var that = this;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			return db.get(id);
@@ -66,10 +67,10 @@ class HistoryActions {
 						// Directly call the editor in version restore mode.
 						Document.setRestoreData(id, reader.result);
 						
-						Notes.getInstance().routing.call(id);						
+						that.#app.routing.call(id);						
 					} else {
 						// Load data into the version viewer
-						VersionView.getInstance().load(id, name, reader.result, doc);
+						that.#app.loadPage(new VersionPage(id, name, reader.result, doc));
 					}
 					
 					resolve({
@@ -89,7 +90,7 @@ class HistoryActions {
 		var db;
 		var that = this;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			Document.lock(id);
@@ -132,7 +133,7 @@ class HistoryActions {
 	deleteHistory(id) {
 		var db;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			Document.lock(id);

@@ -18,35 +18,40 @@
  */
 class ContextMenu { 
 	
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
+	}
+	
 	/**
 	 * Set up the options buttons popup into the DOM element with the passed ID.
 	 */
-	static setupItemOptions(elementId) {
+	setupItemOptions(elementId) {
 		$('#' + elementId).empty();
 		
-		var n = Notes.getInstance();
-		
+		var that = this;
 		$('#' + elementId).append(
 			$('<div class="treebuttons" id="treebuttons"/>').append([
 				// Create note
 				$('<div id="contextOptionCreate" data-toggle="tooltip" title="Create Document" class="contextOptionSingle fa fa-plus treebutton roundedButton contextOptionCreate"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (n.optionsIds.length != 1) return;
+						that.#app.hideOptions();
+						if (that.#app.optionsIds.length != 1) return;
 						
-						NoteTree.getInstance().block();
-						DocumentActions.getInstance().create(n.optionsIds[0])
+						that.#app.nav.block();
+						that.#app.actions.document.create(that.#app.optionsIds[0])
 						.then(function(data) {
-							NoteTree.getInstance().unblock();
+							that.#app.nav.unblock();
 							
 							if (data.ok) {
-								n.showAlert("Successfully created document.", "S");
+								that.#app.showAlert("Successfully created document.", "S");
 							}
 						})
 						.catch(function(err) {
-							NoteTree.getInstance().unblock();
-							n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+							that.#app.nav.unblock();
+							that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 						});
 					}),
 					
@@ -54,21 +59,21 @@ class ContextMenu {
 				$('<div id="contextOptionRename" data-toggle="tooltip" title="Rename item" class="contextOptionSingle fa fa-pencil-alt treebutton roundedButton contextOptionRename"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (n.optionsIds.length != 1) return;
+						that.#app.hideOptions();
+						if (that.#app.optionsIds.length != 1) return;
 						
-						NoteTree.getInstance().block();
-						DocumentActions.getInstance().renameItem(n.optionsIds[0])
+						that.#app.nav.block();
+						that.#app.actions.document.renameItem(that.#app.optionsIds[0])
 						.then(function(data) {
-							NoteTree.getInstance().unblock();
+							that.#app.nav.unblock();
 							
 							if (data.message) {
-								n.showAlert(data.message, "S", data.messageThreadId);
+								that.#app.showAlert(data.message, "S", data.messageThreadId);
 							}
 						})
 						.catch(function(err) {
-							NoteTree.getInstance().unblock();
-							n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+							that.#app.nav.unblock();
+							that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 						});
 					}),
 					
@@ -76,26 +81,26 @@ class ContextMenu {
 				$('<div id="contextOptionShowInNavigation" data-toggle="tooltip" title="Show in Navigation" class="fa fa-map treebutton roundedButton contextOptionShowInNavigation"></div>')
 			        .on('click', function(event) {
 			        	event.stopPropagation();
-			        	n.hideOptions();
-			        	if (n.optionsIds.length != 1) return;
-			        	const id = n.optionsIds[0];
+			        	that.#app.hideOptions();
+			        	if (that.#app.optionsIds.length != 1) return;
+			        	const id = that.#app.optionsIds[0];
 			        	
-						NoteTree.getInstance().highlightDocument(id, !Device.getInstance().isLayoutMobile());	
+						that.#app.nav.highlightDocument(id, !that.#app.device.isLayoutMobile());	
 			        }),
 
 				// Relocate reference
 				$('<div id="contextOptionReReference" data-toggle="tooltip" title="Set target" class="fa fa-bullseye treebutton roundedButton contextOptionReReference"></div>')
 			        .on('click', function(event) {
 			        	event.stopPropagation();
-			        	n.hideOptions();
-			        	if (n.optionsIds.length != 1) return;
+			        	that.#app.hideOptions();
+			        	if (that.#app.optionsIds.length != 1) return;
 			        	
-			        	ReferenceActions.getInstance().setReference(n.optionsIds[0])
+			        	that.#app.actions.reference.setReference(that.#app.optionsIds[0])
 			        	.then(function(data) {
-							n.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
+							that.#app.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							n.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 			        }),
 					
@@ -103,15 +108,15 @@ class ContextMenu {
 				$('<div id="contextOptionMove" data-toggle="tooltip" title="Move Note" class="fa fa-arrows-alt treebutton roundedButton contextOptionMove"></div>')
 			        .on('click', function(event) {
 			        	event.stopPropagation();
-			        	n.hideOptions();
-			        	if (!n.optionsIds.length) return;
+			        	that.#app.hideOptions();
+			        	if (!that.#app.optionsIds.length) return;
 			        	
-			        	DocumentActions.getInstance().moveItems(n.optionsIds)
+			        	that.#app.actions.document.moveItems(that.#app.optionsIds)
 			        	.then(function(data) {
-							n.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
+							that.#app.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							n.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 			        }),
 			       
@@ -119,15 +124,15 @@ class ContextMenu {
 				$('<div id="contextOptionCopy" data-toggle="tooltip" title="Copy Note" class="contextOptionSingle fa fa-copy treebutton roundedButton contextOptionCopy"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (n.optionsIds.length != 1) return;
+						that.#app.hideOptions();
+						if (that.#app.optionsIds.length != 1) return;
 						
-						DocumentActions.getInstance().copyItem(n.optionsIds[0])
+						that.#app.actions.document.copyItem(that.#app.optionsIds[0])
 						.then(function(/*data*/) {
-							n.showAlert('Successfully copied item', 'S');
+							that.#app.showAlert('Successfully copied item', 'S');
 						})
 						.catch(function(err) {
-							n.showAlert(err.message ? err.message : 'Error copying item.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.showAlert(err.message ? err.message : 'Error copying item.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}),
 							
@@ -135,24 +140,25 @@ class ContextMenu {
 				$('<div id="contextOptionDelete" data-toggle="tooltip" title="Delete item" class="fa fa-trash treebutton roundedButton contextOptionDelete"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (!n.optionsIds.length) return;
+						that.#app.hideOptions();
+						if (!that.#app.optionsIds.length) return;
 						
-						NoteTree.getInstance().block();
+						that.#app.nav.block();
 						
-						n.showAlert("Preparing to delete items...", 'I', 'DeleteMessages');
+						that.#app.showAlert("Preparing to delete items...", 'I', 'DeleteMessages');
 						
-						DocumentActions.getInstance().deleteItems(n.optionsIds).then(function(data) {
-							NoteTree.getInstance().unblock();
+						that.#app.actions.document.deleteItems(that.#app.optionsIds)
+						.then(function(data) {
+							that.#app.nav.unblock();
 							
 							if (data.message) {
-								n.showAlert(data.message, "S", data.messageThreadId);
+								that.#app.showAlert(data.message, "S", data.messageThreadId);
 							}
 							
 						}).catch(function(err) {
-							NoteTree.getInstance().unblock();
+							that.#app.nav.unblock();
 							
-							n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+							that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 						});
 					}),
 					
@@ -160,31 +166,31 @@ class ContextMenu {
 				$('<div id="contextOptionLabels" data-toggle="tooltip" title="Labels..." class="contextOptionSingle fa fa-tags treebutton roundedButton contextOptionLabels"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (n.optionsIds.length != 1) return;
+						that.#app.hideOptions();
+						if (that.#app.optionsIds.length != 1) return;
 
-						var doc = Notes.getInstance().getData().getById(n.optionsIds[0]);
+						var doc = that.#app.getData().getById(that.#app.optionsIds[0]);
 						if (!doc) return;
 						
-						n.routing.callLabelDefinitions(n.optionsIds[0]);
+						that.#app.routing.callLabelDefinitions(that.#app.optionsIds[0]);
 					}),
 					
 				// History
 				/*$('<div id="contextOptionHistory" data-toggle="tooltip" title="Note History..." class="contextOptionSingle fa fa-history treebutton roundedButton contextOptionHistory"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (n.optionsIds.length != 1) return;
+						that.#app.hideOptions();
+						if (that.#app.optionsIds.length != 1) return;
 
-						var doc = Notes.getInstance().getData().getById(n.optionsIds[0]);
+						var doc = Notes.getInstance().getData().getById(that.#app.optionsIds[0]);
 						if (!doc) return;
 						
 						if (!Document.hasTypeHistory(doc.type)) {
-							n.showAlert('No history available for this type of item.', 'I');
+							that.#app.showAlert('No history available for this type of item.', 'I');
 							return;
 						}
 						
-						n.routing.call("history/" + n.optionsIds[0]);
+						that.#app.routing.call("history/" + that.#app.optionsIds[0]);
 					}),*/
 					
 				// Text Color
@@ -196,22 +202,22 @@ class ContextMenu {
 		            	$('<input type="color" class="colorinput" style="display: block; width: 1px; height: 1px; display: none;">')
 				            .on('click', function(event) {
 				            	event.stopPropagation();
-				            	if (!n.optionsIds.length) return;
-				            	n.prepareColorPicker(n.optionsIds, this, false);
+				            	if (!that.#app.optionsIds.length) return;
+				            	that.#app.prepareColorPicker(that.#app.optionsIds, this, false);
 				            })
 				            .on('change', function(event) {
 				            	event.stopPropagation();
-				            	if (!n.optionsIds.length) return;
-				            	n.setColorPreview(n.optionsIds, this, false)
+				            	if (!that.#app.optionsIds.length) return;
+				            	that.#app.setColorPreview(that.#app.optionsIds, this, false)
 				            })
 				            .on('blur', function(event) {
 				            	event.stopPropagation();
-				            	if (!n.optionsIds.length) return;
-				            	n.setColor(n.optionsIds, this, false)
+				            	if (!that.#app.optionsIds.length) return;
+				            	that.#app.setColor(that.#app.optionsIds, this, false)
 				            })
 				            .on('input', function(event) {
-				            	if (!n.optionsIds.length) return;
-				            	n.setColorPreview(n.optionsIds, this, false)
+				            	if (!that.#app.optionsIds.length) return;
+				            	that.#app.setColorPreview(that.#app.optionsIds, this, false)
 				            })
 		            ),
 
@@ -224,22 +230,22 @@ class ContextMenu {
 			        	$('<input type="color" class="colorinput" style="display: block; width: 1px; height: 1px; display: none;">')
 					        .on('click', function(event) {
 					        	event.stopPropagation();
-					        	if (!n.optionsIds.length) return;
-					        	n.prepareColorPicker(n.optionsIds, this, true);
+					        	if (!that.#app.optionsIds.length) return;
+					        	that.#app.prepareColorPicker(that.#app.optionsIds, this, true);
 					        })
 					        .on('change', function(event) {
 					        	event.stopPropagation();
-					        	if (!n.optionsIds.length) return;
-					        	n.setColorPreview(n.optionsIds, this, true)
+					        	if (!that.#app.optionsIds.length) return;
+					        	that.#app.setColorPreview(that.#app.optionsIds, this, true)
 					        })
 					        .on('blur', function(event) {
 					        	event.stopPropagation();
-					        	if (!n.optionsIds.length) return;
-					        	n.setColor(n.optionsIds, this, true)
+					        	if (!that.#app.optionsIds.length) return;
+					        	that.#app.setColor(that.#app.optionsIds, this, true)
 					        })
 					        .on('input', function(event) {
-					        	if (!n.optionsIds.length) return;
-					        	n.setColorPreview(n.optionsIds, this, true)
+					        	if (!that.#app.optionsIds.length) return;
+					        	that.#app.setColorPreview(that.#app.optionsIds, this, true)
 					        })
 			        ),
 
@@ -247,15 +253,15 @@ class ContextMenu {
 				$('<label id="contextOptionBgImage" data-toggle="tooltip" title="Set background image..." class="fa fa-image treebutton roundedButton contextOptionBgImage"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
-						if (!n.optionsIds.length) return;
+						that.#app.hideOptions();
+						if (!that.#app.optionsIds.length) return;
 						
-						DocumentActions.getInstance().setItemBackgroundImage(n.optionsIds)
+						that.#app.actions.document.setItemBackgroundImage(that.#app.optionsIds)
 						.then(function(data) {
-							if (data.message) n.showAlert(data.message, 'S', data.messageThreadId);
+							if (data.message) that.#app.showAlert(data.message, 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							n.showAlert(err.message ? err.message : 'Error setting background image for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.showAlert(err.message ? err.message : 'Error setting background image for item.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}),
 					
@@ -263,38 +269,38 @@ class ContextMenu {
 				$('<label id="contextOptionDeleteFavorite" data-toggle="tooltip" title="Remove from favorites bar" class="fa fa-times treebutton roundedButton contextOptionDeleteFavorite"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
+						that.#app.hideOptions();
 					
-						if (!n.optionsIds.length) return;
+						if (!that.#app.optionsIds.length) return;
 						
-						n.removeFavorite(n.optionsIds[0]);
+						that.#app.removeFavorite(that.#app.optionsIds[0]);
 					}),
 					
 				// Clear favorites history...
 				$('<label id="contextOptionClearFavorites" data-toggle="tooltip" title="Clear favorites..." class="fa fa-trash-alt treebutton roundedButton contextOptionClearFavorites"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.hideOptions();
+						that.#app.hideOptions();
 					
-						n.clearFavorites();
+						that.#app.clearFavorites();
 					}),
 					
 				// Toggle star flag
 				$('<label id="contextOptionToggleStar" data-toggle="tooltip" title="Add this document to the favorites" class="fa fa-star treebutton roundedButton contextOptionToggleStar"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						if (!n.optionsIds.length) return;
+						if (!that.#app.optionsIds.length) return;
 						
-						var doc = n.getData().getById(n.optionsIds[0]);
+						var doc = that.#app.getData().getById(that.#app.optionsIds[0]);
 						if (!doc) return;
 						
-						DocumentActions.getInstance().setStarFlag(doc._id, !doc.star)
+						that.#app.actions.document.setStarFlag(doc._id, !doc.star)
 						.then(function(data) {
-							n.updateOptionStyles();
+							that.#app.updateOptionStyles();
 						})
 						.catch(function(err) {
-							n.updateOptionStyles();
-							n.showAlert(err.message ? err.message : 'Error setting star flag for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.updateOptionStyles();
+							that.#app.showAlert(err.message ? err.message : 'Error setting star flag for item.', err.abort ? 'I' : 'E', err.messageThreadId);
 						});					
 					})
 			])

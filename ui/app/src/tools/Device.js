@@ -18,18 +18,11 @@
  */
 class Device {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Device.instance) Device.instance = new Device();
-		return Device.instance;
-	}
+	#app = null;
 	
-	/**
-	 * Call this at page load.
-	 */
-	init() {
+	constructor(app) {
+		this.#app = app;
+		
 		// Detect device properties 
 		this.#initBuffers();
 		
@@ -100,7 +93,7 @@ class Device {
 					
 					location.reload();
 				} else {
-					Notes.getInstance().refresh();
+					that.#app.refresh();
 				}
 			}, 50);
 		}
@@ -110,7 +103,7 @@ class Device {
 	 * Returns if we are on a small mobile device (unbuffered).
 	 */
 	#isReallyMobile() {
-		var mode = ClientState.getInstance().getMobileOverride();
+		var mode = this.#app.state.getMobileOverride();
 		if (mode) {
 			if (mode == "mobile") return true;
 			if (mode == "portrait") return false;
@@ -126,7 +119,7 @@ class Device {
 	 * Device.ORIENTATION_PORTRAIT or Device.ORIENTATION_LANDSCAPE.
 	 */
 	#getRealOrientation() {
-		var mode = ClientState.getInstance().getMobileOverride();
+		var mode = this.#app.state.getMobileOverride();
 		if (mode) {
 			if (mode == "portrait") return Device.ORIENTATION_PORTRAIT;
 			if (mode == "landscape") return Device.ORIENTATION_LANDSCAPE;
@@ -141,7 +134,7 @@ class Device {
 	 * Returns if we are on a touch aware device (unbuffered).
 	 */
 	#isReallyTouchAware() {
-		var mode = ClientState.getInstance().getTouchAwareOverride();
+		var mode = this.#app.state.getTouchAwareOverride();
 		if (mode) {
 			if (mode == "touch") return true;
 			if (mode == "notouch") return false;

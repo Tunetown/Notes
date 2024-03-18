@@ -18,6 +18,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 class Document {
+
+	static app = null;
+
+	static setApp(app) {
+		Document.app = app;
+	}
 	
 	/**
 	 * Updates document metadata. Has to be called whenever the content or attachments 
@@ -197,7 +203,7 @@ class Document {
 					solverReceipt: [{
 						action: 'setProperty',
 						propertyName: 'editor',
-						propertyValue: Settings.getInstance().settings.defaultNoteEditor
+						propertyValue: Document.app.settings.settings.defaultNoteEditor
 					}]
 				});		
 			} else 
@@ -209,7 +215,7 @@ class Document {
 					solverReceipt: [{
 						action: 'setProperty',
 						propertyName: 'editor',
-						propertyValue: Settings.getInstance().settings.defaultNoteEditor
+						propertyValue: Document.app.settings.settings.defaultNoteEditor
 					}]
 				});		
 			}
@@ -405,7 +411,7 @@ class Document {
 	}
 	
 	static checkLinkages(doc, cl, errors, ignoreBrokenLinksInContent) {
-		var d = Notes.getInstance().getData();
+		var d = Document.app.getData();
 		
 		if (!cl) {
 			cl = Document.clone(doc);
@@ -530,7 +536,7 @@ class Document {
 			Document.checkTags(doc, null, errors);
 			
 			if (errors.length > 0) {
-				Notes.getInstance().showAlert(
+				Document.app.showAlert(
 					'Broken metadata (' + errors.length + ' errors) in document ' + doc.name + ' (' + doc._id + '), please re-save it or repair in Settings.', 
 					'E', 
 					'brokenMetaMessages' /*, 
@@ -557,7 +563,7 @@ class Document {
 		if (!doc) return null;
 		if (doc.type != 'reference') return doc;
 
-		return Document.getTargetDoc(Notes.getInstance().getData().getById(doc.ref));
+		return Document.getTargetDoc(Document.app.getData().getById(doc.ref));
 	}
 	
 	/**
@@ -654,13 +660,13 @@ class Document {
 	static lock(id) {
 		if (!id) throw new Error('No ID passed to lock');
 		
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = Document.app.getData().getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		if (doc.lock) {
 			throw new Error('The document ' + (doc ? doc.name : id) + ' is already locked by ' + doc.lock);
 		} else {
-			doc.lock = Database.getInstance().getLoggedInUser();
+			doc.lock = Document.app.db.getLoggedInUser();
 		}
 	}
 	
@@ -670,7 +676,7 @@ class Document {
 	static unlock(id) {
 		if (!id) throw new Error('No ID passed to lock');
 		
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = Document.app.getData().getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		delete doc.lock;
@@ -726,12 +732,12 @@ class Document {
 		delete doc.navItemElement;
 		//Document.strip(doc);
 				
-		var d = Notes.getInstance().getData();
+		var d = Document.app.getData();
 		if (d) {
 			d.setParent(doc._id, src.parent);
 			if (doc._conflicts && doc._conflicts.length) {
 				d.pHasConflicts = true;
-				Notes.getInstance().update();
+				Document.app.update();
 			}
 		} else {
 			doc.parent = src.parent;
@@ -967,6 +973,8 @@ class Document {
 	 * 
 	 */
 	static getDocumentEditor(doc) {
+		throw new Error('TODO to be implemented differently');
+		
 		if (!doc.type) throw new Error('No document type');
 		if (!Document.isTypeValid(doc.type)) throw new Error('Invalid document type: ' + doc.type);
 		
@@ -990,8 +998,7 @@ class Document {
 	 * Returns if the passed document can be directly restored in its editor.
 	 */
 	static canRestore(id) {
-		var n = Notes.getInstance();
-		var doc = n.getData().getById(id);
+		var doc = Document.app.getData().getById(id);
 		var e = Document.getDocumentEditor(doc);
 		
 		return (typeof e.setVersionRestoreData == 'function');
@@ -1001,8 +1008,7 @@ class Document {
 	 * Sets version restore data if the editor supports it
 	 */
 	static setRestoreData(id, content) {
-		var n = Notes.getInstance();
-		var doc = n.getData().getById(id);
+		var doc = Document.app.getData().getById(id);
 		var e = Document.getDocumentEditor(doc);
 		
 		if (typeof e.setVersionRestoreData != 'function') throw new Error('Editor cannot restore: ' + id);
@@ -1139,7 +1145,7 @@ class Document {
 
 		doc.changeLog.push({
 			ts: Date.now(),
-			user: Database.getInstance().getLoggedInUser(),
+			user: Document.app.db.getLoggedInUser(),
 			type: changeType,
 			data: data
 		});
@@ -1186,7 +1192,7 @@ class Document {
 		
 		var name = def.name ? def.name : ('Label-' + doc.name);
 		var color = def.color ? def.color : '#06feab';
-		var id = def.id ? def.id : Notes.getInstance().getData().generateIdFrom(name);
+		var id = def.id ? def.id : Document.app.db.getData().generateIdFrom(name);
 		
 		if (!doc.labelDefinitions) doc.labelDefinitions = [];
 		doc.labelDefinitions.push({
@@ -1245,7 +1251,7 @@ class Document {
 	 * Removes all labels from the document which do not exist anymore.
 	 */
 	static removeInvalidLabels(doc) {
-		var d = Notes.getInstance().getData();
+		var d = Document.app.getData();
 
 		var nl = [];
 		for(var i in doc.labels) {
@@ -1265,7 +1271,7 @@ class Document {
 	 * Returns HTML elements for the labels of the document.
 	 */
 	static getLabelElements(doc, cssClass) {
-		var labels = Notes.getInstance().getData().getActiveLabelDefinitions(doc._id);
+		var labels = Document.app.getData().getActiveLabelDefinitions(doc._id);
 		var ret = [];
 		
 		for(var i in labels || []) {
@@ -1278,7 +1284,7 @@ class Document {
 			el.on('click', function(event) {
 				event.stopPropagation();
 				
-				Notes.getInstance().routing.callLabelDefinitions(doc._id);
+				Document.app.routing.callLabelDefinitions(doc._id);
 			})
 			
 			ret.push(el);
@@ -1290,7 +1296,7 @@ class Document {
 	 * Returns HTML elements for the hashtags of the document.
 	 */
 	static getTagElements(doc, cssClass) {
-		var tags = Notes.getInstance().getData().getTags([doc]);
+		var tags = Document.app.getData().getTags([doc]);
 		var ret = [];
 		
 		for(var i in tags || []) {
@@ -1309,7 +1315,7 @@ class Document {
 				if (!data || !data.tag) return;
 				
 				if (event.ctrlKey || event.metaKey) {
-					Notes.getInstance().routing.callHashtags(data.id);
+					Document.app.routing.callHashtags(data.id);
 				} else {
 					Hashtag.showTag(data.tag);
 				}
@@ -1335,10 +1341,10 @@ class Document {
 	 * to the current doc state. Returns true if the tree should be rebuilt.
 	 */
 	static containsTreeRelevantChanges(doc, current) {
-		if (!Notes.getInstance().getData()) return false;
+		if (!Document.app.getData()) return false;
 		
 		if (!current) {
-			current = Notes.getInstance().getData().getById(doc._id);
+			current = Document.app.getData().getById(doc._id);
 		}
 		if (!current) {
 			if (!doc.deleted && !doc._deleted) {
@@ -1536,7 +1542,7 @@ class Document {
 	 */
 	static isPartOfBoard(doc) {
 		if (!doc) return false;
-		var d = Notes.getInstance().getData();
+		var d = Document.app.getData();
 		
 		// Document itself
 		if (doc.editor == 'board') return true;
@@ -1561,8 +1567,7 @@ class Document {
 	 * Shows the download dialog for the given document. Returns a Promise.
 	 */
 	static downloadDocumentDialog(id) {
-		var n = Notes.getInstance();
-		var d = n.getData();
+		var d = Document.app.getData();
 		
 		var doc = d.getById(id);
 		if (!doc) return Promise.reject({
@@ -1647,7 +1652,7 @@ class Document {
 				var docs = d.getChildren(doc._id, true);
 				docs.push(doc);
 				
-				DocumentAccess.getInstance().loadDocuments(docs)
+				Document.app.documentAccess.loadDocuments(docs)
 				.then(function(data) {
 					Document.downloadDocument(id, {
 						format: format, 
@@ -1691,8 +1696,7 @@ class Document {
 		if (!options.timestamps) options.timestamps = 'all';
 		if (!options.fileName) throw new Error('No filename passed for downloading');
 		
-		var n = Notes.getInstance();
-		var d = n.getData();
+		var d = Document.app.getData();
 		
 		// Get document
 		var doc = d.getById(id);
@@ -1712,7 +1716,7 @@ class Document {
 	 * Helper for downloadDocument(). Collects contents recursively.
 	 */
 	static collectContents(doc, depth, options, prefix) {
-		var d = Notes.getInstance().getData();
+		var d = Document.app.getData();
 		if (!prefix) prefix = '';
 		
 		var includeTimestamps = false;
@@ -1876,21 +1880,20 @@ class Document {
 		var that = this;
 		if (Document.hasBackImage(doc)) {
 			// The document has a specific image for this: Start new task to load and handle the background image (which may be stubbed).
-			DocumentActions.getInstance().loadItemBackgroundImage(doc._id)
+			Document.app.actions.document.loadItemBackgroundImage(doc._id)
 			.then(function(backImageData) {
 				that.setBackground(backImageData, overrideBackColor ? overrideBackColor : doc.backColor, element);		
 			})
 			.catch(function(err) {
-				//Notes.getInstance().showAlert(err.message ? err.message : 'Error determining specific background image', 'E', err.messageThreadId);
 				console.log('Error determining specific background image: ' + ((err && err.message) ? err.message : ''));
 			});
 
-		} else if (Document.isImage(doc) && Settings.getInstance().settings.showAttachedImageAsItemBackground) {
+		} else if (Document.isImage(doc) && Document.app.settings.settings.showAttachedImageAsItemBackground) {
 			// Use the attachment image as background
 			// NOTE: No size is passed here, so repeat backgrounds will not work with references, only with b64 data!
-			this.setBackground({ ref: doc._id }, overrideBackColor ? overrideBackColor : doc.backColor, element);
+			Document.setBackground({ ref: doc._id }, overrideBackColor ? overrideBackColor : doc.backColor, element);
 		} else {
-			this.setBackground(false, overrideBackColor ? overrideBackColor : doc.backColor, element);		
+			Doecument.setBackground(false, overrideBackColor ? overrideBackColor : doc.backColor, element);		
 		}
 	}
 			
@@ -1946,7 +1949,7 @@ class Document {
 				
 			} else if (imageDataP.ref) {
 				// Reference background
-				return AttachmentActions.getInstance().getAttachmentUrl(imageDataP.ref)
+				return Document.app.actions.attachmanet.getAttachmentUrl(imageDataP.ref)
 				.then(function(data) {
 					if (data.url) {
 						$(element).css('background-image', gradient + 'url("' + data.url + '")');
@@ -1981,7 +1984,7 @@ class Document {
 			// The document has a specific image for this: Start new task to load and handle the background image (which may be stubbed)
 			applyBackgroundImage(imageData)		
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error determining background image: ' + imageData.ref, 'E', err.messageThreadId);
+				Document.app.showAlert(err.message ? err.message : 'Error determining background image: ' + imageData.ref, 'E', err.messageThreadId);
 			});
 		
 		} else if (backColor) {

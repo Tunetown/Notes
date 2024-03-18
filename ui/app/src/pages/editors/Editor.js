@@ -244,7 +244,7 @@ class Editor {
 			);
 			
 			cont.append(
-				PageMenu.get(that, {
+				new PageMenu(that.#app).get(that, {
 					//downloadMimeType: 'text/html',
 					//downloadFilename: that.current.name + '.html' 
 				})

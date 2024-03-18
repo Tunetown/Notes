@@ -18,10 +18,14 @@
  */
 class Graph {
 	
+	#app = null;
+	
 	/**
 	 * Expects a container element (non-jquery, standard DOM element) to render the graph into.
 	 */
-	constructor(containerId, infoPanel) {
+	constructor(app, containerId, infoPanel) {
+		this.#app = app;
+		
 		var that = this;
 
 		this.nextNodeId = 1;
@@ -46,12 +50,12 @@ class Graph {
 			zoomFit: false,
 			infoPanel: false,
 			onNodeDoubleClick: function(node) {
-				Notes.getInstance().routing.call(node.properties.docId);
+				that.#app.routing.call(node.properties.docId);
 			},
 			onNodeMouseEnter: function(node) {
 				that.infoPanel.css('display', 'block');	
 				
-				var doc = Notes.getInstance().getData().getById(node.properties.docId);
+				var doc = that.#app.getData().getById(node.properties.docId);
 				if (doc) {
 					that.infoPanel.css('background-color', doc.backColor ? doc.backColor : 'white');
 					that.infoPanel.css('color', doc.color ? doc.color : 'black');
@@ -63,17 +67,17 @@ class Graph {
 			},
 			onNodeClick: function(node) {
 				// Release sticky node
-				ClientState.getInstance().saveGraphMeta(node.properties.docId, {});
+				that.#app.state.saveGraphMeta(node.properties.docId, {});
 			},
 			onNodeDragEnd: function(node) {
 				// Save sticky node position
-				ClientState.getInstance().saveGraphMeta(node.properties.docId, {
+				that.#app.state.saveGraphMeta(node.properties.docId, {
 					x: node.fx,
 					y: node.fy
 				});
 			},
 			onScale: function(data) {
-				ClientState.getInstance().saveGlobalGraphMeta(data);
+				that.#app.state.saveGlobalGraphMeta(data);
 			}
 		});
 		
@@ -96,7 +100,7 @@ class Graph {
 		};
 		
 		// Nodes
-		var dd = Notes.getInstance().getData();
+		var dd = this.#app.getData();
 		for(var d=0; d<docs.length; ++d) {
 			var doc = docs[d];
 			
@@ -159,7 +163,7 @@ class Graph {
 		for(var d=0; d<docs.length; ++d) {
 			var doc = docs[d];
 		
-			var meta = ClientState.getInstance().getGraphMeta(doc._id);
+			var meta = this.#app.state.getGraphMeta(doc._id);
 			if (meta.x && meta.y) {
 				this.graph.eachNode(function(node) {
 					if (node.properties.docId == doc._id) {
@@ -171,7 +175,7 @@ class Graph {
 		}
 		
 		// Scaling
-		var sc = ClientState.getInstance().getGlobalGraphMeta();
+		var sc = this.#app.state.getGlobalGraphMeta();
 		if (sc) {
 			this.graph.setScale(
 				sc.scale ? sc.scale : 1, 

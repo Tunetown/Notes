@@ -26,7 +26,7 @@ class Settings {
 		return Settings.instance;
 	}
 	
-	static settingsDocId = 'settings';
+	static settingsDocId = 'settings';   /// TODO move to settingsactions
 	
 	constructor() {
 		this.settings = this.getDefaults();

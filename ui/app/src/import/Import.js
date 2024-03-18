@@ -18,6 +18,8 @@
  */
 class Import {
 	
+	#app = null;
+	
 	/**
 	 * The passed importer must have at least the following methods:
 	 * 
@@ -25,7 +27,8 @@ class Import {
 	 *                           string data to be imported, sourceName is 
 	 *                           the name of the source file. 
 	 */
-	constructor(importer) {
+	constructor(app, importer) {
+		this.#app = app;
 		this.importer = importer;
 	}
 	
@@ -33,7 +36,6 @@ class Import {
 	 * Ask the user for a file and start the import
 	 */
 	startFileImport() {
-		var n = Notes.getInstance();
 		var that = this;
 		
 		$('#importOptionsContainer').empty();
@@ -45,7 +47,7 @@ class Import {
 			var file = $('#importFile')[0].files[0];
     		
     		if (!file) {
-    			n.showAlert('Please select a file to import.', 'E', 'ImportProcessMessages');
+    			that.#app.showAlert('Please select a file to import.', 'E', 'ImportProcessMessages');
 				return;
 		    }
     		
@@ -53,12 +55,12 @@ class Import {
 			
 			console.log('File Import: Loading ' + file.name, 'I');
 			
-			n.routing.callConsole();
+			that.#app.routing.callConsole();
 			
 			setTimeout(function() {
 				that.processFile(file)
 				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 			}, 100);
 		});
@@ -70,7 +72,6 @@ class Import {
 	 * Import a given file.
 	 */
 	processFile(file) {
-		var n = Notes.getInstance();
 		var that = this;
 		return new Promise(function(resolve, reject) {
 			if (!file) {
@@ -96,10 +97,10 @@ class Import {
 			return that.importer.process(data.json, file.name);
 		})
 		.then(function(data) {
-			return TreeActions.getInstance().requestTree();
+			return that.#app.actions.nav.requestTree();
 		})
 		.catch(function(err) {
-			n.showAlert((!err.abort ? 'Error importing data: ' : '') + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			that.#app.showAlert((!err.abort ? 'Error importing data: ' : '') + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		})
 	}
 }

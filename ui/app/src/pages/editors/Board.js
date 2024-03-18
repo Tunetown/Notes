@@ -913,7 +913,7 @@ class Board {
 			);
 			
 			cont.append(
-				PageMenu.get(that)
+				new PageMenu(that.#app).get(that)
 			);
 		});
 	}

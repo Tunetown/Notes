@@ -18,12 +18,10 @@
  */
 class ObsidianExporter {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!ObsidianExporter.instance) ObsidianExporter.instance = new ObsidianExporter();
-		return ObsidianExporter.instance;
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
 	}
 	
 	/**
@@ -57,7 +55,7 @@ class ObsidianExporter {
 		// data (doc, valid export path, links as array etc.).
 		var docsPrepped = [];      
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			// Load documents
 			return db.allDocs({
@@ -121,7 +119,7 @@ class ObsidianExporter {
 			var url = URL.createObjectURL(blob);
 			
 			// Compose the output ZIP file name
-			var zipname = Settings.getInstance().settings.dbAccountName + (ObsidianExporter.includeTimestampInOutputFileName ? (' ' + new Date().toLocaleString()) : '') + '.zip';
+			var zipname = that.#app.settings.settings.dbAccountName + (ObsidianExporter.includeTimestampInOutputFileName ? (' ' + new Date().toLocaleString()) : '') + '.zip';
 			
 			// Save the ZIP file on the client computer
 			window.saveAs(url, zipname);
@@ -140,7 +138,7 @@ class ObsidianExporter {
 	 */
 	prepareDocuments(docs, docsPrepped) {
 		var attRefs = [];
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 
 		// Add the root index file
 		var rootDoc = this.createRootIndexDoc();
@@ -200,7 +198,7 @@ class ObsidianExporter {
 	 * Fills the docsPrepped, attRefs and promises arrays by the passed doc. Returns nothing.
 	 */
 	prepareDocument(docsPrepped, attRefs, promises, doc) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var that = this;
 		
 		// Get file path. This removes illegal characters.
@@ -255,7 +253,7 @@ class ObsidianExporter {
 				// Late loading for content	of attachments. The callback sets the content attribute.
 				// The promise will be resolved before the next steps.
 				promises.push(
-					AttachmentActions.getInstance().getAttachmentUrl(doc._id)
+					this.#app.actions.attachment.getAttachmentUrl(doc._id)
 					.then(function(ret) {
 						// Find the attachment's prepped doc by the passed ID
 						var adoc = that.getPreppedDocById(docsPrepped, ret.id);
@@ -538,7 +536,7 @@ class ObsidianExporter {
 	 * Generates label links for all documents. Returns a stats object.
 	 */
 	createLabelLinkages(docsPrepped) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
 		var labelsAdded = 0;
 		var labelsIgnored = 0;
@@ -597,7 +595,7 @@ class ObsidianExporter {
 	 * about the path actually exported.
 	 */
 	addFile(docsPrepped, folder, basename, extension, doc, content) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
 		/**
 		 * Compose the file base name (no escaping!) using the (optional) iteration number passed.
@@ -698,12 +696,12 @@ class ObsidianExporter {
 			if (lines.length == 0) continue;
 
 			if (dp.doc.type == 'attachment') {
-				console.log('####### INTERNAL ERROR: No linkages allowed for attachments!!! ' + dp.path + ' ########');
+				console.error('####### INTERNAL ERROR: No linkages allowed for attachments!!! ' + dp.path + ' ########');
 				continue;
 			}
 			
 			if ((dp.doc.type == 'note') && (dp.doc.editor == 'board')) {
-				console.log('####### INTERNAL ERROR: No linkages allowed for boards!!! ' + dp.path + ' ########');
+				console.error('####### INTERNAL ERROR: No linkages allowed for boards!!! ' + dp.path + ' ########');
 				continue;
 			}
 						
@@ -743,7 +741,7 @@ class ObsidianExporter {
 	 * derived from the already prepped docs. Returns an array of objects.
 	 */
 	getChildrenOfPath(docsPrepped, parentPath) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var ret = [];
 		
 		/**
@@ -952,9 +950,9 @@ class ObsidianExporter {
 	 * Returns the content for a obsidian kanban board file.
 	 */
 	createKanbanFileContent(docsPrepped, dp) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
-		// Startz building the content string with the frontmatter
+		// Start building the content string with the frontmatter
 		var ret = "---\n\nkanban-plugin: basic\n\n---\n\n";
 		
 		var that = this;
@@ -963,14 +961,14 @@ class ObsidianExporter {
 				doc = d.getById(doc.ref);
 				
 				if (!doc) {
-					console.log(' ==>> WARNING: Board Export for ' + dp.path + ': Broken reference in board : ' + doc.name);
+					console.warn(' ==>> WARNING: Board Export for ' + dp.path + ': Broken reference in board : ' + doc.name);
 					return null;
 				}
 			}
 			
 			var ret = that.getPreppedDocById(docsPrepped, doc._id);
 			if (!ret) {
-				console.log(' ==>> WARNING: Board Export for ' + dp.path + ': ' + errorMsg);
+				console.warn(' ==>> WARNING: Board Export for ' + dp.path + ': ' + errorMsg);
 			}
 			return ret;
 		}
@@ -1033,7 +1031,7 @@ class ObsidianExporter {
 	 * Adds basic obsidian settings to the files. Returns the number of files added.
 	 */
 	createBasicVaultSettings(files) {
-		var accentColor = Settings.getInstance().settings.mainColor;
+		var accentColor = this.#app.settings.settings.mainColor;
 		
 		files.push({ name: '.obsidian/app.json', lastModified: new Date(), input: '{ "defaultViewMode": "preview", "readableLineLength": false, "newFileLocation": "folder", "newFileFolderPath": "Unsorted" }' });
 		files.push({ name: '.obsidian/appearance.json', lastModified: new Date(), input: '{ "accentColor": "' + accentColor + '" }' });

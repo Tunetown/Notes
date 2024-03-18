@@ -18,16 +18,11 @@
  */
 class ImageDialog {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!ImageDialog.instance) ImageDialog.instance = new ImageDialog();
-		return ImageDialog.instance;
-	}
+	#app = null;
 	
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	constructor(app) {
+		this.#app = app;
+	}
 	
 	/**
 	 * Asks the user for an image, and returns a promise which can be used directly for example as backImage object.

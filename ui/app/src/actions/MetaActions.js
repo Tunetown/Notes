@@ -18,19 +18,18 @@
  */
 class MetaActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!MetaActions.instance) MetaActions.instance = new MetaActions();
-		return MetaActions.instance;
-	}
-	
 	static metaDocId = 'global-meta';
 
-	constructor() {
+	#app = null;
+	#documentAccess = null;
+
+	#lock = false;
+		
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
+
 		this.meta = {};
-		this.lock = false;
 	}
 	
 	/**
@@ -40,13 +39,13 @@ class MetaActions {
 	requestGlobalMeta() {
 		var that = this;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.get(MetaActions.metaDocId);
 		})
 		.then(function (data) {
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('requestGlobalMeta', data);
+			that.#app.callbacks.executeCallbacks('requestGlobalMeta', data);
     		
 			if (data && data.meta) {
 				that.meta = data.meta;	
@@ -64,6 +63,7 @@ class MetaActions {
 			// Not found: This is no severe error in this case, so we resolve the promise instead of rejecting.
 			if (err.status == 404) {
 				console.log(' -> No global metadata document exists yet');
+				
 				return Promise.resolve({ 
 					ok: false,
 					message: err.message,
@@ -86,14 +86,14 @@ class MetaActions {
 		var db;
 		var metadoc;
 		
-		if (this.lock) {
+		if (this.#lock) {
 			return Promise.reject({
 				message: 'Meta data is locked'
 			});
 		}
-		this.lock = true;
+		this.#lock = true;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(_db) {
 			db = _db;
 			return db.get(MetaActions.metaDocId)
@@ -109,13 +109,13 @@ class MetaActions {
 					}
 					return Promise.resolve();
 				}
-				that.lock = false;
+				that.#lock = false;
 				return Promise.reject();
 			})
 		})
 		.then(function() {
 			if (!metadoc) {
-				that.lock = false;
+				that.#lock = false;
 				throw new Error('No meta document created');
 			} 
 
@@ -129,7 +129,7 @@ class MetaActions {
 			});
 		})
 		.then(function (data) {
-			that.lock = false;
+			that.#lock = false;
 			
 			if (!data.ok) {
 				return Promise.reject({
@@ -141,7 +141,7 @@ class MetaActions {
 			console.log(' -> Saved global metadata');
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('saveGlobalMeta', metadoc);
+			that.#app.callbacks.executeCallbacks('saveGlobalMeta', metadoc);
     		
 			return Promise.resolve({
 				message: "Saved global metadata.",

@@ -18,6 +18,12 @@
  */
 class Hashtag {
 	
+	static app = null;
+
+	static setApp(app) {
+		Document.app = app;
+	}
+	
 	static startChar = '#';                                                                     ///< First character of the start tag
 	static allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';    ///< Allowed characters
 	static startingPreChars = ' 	\n\r>&' + String.fromCharCode(160);                         ///< Characters allowed before the hashtag 
@@ -153,12 +159,12 @@ class Hashtag {
 		function randomColor() {
 			const col = Hashtag.#getColorProposal(tag);
 			
-			HashtagActions.getInstance().setColor(tag, col);
+			HashTag.app.actions.hashtag.setColor(tag, col);
 			
 			return col;
 		}
 		
-		const meta = MetaActions.getInstance().meta[Hashtag.metaFileName];
+		const meta = Hashtag.app.actions.meta.meta[Hashtag.metaFileName];
 		if (!meta) return randomColor();
 		
 		const hash = Tools.hashCode(tag);
@@ -177,7 +183,7 @@ class Hashtag {
 		if (!tag) return false;
 		tag = tag.toLowerCase();
 		
-		const meta = MetaActions.getInstance().meta[Hashtag.metaFileName];
+		const meta = Hashtag.app.actions.meta.meta[Hashtag.metaFileName];
 		if (!meta) return false;
 		
 		const hash = Tools.hashCode(tag);
@@ -197,21 +203,19 @@ class Hashtag {
 	static getListStyleClass(tag) {
 		const col = Hashtag.getColor(tag);
 		const styleStr = 'background-color: ' + col + ' !important; color: rgba(0,0,0,0) !important; margin-right: 4px;  border-radius: 10px; content: "__";';
-		return Styles.getInstance().getStyleClass(Hashtag.stylePrefix + tag, ':before', styleStr);
+		return Hashtag.app.styles.getStyleClass(Hashtag.stylePrefix + tag, ':before', styleStr);
 	}
 	
 	/**
 	 * Used by all pages etc. to show a tag's mentions.
 	 */
 	static showTag(tag) {
-		const n = Notes.getInstance();
-		
 		tag = Hashtag.trim(tag.toLowerCase());
 		
 		if (Device.getInstance().isLayoutMobile()) {
-			n.routing.callSearch('tag:' + tag);
+			Hashtag.app.routing.callSearch('tag:' + tag);
 		} else {
-			NoteTree.getInstance().setSearchText('tag:' + tag);
+			Hashtag.app.nav.setSearchText('tag:' + tag);
 		}
 	}
 }

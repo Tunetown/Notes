@@ -112,14 +112,4 @@ class Linkage {
 		}
 		return coll;
 	}
-	
-	//static stylePrefix = 'link_';
-		
-	/**
-	 * Returns a dynamic CSS class name for the given tag, to be used in lists.
-	 *
-	static getListStyleClass(id) {
-		const styleStr = 'margin-right: 4px;  border-radius: 10px; content: "__";';
-		return Styles.getInstance().getStyleClass(Linkage.stylePrefix + tag, ':before', styleStr);
-	}*/
 }

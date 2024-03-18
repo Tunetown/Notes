@@ -18,8 +18,13 @@
  */
 class NotesImporter {
 	
-	constructor(defaults) {
-		this.defaults = defaults ? defaults : {};
+	#app = null;
+	#defaults = null;
+	
+	constructor(app, defaults) {
+		this.#app = app;
+		
+		this.#defaults = defaults ? defaults : {};
 	}
 	  
 	/**
@@ -32,19 +37,19 @@ class NotesImporter {
 					$('<tr></tr>').append(
 						$('<td>Import internal meta/settings</td>'),
 						$('<td></td>').append(
-							$('<input type="checkbox" id="importInternal" ' + (this.defaults.importInternal ? 'checked' : '') + ' />')	
+							$('<input type="checkbox" id="importInternal" ' + (this.#defaults.importInternal ? 'checked' : '') + ' />')	
 						)
 					),
 					$('<tr></tr>').append(
 						$('<td>Create new IDs before importing</td>'),
 						$('<td></td>').append(
-							$('<input type="checkbox" id="createIds" ' + (this.defaults.createIds ? 'checked' : '') + ' />')	
+							$('<input type="checkbox" id="createIds" ' + (this.#defaults.createIds ? 'checked' : '') + ' />')	
 						)
 					),
 					$('<tr></tr>').append(
 						$('<td>Create a new root item for the imported documents</td>'),
 						$('<td></td>').append(
-							$('<input type="checkbox" id="useRootItem" ' + (this.defaults.useRootItem ? 'checked' : '') + ' />')	
+							$('<input type="checkbox" id="useRootItem" ' + (this.#defaults.useRootItem ? 'checked' : '') + ' />')	
 						)
 					)
 				)
@@ -82,7 +87,7 @@ class NotesImporter {
 		
 		var options = this.parseOptions();
 
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var data = JSON.parse(jsonString);
 		
 		// Prepare for existing IDs. This is done in the original jsonString, which is then re-parsed.
@@ -179,7 +184,7 @@ class NotesImporter {
 			});
 		}
 
-		return NotesImporter.importDocuments(data, options.importInternal)
+		return NotesImporter.importDocuments(this.#app, data, options.importInternal)
 		.then(function(data) {
 			if (!data.ok) {
 				console.log('Error in import: ' + data.message, 'E');
@@ -199,7 +204,7 @@ class NotesImporter {
 	/**
 	 * Import an array of documents
 	 */
-	static importDocuments(docs, importInternalDocs) {
+	static importDocuments(app, docs, importInternalDocs) {
 		var docsInt = [];
 		
 		for(var i in docs) {
@@ -219,7 +224,7 @@ class NotesImporter {
 		}
 		
 		var db;
-		return Database.getInstance().get()
+		return app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			
@@ -227,7 +232,7 @@ class NotesImporter {
 		})
 		.then(function(/*data*/) {
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('importFinished', docsInt);
+			app.callbacks.executeCallbacks('importFinished', docsInt);
 			
 			return Promise.resolve({
 				ok: true,

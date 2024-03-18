@@ -18,20 +18,25 @@
  */
 class PageMenu { 
 	
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
+	}
+	
 	/**
 	 * Generates the options for the different editors. Returns an array holding the options divs.
 	 */
-	static get(editor, options) {
-		var n = Notes.getInstance();
-		
+	get(editor, options) {
 		if (!options) options = {};
 		
-		if (Device.getInstance().isLayoutMobile()) options.noOpenInNavigation = true;
+		if (this.#app.device.isLayoutMobile()) options.noOpenInNavigation = true;
 		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;
 		
-		var openedDoc = n.getData().getById(editor.getCurrentId());
+		var openedDoc = this.#app.device.getData().getById(editor.getCurrentId());
 		if (!openedDoc || (openedDoc.type != 'note') || ((openedDoc.editor != 'richtext') && (openedDoc.editor != 'code'))) options.noTags = true;
 		
+		var that = this;
 		return [
 			// Editor mode
 			options.noEditorModeSwitch ? null : $('<div class="userbutton"></div>').append(
@@ -44,12 +49,12 @@ class PageMenu {
 					editor.hideOptions();
 					
 					// Change board mode
-					EditorActions.getInstance().saveEditorMode(editor.getCurrentId(), this.value)
+					that.#app.actions.editor.saveEditorMode(editor.getCurrentId(), this.value)
 					.then(function(data) {
-						n.routing.call(editor.getCurrentId());
+						that.#app.routing.call(editor.getCurrentId());
 					})
 					.catch(function(err) {
-						n.showAlert('Error: '+ err.message, "E", err.messageThreadId);
+						that.#app.showAlert('Error: '+ err.message, "E", err.messageThreadId);
 					});
 				})
 				.on('click', function(event) {
@@ -63,7 +68,6 @@ class PageMenu {
 			options.noStar ? null : $('<div class="userbutton"><div id="pageMenuStarOptionIcon" class="fa fa-star userbuttonIcon" style="color: ' + ((openedDoc && openedDoc.star) ? '#c40cf7' : 'black') + ';"></div><span id="pageMenuStarOptionText">' + ((openedDoc && openedDoc.star) ? 'Unpin from' : 'Pin to') + ' Favorites</span></div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				//editor.hideOptions();
 				if (!openedDoc) return;
 				
 				function updateMenuItem(starred) {
@@ -72,12 +76,12 @@ class PageMenu {
 				}
 				
 				var newState = !openedDoc.star;
-				DocumentActions.getInstance().setStarFlag(openedDoc._id, newState)
+				that.#app.actions.document.setStarFlag(openedDoc._id, newState)
 				.then(function(data) {
 					updateMenuItem(newState);
 				})
 				.catch(function(err) {
-					n.showAlert(err.message ? err.message : 'Error setting star flag for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+					that.#app.showAlert(err.message ? err.message : 'Error setting star flag for item.', err.abort ? 'I' : 'E', err.messageThreadId);
 				});			
 			}),
 			
@@ -94,7 +98,7 @@ class PageMenu {
 					});
   
   				} catch (err) {
-  					n.showAlert('Error sharing content, perhaps your browser does not support this feature yet.', 'W');
+  					that.#app.showAlert('Error sharing content, perhaps your browser does not support this feature yet.', 'W');
   				}
 			}),
 			
@@ -104,14 +108,14 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				DocumentActions.getInstance().create(editor.getCurrentId())
+				that.#app.actions.document.create(editor.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
-						n.showAlert(data.message, "S", data.messageThreadId);
+						that.#app.showAlert(data.message, "S", data.messageThreadId);
 					}
 				})
 				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
 			}),
 			
@@ -121,15 +125,15 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				DocumentActions.getInstance().renameItem(editor.getCurrentId())
+				that.#app.actions.document.renameItem(editor.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
-						n.showAlert(data.message, "S", data.messageThreadId);
+						that.#app.showAlert(data.message, "S", data.messageThreadId);
 					}
-					n.routing.call(editor.getCurrentId());
+					that.#app.routing.call(editor.getCurrentId());
 				})
 				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 			}),
 			
@@ -139,9 +143,9 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	DocumentActions.getInstance().moveItems([editor.getCurrentId()])
+	        	that.#app.actions.document.moveItems([editor.getCurrentId()])
 	        	.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 	        }),
 	        
@@ -151,9 +155,9 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	DocumentActions.getInstance().copyItem(editor.getCurrentId())
+	        	that.#app.actions.document.copyItem(editor.getCurrentId())
 	        	.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
 	        }),
 	        
@@ -165,17 +169,17 @@ class PageMenu {
 	        	
 	        	var delId = editor.getCurrentId();
 	        	
-	        	n.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
-	        	DocumentActions.getInstance().deleteItems([delId])
+	        	that.#app.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
+	        	that.#app.actions.document.deleteItems([delId])
 				.then(function(data) {
 	        		if (data.message) {
-	        			n.showAlert(data.message, "S", data.messageThreadId);
+	        			that.#app.showAlert(data.message, "S", data.messageThreadId);
 	        		}
-	        		n.routing.call();
+	        		that.#app.routing.call();
 	        	})
 				.catch(function(err) {
-	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
-	        		n.routing.call(delId);
+	        		that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+	        		that.#app.routing.call(delId);
 	        	});
 	        }),
 	        
@@ -187,7 +191,7 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	n.routing.callHashtags(editor.getCurrentId());
+	        	that.#app.routing.callHashtags(editor.getCurrentId());
 	        }),
 
 	        // Labels
@@ -199,7 +203,7 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	n.routing.callLabelDefinitions(editor.getCurrentId());
+	        	that.#app.routing.callLabelDefinitions(editor.getCurrentId());
 	        }),
 
 			// Create Reference
@@ -210,17 +214,17 @@ class PageMenu {
 				
 				var id = editor.getCurrentId();
 				
-				ReferenceActions.getInstance().createReference(id)
+				that.#app.actions.reference.createReference(id)
 				.then(function(data) {
 	        		if (data.message) {
-	        			n.showAlert(data.message, "S", data.messageThreadId);
+	        			that.#app.showAlert(data.message, "S", data.messageThreadId);
 	        		}
 					if (data.newIds && (data.newIds.length > 0)) {
-						NoteTree.getInstance().focus(data.newIds[0]);
+						that.#app.nav.focus(data.newIds[0]);
 					}	        		
 	        	})
 				.catch(function(err) {
-	        		n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+	        		that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 	        	});
 			}),
 	        
@@ -230,7 +234,7 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				n.routing.call('refs/' + editor.getCurrentId());
+				that.#app.routing.call('refs/' + editor.getCurrentId());
 			}),
 	        
 	        // History
@@ -239,7 +243,7 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	editor.hideOptions();
 	        	
-	        	n.routing.call("history/" + editor.getCurrentId());
+	        	that.#app.routing.call("history/" + editor.getCurrentId());
 	        }),
 	        
 			// Download
@@ -250,7 +254,7 @@ class PageMenu {
 				
 				Document.downloadDocumentDialog(editor.getCurrentId())
 				.catch(function(err) {
-					n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
 			}),
 			
@@ -260,10 +264,7 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				NoteTree.getInstance().highlightDocument(editor.getCurrentId(), !Device.getInstance().isLayoutMobile());
-				
-				//NoteTree.getInstance().focus(editor.getCurrentId());				
-				//n.routing.call(editor.getCurrentId());
+				that.#app.nav.highlightDocument(editor.getCurrentId(), !that.#app.device.isLayoutMobile());
 			}),
 			
 			$('<div class="userbuttonLine"></div>'),
@@ -274,7 +275,7 @@ class PageMenu {
 				event.stopPropagation();
 				editor.hideOptions();	
 				
-				n.routing.callRawView(editor.getCurrentId());
+				that.#app.routing.callRawView(editor.getCurrentId());
 			}),
 			
 			!openedDoc ? null : $('<div class="userbuttonLine"></div>'),

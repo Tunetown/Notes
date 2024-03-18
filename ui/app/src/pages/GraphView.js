@@ -49,7 +49,7 @@ class GraphView {
 			canvas
 		);*/
 
-		this.graph = new Graph('graphContainer', infoElement);
+		this.graph = new Graph(this.#app, 'graphContainer', infoElement);
 
 		this.initGraph();
 		

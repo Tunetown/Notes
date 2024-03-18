@@ -18,12 +18,12 @@
  */
 class TrashActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!TrashActions.instance) TrashActions.instance = new TrashActions();
-		return TrashActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
@@ -31,16 +31,15 @@ class TrashActions {
 	 */
 	showTrash() {
 		var db;
-		return Database.getInstance().get()
+		var that = this;
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
-			return db.query(Views.getInstance().getViewDocId() + '/deleted', {
+			return db.query(that.#app.views.getViewDocId() + '/deleted', {
 				include_docs: true
 			});
 		})
 		.then(function (data) {
-			var t = Trash.getInstance();
-			
 			if (!data.rows) {
 				return Promise.resolve({
 					ok: true,
@@ -49,7 +48,7 @@ class TrashActions {
 				});
 			}
 			
-			t.load(data.rows);
+			that.#app.loadPage(new TrashPage(data.rows));
 			
 			return Promise.resolve({
 				ok: true

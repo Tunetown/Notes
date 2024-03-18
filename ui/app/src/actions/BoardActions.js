@@ -18,12 +18,16 @@
  */
 class BoardActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!BoardActions.instance) BoardActions.instance = new BoardActions();
-		return BoardActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	#imageDialog = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
+		
+		this.#imageDialog = new ImageDialog(this.#app);
 	}
 	
 	/**
@@ -35,24 +39,23 @@ class BoardActions {
 			messageThreadId: 'SaveBoardStateMessages' 
 		});
 			
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveBoardStateMessages' 
 		});
 
-		return DocumentAccess.getInstance().loadDocuments([doc])
+		var that = this;
+		return this.#app.#documentAccess.loadDocuments([doc])
 		.then(function(/*resp*/) {
 			doc.boardState = state;
 			
-			return DocumentAccess.getInstance().saveItem(id);
+			return that.#documentAccess.saveItem(id);
 		})
 		.then(function(dataResp) {
 			if (!dataResp.abort) {
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('saveBoardState', doc);
+				that.#app.callbacks.executeCallbacks('saveBoardState', doc);
 				
 				console.log("Successfully saved state of " + doc.name);
 				
@@ -76,13 +79,13 @@ class BoardActions {
 			messageThreadId: 'GetBoardBackgroundMessages'
 		});
 		
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' does not exist',
 			messageThreadId: 'GetBoardBackgroundMessages'
 		});
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.getAttachment(id, 'board_background');
 		})
@@ -110,9 +113,7 @@ class BoardActions {
 			messageThreadId: 'SaveBoardBgImageMessages' 
 		});
 		
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveBoardBgImageMessages' 
@@ -121,9 +122,9 @@ class BoardActions {
 		var that = this;
 		return this.getBoardBackground(doc._id)
 		.then(function(imageData) {
-			doc = Notes.getInstance().getData().getById(doc._id);  // Reload doc 
+			doc = that.#app.getData().getById(doc._id);  // Reload doc 
 			
-			return ImageDialog.getInstance().askForImage(
+			return that.#imageDialog.askForImage(
 				doc,
 				doc.name,
 				imageData,
@@ -139,7 +140,7 @@ class BoardActions {
 				return Promise.reject(err);
 			} 
 			
-			return ImageDialog.getInstance().askForImage(
+			return that.#imageDialog.askForImage(
 				doc,
 				doc.name,
 				false,
@@ -167,15 +168,14 @@ class BoardActions {
 	 * Saves the passed image data to the passed document as board background.
 	 */
 	saveBoardBackgroundImage(id, imageData) {
-		var n = Notes.getInstance();
-
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveBoardBgImageMessages' 
 		});
 		
-    	return DocumentAccess.getInstance().loadDocuments([doc])
+		var that = this;
+    	return this.#documentAccess.loadDocuments([doc])
     	.then(function(/*resp*/) {
 			var blobData =  new Blob([JSON.stringify(imageData)], {
 			    type: 'application/json'
@@ -195,11 +195,11 @@ class BoardActions {
 			});
 			
 	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return DocumentAccess.getInstance().saveItems([id]);
+	    	return that.#documentAccess.saveItems([id]);
 		})
     	.then(function(/*data*/) {
     		// Execute callbacks
-    		Callbacks.getInstance().executeCallbacks('setBoardBackgroundImage', doc);
+    		that.#app.callbacks.executeCallbacks('setBoardBackgroundImage', doc);
     		
     		return Promise.resolve({ ok: true });
     	});

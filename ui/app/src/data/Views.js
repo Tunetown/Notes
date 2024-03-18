@@ -18,19 +18,17 @@
  */
 class Views {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Views.instance) Views.instance = new Views();
-		return Views.instance;
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
 	}
 	
 	/**
 	 * Returns the ID of the design document where all views are stored. 
 	 */
 	getViewDocId() {
-		return 'views_' + Notes.getInstance().appVersion;
+		return 'views_' + this.#app.appVersion;
 	}
 	
 	/**
@@ -53,7 +51,7 @@ class Views {
 		var docCreated = false;
 		
 		var db;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			
@@ -148,7 +146,8 @@ class Views {
 				promises.push(
 					db.query(designDocId + '/' + viewName, {
 						limit: 0 // don't return any results
-					}).catch(function (err) {
+					})
+					.catch(function (err) {
 						return Promise.reject({
 							message: 'Error building view: ' + err.message,
 							messageThreadId: 'DBUpdateViewsMessages'
@@ -175,7 +174,8 @@ class Views {
 		var that = this;
 		var db;
 		var docs = [];
-		return Database.getInstance().get()
+		
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			
@@ -191,6 +191,7 @@ class Views {
 				if (doc._id == '_design/' + that.getViewDocId()) continue;
 				
 				console.log(' -> Deleting design document ' + doc._id);
+				
 				doc._deleted = true;
 				docs.push(doc);
 			}
@@ -217,7 +218,7 @@ class Views {
 	checkUnusedViews() {
 		var that = this;
 		
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
 			return db.allDocs({
 				startkey: '_',
@@ -266,7 +267,7 @@ class Views {
 			Document.getViewDefinitions()
 		)
 		.then(function(data) {
-			return Database.getInstance().checkConflicts('_design/' + that.getViewDocId())
+			return that.#app.db.checkConflicts('_design/' + that.getViewDocId())
 			.then(function(data2) {
 				var resp = Tools.mergeCheckResponses([data, data2]);
 				resp.numChecked = 1;
@@ -287,7 +288,7 @@ class Views {
 		var errors = [];
 		
 		var db;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
 			

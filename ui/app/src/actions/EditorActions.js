@@ -18,22 +18,21 @@
  */
 class EditorActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!EditorActions.instance) EditorActions.instance = new EditorActions();
-		return EditorActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
 	 * Opens an appropriate editor for the given document.
 	 */
 	requestEditor(doc) {
-		var n = Notes.getInstance();
-		
+		var that = this;
 		if (doc.type == 'reference') {
-			Notes.getInstance().routing.call(doc.ref);
+			this.#app.routing.call(doc.ref);
 				
 			return Promise.resolve({
 				ok: true,
@@ -42,30 +41,30 @@ class EditorActions {
 		} else 
 		if (doc.type == "attachment") {
 			var db;
-			return DocumentAccess.getInstance().loadDocuments([doc])
+			return this.#documentAccess.loadDocuments([doc])
 			.then(function(/*resp*/) {
 				if (doc._conflicts && doc._conflicts.length) {
-					n.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
+					that.#app.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
 				
 				if (doc.deleted) {
-					n.showAlert('This document is deleted.', 'W', "ConflictWarnings");
+					that.#app.showAlert('This document is deleted.', 'W', "ConflictWarnings");
 				}
 				
-				return Database.getInstance().get();
+				return that.#app.db.get();
 			})
 			.then(function(dbRef) {
 				db = dbRef;
-				return AttachmentActions.getInstance().resolveAttachment(db, doc._id, doc); 
+				return that.#app.actions.attachment.resolveAttachment(db, doc._id, doc); 
 			})
 			.then(function(data) {
 				var url = URL.createObjectURL(data);
 				
-				return AttachmentPreview.getInstance().load(doc, url);					
+				return that.#app.loadPage(new AttachmentPreviewPage(doc, url));					
 			})
 			.then(function() {
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('openDocument', doc);
+				that.#app.callbacks.executeCallbacks('openDocument', doc);
 				
 				return Promise.resolve({
 					ok: true
@@ -73,14 +72,14 @@ class EditorActions {
 			});
 
 		} else {
-			return DocumentAccess.getInstance().loadDocuments([doc])
+			return this.#documentAccess.loadDocuments([doc])
 			.then(function(/*resp*/) {
 				if (doc._conflicts && doc._conflicts.length) {
-					n.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
+					that.#app.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
 				}
 				
 				if (doc.deleted) {
-					n.showAlert('This document is deleted.', 'W', "ConflictWarnings");
+					that.#app.showAlert('This document is deleted.', 'W', "ConflictWarnings");
 				}
 				
 				var e = Document.getDocumentEditor(doc);
@@ -88,7 +87,7 @@ class EditorActions {
 			})
 			.then(function() {
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('openDocument', doc);
+				that.#app.callbacks.executeCallbacks('openDocument', doc);
 				
 				return Promise.resolve({
 					ok: true
@@ -106,15 +105,14 @@ class EditorActions {
 			messageThreadId: 'SaveEditorModeMessages' 
 		});
 			
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveEditorModeMessages' 
 		});
 		
-		return DocumentAccess.getInstance().loadDocuments([doc])
+		var that = this;
+		return this.#documentAccess.loadDocuments([doc])
 		.then(function(/*resp*/) {
 			Document.addChangeLogEntry(doc, 'editorModeChanged', {
 				from: doc.editor,
@@ -124,12 +122,12 @@ class EditorActions {
 			doc.editor = editorMode;
 			if (editorParams) doc.editorParams = editorParams;
 			
-			return DocumentAccess.getInstance().saveItem(id);
+			return that.#documentAccess.saveItem(id);
 		})
 		.then(function(dataResp) {
 			if (!dataResp.abort) {
 				// Execute callbacks
-				Callbacks.getInstance().executeCallbacks('saveEditorMode', doc);
+				that.#app.callbacks.executeCallbacks('saveEditorMode', doc);
 				
 				console.log("Successfully saved " + doc.name);
 				

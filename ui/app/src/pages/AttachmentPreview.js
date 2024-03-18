@@ -179,7 +179,7 @@ class AttachmentPreview {
 			);
 			
 			cont.append(
-				PageMenu.get(that, {
+				new PageMenu(that.#app).get(that, {
 					noHistory: true,
 					noCopy: true,
 					noDownload: true

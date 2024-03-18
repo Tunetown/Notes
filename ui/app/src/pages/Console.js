@@ -31,7 +31,7 @@ class Console {
 	 * 
 	 * Adapted from https://stackoverflow.com/questions/19846078/how-to-read-from-chromes-console-in-javascript
 	 */
-	init() {
+	static init() {
 		// Create wrappers to the standard log functions
 		console.stdlog = console.log.bind(console);
 		console.stdinfo = console.info.bind(console);
@@ -48,12 +48,12 @@ class Console {
 						logit(arg[l]);
 					}
 				} else if (typeof(arg) == "object") {
-					Console.getInstance().#log(JSON.stringify(arg, null, 4), type);
+					Console.#log(JSON.stringify(arg, null, 4), type);
 				} else { 
-					Console.getInstance().#log(arg, type);
+					Console.#log(arg, type);
 				}
 			} catch (e) {
-				Console.getInstance().#log(e.stack, 'E');
+				Console.#log(e.stack, 'E');
 			}
 		}
 	
@@ -99,7 +99,7 @@ class Console {
 		var cs = ClientState.getInstance().getConsoleSettings();
 		if (cs.log) {
 			for (var l in cs.log) {
-				this.#log(
+				Console.#log(
 					cs.log[l].msg,
 					cs.log[l].type,
 					true	
@@ -107,20 +107,20 @@ class Console {
 			}
 		}
 
-		this.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');		
+		Console.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');		
 	}
 	
 	/**
 	 * Clear console with optional intro text
 	 */
-	clear() {
-		$('#console').empty();
+	static clear() {
+		$('#console').empty();  // TODO
 		
 		var cs = ClientState.getInstance().getConsoleSettings();
 		if (cs.log) cs.log = [];
 		ClientState.getInstance().saveConsoleSettings(cs);
 		
-		this.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');
+		Console.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');
 	}
 	
 	/**
@@ -165,7 +165,7 @@ class Console {
 	/**
 	 * Logging (internal for all types).
 	 */
-	#log(txt, type, dontPersist) {
+	static #log(txt, type, dontPersist) {
 		if (!txt) return;
 		if (!type) type = "I";
 		
@@ -175,10 +175,10 @@ class Console {
 		var stack = '';
 		switch(type) {
 			case 'E':
-				stack = this.#getStack();
+				stack = Console.#getStack();
 				break; 
 			case 'W':
-				stack = this.#getStack();
+				stack = Console.#getStack();
 				break;
 		}
 		
@@ -224,7 +224,7 @@ class Console {
 	/**
 	 * Returns call stack with this file removed
 	 */
-	#getStack() {
+	static #getStack() {
 		var err = new Error().stack.split(/\r?\n/);
 		
 		var ret = '';

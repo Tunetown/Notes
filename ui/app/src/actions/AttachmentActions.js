@@ -18,12 +18,12 @@
  */
 class AttachmentActions {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!AttachmentActions.instance) AttachmentActions.instance = new AttachmentActions();
-		return AttachmentActions.instance;
+	#app = null;
+	#documentAccess = null;
+	
+	constructor(app, documentAccess) {
+		this.#app = app;
+		this.#documentAccess = documentAccess;
 	}
 	
 	/**
@@ -61,7 +61,7 @@ class AttachmentActions {
 			});
 		}
 		
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) {
 			return Promise.reject({
 				message: 'Item ' + id + ' does not exist',
@@ -76,9 +76,9 @@ class AttachmentActions {
 		}
 		
 		var that = this;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(db) {
-			return AttachmentActions.getInstance().resolveAttachment(db, id, doc);
+			return that.resolveAttachment(db, id, doc);
 		})
 		.then(function(data) {
 			var url = URL.createObjectURL(data);
@@ -102,9 +102,7 @@ class AttachmentActions {
 	 * Adds the passed files array as attachment children to the passed document.
 	 */
 	uploadAttachments(id, files) {
-		var n = Notes.getInstance();
-		
-		var maxMB = parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
+		var maxMB = parseFloat(this.#app.settings.settings.maxUploadSizeMB);
 		for(var f in files) {
 			var file = files[f];
 			if (maxMB && (file.size > (maxMB * 1024 * 1024))) {
@@ -115,7 +113,7 @@ class AttachmentActions {
 			}
 		}
 		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc && id.length) return Promise.reject({
 			message: 'Document ' + id + ' does not exist',
 			messageThreadId: 'UpdateAttMessages'
@@ -131,15 +129,16 @@ class AttachmentActions {
 		var targetId = id;
 		
 		var db;
+		var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#dropFilesText').html('Add ' + files.length + ' files?');
 			
 			var existingRefs = [];
-			n.getData().each(function(doc) {
+			that.#app.getData().each(function(doc) {
 				if (doc.type == 'reference') existingRefs.push(doc._id);
 			});
 			
-			var targetSelector = n.getMoveTargetSelector(existingRefs);
+			var targetSelector = that.#app.getMoveTargetSelector(existingRefs);
 			targetSelector.css('width', '100%');
 			targetSelector.val(id);
 			
@@ -174,9 +173,9 @@ class AttachmentActions {
 
 				targetId = targetSelector.val();
 				if (targetId != id) {
-					doc = n.getData().getById(targetId);
+					doc = that.#app.getData().getById(targetId);
 					if (!doc && targetId.length) {
-						n.showAlert('Document ' + targetId + ' not found', 'E', 'UplAttMessages');
+						that.#app.showAlert('Document ' + targetId + ' not found', 'E', 'UplAttMessages');
 						return;
 					}
 				}
@@ -186,7 +185,7 @@ class AttachmentActions {
 					var strippedName = Document.stripAttachmentName(file.name);
 					
 				    var data = {
-						_id: n.getData().generateIdFrom(file.name),
+						_id: that.#app.getData().generateIdFrom(file.name),
 						type: "attachment",
 						name: file.name,
 						parent: targetId,
@@ -222,7 +221,7 @@ class AttachmentActions {
 			if (!data.ok) {
 				return Promise.reject(data);
 			}
-			return Database.getInstance().get();
+			return that.#app.db.get();
 		})
 		.then(function(dbRef) {
 			db = dbRef;
@@ -252,13 +251,13 @@ class AttachmentActions {
 				var docc = data.rows[d].doc;
 				
 				// Update data model
-				n.getData().add(docc);
+				that.#app.getData().add(docc);
 			}
 			
-			n.routing.call(targetId);
+			that.#app.routing.call(targetId);
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('create', newIds);
+			that.#app.callbacks.executeCallbacks('create', newIds);
 			
 			return Promise.resolve({
 				ok: true,
@@ -273,9 +272,7 @@ class AttachmentActions {
 	 * Replaces the passed doc (must be an attachment) from a file
 	 */
 	updateAttachmentFromFile(id) {
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' does not exist',
 			messageThreadId: 'UpdateAttUrlMessages'
@@ -287,6 +284,7 @@ class AttachmentActions {
 		});
 
 		var file;
+		var that = this;
 		return new Promise(function(resolve, reject) {
 			$('#uploadFile').val('');
 
@@ -321,13 +319,13 @@ class AttachmentActions {
 	    		file = $('#uploadFile')[0].files[0];
 	    		
 	    		if (!file) {
-	    			n.showAlert('Please select a file to upload.', 'E', 'UplAttMessages');
+	    			that.#app.showAlert('Please select a file to upload.', 'E', 'UplAttMessages');
 					return;
 			    }
 
-	    		var maxMB = parseFloat(Settings.getInstance().settings.maxUploadSizeMB);
+	    		var maxMB = parseFloat(that.#app.settings.settings.maxUploadSizeMB);
 	    		if (maxMB && (file.size > (maxMB * 1024 * 1024))) {
-	    			n.showAlert('The file is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.', 'E', 'UpdateAttUrlMessages');
+	    			that.#app.showAlert('The file is too large: ' + Tools.convertFilesize(file.size) + '. You can change this in the settings.', 'E', 'UpdateAttUrlMessages');
 					return;
 	    		}
 		    		
@@ -344,7 +342,7 @@ class AttachmentActions {
 			if (!data.ok) {
 				return Promise.reject(data);
 			}
-			return DocumentAccess.getInstance().loadDocuments([doc]);
+			return that.#documentAccess.loadDocuments([doc]);
 		})
 		.then(function(/*data*/) {
 			var strippedName = Document.stripAttachmentName(file.name);
@@ -361,7 +359,7 @@ class AttachmentActions {
 		    
 			Document.updateMeta(doc);
 			
-		    return DocumentAccess.getInstance().saveItem(doc._id);
+		    return that.#documentAccess.saveItem(doc._id);
 		})
 		.then(function (data) {
 			if (!data.ok) {
@@ -374,7 +372,7 @@ class AttachmentActions {
 			console.log("Successfully updated " + doc.name);
 			
 			// Execute callbacks
-			Callbacks.getInstance().executeCallbacks('updateAttachment', doc);
+			that.#app.callbacks.executeCallbacks('updateAttachment', doc);
 			
 			return Promise.resolve({
 				ok: true,

@@ -19,7 +19,11 @@
  */
 class ClientState {
 
-	constructor() {
+	#app = null;
+
+	constructor(app) {
+		this.#app = app;
+		
 		/**
 		 * Internal IDs for different cookies
 		 */
@@ -41,14 +45,6 @@ class ClientState {
 		this.cidLocalSettings = "se";
 		this.cidUndoHistory = "ud";
 		this.cidTrustedDeviceCredentials = "dc";
-	}
-	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!ClientState.instance) ClientState.instance = new ClientState();
-		return ClientState.instance;
 	}
 	
 	/**
@@ -506,12 +502,9 @@ class ClientState {
 	 * Saves the current tree state in a browser cookie.
 	 */
 	saveTreeState() {
-		//var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-		
 		var state = this.getLocal(this.getTreeStateCid());
 		
-		t.behaviour.saveState(state);
+		this.#app.nav.behaviour.saveState(state);
 		
 		this.setLocal(this.getTreeStateCid(), state);
 	}
@@ -527,17 +520,14 @@ class ClientState {
 	 * Loads a saved state from the cookie, and applies it to the tree.
 	 */
 	restoreTreeState() {
-		var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-		
 		var state = this.getTreeState();
 	
 		// Behaviour specific fields
-		t.behaviour.restoreState(state);
+		this.#app.nav.behaviour.restoreState(state);
 
 		// Tree width
-		if (!Device.getInstance().isLayoutMobile()) {
-			t.setContainerWidth(state.treeWidth);				
+		if (!this.#app.device.isLayoutMobile()) {
+			this.#app.nav.setContainerWidth(state.treeWidth);				
 		}		
 	}
 	
@@ -565,12 +555,11 @@ class ClientState {
 	 * Resets the focussing ID of the current tree state.
 	 */
 	resetTreeFocusId() {
-		var t = NoteTree.getInstance();
-		if (!t.behaviour) return;
+		if (!this.#app.nav.behaviour) return;
 		
 		var state = this.getLocal(this.getTreeStateCid());
 		
-		t.behaviour.resetFocus(state);
+		this.#app.nav.behaviour.resetFocus(state);
 		
 		this.setLocal(this.getTreeStateCid(), state);
 	}
@@ -632,7 +621,7 @@ class ClientState {
 		if (generic) {
 			return 'notes_' + cid;
 		} else {
-			var uid = Database.getInstance().determineLocalDbName();
+			var uid = this.#app.db.determineLocalDbName();
 			return uid + '_' + cid;
 		}
 	}

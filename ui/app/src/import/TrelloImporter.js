@@ -18,6 +18,12 @@
  */
 class TrelloImporter {
 	
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
+	}
+	
 	/**
 	 * Initialize the importer (add options etc)
 	 */
@@ -85,7 +91,7 @@ class TrelloImporter {
 			});
 		}
 		
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
 		// Parse data
 		var data = JSON.parse(jsonString);
@@ -238,7 +244,7 @@ class TrelloImporter {
 			});
 		}
 		
-		return NotesImporter.importDocuments(docs)
+		return NotesImporter.importDocuments(this.#app, docs)
 		.then(function(data) {
 			if (!data.ok) {
 				console.log('Error in Trello import: ' + data.message, 'E');
@@ -278,6 +284,7 @@ class TrelloImporter {
 		var doc = null;
 		var size = 0;
 		
+		var that = this;
 		await fetch(url, {
 			mode: 'no-cors'
 		})
@@ -297,7 +304,7 @@ class TrelloImporter {
 			var name = resp.name ? resp.name : fileName;
 			var strippedName = Document.stripAttachmentName(fileName);
 			doc = {
-				_id: Notes.getInstance().getData().generateIdFrom(name),
+				_id: that.#app.getData().generateIdFrom(name),
 				type: "attachment",
 				name: name,
 				parent: parentId,
