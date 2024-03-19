@@ -31,7 +31,7 @@ class PageMenu {
 		if (!options) options = {};
 		
 		if (this.#app.device.isLayoutMobile()) options.noOpenInNavigation = true;
-		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;
+		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;   TODO TODO // typ abfragen (instanceof Editor)
 		
 		var openedDoc = this.#app.device.getData().getById(editor.getCurrentId());
 		if (!openedDoc || (openedDoc.type != 'note') || ((openedDoc.editor != 'richtext') && (openedDoc.editor != 'code'))) options.noTags = true;
@@ -93,7 +93,7 @@ class PageMenu {
 				
 				try {
 					navigator.share({
-						title: editor.current.name,
+						title: editor.getCurrentId(),  // TODO name instead ID
 						url: location.href
 					});
   

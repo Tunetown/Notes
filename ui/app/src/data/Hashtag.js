@@ -29,7 +29,17 @@ class Hashtag {
 	static startingPreChars = ' 	\n\r>&' + String.fromCharCode(160);                         ///< Characters allowed before the hashtag 
 	static terminationChars = ' 	\n\r<&' + String.fromCharCode(160);                         ///< Characters allowed after the hashtag
 	 
-
+	/**
+	 * Extracts the tag name from a JQuery element's text content.
+	 */
+	static extractTagFromElement(el) {
+		var tag = el.text();
+		if (tag.substring(0, Hashtag.startChar.length) != Hashtag.startChar) return false;
+		if (!tag) return false;
+		
+		return tag.substring(Hashtag.startChar.length).trim();
+	}
+	
 	/**
 	 * Parses the passed string and returns an array of metadata about all 
 	 * hashtags contained (may contain duplicates!).
@@ -159,7 +169,7 @@ class Hashtag {
 		function randomColor() {
 			const col = Hashtag.#getColorProposal(tag);
 			
-			HashTag.app.actions.hashtag.setColor(tag, col);
+			Hashtag.app.actions.hashtag.setColor(tag, col);
 			
 			return col;
 		}

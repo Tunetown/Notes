@@ -86,7 +86,7 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/css/ReferenceBehaviour.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/Misc.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/Board.css', tag: 'link', type: 'stylesheet' },
-    { src: './ui/app/css/Editor.css', tag: 'link', type: 'stylesheet' },
+    { src: './ui/app/css/RichtextEditor.css', tag: 'link', type: 'stylesheet' },
     
 	/**
 	 * Library JS
@@ -180,7 +180,11 @@ const APP_SOURCE_DEFINITIONS = [
     
     { src: './ui/app/src/settings/SettingsContent.js', tag: 'script', type: 'text/javascript' },
     
-    { src: './ui/app/src/pages/editors/Editor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/pages/base/Page.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/pages/base/Editor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/pages/base/RestorableEditor.js', tag: 'script', type: 'text/javascript' },
+
+    { src: './ui/app/src/pages/editors/RichtextEditor.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/editors/Board.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/editors/Code.js', tag: 'script', type: 'text/javascript' },
     
@@ -224,6 +228,7 @@ const APP_SOURCE_DEFINITIONS = [
 
     { src: './ui/app/src/Config.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/Routing.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/Tab.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/Notes.js', tag: 'script', type: 'text/javascript' },
 
 ];

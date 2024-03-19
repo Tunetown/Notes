@@ -18,9 +18,10 @@
  */
 class DetailBehaviour {
 	
-	TODO getInstance, refMode always true
+	#app = null;
 	
-	constructor(grid, refMode) {
+	constructor(app, grid, refMode) {
+		this.#app = app;
 		this.grid = grid;             // NoteTree instance
 		
 		this.selectedParent = "";
@@ -40,7 +41,7 @@ class DetailBehaviour {
 		
 		this.showGroupSeparators = true;
 		
-		this.scroll = new ScrollState(this.grid.treeContainerId, 'detail');
+		this.scroll = new ScrollState(this.#app, this.grid.treeContainerId, 'detail');
 		
 		this.sortButtonsWidth = 120;
 		
@@ -126,14 +127,14 @@ class DetailBehaviour {
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	backButtonPushed(event) {
-		Notes.getInstance().back();  
+		this.#app.back();  
 	}
 	
 	/**
 	 * Called when the back button of the tree has been pushed, if visible.
 	 */
 	forwardButtonPushed(event) {
-		Notes.getInstance().forward();  // TODO also put to the other behaviours!
+		this.#app.forward();  // TODO also put to the other behaviours!
 	}
 	
 	/**
@@ -165,7 +166,7 @@ class DetailBehaviour {
 	 * Called after the back button in the app header has been pushed.
 	 */
 	appBackButtonPushed() {
-		if (Device.getInstance().isLayoutMobile()) return;
+		if (this.#app.device.isLayoutMobile()) return;
 		
 		if (this.history.canBack()) {
 			var h = this.history.back();
@@ -177,7 +178,7 @@ class DetailBehaviour {
 				this.grid.setSearchText(h.token, true);
 			}
 			/*if (h.type == 'page') {
-				ClientState.getInstance().setLastOpenedUrl();
+				this.#app.state.setLastOpenedUrl();
 				location.href = h.url;
 			}*/
 		} else {
@@ -190,7 +191,7 @@ class DetailBehaviour {
 	 * Called after the forward button in the app header has been pushed.
 	 */
 	appForwardButtonPushed() {
-		if (Device.getInstance().isLayoutMobile()) return;
+		if (this.#app.device.isLayoutMobile()) return;
 		
 		if (this.history.canForward()) {
 			var h = this.history.forward();
@@ -290,7 +291,7 @@ class DetailBehaviour {
 	 * Called after an item has been requested.
 	 */
 	afterRequest(id) {
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) return;
 		
 		this.updateItemMeta(doc);
@@ -409,7 +410,7 @@ class DetailBehaviour {
 	toggleSelectMode() {
 		this.multiSelect = !this.multiSelect;
 		
-		Notes.getInstance().hideOptions();
+		this.#app.hideOptions();
 		
 		if (!this.multiSelect) {
 			this.deselectAll();
@@ -446,7 +447,7 @@ class DetailBehaviour {
 			if (!id) return;
 			if (id == that.selectedParent) return;
 			
-			var selectedDoc = Notes.getInstance().getData().getById(that.selectedParent);
+			var selectedDoc = that.#app.getData().getById(that.selectedParent);
 			if (selectedDoc && (id == selectedDoc.parent)) return;
 			
 			ret.push(id);
@@ -507,7 +508,7 @@ class DetailBehaviour {
 		
 		this.updateSortButtons();
 		
-		ClientState.getInstance().saveTreeState();
+		this.#app.state.saveTreeState();
 		
 		this.saveScrollPosition();
 		this.grid.filter();
@@ -533,7 +534,7 @@ class DetailBehaviour {
 
 		this.updateSortButtons();
 		
-		ClientState.getInstance().saveTreeState();
+		this.#app.state.saveTreeState();
 
 		this.saveScrollPosition();
 		this.grid.filter();
@@ -615,11 +616,11 @@ class DetailBehaviour {
 	/**
 	 * Item height (local setting).
 	 */
-	static getItemHeight() {
-		var g = ClientState.getInstance().getLocalSettings();
+	static getItemHeight(app) {
+		var g = app.state.getLocalSettings();
 
 		if (g) {
-			if (Device.getInstance().isLayoutMobile()) {
+			if (app.device.isLayoutMobile()) {
 				if (g.detailItemHeightMobile) {
 					return parseFloat(g.detailItemHeightMobile);
 				}
@@ -631,7 +632,7 @@ class DetailBehaviour {
 		}
 		
 		// Default
-		return Math.round(NoteTree.getInstance().getTreeTextSize() * 4.4);
+		return Math.round(app.nav.getTreeTextSize() * 4.4);
 	}
 
 	/**
@@ -646,7 +647,7 @@ class DetailBehaviour {
 		
 		this.itemHeight = DetailBehaviour.getItemHeight();
 
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		if (!d) return;
 		var selDoc = d.getById(this.selectedParent);
 		if (!selDoc) this.selectedParent = ''; 
@@ -656,7 +657,7 @@ class DetailBehaviour {
 	 * Compare function to be used for sorting
 	 */
 	compareDocuments(docA, docB) {
-		var that = NoteTree.getInstance().behaviour;
+		var that = this.#app.nav.behaviour;
 		if (!that) return 0;
 		
 		const docAmeta = that.getItemRefTypeDescriptor(docA);
@@ -770,7 +771,7 @@ class DetailBehaviour {
 		// Select last opened
 		if (that.lastSelectedParent && 
 		    (that.lastSelectedParent != selectedDoc.parent) && 
-		    ClientState.getInstance().getViewSettings().detailHighlightLastSelected) {
+		    this.#app.state.getViewSettings().detailHighlightLastSelected) {
 				
 			that.grid.setSelected(that.lastSelectedParent);				
 		}
@@ -785,7 +786,7 @@ class DetailBehaviour {
 	 * Get sort weight for sorting the items. Should return a numeric value in range [-1..1].
 	 */
 	getSortComparisonValue(docA, docB, docAmeta, docBmeta) {
-		const d = Notes.getInstance().getData();
+		const d = this.#app.getData();
 		
 		// Parent of the selected item always first (only applies to ref mode, else it is irrelevant because the parent is never shown)
 		if (docAmeta.isParentOfSelectedParent) return -1;
@@ -867,9 +868,8 @@ class DetailBehaviour {
 	 * Determines meta info relevant for categorizing the document's item (most relevant in ref mode only)
 	 */
 	getItemRefTypeDescriptor(doc) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var selectedDoc = d.getById(this.selectedParent);
-		var d = Notes.getInstance().getData();
 		
 		// Hierarchical mode
 		if (this.mode != 'ref') return {
@@ -903,7 +903,7 @@ class DetailBehaviour {
 	
 	getById(id) {
 		if ((id == '') && (this.mode == 'ref')) return this.rootDocument;
-		return Notes.getInstance().getData().getById(id);
+		return this.#app.getData().getById(id);
 	}
 	
 	/**
@@ -1034,7 +1034,7 @@ class DetailBehaviour {
 	 * Update preview / metadata of the item to the document
 	 */
 	updateItemMeta(doc, itemContent) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
 		// Generate meta data text
 		var numChildren = (this.mode == 'ref') ? this.getRefEntries(doc, true).length : d.getChildren(doc._id).length;
@@ -1086,8 +1086,7 @@ class DetailBehaviour {
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
 	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
-		const n = Notes.getInstance();
-		const data = n.getData();
+		const data = this.#app.getData();
 		
 		const selectedDoc = data.getById(this.selectedParent);
 		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
@@ -1363,14 +1362,14 @@ class DetailBehaviour {
 		if (searchText) {
 			const meta = this.getItemRefTypeDescriptor(doc);
 			
-			return Notes.getInstance().getData().evaluateSearch(doc, searchText, show && !meta.isParentOfSelectedParent);
+			return this.#app.getData().evaluateSearch(doc, searchText, show && !meta.isParentOfSelectedParent);
 		} else {
 			return show;
 		}
 	}
 	
 	#doShowItem(doc) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var selectedDoc = d.getById(this.selectedParent);
 		
 		if (this.selectedParent == doc._id) return true;
@@ -1422,13 +1421,13 @@ class DetailBehaviour {
 	 * Returns what is regarded as backlink here
 	 */
 	getBacklinks(doc) {
-		return Notes.getInstance().getData().getBacklinks(doc)
+		return this.#app.getData().getBacklinks(doc)
 	}
 	
 	/**
 	 */
 	hasBackLinkTo(doc, targetId) {
-		return Notes.getInstance().getData().hasBackLinkTo(doc, targetId);
+		return this.#app.getData().hasBackLinkTo(doc, targetId);
 	}
 	
 	/**
@@ -1453,7 +1452,7 @@ class DetailBehaviour {
 	canBeMoved(id) {
 		if (!id) return false;
 		
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) throw new Error('Cannot find document ' + id);
 		
 		return (doc.parent == this.selectedParent);
@@ -1463,7 +1462,7 @@ class DetailBehaviour {
 	 * Returns all documents which are visible in ref mode.
 	 */
 	getRefEntries(doc, ignoreParent, options) {
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		
 		if (!options) options = this;
 		
@@ -1555,7 +1554,7 @@ class DetailBehaviour {
 			return true;
 		}
 		
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 
 		if (this.enableChildren || (this.mode != 'ref')) {
 			if (d.hasChildren(doc._id)) {
@@ -1693,7 +1692,7 @@ class DetailBehaviour {
 		if (this.mode == 'ref') {
 			this.selectParent(id, fromLinkage);
 		} else {
-			var doc = Notes.getInstance().getData().getById(id);
+			var doc = this.#app.getData().getById(id);
 			this.selectParent(doc ? doc.parent : "", fromLinkage);
 		}
 	}
@@ -1720,7 +1719,7 @@ class DetailBehaviour {
 
 		if (tarId == this.selectedParent) return false;
 		
-		return !Notes.getInstance().getData().isChildOf(tarId, srcId);
+		return !this.#app.getData().isChildOf(tarId, srcId);
 	}
 	
 	/**
@@ -1822,8 +1821,7 @@ class DetailBehaviour {
 	}
 	
 	getDragMarkerClass() {
-		return Device.getInstance().isTouchAware() ? this.getDragHandleClass() : this.getDragHandleMarkerClass();
-		//return Device.getInstance().isTouchAware() ? this.getDragHandleMobileClass() : this.getDragHandleMarkerClass();
+		return this.#app.device.isTouchAware() ? this.getDragHandleClass() : this.getDragHandleMarkerClass();
 	}
 	
 	getDragHandleMobileClass() {
@@ -1934,7 +1932,7 @@ class DetailBehaviour {
 		
 		if (this.mode != 'ref') return [];
 		
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var selectedDoc = d.getById(this.selectedParent);
 		
 		return [
@@ -1953,7 +1951,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableChildren = !!this.getChecked();
-									ClientState.getInstance().saveTreeState();
+									that.#app.state.saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -1979,7 +1977,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableSiblings = !!this.getChecked();
-									ClientState.getInstance().saveTreeState();
+									that.#app.state.saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -2006,7 +2004,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableParents = !!this.getChecked();
-									ClientState.getInstance().saveTreeState();
+									that.#app.state.saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -2030,7 +2028,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableLinks = !!this.getChecked();
-									ClientState.getInstance().saveTreeState();
+									that.#app.state.saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -2056,7 +2054,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableBacklinks = !!this.getChecked();
-									ClientState.getInstance().saveTreeState();
+									that.#app.state.saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -2082,7 +2080,7 @@ class DetailBehaviour {
 								disabled:  false,
 								onChange: function() {
 									that.enableRefs = !!this.getChecked();
-									ClientState.getInstance().saveTreeState();
+									that.#app.state.saveTreeState();
 									that.grid.filter();
 								}
 							});
@@ -2098,7 +2096,7 @@ class DetailBehaviour {
 				$('<td>Highlight last selected item</td>'),
 				$('<td colspan="2" />')
 				.append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getViewSettings().detailHighlightLastSelected ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.getViewSettings().detailHighlightLastSelected ? 'checked' : '') + ' />')
 					.each(function(i) {
 						var that2 = this;
 						setTimeout(function() {
@@ -2109,9 +2107,9 @@ class DetailBehaviour {
 								onChange: function() {
 									const nv = !!this.getChecked();
 									
-									var vs = ClientState.getInstance().getViewSettings(); 
+									var vs = that.#app.state.getViewSettings(); 
 									vs.detailHighlightLastSelected = nv;
-									ClientState.getInstance().saveViewSettings(vs);
+									that.#app.state.saveViewSettings(vs);
 									
 									that.grid.filter();
 								}
@@ -2136,7 +2134,7 @@ class DetailBehaviour {
 	 * Returns all related documents (children etc.) for the passed document.
 	 */
 	getRelatedDocuments(id, options) {
-		var doc = Notes.getInstance().getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		var children = (this.mode == 'ref') ? this.getRefEntries(doc, true, options) : d.getChildren(id);
@@ -2144,61 +2142,6 @@ class DetailBehaviour {
 		children.sort(this.compareDocuments);
 		
 		return children;
-	}
-	
-	/**
-	 * Info about the neighbors of ID. 
-	 *
-	getNeighborsFor(id, parentId) {
-		var n = Notes.getInstance();
-		var d = n.getData();
-		
-		const doc = d.getById(id);
-		if (!doc) throw new Error('Document ' + id + ' not found');
-		
-		const parentDoc = parentId ? d.getById(parentId) : null;
-		
-		var children = (this.mode == 'ref') ? this.getRefEntries(parentDoc, true) : d.getChildren(parentId);
-		children.sort(this.compareDocuments);
-		
-		var ret = {
-			numDocuments: children.length,
-			numDocumentsBefore: 0,
-			numDocumentsAfter: 0,
-			documentBefore: null,
-			documentAfter: null
-		};
-		
-		if (parentId != doc.parent) {
-			// Start from beginning if we have another document
-			ret.documentAfter = children.length ? children[0] : null;
-			ret.numDocumentsAfter = children.length;
-			return ret;
-		}
-		
-		var before = true;
-		for(var c in children) {
-			const child = children[c];
-			
-			if (child._id == id) {
-				before = false;
-				
-				if (c > 0) {
-					ret.documentBefore = children[parseInt(c)-1];
-				}				
-				if (c < children.length - 1) {
-					ret.documentAfter = children[parseInt(c)+1];
-				}				
-			} else {
-				if (before) {
-					ret.numDocumentsBefore++;
-				} else {
-					ret.numDocumentsAfter++;
-				}		
-			}
-		}
-		
-		return ret;
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -2212,7 +2155,7 @@ class DetailBehaviour {
 		
 		// If we go deeper in the tree, we also reset the scroll position.
 		if (id) {
-			var docIn = Notes.getInstance().getData().getById(id);
+			var docIn = this.#app.getData().getById(id);
 			var doc = Document.getTargetDoc(docIn);
 			if (doc && (doc.parent == old)) {
 				this.resetScrollPosition();
@@ -2242,14 +2185,9 @@ class DetailBehaviour {
 			this.grid.setSearchText('');
 		}
 		
-		/*var that = this;
-		setTimeout(function() {
-			that.restoreScrollPosition();
-		}, MuuriGrid.getAnimationDuration() + 10);*/
-		
 		if (!fromLinkage) {
 			// Open in editor when linked
-			if ((!Device.getInstance().isLayoutMobile()) && (ClientState.getInstance().getLinkageMode('editor') == 'on')) {
+			if ((!this.#app.device.isLayoutMobile()) && (this.#app.state.getLinkageMode('editor') == 'on')) {
 				var currentId = this.grid.getCurrentlyShownId();
 				if (id && (currentId != id)) {
 					this.grid.openNodeByNavigation(id);
@@ -2348,7 +2286,7 @@ class DetailBehaviour {
 			idsUsed.push(ids[i]);
 		}
 		if (!idsUsed.length) {
-			Notes.getInstance().hideOptions();
+			this.#app.hideOptions();
 			return;
 		}
 				
@@ -2378,9 +2316,9 @@ class DetailBehaviour {
 			return;
 		}
 		
-		if (Notes.getInstance().hideOptions()) return;
+		if (this.#app.hideOptions()) return;
 
-		var doc = Notes.getInstance().getData().getById(data.id);
+		var doc = this.#app.getData().getById(data.id);
 		if (!doc) {
 			if (this.mode == 'ref') {
 				this.selectParentFromEvent('');
@@ -2399,7 +2337,7 @@ class DetailBehaviour {
 			}
 		} else {
 			if (this.mode == 'ref') {
-				var selectedDoc = Notes.getInstance().getData().getById(this.selectedParent);
+				var selectedDoc = this.#app.getData().getById(this.selectedParent);
 				if (selectedDoc && selectedDoc.parent && (selectedDoc.parent == data.id)) {
 					// Parent if selected: do not open, navigate back.
 					this.selectParentFromEvent(data.id);
@@ -2428,9 +2366,9 @@ class DetailBehaviour {
 			return;
 		}
 
-		if (Notes.getInstance().hideOptions()) return;
+		if (this.#app.hideOptions()) return;
 
-		var doc = Notes.getInstance().getData().getById(data.id);
+		var doc = this.#app.getData().getById(data.id);
 		if (!doc) {
 			if (this.mode == 'ref') {
 				this.selectParentFromEvent('');
@@ -2457,8 +2395,8 @@ class DetailBehaviour {
 	}
 	
 	selectParentFromEvent(id, fromLinkage, noHistoryAdd) {
-		if (Device.getInstance().isLayoutMobile()) {
-			Notes.getInstance().routing.callProfileRootWithSelectedId(id);
+		if (this.#app.device.isLayoutMobile()) {
+			this.#app.routing.callProfileRootWithSelectedId(id);
 		} else {
 			this.selectParent(id, fromLinkage, noHistoryAdd);
 		}

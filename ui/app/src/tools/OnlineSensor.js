@@ -18,6 +18,12 @@
  */
 class OnlineSensor {
 	
+	#app = null;
+	
+	constructor(app) {
+		this.#app = app;
+	}
+	
 	/**
 	 * Starts a timer that periodically checks if the app is online
 	 */
@@ -54,7 +60,7 @@ class OnlineSensor {
 			
 			// If true AND someone told us that we are probably offline, we have to check the DB again.
 			var that = this;
-			return Database.getInstance().checkRemoteConnection()
+			return this.#app.db.checkRemoteConnection()
 			.then(function(data) {
 				that.checkNextTimeFlag = false;
 				

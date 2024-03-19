@@ -18,9 +18,10 @@
  */
 class MuuriGrid {
 
-TODO getInstance
+	#app = null;
 
-	constructor(el, options) {
+	constructor(app, el, options) {
+		this.#app = app;
 		this.options = options;
     	
 		this.grid = null;
@@ -38,9 +39,9 @@ TODO getInstance
 		this.grid.destroy();
 	}
 	
-	static getAnimationDuration() {
-		var g = ClientState.getInstance().getLocalSettings();
-		const dev = Device.getInstance();
+	static getAnimationDuration(app) {
+		var g = app.state.getLocalSettings();
+		const dev = app.device;
 		
 		if (g) {
 			if (dev.isTouchAware()) {
@@ -73,7 +74,7 @@ TODO getInstance
 			dragHandle: this.options.dragHandle,
 			layoutOnInit: false,
 			layoutOnResize: 0,
-		    layoutDuration: MuuriGrid.getAnimationDuration(),
+		    layoutDuration: MuuriGrid.getAnimationDuration(this.#app),
 			layoutEasing: 'ease',
 			layout: this.options.layoutCallback,
 			 

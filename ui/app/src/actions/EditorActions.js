@@ -31,6 +31,7 @@ class EditorActions {
 	 */
 	requestEditor(doc) {
 		var that = this;
+		
 		if (doc.type == 'reference') {
 			this.#app.routing.call(doc.ref);
 				
@@ -82,8 +83,8 @@ class EditorActions {
 					that.#app.showAlert('This document is deleted.', 'W', "ConflictWarnings");
 				}
 				
-				var e = Document.getDocumentEditor(doc);
-				return e.load(doc);
+				var e = Document.createDocumentEditor(doc);
+				return that.#app.loadPage(e);
 			})
 			.then(function() {
 				// Execute callbacks

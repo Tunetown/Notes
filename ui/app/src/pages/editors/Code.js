@@ -27,13 +27,6 @@ class Code {
 	}
 	
 	/**
-	 * Tells if the editor needs tree data loaded before load() is called.
-	 */
-	needsTreeData() {
-		return false;
-	}
-	
-	/**
 	 * Loads the given data into the editor (which also is initialized here at first time).
 	 */
 	load(doc) {
@@ -204,7 +197,7 @@ class Code {
 	/**
 	 * Creates the language selector.
 	 */
-	getLanguageSelector(selectedLanguage, cssClass) {
+	static getLanguageSelector(selectedLanguage, cssClass) {
 		return $('<select class="' + (cssClass ? cssClass : '') + '"></select>').append([
 			$('<option value="markdown">Language: Markdown</option>').prop('selected', 'markdown' == selectedLanguage),
 			$('<option value="javascript">Language: Javascript</option>').prop('selected', 'javascript' == selectedLanguage),
@@ -246,7 +239,7 @@ class Code {
 			cont.append(
 				// Language mode
 				$('<div class="userbutton"></div>').append(
-					that.getLanguageSelector(that.getEditorLanguage(), 'userbuttonselect')
+					Code.getLanguageSelector(that.getEditorLanguage(), 'userbuttonselect')
 					.on('change', function(event) {
 						event.stopPropagation();
 						that.hideOptions();
@@ -603,7 +596,7 @@ class Code {
 				tags[i].addEventListener("touchstart", that.onTagClick);
 				
 				// Colors
-				const tag = Editor.extractTagFromElement($(tags[i]));
+				const tag = Hashtag.extractTagFromElement($(tags[i]));
 				const tagColor = Hashtag.getColor(tag);
 				if (tag) $(tags[i]).css('background-color', tagColor);
 				if (tag) $(tags[i]).css('color', Tools.getForegroundColor(tagColor));
@@ -625,7 +618,7 @@ class Code {
 		
 		const meta = Linkage.splitLink(link);
 		
-		Editor.callDocument(meta.target);
+		this._callDocument(meta.target);
 	}
 	
 	/**

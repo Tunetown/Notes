@@ -16,15 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Editor {
-	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Editor.instance) Editor.instance = new Editor();
-		return Editor.instance;
-	}
+class RichtextEditor {
 	
 	static linkClass = 'notesTMCELink';       ///< Class for the internal links
 	static tagClass = 'notesTMCETag';         ///< Class for the hashtags
@@ -34,16 +26,9 @@ class Editor {
 	}
 	
 	/**
-	 * Tells if the editor needs tree data loaded before load() is called.
-	 */
-	needsTreeData() {
-		return false;
-	}
-	
-	/**
 	 * Returns the DOM elements for the editor.
 	 */
-	getContainerDom(teaser) {
+	static getContainerDom(teaser) {
 		return $('<div id="editor" class="mainPanel"/>').append( 
 			$('<div id="editorContent"></div>').append(teaser),
 		);
@@ -78,7 +63,7 @@ class Editor {
 	            width: '100%',
 	            resize : false,
 				statusbar: false,
-				content_css: 'ui/app/css/Editor.css',
+				content_css: 'ui/app/css/RichtextEditor.css',
 	            setup: function (editor) {
 	                editor.addShortcut('ctrl+s', 'Save', function () {
 						that.saveNote();
@@ -94,12 +79,8 @@ class Editor {
 	                });
 	                editor.on('click', function(e) {
 						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
-	                	//Notes.getInstance().update();
 	                });
 					editor.on('init', function(e) {
-	                	//if (doFocus) {
-						//	Editor.getInstance().fullscreen();
-						//}
 						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
 	                });
 					editor.on('focus', function(e) {
@@ -759,7 +740,7 @@ class Editor {
 				tags[i].addEventListener("click", that.onTagClick);
 				
 				// Colors
-				const tag = Editor.extractTagFromElement($(tags[i]));
+				const tag = Hashtag.extractTagFromElement($(tags[i]));
 				const tagColor = Hashtag.getColor(tag);
 				if (tag) $(tags[i]).css('background-color', tagColor);
 				if (tag) $(tags[i]).css('color', Tools.getForegroundColor(tagColor));
@@ -797,7 +778,7 @@ class Editor {
 		const ref = $(event.currentTarget).data('ref');
 		if (!ref) return;
 		
-		Editor.callDocument(ref.trim());
+		this._callDocument(ref.trim());
 	}
 	
 	/**
@@ -809,7 +790,7 @@ class Editor {
 		
 		if (!event.currentTarget) return;
 		
-		const tag = Editor.extractTagFromElement($(event.currentTarget)); //.text();
+		const tag = Hashtag.extractTagFromElement($(event.currentTarget)); //.text();
 		if (!tag) return;
 		
 		if (event.ctrlKey || event.metaKey) {
@@ -818,27 +799,6 @@ class Editor {
 		} else {
 			Hashtag.showTag(tag);
 		}
-	}
-	
-	/**
-	 * Extracts the tag name from a JQuery element's text content.
-	 */
-	static extractTagFromElement(el) {
-		var tag = el.text();
-		if (tag.substring(0, Hashtag.startChar.length) != Hashtag.startChar) return false;
-		if (!tag) return false;
-		
-		return tag.substring(Hashtag.startChar.length).trim();
-	}
-	
-	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	/**
-	 * Used by all editors to call in-document linked items.
-	 */
-	static callDocument(id) {
-		NoteTree.getInstance().setSearchText('');
-		Notes.getInstance().routing.call(id);
 	}
 }
 

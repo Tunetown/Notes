@@ -18,14 +18,6 @@
  */
 class Styles {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Styles.instance) Styles.instance = new Styles();
-		return Styles.instance;
-	}
-	
 	constructor() {
 		this.styles = {};
 		this.counter = 0;

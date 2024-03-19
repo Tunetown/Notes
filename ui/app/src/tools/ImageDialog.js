@@ -28,6 +28,8 @@ class ImageDialog {
 	 * Asks the user for an image, and returns a promise which can be used directly for example as backImage object.
 	 */
 	askForImage(doc, displayName, imageData, maxWidth, maxHeight, type, quality, maxBytes) {
+		var that = this;
+		
 		// Preview element
 		$('#setBgImageDialogInputPreview').empty();
 		var preview = $('<img class="setBgImageDialogInputPreviewImg" alt="No Preview available"></img>');	
@@ -53,9 +55,9 @@ class ImageDialog {
 		 * Returns a Promise containing the data string of the referenced attachment document.
 		 */
 		function convertRefToData(idToConvert) {
-			Notes.getInstance().showAlert('Converting to data...', 'I', 'SetItemBgImageMessages');
+			that.#app.showAlert('Converting to data...', 'I', 'SetItemBgImageMessages');
 			
-			return AttachmentActions.getInstance().getAttachmentUrl(idToConvert)
+			return that.#app.actions.attachment.getAttachmentUrl(idToConvert)
 			.then(function(data) {
 				if (data.url) {
 					return Promise.resolve(data);
@@ -126,7 +128,7 @@ class ImageDialog {
 			} else {
 				$('#setBgImageDialogInputSrcInLine2').css('display', 'block');
 
-				AttachmentActions.getInstance().getAttachmentUrl(val)
+				that.#app.actions.attachment.getAttachmentUrl(val)
 				.then(function(data) {
 					updatePreview(data.url, false, false, false, 'Reference (used as is)');
 				})
@@ -184,7 +186,7 @@ class ImageDialog {
 				case 'ref': {
 					name = 'Attachment Document';
 					
-					var selector = Notes.getInstance().getBackgroundImageSelector();
+					var selector = that.#app.getBackgroundImageSelector();
 					selector.css('max-width', '100%');
 					selector.attr('id', 'setBgImageDialogRefIdInput');
 					selector.val(imageData ? (imageData.ref ? imageData.ref : '_cancel') : '_cancel');
@@ -215,14 +217,14 @@ class ImageDialog {
 							})
 							.then(function(dataurl) {
 								$('#setBgImageDialogB64DataInput').val(dataurl);
-								//updatePreview(dataurl);
+								
 								updatePreviewRescaled(dataurl);
 							})
 							.catch(function(err) {
 								if (err && err.message) {
-									Notes.getInstance().showAlert(err.message, "E", err.messageThreadId);
+									that.#app.showAlert(err.message, "E", err.messageThreadId);
 								} else {
-									Notes.getInstance().showAlert("Error converting image", "E", 'SetItemBgImageMessages');
+									that.#app.showAlert("Error converting image", "E", 'SetItemBgImageMessages');
 								}
 							});
 						})
@@ -233,10 +235,10 @@ class ImageDialog {
 						$('#setBgImageDialogInputSrcInLine3').append(
 							$('<input class="checkbox-switch" type="checkbox" id="setBgImageDialogRefSelfInput" />')
 							.each(function(i) {
-								var that = this;
+								var that2 = this;
 								setTimeout(function() {
 									try {
-										new Switch(that, {
+										new Switch(that2, {
 											size: 'small',
 											onSwitchColor: '#337ab7',
 											disabled:  false,
@@ -275,7 +277,6 @@ class ImageDialog {
 							Tools.fileToBase64(files[0])
 							.then(function(b64data) {
 								updatePreviewRescaled(b64data);
-								//updatePreview(b64data);
 							});
 						})
 					);
@@ -365,7 +366,7 @@ class ImageDialog {
 							return;
 						}
 							
-						AttachmentActions.getInstance().getAttachmentUrl(refId)
+						that.#app.actions.attachment.getAttachmentUrl(refId)
 						.then(function(data) {
 							return Tools.getImageSize(data.url);
 						})
@@ -385,7 +386,7 @@ class ImageDialog {
 						var files = $('#setBgImageDialogFileUploadInput')[0].files;
 		    		
 			    		if (!files || !files.length) {
-			    			Notes.getInstance().showAlert('No file selected for upload.', 'E', 'SetItemBgImageMessages');
+			    			that.#app.showAlert('No file selected for upload.', 'E', 'SetItemBgImageMessages');
 							return;
 					    }
 	

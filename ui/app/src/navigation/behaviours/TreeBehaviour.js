@@ -29,7 +29,7 @@ class TreeBehaviour {
 		this.#grid = grid;   // NoteTree instance
 		
 		this.#expander = new ExpandedState(this.#app, this);
-		this.#scroll = new ScrollState(this.#grid.treeContainerId, 'tree');
+		this.#scroll = new ScrollState(this.#app, this.#grid.treeContainerId, 'tree');
 	}
 	
 	/**

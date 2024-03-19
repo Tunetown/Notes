@@ -953,44 +953,26 @@ class Document {
 	}
 	
 	/**
-	 * Returns the Editor instance for the type passed. Must have the following attributes:
-	 * setCurrent(docObj)
-	 * resetDirtyState()
-	 * setDirty()
-	 * getType()
-	 * getCurrentId()
-	 * getContent()
-	 * load(doc)
-	 * unload()
-	 * stopDelayedSave()
-	 * current (doc object)
-	 * hideOptions()
-	 * stopDelayedSave()
-	 * getEditorMode()
+	 * Returns a new Editor instance for the type passed.
 	 * 
-	 * Attachments have no such Editor, they are handled separately, as well as the Version View which 
-	 * is currently just showing raw contents.
-	 * 
+	 * This only applies for editors, not pages.
 	 */
-	static getDocumentEditor(doc) {
-		throw new Error('TODO to be implemented differently');
-		
+	static createDocumentEditor(doc) {
 		if (!doc.type) throw new Error('No document type');
 		if (!Document.isTypeValid(doc.type)) throw new Error('Invalid document type: ' + doc.type);
 		
 		if (doc.type == 'note') {
 			if (doc.editor) {
 				switch(doc.editor) {
-				case 'board': return Board.getInstance();
-				case 'richtext': return Editor.getInstance();
-				case 'code': return Code.getInstance();
+				case 'board': return new Board();
+				case 'richtext': return new RichtextEditor();
+				case 'code': return new Code();
 				}
 			} else {
-				return Editor.getInstance();
+				return new Code();  // formerly RichtextEditor TODO test
 			}
 		}
 		
-		// NOTE: Attachments are handled directly in DocumentActions.request().
 		return null;
 	}
 	
@@ -999,19 +981,21 @@ class Document {
 	 */
 	static canRestore(id) {
 		var doc = Document.app.getData().getById(id);
-		var e = Document.getDocumentEditor(doc);
+		var e = Document.createDocumentEditor(doc);
 		
-		return (typeof e.setVersionRestoreData == 'function');
+		return e instanceof RestorableEditor;
 	}
 	
 	/**
-	 * Sets version restore data if the editor supports it
+	 * Sets version restore data if the editor supports it  
+	 * 
+	 * TODO better concept for this without pre-setting the data
 	 */
 	static setRestoreData(id, content) {
 		var doc = Document.app.getData().getById(id);
-		var e = Document.getDocumentEditor(doc);
+		var e = Document.createDocumentEditor(doc);
 		
-		if (typeof e.setVersionRestoreData != 'function') throw new Error('Editor cannot restore: ' + id);
+		if (!(e instanceof RestorableEditor)) throw new Error('Editor cannot restore: ' + id);
 		
 		e.setVersionRestoreData(content);
 	}

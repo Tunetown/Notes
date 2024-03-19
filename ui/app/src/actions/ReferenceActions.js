@@ -195,7 +195,7 @@ class ReferenceActions {
 			return that.#app.actions.document.deleteItems([referenceDoc._id], true);
 		})
 		.then(function(/*data*/) {
-			if (that.#app.getCurrentlyShownId() == parentDoc._id) {
+			if (that.#app.paging.getCurrentlyShownId() == parentDoc._id) {
 				// Refresh Editor as well
 				that.#app.routing.call(parentDoc._id);
 			}

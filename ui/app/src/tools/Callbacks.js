@@ -19,14 +19,6 @@
 class Callbacks {
 	
 	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Callbacks.instance) Callbacks.instance = new Callbacks();
-		return Callbacks.instance;
-	}
-	
-	/**
 	 * Registers a callback for the given action ID. The callbacks will be called after
 	 * the action has taken place.
 	 * 
@@ -79,6 +71,5 @@ class Callbacks {
 			await Promise.all(promises);
 		}
 	}
-	
 }
 	

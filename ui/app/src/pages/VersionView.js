@@ -52,9 +52,6 @@ class VersionView {
 			);
 		}
 
-		// Clear restore data
-		//Editor.getInstance().setVersionRestoreData(false);
-		
 		// Remember properties
 		this.versionId = id;
 		this.versionName = name;

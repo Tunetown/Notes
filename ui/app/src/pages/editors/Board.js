@@ -29,7 +29,7 @@ class Board {
 	/**
 	 * Tells if the editor needs tree data loaded before load() is called.
 	 */
-	needsTreeData() {
+	needsHierarchyData() {
 		return true;
 	}
 	

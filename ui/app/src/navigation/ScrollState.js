@@ -18,9 +18,10 @@
  */
 class ScrollState {
 	
-	TODO getInstance
+	#app = null;
 	
-	constructor(containerElementId, appId) {
+	constructor(app, containerElementId, appId) {
+		this.#app = app;
 		this.containerElementId = containerElementId;
 		this.appId = appId;
 	}
@@ -34,14 +35,14 @@ class ScrollState {
 			docId = 'all';
 		}
 		
-		var state = ClientState.getInstance().getScrollState();
+		var state = this.#app.state.getScrollState();
 		if (!state.hasOwnProperty(this.appId)) {
 			state[this.appId] = {};
 		}
 
 		state[this.appId][docId] = this.getPosition();
 		
-		ClientState.getInstance().saveScrollState(state);
+		this.#app.state.saveScrollState(state);
 	}
 	
 	/**
@@ -53,7 +54,7 @@ class ScrollState {
 			docId = 'all';
 		}
 		
-		var state = ClientState.getInstance().getScrollState();
+		var state = this.#app.state.getScrollState();
 		
 		if (!state || !state.hasOwnProperty(this.appId)) return;
 		
@@ -61,8 +62,8 @@ class ScrollState {
 		if (!pos) return;
 
 		var c = this.getContainer();
-		/*if (pos.scrollX)*/ c.scrollLeft(pos.scrollX);
-		/*if (pos.scrollY)*/ c.scrollTop(pos.scrollY);
+		c.scrollLeft(pos.scrollX);
+		c.scrollTop(pos.scrollY);
 	}
 	
 	/**

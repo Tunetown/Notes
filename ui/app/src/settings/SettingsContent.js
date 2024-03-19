@@ -18,9 +18,11 @@
  */
 class SettingsContent {
 	
-	TODO getInstance
+	#app = null;
 	
-	constructor() {
+	constructor(app) {
+		this.#app = app;
+		
 		this.nextSectionId = 1;
 	}
 		
@@ -28,7 +30,7 @@ class SettingsContent {
 	 * Returns the table element you can add to your app content container.
 	 */
 	getTable() {
-		var d = Database.getInstance();
+		var d = this.#app.db;
 		
 		var currentProfile = d.profileHandler.getCurrentProfile();
 		const showSyncOptions = currentProfile ? ((currentProfile.clone && currentProfile.autoSync) || currentProfile.url == "local") : true;
@@ -62,7 +64,7 @@ class SettingsContent {
 	 * Has to be called after the DOM is ready (table has been added)
 	 */
 	update() {
-		var d = Database.getInstance();
+		var d = this.#app.db;
 		
 		// Check DB status
 		d.checkRemoteConnection().then(function(data) {
@@ -70,7 +72,7 @@ class SettingsContent {
 			
 			$('#dbAdminLink').empty();
 			$('#dbAdminLink').append(
-				$('<a href="' + Database.getInstance().getAdminLink() + '" target="_blank">Administrate...</a>')
+				$('<a href="' + d.getAdminLink() + '" target="_blank">Administrate...</a>')
 			);
 		}).catch(function(err) {
 			$('#dbcheck').html('Error: ' + err.message);
@@ -95,7 +97,7 @@ class SettingsContent {
 		});
 		
 		// Trust check
-		const trusted = ClientState.getInstance().isDeviceTrusted();
+		const trusted = this.#app.state.isDeviceTrusted();
 		$('#trustCheck').html(trusted ? 'Device is trusted' : '');		
 		if (trusted) {
 			$('#settingsTrustRow').show();
@@ -116,7 +118,6 @@ class SettingsContent {
 			if (!rows[r]) continue;
 			
 			rows[r].data('sectionid', secId);
-			//if (collapsed) rows[r].hide();
 		}
 		
 		var that = this;
@@ -176,8 +177,7 @@ class SettingsContent {
 	 * Setup of all rows needed
 	 */
 	#getContent() {
-		var n = Notes.getInstance();
-		var d = Database.getInstance();
+		var d = this.#app.db;
 		var that = this;
 		
 		// Build list of available remotes
@@ -198,11 +198,11 @@ class SettingsContent {
 					.on('change', function(event) {
 						var url = this.value;
 						
-						Database.getInstance().reset();
+						d.reset();
 	
 						console.log('Switching to notebook at ' + url);
 	
-						Notes.getInstance().routing.call('settings', url);
+						that.#app.routing.call('settings', url);
 					}),
 					$('<br>'),
 					$('<br>'),
@@ -214,7 +214,7 @@ class SettingsContent {
 					$('<a style="cursor: pointer; padding-left: 10px;">Copy</a>')
 					.on('click', function(event) {
 						navigator.clipboard.writeText(d.profileHandler.getCurrentProfile().url);
-						n.showAlert('Copied URL to Clipboard', 'I');
+						that.#app.showAlert('Copied URL to Clipboard', 'I');
 					})
 				)
 			)
@@ -230,9 +230,9 @@ class SettingsContent {
 				$('<td colspan="2"/>').append([
 					$('<button class="btn btn-secondary settings-button" id="loginSettingsButton">Login</button>')
 					.on('click', function() {
-						Database.getInstance().login()
+						d.login()
 						.then(function(data) {
-							Notes.getInstance().routing.call('settings');
+							that.#app.routing.call('settings');
 						});
 					}),
 					
@@ -240,17 +240,17 @@ class SettingsContent {
 					.on('click', function(event) {
 						event.stopPropagation();
 						
-						Database.getInstance().logout()
+						d.logout()
 						.then(function(data) {
 							if (!data.ok) {
-								Notes.getInstance().showAlert(data.message, 'E', data.messageThreadId);
+								that.#app.showAlert(data.message, 'E', data.messageThreadId);
 								return;
 							}
-							Database.getInstance().reset();
-							Notes.getInstance().routing.call('settings');
+							d.reset();
+							that.#app.routing.call('settings');
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
+							that.#app.showAlert(err.message, 'E', err.messageThreadId);
 						});
 					}),
 					
@@ -261,11 +261,11 @@ class SettingsContent {
 						.on('click', function(event) {
 							event.stopPropagation();
 							
-							ClientState.getInstance().setTrustedDeviceCredentials();
+							that.#app.state.setTrustedDeviceCredentials();
 							
-							Notes.getInstance().showAlert("Deleted device credentials.", 'I');
+							that.#app.showAlert("Deleted device credentials.", 'I');
 							
-							Notes.getInstance().routing.call('settings');
+							that.#app.routing.call('settings');
 						}), 
 						
 						$('<span id="trustCheck"/>'),							
@@ -282,20 +282,21 @@ class SettingsContent {
 						var url = prompt('CouchDB Address:', SettingsContent.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
 						if (!url) return;
 						
-						Database.getInstance().reset();
-						Notes.getInstance().routing.call('', url);
+						d.reset();
+						that.#app.routing.call('', url);
 					}),
 					
 					(d.profileHandler.getCurrentProfile().url == "local") ? null : $('<button class="btn btn-secondary settings-button">Close Notebook...</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						
-						if (!confirm('Really close the notebook at ' + Database.getInstance().profileHandler.getCurrentProfile().url + '? This will only delete local data, the remote database is not being touched.')) {
+						if (!confirm('Really close the notebook at ' + d.profileHandler.getCurrentProfile().url + '? This will only delete local data, the remote database is not being touched.')) {
 							return;
 						}
-						Database.getInstance().profileHandler.deleteProfile();
-						Database.getInstance().reset();
-						Notes.getInstance().routing.call('settings');
+						d.profileHandler.deleteProfile();
+						d.reset();
+						
+						that.#app.routing.call('settings');
 					}),
 					
 					!d.profileHandler.getCurrentProfile().clone ? null : $('<br>'),
@@ -307,10 +308,11 @@ class SettingsContent {
 						var url = prompt('URL to replicate to: ');
 						if (!url) return;
 						
-						Notes.getInstance().routing.callConsole();
-						Database.getInstance().replicateLocalTo(url)
+						that.#app.routing.callConsole();
+						
+						d.replicateLocalTo(url)
 						.catch(function(err) {
-							Notes.getInstance().showAlert("Error replicating to " + url);
+							that.#app.showAlert("Error replicating to " + url);
 							
 							console.log("Error replicating to " + url + ":", 'E');
 							console.log(err);
@@ -325,10 +327,10 @@ class SettingsContent {
 						var url = prompt('URL to replicate to: ');
 						if (!url) return;
 						
-						Notes.getInstance().routing.callConsole();
-						Database.getInstance().replicateLocalTo(url)
+						that.#app.routing.callConsole();
+						d.replicateLocalTo(url)
 						.catch(function(err) {
-							Notes.getInstance().showAlert("Error replicating to " + url);
+							that.#app.showAlert("Error replicating to " + url);
 							
 							console.log("Error replicating to " + url + ":", 'E');
 							console.log(err);
@@ -336,7 +338,7 @@ class SettingsContent {
 					}),
 					*/
 					//$('<br>'),
-					//$('<textarea readonly id="dbLink">' + Notes.getInstance().routing.getBasePath() + '</textarea>'),
+					//$('<textarea readonly id="dbLink">' + that.#app.routing.getBasePath() + '</textarea>'),
 				])
 			),	
 		];
@@ -351,19 +353,19 @@ class SettingsContent {
 				$('<td colspan="2"/>').append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (d.profileHandler.getCurrentProfile().clone ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  !d.profileHandler.profileCanClone(),
 								onChange: function() {
-									var p = Database.getInstance().profileHandler.getCurrentProfile();
+									var p = d.profileHandler.getCurrentProfile();
 									p.clone = !!this.getChecked();
-									Database.getInstance().profileHandler.saveProfile(p);
+									d.profileHandler.saveProfile(p);
 									
-									Database.getInstance().reset();
-									Notes.getInstance().routing.call('settings');
+									d.reset();
+									that.#app.routing.call('settings');
 								}
 							});
 						}, 0);
@@ -376,19 +378,19 @@ class SettingsContent {
 				$('<td colspan="2"/>').append(
 					$('<input class="checkbox-switch" type="checkbox" ' + (d.profileHandler.getCurrentProfile().autoSync ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  !d.profileHandler.profileCanAutoSync(),
 								onChange: function() {
-									var p = Database.getInstance().profileHandler.getCurrentProfile();
+									var p = d.profileHandler.getCurrentProfile();
 									p.autoSync = !!this.getChecked();
-									Database.getInstance().profileHandler.saveProfile(p);
+									d.profileHandler.saveProfile(p);
 									
-									Database.getInstance().reset();
-									Notes.getInstance().routing.call('settings');
+									d.reset();
+									that.#app.routing.call('settings');
 								}
 							});
 						}, 0);
@@ -406,9 +408,9 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Notebook Name</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + Settings.getInstance().settings.dbAccountName + '" />')
+					$('<input type="text" value="' + this.#app.settings.settings.dbAccountName + '" />')
 					.on('change', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.dbAccountName = this.value;
 						s.saveSettings();
 						
@@ -419,19 +421,19 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Theme Background Color</td>'),
 				$('<td colspan="2" />').append(
-					$('<input type="color" value="' + Settings.getInstance().settings.mainColor + '"/>')
+					$('<input type="color" value="' + this.#app.settings.settings.mainColor + '"/>')
 					.on('change', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.mainColor = this.value;
 						s.apply();
 					})
 					.on('input', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.mainColor = this.value;
 						s.apply();
 					})
 					.on('blur', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.saveSettings();
 					})
 				),
@@ -439,19 +441,19 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Theme Text Color</td>'),
 				$('<td colspan="2" />').append(
-					$('<input type="color" value="' + Settings.getInstance().settings.textColor + '"/>')
+					$('<input type="color" value="' + this.#app.settings.settings.textColor + '"/>')
 					.on('change', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.textColor = this.value;
 						s.apply();
 					})
 					.on('input', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.textColor = this.value;
 						s.apply();
 					})
 					.on('blur', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.saveSettings();
 					})
 				),
@@ -459,23 +461,23 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Editor Defaults</td>'),
 				$('<td colspan="2"/>').append(
-					Document.getEditorModeSelector(Settings.getInstance().settings.defaultNoteEditor ? Settings.getInstance().settings.defaultNoteEditor : 'richtext', {
+					Document.getEditorModeSelector(this.#app.settings.settings.defaultNoteEditor ? this.#app.settings.settings.defaultNoteEditor : 'richtext', {
 						hideKanban: true,
 						cssClass: 'settingsSelect'
 					})
 					.on('change', function(event) {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						
 						s.settings.defaultNoteEditor = this.value;
 						s.saveSettings();
 						
-						Notes.getInstance().routing.call('settings');
+						that.#app.routing.call('settings');
 					}),
 					
-					!(Settings.getInstance().settings.defaultNoteEditor && Settings.getInstance().settings.defaultNoteEditor == 'code') ? null : 
-					Code.getInstance().getLanguageSelector(Settings.getInstance().settings.defaultCodeLanguage ? Settings.getInstance().settings.defaultCodeLanguage : 'markdown')
+					!(this.#app.settings.settings.defaultNoteEditor && this.#app.settings.settings.defaultNoteEditor == 'code') ? null : 
+					Code.getLanguageSelector(this.#app.settings.settings.defaultCodeLanguage ? this.#app.settings.settings.defaultCodeLanguage : 'markdown')
 					.on('change', function(event) {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						
 						s.settings.defaultCodeLanguage = this.value;
 						s.saveSettings();
@@ -485,9 +487,10 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Auto Save Interval</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + Settings.getInstance().settings.autoSaveIntervalSecs + '" />')
+					$('<input type="text" value="' + this.#app.settings.settings.autoSaveIntervalSecs + '" />')
 					.on('change', function() {
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
+						
 						this.value = parseFloat(this.value) ? parseFloat(this.value) : 0;
 						if (this.value < 0) {
 							this.value = 0;
@@ -502,15 +505,15 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Ask before Moving</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (Settings.getInstance().settings.askBeforeMoving ? "checked" : "") + '/>')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.settings.settings.askBeforeMoving ? "checked" : "") + '/>')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								onChange: function() {
-									var s = Settings.getInstance();
+									var s = that.#app.settings;
 									s.settings.askBeforeMoving = this.getChecked();
 									s.saveSettings();
 								}
@@ -523,15 +526,15 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Reduce History at Save</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (Settings.getInstance().settings.reduceHistory ? "checked" : "") + '/>')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.settings.settings.reduceHistory ? "checked" : "") + '/>')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								onChange: function() {
-									var s = Settings.getInstance();
+									var s = that.#app.settings;
 									s.settings.reduceHistory = this.getChecked();
 									s.saveSettings();
 								}
@@ -544,7 +547,7 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Max. upload file size</td>'),
 				$('<td colspan="2" />').append(
-					$('<input type="text" value="' + parseFloat(Settings.getInstance().settings.maxUploadSizeMB) + '" />')
+					$('<input type="text" value="' + parseFloat(this.#app.settings.settings.maxUploadSizeMB) + '" />')
 					.on('change', function() {
 						var val = parseFloat(this.value);
 						if (!val || val < 0) {
@@ -552,7 +555,7 @@ class SettingsContent {
 							val = parseFloat(this.value);
 						}
 						
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.maxUploadSizeMB = val;
 						s.saveSettings();
 					}),
@@ -563,7 +566,7 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Max. search results</td>'),
 				$('<td colspan="2" />').append(
-					$('<input type="text" value="' + parseInt(Settings.getInstance().settings.maxSearchResults) + '" />')
+					$('<input type="text" value="' + parseInt(this.#app.settings.settings.maxSearchResults) + '" />')
 					.on('change', function() {
 						var val = parseInt(this.value);
 						if (!val) {
@@ -573,7 +576,7 @@ class SettingsContent {
 							val = parseInt(this.value);
 						}
 						
-						var s = Settings.getInstance();
+						var s = that.#app.settings;
 						s.settings.maxSearchResults = val;
 						s.saveSettings();
 					}),
@@ -583,15 +586,15 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Preview attachment images in navigation</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (Settings.getInstance().settings.showAttachedImageAsItemBackground ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.settings.settings.showAttachedImageAsItemBackground ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								onChange: function() {
-									var s = Settings.getInstance();
+									var s = that.#app.settings;
 									s.settings.showAttachedImageAsItemBackground = !!this.getChecked();
 									
 									s.saveSettings();
@@ -611,19 +614,19 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Header Size</td>'),
 				$('<td colspan="2" />').append(
-					$('<input type="text" value="' + n.getHeaderSize()  + '" />')
+					$('<input type="text" value="' + this.#app.getHeaderSize()  + '" />')
 					.on('change', function() {
 						if (parseFloat(this.value) < Config.minHeaderSize || !parseFloat(this.value)) this.value = Config.minHeaderSize;
 						
-						var g = ClientState.getInstance().getLocalSettings();
-						if (Device.getInstance().isLayoutMobile()) {
+						var g = that.#app.state.getLocalSettings();
+						if (that.#app.device.isLayoutMobile()) {
 							g.headerSizeMobile = parseFloat(this.value);										
 						} else {
 							g.headerSizeDesktop = parseFloat(this.value);
 						}
-						ClientState.getInstance().setLocalSettings(g);
+						that.#app.state.setLocalSettings(g);
 						
-						n.update();
+						that.#app.update();
 					})
 				),
 			),
@@ -631,23 +634,23 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Option Button Size</td>'),
 				$('<td colspan="2" />').append(
-					$('<input type="text" value="' + n.getRoundedButtonSize() + '" />')
+					$('<input type="text" value="' + this.#app.getRoundedButtonSize() + '" />')
 					.on('change', function() {
 						if (parseFloat(this.value) < Config.minButtonSize || !parseFloat(this.value)) this.value = Config.minButtonSize;
 						
-						var g = ClientState.getInstance().getLocalSettings();
-						if (Device.getInstance().isLayoutMobile()) {
+						var g = that.#app.state.getLocalSettings();
+						if (that.#app.device.isLayoutMobile()) {
 							g.optionTextSizeMobile = parseFloat(this.value);										
 						} else {
 							g.optionTextSizeDesktop = parseFloat(this.value);
 						}
-						ClientState.getInstance().setLocalSettings(g);
+						that.#app.state.setLocalSettings(g);
 						
-						n.update();
+						that.#app.update();
 						
-						TreeActions.getInstance().requestTree()
+						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
 					})
 				),
@@ -656,19 +659,19 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Footer Size</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + n.getFooterSize() + '" />')
+					$('<input type="text" value="' + this.#app.getFooterSize() + '" />')
 					.on('change', function() {
 						if (parseFloat(this.value) < Config.minFooterSize || !parseFloat(this.value)) this.value = Config.minFooterSize;
 						
-						var g = ClientState.getInstance().getLocalSettings();
-						if (Device.getInstance().isLayoutMobile()) {
+						var g = that.#app.state.getLocalSettings();
+						if (that.#app.device.isLayoutMobile()) {
 							g.footerSizeMobile = parseFloat(this.value);										
 						} else {
 							g.footerSizeDesktop = parseFloat(this.value);
 						}
-						ClientState.getInstance().setLocalSettings(g);
+						that.#app.state.setLocalSettings(g);
 						
-						n.update();
+						that.#app.update();
 					})
 				)
 			),
@@ -676,16 +679,16 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Landing Page: Redirect to last opened</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().isLastOpenedUrlRedirectEnabled() ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.isLastOpenedUrlRedirectEnabled() ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									ClientState.getInstance().enableLastOpenedUrlRedirect(!!this.getChecked());
+									that.#app.state.enableLastOpenedUrlRedirect(!!this.getChecked());
 								}
 							});
 						}, 0);
@@ -696,34 +699,34 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Show Favorites</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (!ClientState.getInstance().getViewSettings().dontShowFavorites ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (!this.#app.state.getViewSettings().dontShowFavorites ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									var cs = ClientState.getInstance().getViewSettings();
+									var cs = that.#app.state.getViewSettings();
 									cs.dontShowFavorites = !this.getChecked();
-									ClientState.getInstance().saveViewSettings(cs);
+									that.#app.state.saveViewSettings(cs);
 									
-									NoteTree.getInstance().resetFavoriteBuffers();
-									NoteTree.getInstance().refresh();
+									that.#app.nav.resetFavoriteBuffers();
+									that.#app.nav.refresh();
 								}
 							});
 						}, 0);
 					}),
 					
-					$('<span style="margin-left: 5px" ></span>').html('Uses ' + JSON.stringify(ClientState.getInstance().getFavorites()).length + " bytes of local memory, "),
+					$('<span style="margin-left: 5px" ></span>').html('Uses ' + JSON.stringify(this.#app.state.getFavorites()).length + " bytes of local memory, "),
 					
 					$('<a style="margin-left: 5px" href="javascript:void(0);">Clear...</a>')
 					.on('click', function(event) {
 						event.stopPropagation();
 						
-						NoteTree.getInstance().resetFavoriteBuffers();
-						Notes.getInstance().clearFavorites();
+						that.#app.nav.resetFavoriteBuffers();
+						that.#app.clearFavorites();
 					})
 				)
 			),
@@ -731,17 +734,17 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Favorites Size</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesSize) + '" />')
+					$('<input type="text" value="' + (this.#app.state.getViewSettings().favoritesSize) + '" />')
 					.on('change', function() {
 						if (!parseInt(this.value)) this.value = Config.defaultFavoritesSize;
 						if (parseInt(this.value) < Config.minFavoritesSize) this.value = Config.minFavoritesSize;
 						
-						var cs = ClientState.getInstance().getViewSettings();
+						var cs = that.#app.state.getViewSettings();
 						cs.favoritesSize = parseInt(this.value);
-						ClientState.getInstance().saveViewSettings(cs);
+						that.#app.state.saveViewSettings(cs);
 						
-						NoteTree.getInstance().resetFavoriteBuffers();
-						NoteTree.getInstance().refresh();
+						that.#app.nav.resetFavoriteBuffers();
+						that.#app.nav.refresh();
 					})
 				)
 			),
@@ -749,17 +752,17 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Max. Number of Favorites</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + (ClientState.getInstance().getViewSettings().favoritesNum) + '" />')
+					$('<input type="text" value="' + (this.#app.state.getViewSettings().favoritesNum) + '" />')
 					.on('change', function() {
 						if (!parseInt(this.value)) this.value = Config.defaultFavoritesAmount;
 						if (parseInt(this.value) < 1) this.value = 1;
 						
-						var cs = ClientState.getInstance().getViewSettings();
+						var cs = that.#app.state.getViewSettings();
 						cs.favoritesNum = parseInt(this.value);
-						ClientState.getInstance().saveViewSettings(cs);
+						that.#app.state.saveViewSettings(cs);
 						
-						NoteTree.getInstance().resetFavoriteBuffers();
-						NoteTree.getInstance().refresh();
+						that.#app.nav.resetFavoriteBuffers();
+						that.#app.nav.refresh();
 					})
 				)
 			),
@@ -767,21 +770,21 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Show current Document in Favorites</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getViewSettings().dontShowCurrentInFavorites ? '' : 'checked') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.getViewSettings().dontShowCurrentInFavorites ? '' : 'checked') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									var cs = ClientState.getInstance().getViewSettings();
+									var cs = that.#app.state.getViewSettings();
 									cs.dontShowCurrentInFavorites = !this.getChecked();
-									ClientState.getInstance().saveViewSettings(cs);
+									that.#app.state.saveViewSettings(cs);
 									
-									NoteTree.getInstance().resetFavoriteBuffers();
-									NoteTree.getInstance().refresh();
+									that.#app.nav.resetFavoriteBuffers();
+									that.#app.nav.refresh();
 								}
 							});
 						}, 0);
@@ -795,21 +798,21 @@ class SettingsContent {
 		////////////////////////////////////////////////////////////////////////////////
 		
 		ret.rowsNavigationSettings = [
-			Device.getInstance().isLayoutMobile() ? null : $('<tr/>').append(
+			this.#app.device.isLayoutMobile() ? null : $('<tr/>').append(
 				$('<td class="w-auto">Navigation Width</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + NoteTree.getInstance().getContainerWidth() + '" />')
+					$('<input type="text" value="' + this.#app.nav.getContainerWidth() + '" />')
 					.on('change', function() {
 						if (!parseInt(this.value)) this.value = "";
 						if (parseInt(this.value) < 0) this.value = "";
 						
-						if (Device.getInstance().isLayoutMobile()) return;
+						if (that.#app.device.isLayoutMobile()) return;
 						
-						var state = ClientState.getInstance().getTreeState();
+						var state = that.#app.state.getTreeState();
 						state.treeWidth = parseInt(this.value);
-						ClientState.getInstance().setTreeState(state);
+						that.#app.state.setTreeState(state);
 			
-						NoteTree.getInstance().refresh();
+						that.#app.nav.refresh();
 					})
 				)
 			),
@@ -817,23 +820,23 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Text Size</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + NoteTree.getInstance().getTreeTextSize() + '" />')
+					$('<input type="text" value="' + this.#app.nav.getTreeTextSize() + '" />')
 					.on('change', function() {
 						if (parseFloat(this.value) < Config.minNavigationTextSize || !parseFloat(this.value)) this.value = Config.minNavigationTextSize;
 						
-						var g = ClientState.getInstance().getLocalSettings();
-						if (Device.getInstance().isLayoutMobile()) {
+						var g = that.#app.state.getLocalSettings();
+						if (that.#app.device.isLayoutMobile()) {
 							g.navTextSizeMobile = parseFloat(this.value);										
 						} else {
 							g.navTextSizeDesktop = parseFloat(this.value);
 						}
-						ClientState.getInstance().setLocalSettings(g);
+						that.#app.state.setLocalSettings(g);
 						
-						n.update();
+						that.#app.update();
 						
-						TreeActions.getInstance().requestTree()
+						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
 					})
 				),
@@ -842,38 +845,38 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Item Size</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + DetailBehaviour.getItemHeight() + '" />')
+					$('<input type="text" value="' + DetailBehaviour.getItemHeight(this.#app) + '" />')
 					.on('change', function() {
 						if (parseFloat(this.value) < Config.minDetailNavigationItemHeight || !parseFloat(this.value)) this.value = Config.minDetailNavigationItemHeight;
 						
-						var g = ClientState.getInstance().getLocalSettings();
-						if (Device.getInstance().isLayoutMobile()) {
+						var g = that.#app.state.getLocalSettings();
+						if (that.#app.device.isLayoutMobile()) {
 							g.detailItemHeightMobile = parseFloat(this.value);										
 						} else {
 							g.detailItemHeightDesktop = parseFloat(this.value);
 						}
-						ClientState.getInstance().setLocalSettings(g);
+						that.#app.state.setLocalSettings(g);
 						
-						n.update();
+						that.#app.update();
 						
-						TreeActions.getInstance().requestTree()
+						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
 					})
 				),
 			),
 			
-			Device.getInstance().isTouchAware() ? null : $('<tr/>').append(
+			this.#app.device.isTouchAware() ? null : $('<tr/>').append(
 				$('<td class="w-auto">Drag start delay time</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + ClientState.getInstance().getViewSettings().dragDelayMillis + '" />')
+					$('<input type="text" value="' + this.#app.state.getViewSettings().dragDelayMillis + '" />')
 					.on('change', function() {
 						if (parseInt(this.value) < Config.minDragDelayMillis || !parseInt(this.value)) this.value = Config.minDragDelayMillis;
 						
-						var g = ClientState.getInstance().getViewSettings();
+						var g = that.#app.state.getViewSettings();
 						g.dragDelayMillis = parseInt(this.value);
-						ClientState.getInstance().saveViewSettings(g);	
+						that.#app.state.saveViewSettings(g);	
 						
 						location.reload();					
 					})
@@ -883,23 +886,23 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Animation Time</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + MuuriGrid.getAnimationDuration() + '" />')
+					$('<input type="text" value="' + MuuriGrid.getAnimationDuration(this.#app) + '" />')
 					.on('change', function() {
 						if (parseInt(this.value) < Config.minDetailNavigationAnimationDuration || !parseInt(this.value)) this.value = Config.minDetailNavigationAnimationDuration;
 						
-						var g = ClientState.getInstance().getLocalSettings();
-						if (Device.getInstance().isLayoutMobile()) {
+						var g = that.#app.state.getLocalSettings();
+						if (that.#app.device.isLayoutMobile()) {
 							g.navigationAnimationDurationMobile = parseInt(this.value);										
 						} else {
 							g.navigationAnimationDurationDesktop = parseInt(this.value);
 						}
-						ClientState.getInstance().setLocalSettings(g);
+						that.#app.state.setLocalSettings(g);
 						
-						n.update();
+						that.#app.update();
 						
-						TreeActions.getInstance().requestTree()
+						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
 					})
 				)
@@ -908,23 +911,21 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Navigation Mode</td>'),
 				$('<td colspan="2"/>').append(
-					Behaviours.getModeSelector('settingsTreeModeSelectorList', ClientState.getInstance().getViewSettings().navMode)
+					Behaviours.getModeSelector('settingsTreeModeSelectorList', this.#app.state.getViewSettings().navMode)
 					.on('change', function(event) {
-						n.hideOptions();
+						that.#app.hideOptions();
 						
-						var s = ClientState.getInstance().getViewSettings();
+						var s = that.#app.state.getViewSettings();
 						s.navMode = this.value;
-						ClientState.getInstance().saveViewSettings(s);
+						that.#app.state.saveViewSettings(s);
 
-						//NoteTree.getInstance().refresh();
-						//n.routing.refresh(); //callSettings();
 						location.reload();
 					})
 				)
 			)
 		];
 		
-		var navRows = NoteTree.getInstance().getSettingsPanelContentTableRows();
+		var navRows = this.#app.nav.getSettingsPanelContentTableRows();
 		for(var nr in navRows) {
 			var navRow = navRows[nr];
 			ret.rowsNavigationSettings.push(navRow);
@@ -947,7 +948,7 @@ class SettingsContent {
 					$('<button class="btn btn-secondary settings-button">Import Raw Data (JSON)</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						new Import(new NotesImporter({
+						new Import(new NotesImporter(that.#app, {
 							importInternal: true,
 							createIds: true,
 							useRootItem: false,
@@ -957,7 +958,7 @@ class SettingsContent {
 					$('<button class="btn btn-secondary settings-button">Verify Raw Data (JSON)</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						Notes.getInstance().routing.callVerifyBackup();
+						that.#app.routing.callVerifyBackup();
 					}),
 				])
 			),	
@@ -971,20 +972,20 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Persistent Console logs</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getConsoleSettings().persist ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.getConsoleSettings().persist ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								onChange: function() {
-									var s = ClientState.getInstance().getConsoleSettings();
+									var s = that.#app.state.getConsoleSettings();
 									s.persist = !!this.getChecked();
-									ClientState.getInstance().saveConsoleSettings(s);
+									that.#app.state.saveConsoleSettings(s);
 									
-									Console.getInstance().clear();
-									Notes.getInstance().showAlert('Cleared console logs.', 'I');
+									Console.clear();
+									that.#app.showAlert('Cleared console logs.', 'I');
 								}
 							});
 						}, 0);
@@ -992,7 +993,7 @@ class SettingsContent {
 
 					$('<a style="cursor: pointer; padding-left: 10px;">Open Console</a>')
 					.on('click', function(event) {
-						Notes.getInstance().routing.callConsole();
+						that.#app.routing.callConsole();
 					})
 				)
 			),
@@ -1007,12 +1008,12 @@ class SettingsContent {
 						$('<option value="mobile">Mobile</option>'),
 					])
 					.each(function(i) {
-						var mode = ClientState.getInstance().getMobileOverride();
+						var mode = that.#app.state.getMobileOverride();
 						if (!mode) mode = "off";
 						$(this).val(mode);
 						
 						$(this).on('change', function(event) {
-							ClientState.getInstance().setMobileOverride($(this).val())
+							that.#app.state.setMobileOverride($(this).val())
 							location.reload();
 						});
 					})
@@ -1028,12 +1029,12 @@ class SettingsContent {
 						$('<option value="notouch">Mouse Input</option>'),
 					])
 					.each(function(i) {
-						var mode = ClientState.getInstance().getTouchAwareOverride();
+						var mode = that.#app.state.getTouchAwareOverride();
 						if (!mode) mode = "off";
 						$(this).val(mode);
 						
 						$(this).on('change', function(event) {
-							ClientState.getInstance().setTouchAwareOverride($(this).val())
+							that.#app.state.setTouchAwareOverride($(this).val())
 							location.reload();
 						});
 					})
@@ -1043,18 +1044,18 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Rich Text Editor: Auto-Format links</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getEditorSettings().dontReplaceLinksInRTEditor ? '' : 'checked') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.getEditorSettings().dontReplaceLinksInRTEditor ? '' : 'checked') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									var cs = ClientState.getInstance().getEditorSettings();
+									var cs = that.#app.state.getEditorSettings();
 									cs.dontReplaceLinksInRTEditor = !this.getChecked();
-									ClientState.getInstance().saveEditorSettings(cs);
+									that.#app.state.saveEditorSettings(cs);
 								}
 							});
 						}, 0);
@@ -1065,18 +1066,18 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Rich Text Editor: Auto-Format hashtags</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().getEditorSettings().dontReplaceTagsInRTEditor ? '' : 'checked') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.getEditorSettings().dontReplaceTagsInRTEditor ? '' : 'checked') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									var cs = ClientState.getInstance().getEditorSettings();
+									var cs = that.#app.state.getEditorSettings();
 									cs.dontReplaceTagsInRTEditor = !this.getChecked();
-									ClientState.getInstance().saveEditorSettings(cs);
+									that.#app.state.saveEditorSettings(cs);
 								}
 							});
 						}, 0);
@@ -1093,7 +1094,7 @@ class SettingsContent {
 					.on('click', function(event) {
 						event.stopPropagation();
 						
-						Notes.getInstance().routing.call('check');
+						that.#app.routing.call('check');
 					}),
 					
 					// Clear local data
@@ -1105,17 +1106,17 @@ class SettingsContent {
 							return;
 						}
 						
-						var prom = Database.getInstance().clearLocalDatabase();
+						var prom = d.clearLocalDatabase();
 						if (!prom) {
-							Notes.getInstance().showAlert('Could not delete database.', 'E');
+							that.#app.showAlert('Could not delete database.', 'E');
 							return;
 						}
 						prom.then(function(data) {
-							Notes.getInstance().showAlert('Local database is now empty.', 'S');
-							Database.getInstance().reset();
-							Notes.getInstance().routing.call('settings');
+							that.#app.showAlert('Local database is now empty.', 'S');
+							d.reset();
+							that.#app.routing.call('settings');
 						}).catch(function(err) {
-							Notes.getInstance().showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 						});
 					}),
 					
@@ -1123,7 +1124,7 @@ class SettingsContent {
 					$('<button class="btn btn-secondary settings-button">Generate Random Documents</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						Notes.getInstance().routing.call('generate');
+						that.#app.routing.call('generate');
 					}),
 				]),
 			),						
@@ -1134,14 +1135,14 @@ class SettingsContent {
 					$('<button class="btn btn-secondary settings-button">Edit Settings Document</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.routing.callRawView(Settings.settingsDocId);
+						that.#app.routing.callRawView(Settings.settingsDocId);
 					}),
 					
 					// Edit global-meta document
 					$('<button class="btn btn-secondary settings-button">Edit Global Metadata Document</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						n.routing.callRawView(MetaActions.metaDocId);
+						that.#app.routing.callRawView(MetaActions.metaDocId);
 					}),
 
 				])
@@ -1156,17 +1157,17 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Enable Graph Page</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? 'checked' : '') + ' />')
 					.each(function(i) {
-						var that = this;
+						var that2 = this;
 						setTimeout(function() {
-							new Switch(that, {
+							new Switch(that2, {
 								size: 'small',
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									ClientState.getInstance().enableExperimentalFunction(GraphView.experimentalFunctionId, !!this.getChecked());
-									Notes.getInstance().update();
+									that.#app.state.enableExperimentalFunction(GraphView.experimentalFunctionId, !!this.getChecked());
+									that.#app.update();
 								}
 							});
 						}, 0);
@@ -1175,33 +1176,12 @@ class SettingsContent {
 			),
 			
 			/*$('<tr/>').append(
-				$('<td class="w-auto">Enable Undo/Redo</td>'),
-				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (ClientState.getInstance().experimentalFunctionEnabled(UndoManager.experimentalFunctionId) ? 'checked' : '') + ' />')
-					.each(function(i) {
-						var that = this;
-						setTimeout(function() {
-							new Switch(that, {
-								size: 'small',
-								onSwitchColor: '#337ab7',
-								disabled:  false,
-								onChange: function() {
-									ClientState.getInstance().enableExperimentalFunction(UndoManager.experimentalFunctionId, !!this.getChecked());
-									Notes.getInstance().update();
-								}
-							});
-						}, 0);
-					})
-				)
-			),*/
-			
-			/*$('<tr/>').append(
 				$('<td class="w-auto">Import from Trello</td>'),
 				$('<td colspan="2"/>').append([
 					$('<button class="btn btn-secondary settings-button">Import Board from Trello (JSON)</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						new Import(new TrelloImporter()).startFileImport();
+						new Import(new TrelloImporter(that.#app)).startFileImport();
 					}),
 				])
 			),*/
@@ -1235,8 +1215,10 @@ class SettingsContent {
 	 * Export all documents as JSON
 	 */
 	#exportAll(format) {
+		var that = this;
+		
 		if (!format) {
-			Notes.getInstance().showAlert("No format specified", "E");
+			this.#app.showAlert("No format specified", "E");
 			return;
 		}
 		
@@ -1244,18 +1226,18 @@ class SettingsContent {
 		if (format == 'json') {
 			if (!confirm('Export all documents including settings and metadata?')) return;
 
-			(new NotesExporter()).exportDatabase()
+			(new NotesExporter(this.#app)).exportDatabase()
 			.then(function(data) {
-				Notes.getInstance().showAlert('Exported ' + ((data && data.docs) ? data.docs.length : "[unknown]") + ' documents.', 'S');
+				that.#app.showAlert('Exported ' + ((data && data.docs) ? data.docs.length : "[unknown]") + ' documents.', 'S');
 			})
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+				that.#app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 			});
 		}
 		
 		// Obsidian export
 		if (format == 'files') {
-			var children = Notes.getInstance().getData().getChildren("", true);
+			var children = this.#app.getData().getChildren("", true);
 			
 			if (!confirm('Export all ' + children.length + ' documents?')) return;
 			
@@ -1264,12 +1246,12 @@ class SettingsContent {
 				ids.push(children[d]._id);
 			}
 
-			ObsidianExporter.getInstance().export(ids)
+			new ObsidianExporter(this.#app).export(ids)
 			.then(function(/*data*/) {
-				Notes.getInstance().showAlert('Exported ' + children.length + ' documents.', 'S');
+				that.#app.showAlert('Exported ' + children.length + ' documents.', 'S');
 			})
 			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+				that.#app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 			});
 		}
 	}

@@ -34,11 +34,11 @@ class Behaviours {
 	/**
 	 * Factory for behaviours
 	 */
-	static get(mode, grid) {
+	static get(app, mode, grid) {
 		switch (mode) {
-			case Behaviours.modeIdDetailRef: return new DetailBehaviour(grid, true);
-			case Behaviours.modeIdTree: return new TreeBehaviour(grid);
-			default: return new DetailBehaviour(grid, true);
+			case Behaviours.modeIdDetailRef: return new DetailBehaviour(app, grid, true);
+			case Behaviours.modeIdTree: return new TreeBehaviour(app, grid);
+			default: return new DetailBehaviour(app, grid, true);
 		} 
 	}
 }

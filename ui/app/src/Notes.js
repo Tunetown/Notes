@@ -23,7 +23,6 @@ class Notes {
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
-		this.currentPage = null;
 	}
 	
 	/**
@@ -60,11 +59,11 @@ class Notes {
 		        case 's':
 		            event.preventDefault();
 		            
-		            var e = that.getCurrentEditor();
+		            var e = that.paging.getCurrentEditor();
 		            if (e && e.isDirty()) {
 		            	e.stopDelayedSave();
 		            	 
-		            	that.showAlert("Saving " + e.current.name + "...", "I", "SaveMessages"); 
+		            	that.showAlert("Saving " + e.getCurrentId() + "...", "I", "SaveMessages");  // TODO name instead of ID 
 		            
 		            	that.actions.document.save(e.getCurrentId(), e.getContent())
 						.then(function(data) {
@@ -94,16 +93,21 @@ class Notes {
 		this.routing.run();
 	}
 	
+	/**
+	 * Initialize handler instances
+	 */
 	#initHandlers() {
 		this.device = new Device(this);
 		this.state = new ClientState(this);
 
 		Document.setApp(this); // TODO
-		HashTag.setApp(this); // TODO
+		Hashtag.setApp(this); // TODO
 		
 		this.documentAccess = new DocumentAccess(this);
 		this.documentChecks = new Dthis.documentChecks(this);
 		this.views = new Views(this);
+		this.callbacks = new Callbacks();
+		this.styles = new Styles();
 		
 		this.actions = {
 			attachment: new AttachmentActions(this, this.documentAccess),	
@@ -119,6 +123,9 @@ class Notes {
 			trash: new TrashActions(this, this.documentAccess),	
 			nav: new NavigationActions(this, this.documentAccess),	
 		};
+		
+		this.nav = new NoteTree(this);
+		this.paging = new Tab(this, $('<div id="contentContainer" class="mainPanel"/>')); // TODO
 	}
 	
 	/**
@@ -220,7 +227,7 @@ class Notes {
 				// Called when the live sync (autoSync) gets changes. Checks if the changes are relevant to the tree or the
 				// opened document, and reloads whatever needs to be reloaded.
 				onLiveSyncChangeCallback: function(change, change_seq, final_seq) {
-					var e = that.getCurrentEditor();
+					var e = that.paging.getCurrentEditor();
 					
 					// Check if we need to update anything. This only applies when we get changes from the remote (pull).
 					if (change.direction == "pull") {
@@ -310,6 +317,13 @@ class Notes {
 				}
 			},
 		});
+	}
+	
+	/**
+	 * Loads a new page
+	 */
+	loadPage(newPage) {
+		this.paging.loadPage(newPage);
 	}
 	
 	/**
@@ -507,7 +521,7 @@ class Notes {
 		
 		// This checks for online connection every two seconds
 		if (!this.onlineSensor) {
-			this.onlineSensor = new OnlineSensor();
+			this.onlineSensor = new OnlineSensor(this);
 			this.onlineSensor.start(4000, function(data) {
 				$('#onlineStatus').css('display', data.onLine ? 'none' : 'inline-block');
 			});
@@ -640,24 +654,12 @@ class Notes {
 	}
 
 	/**
-	 * Returns if the current editor is in restore mode.
-	 */
-	editorInRestoreMode() {
-		var e = this.getCurrentEditor();
-		if (!e) return false;
-		
-		if (typeof e.getRestoreMode != 'function') return false;
-		
-		return e.getRestoreMode();
-	}
-
-	/**
 	 * Resets the page content elements. treePage is set to true only for the profile root.
 	 */
 	resetPage(treePage) {
-		var e = this.getCurrentEditor();
+		var e = this.paging.getCurrentEditor();
 		if (e) {
-			if (e.isDirty() && (!this.editorInRestoreMode())) {
+			if (e.isDirty() && (!((e instanceof RestorableEditor) && e.getRestoreMode()))) {
 				var that = this;
 				
 				this.actions.document.save(e.getCurrentId(), e.getContent())
@@ -674,18 +676,11 @@ class Notes {
 			}
 		}
 
-		this.setCurrentEditor();
-		this.setCurrentPage();
-		
 		this.setHeaderSelector();
 		this.allowViewportScaling(false);
 		this.hideMenu();
 		
-		$('#contentContainer').empty();
-		$('#contentContainer').css('background', '');
-		$('#contentContainer').scrollTop(0);
-		$('#contentContainer').scrollLeft(0);
-		$('#contentContainer').off('contextmenu');
+		this.paging.clear();
 		
 		this.setButtons(null, true);
 		
@@ -699,7 +694,7 @@ class Notes {
 		$('#console').hide();
 
 		if (treePage) {
-			$('#contentContainer').hide();
+			this.paging.hide();
 			$('#treenav').show();
 
 			this.nav.setupFooter();
@@ -708,7 +703,7 @@ class Notes {
 				this.nav.refresh();
 			}
 		} else {
-			$('#contentContainer').show();
+			this.paging.show();
 
 			this.setupEditorFooter();
 
@@ -761,7 +756,7 @@ class Notes {
 		if (upright) {
 			this.toggleShowNavigation(true);
 		} else {
-			var id = this.getCurrentlyShownId();
+			var id = this.paging.getCurrentlyShownId();
 			this.nav.highlightDocument(id);	
 		}
 	}
@@ -893,20 +888,20 @@ class Notes {
 			$('<section>').append([
 				// Navigation (grid)
 				this.device.isLayoutMobile() 
-				? 
-				$('<nav id="treenav"></nav>') 
-				: 
-				$('<nav id="treenav"></nav>')
-				.css('width', this.nav.getTreeState().treeWidth),  // Pre-set tree width here
+					? 
+					$('<nav id="treenav"></nav>') 
+					: 
+					$('<nav id="treenav"></nav>')
+					.css('width', this.nav.getTreeState().treeWidth),  // Pre-set tree width here
 				
 				// Main content
-				$('<article id="article"></article>').append([
+				$('<article id="article"></article>').append([  // TODO make div
 					
 					// Content container, used by most of the pages
-					$('<div id="contentContainer" class="mainPanel"/>').append(teaser),
+					this.paging.getContainer().append(teaser),
 					
 					// Note Editor (for TinyMCE this is needed separately)
-					Editor.getIstance().getContainerDom(teaser),  // TODO
+					RichtextEditor.getContainerDom(teaser),  // TODO
 					
 					// Console
 					$('<div id="console" class="mainPanel"/>')				
@@ -1092,8 +1087,8 @@ class Notes {
 	 * Update the linkage button's appearance.
 	 */
 	updateLinkageButtons() {
-		var page = this.getCurrentPage();
-		var pageSupport = (!!this.getCurrentEditor()) || (page && 
+		var page = this.paging.getCurrentPage();
+		var pageSupport = (!!this.paging.getCurrentEditor()) || (page && 
 		       (typeof page.supportsLinkageFromNavigation == 'function') && 
 		       page.supportsLinkageFromNavigation()
 		);
@@ -1106,6 +1101,7 @@ class Notes {
 		$('#linkEditorButton').attr('title', (linkEditorMode == 'on') ? 'Unlink editor from navigation' : 'Link editor to navigation');
 	}
 	
+	
 	static FOCUS_ID_EDITOR = 'editor';
 	static FOCUS_ID_NAVIGATION = 'nav';
 
@@ -1116,9 +1112,12 @@ class Notes {
 	 */
 	getFocusId() {
 		// Check if the page provides an override for focussing
-		var page = this.getCurrentPage();
-		if (page && (typeof page.overrideFocusId == 'function')) {
-			return page.overrideFocusId();
+		var page = this.paging.getCurrentPage();
+		if (page) {
+			var override = page.overrideFocusId();
+			if (override) {
+				return override;
+			}
 		}
 		
 		return this.focusId;
@@ -1147,6 +1146,9 @@ class Notes {
 		}
 	}
 		
+	/**
+	 * Browser back functionality
+	 */
 	browserBack() {
 		this.state.setLastOpenedUrl();
 		
@@ -1169,8 +1171,12 @@ class Notes {
 		}
 	}
 	
+	/**
+	 * Browser forward functionality
+	 */
 	browserForward() {
 		this.state.setLastOpenedUrl();
+		
 		history.forward();
 	}
 		
@@ -1210,34 +1216,6 @@ class Notes {
 				forwardButt.css('color', (history.canForward() ? '' : deactivatedColor));
 			}
 		}
-	}
-	
-	/**
-	 * Returns the current editor.
-	 */
-	getCurrentEditor() {
-		return this.currentEditor;
-	}
-	
-	/**
-	 * Sets the current editor.
-	 */
-	setCurrentEditor(e) {
-		this.currentEditor = e ? e : null;
-	}
-	
-	/**
-	 * Returns the current page instance, if any (editors included).
-	 */
-	getCurrentPage() {
-		return this.currentPage ? this.currentPage : null;
-	}
-	
-	/**
-	 * Sets the passed page instance as current one.
-	 */
-	setCurrentPage(inst) {
-		this.currentPage = inst;
 	}
 
 	/**
@@ -1609,22 +1587,19 @@ class Notes {
 	updateDimensions() {
 		const mobile = this.device.isLayoutMobile();
 		const upright = !mobile && (this.device.getOrientation() == Device.ORIENTATION_PORTRAIT); 
-		const cp = this.getCurrentPage();
 		
-		const sectionFullscreen = (mobile || upright) && cp && (typeof cp.shouldUseFullscreen == 'function') && cp.shouldUseFullscreen(); 
-
 		const hdrSize = this.getHeaderSize();
 		const ftrSize = this.getFooterSize();
 		const winWidth = $(window).width();
 		const winHeight = $(window).height();
-		const sectionHeight = (winHeight - (sectionFullscreen ? 0 : (hdrSize + ((mobile || upright) ? ftrSize : 0))));
+		const sectionHeight = (winHeight - (hdrSize + ((mobile || upright) ? ftrSize : 0)));
 
 		// Common containers: All content
 		$('#all').css('height', winHeight + 'px');
 		
 		// Middle area (Nav and Content)
 		const section = $('section');
-		section.css('top', (sectionFullscreen ? 0 : hdrSize) + 'px');   
+		section.css('top', hdrSize + 'px');   
 		section.css('height', sectionHeight + 'px');
 		section.css('flex-direction', mobile ? 'column' : 'row');			
 
@@ -1657,7 +1632,7 @@ class Notes {
 
 		const navContainer = $('#treeContainer');
 		if (navContainer) {			
-			const navContainerHeight = sectionFullscreen ? winHeight : (winHeight - hdrSize - ftrSize);
+			const navContainerHeight = winHeight - hdrSize - ftrSize;
 			navContainer.css('height', navContainerHeight + 'px');
 			navContainer.css('min-height', navContainerHeight + 'px');
 			navContainer.css('max-height', navContainerHeight + 'px');			
@@ -2016,7 +1991,7 @@ class Notes {
 	 */
 	update(dontHideUserMenu) {
 		// Changed marker visibility
-		var e = this.getCurrentEditor();
+		var e = this.paging.getCurrentEditor();
 		this.setChangeMarker(e ? e.isDirty() : false);
 		
 		// Hide user menu
@@ -2046,7 +2021,7 @@ class Notes {
 		$('section').css('min-height', $('#treecontainer').outerHeight() + 20);
 		
 		// Update move target selector if there is an active editor and the currently shown selector is out of date
-		this.setHeaderSelector(this.getCurrentlyShownId(true));
+		this.setHeaderSelector(this.paging.getCurrentlyShownId(true));
 
 		// For small screens, the left header display also needs to be restricted (causing an ellipsis there possibly)
 		if ($('#headerLeft').offset()) {
@@ -2132,45 +2107,6 @@ class Notes {
 		this.state.saveFavorites({});
 		
 		this.nav.updateFavorites();
-	}
-	
-	/**
-	 * Tries to determine the document currently shown.
-	 */
-	getCurrentlyShownId(editorsOnly) {
-		var e = this.getCurrentEditor();
-		if (e) return e.getCurrentId();
-		
-		var attId = AttachmentPreview.getIstance().current ? AttachmentPreview.getIstance().current._id : false;   // TODO
-		if (attId) return attId;
-		
-		if (!editorsOnly) {
-			var versId = Versions.getIstance().currentId;   // TODO
-			if (versId) return versId;
-			
-			var labelsId = LabelDefinitions.getIstance().current ? LabelDefinitions.getIstance().current._id : false;   // TODO
-			if (labelsId) return labelsId;
-		}
-		
-		return false;
-	}
-
-	/**
-	 * If there is an editor opened, reload it from database.
-	 */	
-	reloadCurrentEditor() {
-		var e = this.getCurrentEditor();
-		if (!e) return Promise.resolve();
-		
-		var current = e.getCurrentId();
-		if (!current) return Promise.resolve();
-	
-		var that = this;
-		return this.documentAccess.loadDocumentsById([current])
-		.then(function(data) {
-			e.load(that.getData().getById(current));
-			return Promise.resolve();
-		});
 	}
 	
 	/**

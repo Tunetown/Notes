@@ -334,7 +334,7 @@ class LabelActions {
 			return that.#app.actions.nav.requestTree();
 		})
 		.then(function(/*data*/) {
-			if (that.#app.getCurrentlyShownId() == doc._id) {
+			if (that.#app.paging.getCurrentlyShownId() == doc._id) {
 				// Refresh Editor as well
 				that.#app.routing.call(doc._id);
 			}

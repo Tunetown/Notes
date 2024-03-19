@@ -69,7 +69,8 @@ class DocumentActions {
 					ok: true
 				});
 			} else {
-				var e = Document.getDocumentEditor(data);
+				// Create dummy editor to get the properties
+				var e = Document.createDocumentEditor(data);  
 				if (!e) {
 					return Promise.reject({
 						message: 'No editor found for document type ' + data.type,
@@ -77,7 +78,7 @@ class DocumentActions {
 					});
 				}
 				
-				if (e.needsTreeData()) {
+				if (e.needsHierarchyData()) {
 					if (!that.#app.getData()) {
 						return that.#app.actions.nav.requestTree();
 					} else {
@@ -216,7 +217,7 @@ class DocumentActions {
 		
 		var refSelector = this.#app.getMoveTargetSelector(existingRefs, true);
 
-		var e = this.#app.getCurrentEditor();
+		var e = this.#app.paging.getCurrentPage();
 		refSelector.val('');
 		
 		var typeSelector = Document.getAvailableTypeSelect('createTypeInput');
@@ -519,7 +520,7 @@ class DocumentActions {
 			messageThreadId: "SaveMessages"
 		});
 			
-		var e = this.#app.getCurrentEditor();
+		var e = this.#app.paging.getCurrentEditor();
 		
 		var data = this.#app.getData().getById(id);
 		if (!data) {
@@ -590,8 +591,7 @@ class DocumentActions {
 			if (!dataResp.abort) {
 				// Update editor state / changed marker
 				if (e) {
-					e.setCurrent(data);				
-					e.resetDirtyState();
+					e.load(data); //setCurrent(data);				
 				}
 				that.#app.update();
 				
@@ -647,7 +647,7 @@ class DocumentActions {
 			docs.push(doc);
 
 			// Unload editor if the item is opened somewhere
-			var e = Document.getDocumentEditor(doc);
+			var e = this.#app.paging.getCurrentPage();
 			if (e && (ids[i] == e.getCurrentId())) {
 				e.unload();
 			}
@@ -1489,7 +1489,7 @@ class DocumentActions {
     		return Promise.resolve({ ok: true });
     	})
     	.then(function(/*data*/) {
-			return that.#app.reloadCurrentEditor();
+			return that.#app.paging.reloadCurrentPage();
 		})
     	.then(function(/*data*/) {
     		t.unblock();

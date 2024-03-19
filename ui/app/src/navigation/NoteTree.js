@@ -18,17 +18,11 @@
  */
 class NoteTree {
 	
-	TODO getInstance
+	#app = null;
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!NoteTree.instance) NoteTree.instance = new NoteTree();
-		return NoteTree.instance;
-	}
-	
-	constructor() {
+	constructor(app) {
+		this.#app = app;
+		
 		this.treeNavContainerId = "treenav";
 		this.treeContainerId = "treeContainer";
 		this.treeGridElementId = "treeview";
@@ -50,14 +44,12 @@ class NoteTree {
 		// Keep the collapsed/expanded state of the old tree. The grid is down at the moment, so this
 		// will just build up the expanded array, and the filter function will be called later.
 		// Reason why this is called here: The tree width in desktop mode has to be set as early as possible.
-		ClientState.getInstance().restoreTreeState();
+		this.#app.state.restoreTreeState();
 
 		// Linkage modes
 		this.updateLinkageButtons();
 
-		var n = Notes.getInstance();
-		var dev = Device.getInstance();
-		n.restoreEditorLinkage();
+		this.#app.restoreEditorLinkage();
 
 		var ret = null;  // Promise to return
 		if (!this.grid) {
@@ -71,81 +63,84 @@ class NoteTree {
 			this.behaviour.beforeInit();
 			
 			// Create Muuri instance
-			this.grid = new MuuriGrid('#' + this.treeGridElementId, {
-				dragHandle: '.' + this.behaviour.getDragMarkerClass(),
-				contentClass: this.behaviour.getItemContentClass(),
-				moveIntoClass: this.behaviour.getMoveIntoClass(),
-				dragDelayMillis: dev.isTouchAware() ? 0 : ClientState.getInstance().getViewSettings().dragDelayMillis,
-				scoreMatchingThreshold: this.behaviour.getScoreMatchingThreshold(),
-				
-				autoScrollTargets: {
-					targets: (item) => {
-						return [
-							{ 
-								element: $('#' + that.treeContainerId)[0],
-								priority: 1,
-								axis: Muuri.AutoScroller.AXIS_Y
-							},
-						];
-					}
-				},
-				
-				dragInitCallback: function(item, event) {
-					// Block the next deselect event (this disturbs moving items)
-					that.blockDeselectCallback = true;
-				},
-				
-				dropIntoCallback: function(srcItem, targetItem) {
-					var src = that.getGridItemContent(srcItem);
-					var tar = that.getGridItemContent(targetItem);
+			this.grid = new MuuriGrid(
+				this.#app, 
+				'#' + this.treeGridElementId, 
+				{
+					dragHandle: '.' + this.behaviour.getDragMarkerClass(),
+					contentClass: this.behaviour.getItemContentClass(),
+					moveIntoClass: this.behaviour.getMoveIntoClass(),
+					dragDelayMillis: this.#app.device.isTouchAware() ? 0 : this.#app.state.getViewSettings().dragDelayMillis,
+					scoreMatchingThreshold: this.behaviour.getScoreMatchingThreshold(),
 					
-					that.doDrop(src, tar, true);
-				},
-				
-				dropBeneathCallback: function(srcItem, targetItem) {
-					var src = that.getGridItemContent(srcItem);
-					var tar = that.getGridItemContent(targetItem);
+					autoScrollTargets: {
+						targets: (item) => {
+							return [
+								{ 
+									element: $('#' + that.treeContainerId)[0],
+									priority: 1,
+									axis: Muuri.AutoScroller.AXIS_Y
+								},
+							];
+						}
+					},
 					
-					that.doDrop(src, tar, false);
-				},
-				
-				enableDropCallback: function(srcItem, targetItem, dropInto) {
-					var src = that.getGridItemContent(srcItem);
-					var tar = that.getGridItemContent(targetItem);
+					dragInitCallback: function(item, event) {
+						// Block the next deselect event (this disturbs moving items)
+						that.blockDeselectCallback = true;
+					},
 					
-					// Hide options here (doing this on drag init will cause other bad consequences in terms of falsely opening the document)
-					Notes.getInstance().hideOptions();
+					dropIntoCallback: function(srcItem, targetItem) {
+						var src = that.getGridItemContent(srcItem);
+						var tar = that.getGridItemContent(targetItem);
+						
+						that.doDrop(src, tar, true);
+					},
 					
-					return that.behaviour.isDropAllowed(src, tar, dropInto); 
-				},
-				
-				onFinishCallback: function(items) {
-					that.behaviour.onLayoutFinish(items);
-				},
-				
-				layoutCallback: this.behaviour.getLayoutCallback(),
-				sortData: this.behaviour.getSortFunctions(),
-				
-			});
+					dropBeneathCallback: function(srcItem, targetItem) {
+						var src = that.getGridItemContent(srcItem);
+						var tar = that.getGridItemContent(targetItem);
+						
+						that.doDrop(src, tar, false);
+					},
+					
+					enableDropCallback: function(srcItem, targetItem, dropInto) {
+						var src = that.getGridItemContent(srcItem);
+						var tar = that.getGridItemContent(targetItem);
+						
+						// Hide options here (doing this on drag init will cause other bad consequences in terms of falsely opening the document)
+						that.#app.hideOptions();
+						
+						return that.behaviour.isDropAllowed(src, tar, dropInto); 
+					},
+					
+					onFinishCallback: function(items) {
+						that.behaviour.onLayoutFinish(items);
+					},
+					
+					layoutCallback: this.behaviour.getLayoutCallback(),
+					sortData: this.behaviour.getSortFunctions(),
+				}
+			);
 				
 			// Register right click event to create new item on grid
 			$('#' + this.treeContainerId).contextmenu(function(e) {
         		e.preventDefault();
         		e.stopPropagation();
         		
-        		Notes.getInstance().hideOptions();
+        		that.#app.hideOptions();
         		
         		that.block();
-				DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
+				that.#app.acrtions.document.create(that.behaviour.getNewItemParent())
 				.then(function(data) {
 					that.unblock();
 					if (data.message) {
-						Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
+						that.#app.showAlert(data.message, "S", data.messageThreadId);
 					}
 				})
 				.catch(function(err) {
 					that.unblock();
-					Notes.getInstance().showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
         	});
 			
@@ -154,7 +149,7 @@ class NoteTree {
 			$('#' + this.treeContainerId).on('dblclick', function(event) {
 				event.stopPropagation();
 				
-				Notes.getInstance().hideOptions();
+				that.#app.hideOptions();
 				
 				that.resetScrollPosition('all');
 				that.behaviour.onNavigationDoubleClick(event);
@@ -165,7 +160,7 @@ class NoteTree {
 			$('#' + this.treeNavContainerId).on('click', function(e) {
 				e.stopPropagation();
 				
-				Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
+				that.#app.setFocus(Notes.FOCUS_ID_NAVIGATION);
 				
 				if (that.blockDeselectCallback) {
 					// This is used so that after certain events, the deselect handler is not executed to not get in the way.
@@ -173,7 +168,7 @@ class NoteTree {
 					that.blockDeselectCallback = false;
 					return;
 				}
-				Notes.getInstance().hideOptions();
+				that.#app.hideOptions();
 				that.resetSelectedState();
 			});
 			
@@ -188,12 +183,12 @@ class NoteTree {
 			ret = this.filter(noAnimation);
 		}
 		
-		Settings.getInstance().apply();
+		that.#app.settings.apply();
 		
 		this.updateFavorites();
 		
 		// Callbacks for color picking
-		Notes.getInstance().registerOptionsCallbacks({
+		that.#app.registerOptionsCallbacks({
 			id: 'tree',
 			
 			onColorInputPrepare: function(doc, back, input) {
@@ -206,7 +201,7 @@ class NoteTree {
 			}
 		});
 		
-		Notes.getInstance().update();
+		that.#app.update();
 		
 		this.unblock();
 		
@@ -226,9 +221,7 @@ class NoteTree {
 	 * Ready to show favorites array, including sorting and pinned (starred) docs.
 	 */
 	getFavorites() {
-		var n = Notes.getInstance();
-		var c = ClientState.getInstance();
-		var d = n.getData();
+		var d = this.#app.getData();
 		
 		// Add favorites and starred documents with ranks higher than the normal favs, last changed first.
 		var starred = d.getStarredDocs();
@@ -242,12 +235,12 @@ class NoteTree {
 		}
 
 		// Should the currently opened document be shown in the favorites?
-		var currentId = n.getCurrentlyShownId(true);
-		var showCurrentInFavorites = !c.getViewSettings().dontShowCurrentInFavorites;
+		var currentId = this.#app.paging.getCurrentlyShownId(true);
+		var showCurrentInFavorites = !this.#app.state.getViewSettings().dontShowCurrentInFavorites;
 		if (showCurrentInFavorites) currentId = false;
 		
 		// Get favorites as array
-		var favorites = c.getFavorites();
+		var favorites = this.#app.state.getFavorites();
 		var favsSorted = [];
 		for (var prop in favorites) {
 		    if (favorites.hasOwnProperty(prop)) {
@@ -290,8 +283,6 @@ class NoteTree {
 	 * Updates the favorites bar
 	 */
 	updateFavorites() {
-		var c = ClientState.getInstance();
-		
 		var favBar = $('#favBar');
 		if (!favBar) return;
 
@@ -303,15 +294,14 @@ class NoteTree {
 			that.showFavorites(false, true);
 		}
 		
-		var n = Notes.getInstance();
-		var d = n.getData();
+		var d = this.#app.getData();
 		if (!d) {
 			clear();			
 			return;
 		}
 		
 		// We have favorites: Check if the user wants to see them
-		var showFavorites = !c.getViewSettings().dontShowFavorites;
+		var showFavorites = !this.#app.state.getViewSettings().dontShowFavorites;
 		if (!showFavorites) {
 			clear();				
 			return;
@@ -333,10 +323,10 @@ class NoteTree {
 		clear();
 		
 		// Changed favorites: Update them. First we need a container and some other elements.
-		var favSize = c.getViewSettings().favoritesSize;
+		var favSize = this.#app.state.getViewSettings().favoritesSize;
 
 		const teaserWidth = Config.favoritesTeaserWidth;   // Width of the teasers
-		const margin = Device.getInstance().isLayoutMobile() ? Config.favoritesMarginMobile : Config.favoritesMarginDesktop;
+		const margin = this.#app.device.isLayoutMobile() ? Config.favoritesMarginMobile : Config.favoritesMarginDesktop;
 		var leftTeaser = $('<div class="navteaser beforeFavScrollTeaser"></div>')
 			.css('height', (favSize + margin) + 'px')
 			.css('width', teaserWidth);
@@ -378,7 +368,7 @@ class NoteTree {
 		favBar.css('height', (favSize + margin * 2) + 'px');
 		cont.css('height', (favSize + margin) + 'px');
 		
-		var favoritesNum = c.getViewSettings().favoritesNum;
+		var favoritesNum = this.#app.state.getViewSettings().favoritesNum;
 
 		// Add the favorites to the bar
 		for(var i=0; i<favs.starred.length; ++i) {
@@ -419,7 +409,7 @@ class NoteTree {
 		var nameSplit = doc.name.split(" ");
 		if (nameSplit.length == 0) return "[MISSING TEXT]";
 		
-		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
+		var favSize = this.#app.state.getViewSettings().favoritesSize;
 		
 		var ret = "";
 		var i = 0;
@@ -443,7 +433,7 @@ class NoteTree {
 			}
 		}
 		
-		var data = Notes.getInstance().getData();
+		var data = this.#app.getData();
 		
 		while (doc.parent && (lines < maxLines)) {
 			var doc = data.getById(doc.parent);
@@ -458,13 +448,13 @@ class NoteTree {
 	 * Add one favorite to the bar (internal usage only).
 	 */
 	addFavoriteToBar(container, favEntry) {
-		var data = Notes.getInstance().getData();
+		var data = this.#app.getData();
 		if (!data) return;
 		
 		var doc = data.getById(favEntry.id);
 		if (!doc) return;
 		
-		var favSize = ClientState.getInstance().getViewSettings().favoritesSize;
+		var favSize = this.#app.state.getViewSettings().favoritesSize;
 		
 		var nameHtml = this.getFavoriteText(doc);
 		
@@ -494,7 +484,7 @@ class NoteTree {
 			
 			var data = $(event.currentTarget).data();
 			
-			Notes.getInstance().callOptions([data.id], Tools.extractX(event), Tools.extractY(event), {
+			this.#app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event), {
 				showInNavigation: false,      // Show in Navigation (default: hidden)
 				noMove: true,                // Hide move option
 				noCopy: true,                // Hide copy option
@@ -517,7 +507,7 @@ class NoteTree {
 			onGestureFinishCallback: function(event) {
 				event.stopPropagation();
 
-				var d = Notes.getInstance().getData();
+				var d = that.#app.getData();
 				var data = $(event.currentTarget).data();
 				var targetDoc = Document.getTargetDoc(d.getById(data.id));
 
@@ -528,7 +518,7 @@ class NoteTree {
 					that.focus(targetDoc._id);
 				}*/	
 
-				Notes.getInstance().routing.call(targetDoc._id);
+				that.#app.routing.call(targetDoc._id);
 				that.itemClicked(event, data.id);
 			},
 			
@@ -556,7 +546,7 @@ class NoteTree {
 	 * items before (and after) filter() is actually called on the grid.
 	 */
 	updateDomItems(add) {
-		var data = Notes.getInstance().getData();
+		var data = this.#app.getData();
 		if (!data) return;
 		
 		var currentItems = this.grid.grid.getItems();
@@ -589,7 +579,7 @@ class NoteTree {
 			return 0;
 		}
 		
-		var maxSearchResults = Settings.getInstance().settings.maxSearchResults;
+		var maxSearchResults = this.#app.settings.settings.maxSearchResults;
 		if (!maxSearchResults) maxSearchResults = 20;
 		
 		var cnt = 0;
@@ -660,7 +650,7 @@ class NoteTree {
 			return doc.navItemElement;
 		}
 		
-		var data = Notes.getInstance().getData();
+		var data = this.#app.getData();
 		if (!data) return;
 		
 		var li = $('<div class="' + this.behaviour.getItemContentClass() + '" />');
@@ -708,9 +698,9 @@ class NoteTree {
 				callback: function(files, definition, element) {
 					console.log("Dropped " + files.length + " files into " + doc.name);
 					
-					AttachmentActions.getInstance().uploadAttachments(doc._id, files)
+					that.#app.actions.attachment.uploadAttachments(doc._id, files)
 					.catch(function(err) {
-						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
+						that.#app.showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 					});
 				}
 			}
@@ -730,13 +720,13 @@ class NoteTree {
 	prepareDomItems() {
 		if (!Config.preRenderNavigationDomItemsInterval) return;
 		
-		const p = Database.getInstance().profileHandler.getCurrentProfile();
+		const p = this.#app.db.profileHandler.getCurrentProfile();
 		if (!p.autoSync) {
 			//console.log(" -> Skipping pre-rendering of navigation items");
 			return;
 		}
 	
-		const data = Notes.getInstance().getData();
+		const data = this.#app.getData();
 		if (!data) return;
 		
 		//console.log(" -> Starting pre-rendering of navigation items (interval: " + Config.preRenderNavigationDomItemsInterval + "ms, " + data.data.size + " documents)");
@@ -749,7 +739,7 @@ class NoteTree {
 	#doPrepareDomItems() {
 		var that = this;
 		
-		const data = Notes.getInstance().getData();
+		const data = this.#app.getData();
 		if (!data) return;
 		
 		for(var [key, doc] of data.data) {
@@ -792,84 +782,72 @@ class NoteTree {
 	commonButtonHandler(event) {
 		event.stopPropagation();
 		
-		const n = Notes.getInstance();
-		n.hideOptions();
-		n.setFocus(Notes.FOCUS_ID_NAVIGATION);
+		this.#app.hideOptions();
+		this.#app.setFocus(Notes.FOCUS_ID_NAVIGATION);
 	}
 
 	/**
 	 * Handlers for all footer actions
 	 */
 	backHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
-		that.behaviour.backButtonPushed(event);
+		this.commonButtonHandler(event);
+		this.behaviour.backButtonPushed(event);
 	}
 	
 	forwardHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
-		that.behaviour.forwardButtonPushed(event);
+		this.commonButtonHandler(event);
+		this.behaviour.forwardButtonPushed(event);
 	}
 	
 	homeHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
-		that.behaviour.homeButtonPushed(event);
+		this.commonButtonHandler(event);
+		this.behaviour.homeButtonPushed(event);
 	}
 	
 	createHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
-		//that.block();
+		this.commonButtonHandler(event);
 		
-		const n = Notes.getInstance();
-		DocumentActions.getInstance().create(that.behaviour.getNewItemParent())
+		var that = this;
+		this.#app.actions.document.create(this.behaviour.getNewItemParent())
 		.then(function(data) {
-			//that.unblock();
 			if (data.message) {
-				n.showAlert(data.message, "S", data.messageThreadId);
+				that.#app.showAlert(data.message, "S", data.messageThreadId);
 			}
 		})
 		.catch(function(err) {
-			//that.unblock();
-			n.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+			that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 		});
 	}
 	
 	searchNotebookHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
+		this.commonButtonHandler(event);
 
-		that.resetScrollPosition(that.getFocusedId());
+		this.resetScrollPosition(this.getFocusedId());
 		$('#treeSearch').focus();
 	}
 	
 	favoritesHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
+		this.commonButtonHandler(event);
 		
-		Notes.getInstance().editorFavoritesButtonHandler(event);
+		this.#app.editorFavoritesButtonHandler(event);
 	}
 	
 	settingsHandler(event) {
-		var that = NoteTree.getInstance();
-		const newState = !that.isSettingsPanelVisible();
+		const newState = !this.isSettingsPanelVisible();
 
-		that.commonButtonHandler(event);
+		this.commonButtonHandler(event);
 		
 		if (newState) {
-			that.buildSettingsPanel();
-			that.showSettingsPanel(true);
+			this.buildSettingsPanel();
+			this.showSettingsPanel(true);
 		} else {
-			that.showSettingsPanel(false);
+			this.showSettingsPanel(false);
 		}
 	}
 	
 	linkageHandler(event) {
-		var that = NoteTree.getInstance();
-		that.commonButtonHandler(event);
-		that.toggleLinkToEditor();
+		this.commonButtonHandler(event);
+		this.toggleLinkToEditor();
 	}
 	
 	/**
@@ -877,21 +855,20 @@ class NoteTree {
 	 */
 	setupDom() {
 		var that = this;
-		var n = Notes.getInstance();
 		
 		/**
 		 * Handlers for the search bar
 		 */
 		function searchFocusHandler(event) {
 			event.stopPropagation();
-			n.hideOptions();
+			that.#app.hideOptions();
 			if (that.behaviour) that.behaviour.saveScrollPosition();
 			that.showSearchProposals(true);
 		}
 		
 		function searchInputHandler(event) {
 			event.stopPropagation();
-			n.hideOptions();
+			that.#app.hideOptions();
 			that.updateSearch();
 			that.behaviour.afterSetSearchText(that.getSearchText());
 			that.showSearchProposals(that.getSearchText().length == 0);
@@ -907,7 +884,7 @@ class NoteTree {
 		function searchKeydownHandler(event) {
 			if(event.which == 27){
 				event.stopPropagation();
-				n.hideOptions();
+				that.#app.hideOptions();
 				that.setSearchText('');
 				that.showSearchProposals(false);
 		    }
@@ -915,7 +892,7 @@ class NoteTree {
 		
 		function searchCancelHandler(event) {
 			event.stopPropagation();
-			n.hideOptions();
+			that.#app.hideOptions();
 			that.setSearchText('');
 		}
 
@@ -926,14 +903,14 @@ class NoteTree {
 				$('<div id="searchBarTree" class="searchBar searchBarTree"></div>').append(
 					// Search input
 					$('<input autocomplete="off" type="text" id="treeSearch" placeholder="Type text to search..." />')
-					.on('focus', searchFocusHandler)
-					.on('input', searchInputHandler)
-					.on('blur', searchBlurHandler)
-					.on('keydown', searchKeydownHandler),
+					.on('focus', function(e) { return searchFocusHandler(e); })
+					.on('input', function(e) { return searchInputHandler(e); })
+					.on('blur', function(e) { return searchBlurHandler(e); })
+					.on('keydown', function(e) { return searchKeydownHandler(e); }),
 					
 					// Cancel button for search
 					$('<div id="searchCancelButton" class="searchCancelButton fa fa-times"></div>')
-					.on('click', searchCancelHandler),
+					.on('click', function(e) { return searchCancelHandler(e); }),
 					
 					// Search proposals
 					$('<div id="treeSearchProposals"></div>')
@@ -955,43 +932,7 @@ class NoteTree {
 				$('<span id="treeteasertext" style="display: none;">No items to show</span>')
 			),
 			
-			//Device.getInstance().isLayoutMobile() ? null : $('<div id="footer"></div>'),
 			$('<div id="navFooter" class="footer"></div>'),
-			
-			/*
-			n.useFooter() ? null : $('<div id="' + this.treeRootModeSwitchContainer + '" />').append(
-				// Back Button
-				$('<div data-toggle="tooltip" title="Back" class="fa fa-arrow-left treeModeSwitchbutton roundedButton" id="treeBackButton"></div>')
-					.on('click', this.backHandler),
-					
-				// Forward Button
-				$('<div data-toggle="tooltip" title="Forward" class="fa fa-arrow-right treeModeSwitchbutton roundedButton" id="treeForwardButton"></div>')
-					.on('click', this.forwardHandler),
-
-				// Home Button
-				$('<div data-toggle="tooltip" title="Home" class="fa fa-home treeModeSwitchbutton roundedButton" id="treeHomeButton"></div>')
-					.on('click', this.homeHandler),
-				
-				// Create note
-				$('<div data-toggle="tooltip" title="Create Document" class="fa fa-plus treeModeSwitchbutton roundedButton"></div>')
-					.on('click', this.createHandler),
-			),
-			
-			n.useFooter() ? null : $('<div id="' + this.treeRootSettingsSwitchContainer + '" />').append(
-				// Settings Button
-				$('<div data-toggle="tooltip" title="Navigation Settings" class="fa fa-cog treeModeSwitchbutton roundedButton" id="treeSettingsButton"></div>')
-					.on('click', this.settingsHandler),
-					/*.append(
-						$('<div id="treeSettingsPanel"></div>')
-						.on('click', function(event) {
-							event.stopPropagation();
-						})
-					),*
-				
-				// Link navigation to editor Button
-				$('<div data-toggle="tooltip" title="" class="fa fa-link treeModeSwitchbutton roundedButton" id="treeLinkButton"></div>')
-					.on('click', this.linkageHandler)
-			),*/
 			
 			$('<div id="treeSettingsPanel"></div>')
 				.on('click', function(event) {
@@ -1008,16 +949,16 @@ class NoteTree {
 				callback: function(files, definition, element) {
 					console.log("Dropped " + files.length + " files into navigation container");
 					
-					AttachmentActions.getInstance().uploadAttachments(that.behaviour.getNewItemParent(), files)
+					that.#app.actions.attachment.uploadAttachments(that.behaviour.getNewItemParent(), files)
 					.catch(function(err) {
-						Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
+						that.#app.showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 					});
 				}
 			}
 		]);
 
 		// Action callbacks
-		/*Callbacks.getInstance().registerCallback(
+		/*this.#app.callbacks.registerCallback(
 			'tree',
 			'requestTree',
 			function(data) {
@@ -1025,36 +966,35 @@ class NoteTree {
 				that.init();
 			}
 		);*/
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'setStar',
 			function(doc) {
 				that.refresh(); //updateFavorites();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'loadDocument',
 			function(docs) {
 				that.updateSelectedState(true);
 				for(var d in docs) {
-					var persDoc = Notes.getInstance().getData() ? Notes.getInstance().getData().getById(docs[d]._id) : null;
+					var persDoc = that.#app.getData() ? that.#app.getData().getById(docs[d]._id) : null;
 					if (persDoc) {
 						that.behaviour.afterRequest(persDoc._id);
 					}
 				}
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'openDocument',
 			function(doc) {
-				var n = Notes.getInstance();
-				n.triggerUnSyncedCheck();
-				n.addFavorite(doc);
+				that.#app.triggerUnSyncedCheck();
+				that.#app.addFavorite(doc);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'create',
 			function(newIds) {
@@ -1067,14 +1007,14 @@ class NoteTree {
 				}, 0);*/
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'save',
 			function(doc) {
 				that.behaviour.afterSave(doc);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'moveDocumentBeforeSave',
 			function(data) {
@@ -1083,21 +1023,21 @@ class NoteTree {
 
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'moveDocumentAfterSave',
 			function(data) {
 				return that.behaviour.afterDrop(data.docsSrc, data.docTarget, data.moveToSubOfTarget);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'requestConflict',
 			function(data) {
 				that.updateSelectedState(true);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'delete',
 			function(docs) {
@@ -1107,7 +1047,7 @@ class NoteTree {
 				that.behaviour.afterDelete(docs);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'rename',
 			function(data) {
@@ -1115,7 +1055,7 @@ class NoteTree {
 				that.init();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'copy',
 			function(data) {
@@ -1123,7 +1063,7 @@ class NoteTree {
 				that.init();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'saveLabels',
 			function(data) {
@@ -1131,7 +1071,7 @@ class NoteTree {
 				that.init(true);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'saveLabelDefinitions',
 			function(data) {
@@ -1139,7 +1079,7 @@ class NoteTree {
 				that.init(true);
 			}
 		);
-		Callbacks.getInstance().registerCallback(
+		this.#app.callbacks.registerCallback(
 			'tree',
 			'importFinished',
 			function(data) {
@@ -1153,37 +1093,37 @@ class NoteTree {
 	 * Set up the footer for mobiles.
 	 */	
 	setupFooter() {
-		const n = Notes.getInstance();
+		var that = this;
 		
-		//if (n.useFooter()) {
-		n.setFooterContent([
+		//if (this.#app.useFooter()) {
+		this.#app.setFooterContent([
 			// Back Button
 			$('<div class="fa fa-chevron-left footerButton" id="treeBackButton" data-toggle="tooltip" title="Navigate back"></div>')
-				.on('click', this.backHandler),
+				.on('click', function(e) { return that.backHandler(e); }),
 				
 			// Forward Button
 			$('<div class="fa fa-chevron-right footerButton" id="treeForwardButton" data-toggle="tooltip" title="Navigate forward"></div>')
-				.on('click', this.forwardHandler),
+				.on('click', function(e) { return that.forwardHandler(e); }),
 
 			// Home Button
 			$('<div class="fa fa-home footerButton" id="treeHomeButton" data-toggle="tooltip" title="Go to the notebook home in the navigation panel"></div>')
-				.on('click', this.homeHandler),
+				.on('click', function(e) { return that.homeHandler(e); }),
 			
 			// Create note
 			$('<div class="fa fa-plus footerButton" data-toggle="tooltip" title="Create new item"></div>')
-				.on('click', this.createHandler),
+				.on('click', function(e) { return that.createHandler(e); }),
 				
 			// Search
 			$('<div class="fa fa-search footerButton" data-toggle="tooltip" title="Search notebook"></div>')
-			.on('click', this.searchNotebookHandler) 
+			.on('click', function(e) { return that.searchNotebookHandler(e); }) 
 			//.on('click', this.favoritesHandler) 
 			
 			// Link navigation to editor Button
 			/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
-				.on('click', this.linkageHandler)*/
+				.on('click', function(e) { return that.linkageHandler(e); })*/
 		]);/*
 		} else {
-			n.setFooterContent();
+			this.#app.setFooterContent();
 		}*/
 	}
 	
@@ -1191,36 +1131,31 @@ class NoteTree {
 	 * Toggles linkage to the editor.
 	 */
 	toggleLinkToEditor() {
-		var linkToEditor = ClientState.getInstance().getLinkageMode('nav');
+		var linkToEditor = this.#app.state.getLinkageMode('nav');
 		
 		linkToEditor = ((linkToEditor == 'on') ? 'off' : 'on');
 		
-		ClientState.getInstance().setLinkageMode('nav', linkToEditor);			
+		this.#app.state.setLinkageMode('nav', linkToEditor);			
 		
 		this.updateLinkageButtons();
 		
 		if (linkToEditor == 'on') {
-			var id = Notes.getInstance().getCurrentlyShownId();
+			var id = this.#app.paging.getCurrentlyShownId();
 			if (id) this.editorOpened(id);	
 		}
 	}
 	
 	updateLinkageButtons() {
-		if (Device.getInstance().isLayoutMobile()) {
+		if (this.#app.device.isLayoutMobile()) {
 			$('#treeLinkButton').css('display', 'none');
 			return;
 		}
 		
-		var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
+		var linkToEditor = this.#app.state.getLinkageMode('nav')
 		$('#treeLinkButton').css('display', (!this.supportsLinkNavigationToEditor()) ? 'none' : 'block');
 		
-		//if (Notes.getInstance().useFooter()) {
 		$('#treeLinkButton').css('background-color', '');
 		$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#c40cf7' : '');			
-		/*} else {
-			$('#treeLinkButton').css('background-color', (linkToEditor == 'on') ? '#c40cf7' : '#ffffff');
-			$('#treeLinkButton').css('color', (linkToEditor == 'on') ? '#ffffff' : '#000000');
-		}*/
 		
 		$('#treeLinkButton').attr('title', (linkToEditor == 'on') ? 'Unlink navigation from editor' : 'Link navigation to editor');
 	}
@@ -1239,7 +1174,7 @@ class NoteTree {
 	 * Used by the behaviours to get the currently shown ID (editors only)
 	 */
 	getCurrentlyShownId() {
-		return Notes.getInstance().getCurrentlyShownId(true);
+		return this.#app.paging.getCurrentlyShownId(true);
 	}
 	
 	/**
@@ -1249,17 +1184,16 @@ class NoteTree {
 		if (!id) return;
 		if (!this.supportsLinkEditorToNavigation()) return;
 
-		var n = Notes.getInstance();
-		
-		if (n.getCurrentEditor()) {
+		if (this.#app.paging.getCurrentEditor()) {
 			// If a note editor is loaded, we just redirect to the document. To prevent endless 
 			// re-linking, we also remember the id which has been called by linkage.
 			this.lastOpenedLinkTarget = id;
 
 			this.openNode(id);
+			
 		} else {
 			// Other pages: Call the respective callback if the page implements it
-			var page = n.getCurrentPage();
+			var page = this.#app.paging.getCurrentPage();
 			if (page && 
 			       (typeof page.supportsLinkageFromNavigation == 'function') && 
 			       page.supportsLinkageFromNavigation() &&
@@ -1286,19 +1220,10 @@ class NoteTree {
 		}
 		this.lastOpenedLinkTarget = false;
 		
-		// Focus if linked
-		/*if (Device.getInstance().isLayoutMobile()) {
-			var doc = Notes.getInstance().getData().getById(id);
-			if (doc) {
-				this.focus(doc.parent, true);
-				this.setSelected(id);				
-			} 			
-		} else {*/
-			var linkToEditor = ClientState.getInstance().getLinkageMode('nav')
-			if (linkToEditor == 'on') {
-				this.focus(id, true);
-			}			
-		//}
+		var linkToEditor = this.#app.state.getLinkageMode('nav')
+		if (linkToEditor == 'on') {
+			this.focus(id, true);
+		}			
 	}
 	
 	/*addPageToHistory(url) {
@@ -1349,13 +1274,13 @@ class NoteTree {
 					.append(
 						$('<td>Mode</td>'),
 						$('<td></td>').append(
-							Behaviours.getModeSelector('treeModeSelectorList', ClientState.getInstance().getViewSettings().navMode)
+							Behaviours.getModeSelector('treeModeSelectorList', this.#app.state.getViewSettings().navMode)
 							.on('change', function(event) {
-								Notes.getInstance().hideOptions();
+								that.#app.hideOptions();
 								
-								var s = ClientState.getInstance().getViewSettings();
-								s.navMode = this.value; //Behaviours.getNextNavMode();
-								ClientState.getInstance().saveViewSettings(s);
+								var s = that.#app.state.getViewSettings();
+								s.navMode = this.value; 
+								that.#app.state.saveViewSettings(s);
 		
 								that.refresh();
 							})
@@ -1374,9 +1299,7 @@ class NoteTree {
 		$('#treeSettingsPanel').css('display', doShow ? 'block' : 'none');
 		
 		if (doShow) {
-			const n = Notes.getInstance();
-			
-			$('#treeSettingsPanel').css('bottom', Device.getInstance().isLayoutMobile() ? '8px' : ((n.getRoundedButtonSize() * 2 + 30) + 'px'));
+			$('#treeSettingsPanel').css('bottom', this.#app.device.isLayoutMobile() ? '8px' : ((this.#app.getRoundedButtonSize() * 2 + 30) + 'px'));
 		}
 	}
 	
@@ -1414,9 +1337,7 @@ class NoteTree {
 			this.#setSelectedAndScrollTo(bookmark);
 		}
 		
-		Notes.getInstance().toggleShowNavigation(true);
-				
-		//this.setSelected(id);	
+		this.#app.toggleShowNavigation(true);
 	}
 	
 	#setSelectedAndScrollTo(id) {
@@ -1424,7 +1345,7 @@ class NoteTree {
 		setTimeout(function() {
 			that.setSelected(id);				
 			that.scrollToDocument(id);				
-		}, MuuriGrid.getAnimationDuration() * 1.4);
+		}, MuuriGrid.getAnimationDuration(this.#app) * 1.4);
 	}
 	
 	/**
@@ -1440,19 +1361,17 @@ class NoteTree {
 	 * by calling a route.
 	 */
 	highlightDocument(id, noRouting) {
-		var n = Notes.getInstance();
-		
 		if (!id) {
 			if (noRouting) {
 				this.focus();
 			} else {
-				n.home();
+				this.#app.home();
 			}
 			return;
 		}
-		var doc = n.getData().getById(id);
+		var doc = this.#app.getData().getById(id);
 		if (!doc) {
-			n.showAlert("Document " + id + " not found");
+			this.#app.showAlert("Document " + id + " not found");
 			return;
 		}	
 		
@@ -1461,7 +1380,7 @@ class NoteTree {
 			this.#setSelectedAndScrollTo(id);
 		} else {
 			this.bookmarkSelectedForNextFocus(id);		
-			n.routing.callProfileRootWithSelectedId(doc.parent);	
+			this.#app.routing.callProfileRootWithSelectedId(doc.parent);	
 		}
 	}
 	
@@ -1471,22 +1390,20 @@ class NoteTree {
 	 * See als consumeBookmarkDocumentForNextFocus().
 	 */
 	bookmarkSelectedForNextFocus(id) {
-		var c = ClientState.getInstance();
-		var tmpVs = c.getTemporaryViewSettings();
+		var tmpVs = this.#app.state.getTemporaryViewSettings();
 		
 		tmpVs.bookmarkSelectedDocument = id;
 		
-		c.saveTemporaryViewSettings(tmpVs);
+		this.#app.state.saveTemporaryViewSettings(tmpVs);
 	}
 	
 	consumeBookmarkDocumentForNextFocus() {
-		var c = ClientState.getInstance();
-		var tmpVs = c.getTemporaryViewSettings();
+		var tmpVs = this.#app.state.getTemporaryViewSettings();
 		
 		var ret = tmpVs.bookmarkSelectedDocument ? tmpVs.bookmarkSelectedDocument : null;
 		
 		tmpVs.bookmarkSelectedDocument = null;
-		c.saveTemporaryViewSettings(tmpVs);
+		this.#app.state.saveTemporaryViewSettings(tmpVs);
 		
 		return ret;
 	}
@@ -1502,10 +1419,10 @@ class NoteTree {
 	 * Get behaviour instance depending on the view mode. Called on init().
 	 */
 	initBehaviour() {
-		var cs = ClientState.getInstance().getViewSettings();
+		var cs = this.#app.state.getViewSettings();
 		if (!this.behaviour || (cs.navMode != this.navMode)) {
 			this.destroy();
-			this.behaviour = Behaviours.get(cs.navMode, this);
+			this.behaviour = Behaviours.get(this.#app, cs.navMode, this);
 		} else {
 			this.behaviour.reset();
 		}
@@ -1550,7 +1467,7 @@ class NoteTree {
 	 */
 	refresh() {
 		if (!this.grid) return;
-		ClientState.getInstance().saveTreeState();
+		this.#app.state.saveTreeState();
 		this.init(true);
 	}
 	
@@ -1574,12 +1491,10 @@ class NoteTree {
 	 * Opens a document by its id. Called by event handlers etc.
 	 */
 	openNode(id) { //, noFocus) {
-		var n = Notes.getInstance();
-		
 		//if (!noFocus) this.behaviour.focus(id);
 		
 		// Open the note/document
-		n.routing.call(id);			
+		this.#app.routing.call(id);			
 	}
 	
 	/**
@@ -1588,8 +1503,6 @@ class NoteTree {
 	setSelected(id) {
 		var alreadySelected = false;
 		if (this.selected == id) {
-			//ClientState.getInstance().saveTreeState();
-			//return;
 			alreadySelected = true;
 		}
 		
@@ -1600,7 +1513,7 @@ class NoteTree {
 
 		this.selected = id;
 		
-		ClientState.getInstance().saveTreeState();
+		this.#app.state.saveTreeState();
 		
 		if (this.selected) {
 			var item = this.getItemContent(this.selected)
@@ -1635,7 +1548,7 @@ class NoteTree {
 		
 		// If nothing is selected, select the opened note if any.
 		if (selectOpened && !this.selected) {
-			var e = Notes.getInstance().getCurrentEditor();
+			var e = this.#app.paging.getCurrentPage();
 			if (!e) return;
 			
 			var opened = e.getCurrentId();
@@ -1660,9 +1573,9 @@ class NoteTree {
 	 * Returns the tree text size
 	 */
 	getTreeTextSize() {
-		var g = ClientState.getInstance().getLocalSettings();
+		var g = this.#app.state.getLocalSettings();
 		if (g) {
-			if (Device.getInstance().isLayoutMobile()) {
+			if (this.#app.device.isLayoutMobile()) {
 				if (g.navTextSizeMobile) {
 					return parseFloat(g.navTextSizeMobile);
 				}
@@ -1674,7 +1587,7 @@ class NoteTree {
 		}
 		
 		// Default
-		return Device.getInstance().isLayoutMobile() ? Config.defaultNavigationTextSizeMobile : Config.defaultNavigationTextSizeDesktop;
+		return this.#app.device.isLayoutMobile() ? Config.defaultNavigationTextSizeMobile : Config.defaultNavigationTextSizeDesktop;
 	}
 	
 	/**
@@ -1696,7 +1609,7 @@ class NoteTree {
 	 * Returns the width of the nav panel. Only relevant in non-mobile mode.
 	 */
 	getContainerWidth() {
-		var state = ClientState.getInstance().getTreeState();
+		var state = this.#app.state.getTreeState();
 		return (state && state.treeWidth) ? state.treeWidth : Config.defaultTreeWidth;
 	}
 	
@@ -1717,7 +1630,7 @@ class NoteTree {
 			this.behaviour.afterSetSearchText(txt, data);
 		}
 		
-		if (txt) Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
+		if (txt) this.#app.setFocus(Notes.FOCUS_ID_NAVIGATION);
 		
 		return this.updateSearch();
 	}
@@ -1734,7 +1647,7 @@ class NoteTree {
 			return new Promise(function(resolve) {
 				that.filter(true);
 				
-				ClientState.getInstance().addSearchProposal(text);
+				that.#app.state.addSearchProposal(text);
 					
 				resolve({ ok: true });
 			});
@@ -1799,7 +1712,7 @@ class NoteTree {
 				'<br>';
 				
 
-			var props = ClientState.getInstance().getSearchProposals();
+			var props = this.#app.state.getSearchProposals();
 			for(var i in props) {
 				if (typeof props[i] != 'object') continue;
 				
@@ -1831,20 +1744,11 @@ class NoteTree {
 	 * Update the state of history buttons.
 	 */
 	updateHistoryButtons() {
-		Notes.getInstance().updateHistoryButtons();
+		this.#app.updateHistoryButtons();
 	}
 	
 	getHistory() {
 		return this.behaviour.getHistory();
-	}
-	
-	/**
-	 * Returns an object containing info about the neighboring documents for ID.
-	 *
-	getNeighborsFor(id, parentId) {
-		if (!this.behaviour) return {};
-		
-		return this.behaviour.getNeighborsFor(id, parentId);
 	}
 	
 	/**
@@ -1866,10 +1770,6 @@ class NoteTree {
 		var that = this;
 
 		if (this.filterRunning) {
-			/*if (this.nextFilter) {
-				console.log("Skipping filter");	
-			}*/
-			
 			// Already filter running: Specify the next one to perform.
 			this.nextFilter = {
 				noAnimations: noAnimations,
@@ -1880,7 +1780,7 @@ class NoteTree {
 		// No filter running: Directly run it. 
 		//console.log("Starting new filter (queue length: " + this.filterQueue.length + ")");
 		
-		that.filterRunning = true;
+		this.filterRunning = true;
 		return this.#filterInternal(noAnimations)
 		.then(function() {
 			that.filterRunning = false;
@@ -1906,7 +1806,6 @@ class NoteTree {
 		
 		var searchText = this.getSearchText();
 
-		var n = Notes.getInstance();
 		var that = this;
 		function doFilter(resolve/*, reject*/) {
 			that.updateDomItems(true);
@@ -1934,7 +1833,7 @@ class NoteTree {
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
 					
-					if (Device.getInstance().isLayoutMobile()) that.refreshColors();
+					if (that.#app.device.isLayoutMobile()) that.refreshColors();
 					//that.behaviour.restoreScrollPosition();
 					//console.log("Stop Filter")
 					resolve();
@@ -1946,7 +1845,7 @@ class NoteTree {
 					that.grid.refresh();
 					that.behaviour.afterFilter(noAnimations);
 					
-					if (Device.getInstance().isLayoutMobile()) that.refreshColors();
+					if (that.#app.device.isLayoutMobile()) that.refreshColors();
 					//that.behaviour.restoreScrollPosition();
 					//console.log("Stop Filter")
 					resolve();
@@ -1955,7 +1854,7 @@ class NoteTree {
 		}
 		
 		if (searchText.length > 0) {
-			return DocumentAccess.getInstance().loadAllDocuments()
+			return this.#app.actions.document.loadAllDocuments()
 			.then(function() { 
 				return new Promise(function(resolve/*, reject*/) {
 					//console.log("Start Filter")
@@ -1987,31 +1886,31 @@ class NoteTree {
 		var srcId = src.data().id;
     	var tarId = tar.data().id;
 
-		var srcDoc = Notes.getInstance().getData().getById(srcId);
+		var srcDoc = this.#app.getData().getById(srcId);
     	var srcName = srcDoc.name;
-    	var tarName = tarId ? Notes.getInstance().getData().getById(tarId).name : 'Notebook root';
+    	var tarName = tarId ? this.#app.getData().getById(tarId).name : 'Notebook root';
     	
     	const srcCanBeMoved = this.canBeMoved(srcId);
     	if (!srcCanBeMoved && moveToSubOfTarget) {
-			Notes.getInstance().showAlert("Cannot move this document.", "I");
+			this.#app.showAlert("Cannot move this document.", "I");
 			return;
 		}
     	
-    	var doAsk = srcCanBeMoved && Settings.getInstance().settings.askBeforeMoving;
+    	var doAsk = srcCanBeMoved && this.#app.settings.settings.askBeforeMoving;
     	if (doAsk && !confirm("Move " + srcName + " to " + tarName + "?")) {
-			Notes.getInstance().showAlert("Moving cancelled.", "I");
+			this.#app.showAlert("Moving cancelled.", "I");
 			return;
 		}
     	
     	if (srcCanBeMoved) {
-	    	DocumentActions.getInstance().moveDocuments([srcId], tarId, moveToSubOfTarget)
+	    	this.#app.actions.document.moveDocuments([srcId], tarId, moveToSubOfTarget)
 	    	.catch(function(err) {
-	    		Notes.getInstance().showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+	    		this.#app.showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 	    	});
 		} else {
-	    	DocumentActions.getInstance().saveChildOrders(srcDoc.parent)
+	    	this.#app.actions.document.saveChildOrders(srcDoc.parent)
 	    	.catch(function(err) {
-	    		Notes.getInstance().showAlert("Error reordering documents: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+	    		this.#app.showAlert("Error reordering documents: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 	    	});			
 		}
 	}
@@ -2021,8 +1920,6 @@ class NoteTree {
 	 * Returns a list of IDs which have been touched.
 	 */
 	reorderVisibleSiblings(doc, simulate) {
-		var n = Notes.getInstance();
-		
 		var no = 1;
     	var all = this.grid.grid.getItems();
 
@@ -2031,7 +1928,7 @@ class NoteTree {
 			var childId = $(this.getGridItemContent(all[i])).data().id;
 			if (!childId) continue;
 			
-			var childDoc = n.getData().getById(childId);
+			var childDoc = this.#app.getData().getById(childId);
 			if (!this.behaviour.isItemVisible(childDoc, this.getSearchText())) continue; //childDoc.parent != id) continue;
 			
 			var parentId = this.behaviour.getParentId(doc);
@@ -2065,7 +1962,7 @@ class NoteTree {
 	callOptionsWithId(ids, pageX, pageY) {
 		this.behaviour.saveScrollPosition();
 		
-		Notes.getInstance().callOptions(ids, pageX, pageY);
+		this.#app.callOptions(ids, pageX, pageY);
 		
 		this.behaviour.callItemOptions(ids, pageX, pageY);
 
@@ -2077,7 +1974,7 @@ class NoteTree {
 	 */
 	refreshColors(id, element) {
 		var that = this;
-		var d = Notes.getInstance().getData();
+		var d = this.#app.getData();
 		var recursive = this.behaviour.enableRecursiveColors();
 
 		// Helpers to get the colors recursively
@@ -2130,6 +2027,6 @@ class NoteTree {
 	 * Called by the behaviours on item clicks.
 	 */
 	itemClicked(event, id) {
-		Notes.getInstance().setFocus(Notes.FOCUS_ID_NAVIGATION);
+		this.#app.setFocus(Notes.FOCUS_ID_NAVIGATION);
 	}
 }
