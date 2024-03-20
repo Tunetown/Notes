@@ -85,7 +85,7 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/css/DetailBehaviour.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/ReferenceBehaviour.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/Misc.css', tag: 'link', type: 'stylesheet' },
-    { src: './ui/app/css/Board.css', tag: 'link', type: 'stylesheet' },
+    { src: './ui/app/css/BoardEditor.css', tag: 'link', type: 'stylesheet' },
     { src: './ui/app/css/RichtextEditor.css', tag: 'link', type: 'stylesheet' },
     
 	/**
@@ -185,8 +185,8 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/pages/base/RestorableEditor.js', tag: 'script', type: 'text/javascript' },
 
     { src: './ui/app/src/pages/editors/RichtextEditor.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/editors/Board.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/editors/Code.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/pages/editors/BoardEditor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/pages/editors/CodeEditor.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/pages/Profiles.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/Conflict.js', tag: 'script', type: 'text/javascript' },
@@ -195,7 +195,7 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/pages/Hashtags.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/Versions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/VersionView.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/AttachmentPreview.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/pages/AttachmentPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/Console.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/Trash.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/pages/RawView.js', tag: 'script', type: 'text/javascript' },

@@ -475,7 +475,7 @@ class SettingsContent {
 					}),
 					
 					!(this.#app.settings.settings.defaultNoteEditor && this.#app.settings.settings.defaultNoteEditor == 'code') ? null : 
-					Code.getLanguageSelector(this.#app.settings.settings.defaultCodeLanguage ? this.#app.settings.settings.defaultCodeLanguage : 'markdown')
+					CodeEditor.getLanguageSelector(this.#app.settings.settings.defaultCodeLanguage ? this.#app.settings.settings.defaultCodeLanguage : 'markdown')
 					.on('change', function(event) {
 						var s = that.#app.settings;
 						

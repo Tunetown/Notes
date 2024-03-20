@@ -48,7 +48,7 @@ class TrashActions {
 				});
 			}
 			
-			that.#app.loadPage(new TrashPage(data.rows));
+			that.#app.loadPage(new TrashPage(), data.rows);
 			
 			return Promise.resolve({
 				ok: true

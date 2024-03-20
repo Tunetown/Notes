@@ -19,8 +19,46 @@
 class Page {  
 	
 	_app = null;
-	_tab = null;
+	_tab = null;    // Reference to the tab where the page is loaded in
+	
+	/**
+	 * Must be implemented in child classes to load the page. unload has
+	 * been called before, no need to clean up.
+	 */
+	async load(data) {
+		throw new Exception('Must be implemented in child classes of Page');
+	}
 
+	/**
+	 * Must be implemented in child classes to unload the page.
+	 */
+	async unload() {
+		throw new Exception('Must be implemented in child classes of Page');
+	}
+
+	/**
+	 * Returns the current document. Must be implemented in child classes.
+	 */
+	getCurrentDoc() {
+		return null;
+	}
+	
+	/**
+	 * Returns the current document's ID. Must be implemented in child classes.
+	 */
+	getCurrentId() {
+		return false;
+	}
+
+	/**
+	 * Optional override for the focus ID (TODO still necessary?)
+	 */
+	overrideFocusId() {
+		return false;
+	}
+
+	////////////////////////////////////////////////////////////////////////////////////////////
+	
 	/**
 	 * Set main application instance. Must be called before usage.
 	 */
@@ -33,32 +71,5 @@ class Page {
 	 */
 	setTab(tab) {
 		this._tab = tab;
-	}
-	
-	/**
-	 * Must be implemented in child classes to load the page.
-	 */
-	async load(doc) {
-		throw new Exception('Must be overridden in child classes');
-	}
-
-	/**
-	 * Unload the page
-	 */
-	async unload() {
-	}
-	
-	/**
-	 * Returns the current ID
-	 */
-	getCurrentId() {
-		return false;
-	}
-	
-	/**
-	 * Optional override for the focus ID
-	 */
-	overrideFocusId() {
-		return false;
 	}
 }

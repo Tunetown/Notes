@@ -63,7 +63,8 @@ class Notes {
 		            if (e && e.isDirty()) {
 		            	e.stopDelayedSave();
 		            	 
-		            	that.showAlert("Saving " + e.getCurrentId() + "...", "I", "SaveMessages");  // TODO name instead of ID 
+		            	var name2show = e.getCurrentDoc() ? e.getCurrentDoc().name : e.getCurrentId();
+		            	that.showAlert("Saving " + name2show + "...", "I", "SaveMessages");   
 		            
 		            	that.actions.document.save(e.getCurrentId(), e.getContent())
 						.then(function(data) {
@@ -322,8 +323,14 @@ class Notes {
 	/**
 	 * Loads a new page
 	 */
-	loadPage(newPage) {
-		this.paging.loadPage(newPage);
+	loadPage(newPage, data) {
+		var that = this;
+		
+		this.paging.loadPage(newPage, data)
+		.catch(function(err) {
+			that.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+		});
+
 	}
 	
 	/**
@@ -665,22 +672,18 @@ class Notes {
 				this.actions.document.save(e.getCurrentId(), e.getContent())
 				.then(function(data) {
 	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
-	        		e.unload();
 	        	})
 				.catch(function(err) {
 	        		that.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
-	        		e.unload();
 	        	});
-			} else {
-				e.unload();	
 			}
 		}
 
+		this.paging.unload();
+		
 		this.setHeaderSelector();
 		this.allowViewportScaling(false);
 		this.hideMenu();
-		
-		this.paging.clear();
 		
 		this.setButtons(null, true);
 		
@@ -901,9 +904,9 @@ class Notes {
 					this.paging.getContainer().append(teaser),
 					
 					// Note Editor (for TinyMCE this is needed separately)
-					RichtextEditor.getContainerDom(teaser),  // TODO
+					//RichtextEditor.getContainerDom(teaser),  // TODO cleanup
 					
-					// Console
+					// Console  TODO use normal container
 					$('<div id="console" class="mainPanel"/>')				
 				])
 				.on('click', function(event) {

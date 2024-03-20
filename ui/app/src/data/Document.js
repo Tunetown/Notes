@@ -221,9 +221,10 @@ class Document {
 			}
 		}
 
-		AttachmentPreview.checkBasicProps(doc, errors);
-		Code.checkBasicProps(doc, errors);
-		Board.checkBasicProps(doc, errors);
+		// TODO solve otherwise
+		AttachmentPage.checkBasicProps(doc, errors);
+		CodeEditor.checkBasicProps(doc, errors);
+		BoardEditor.checkBasicProps(doc, errors);
 		
 		// Check label definitions and labels.
 		LabelDefinitions.check(doc, errors, allDocs);
@@ -964,12 +965,12 @@ class Document {
 		if (doc.type == 'note') {
 			if (doc.editor) {
 				switch(doc.editor) {
-				case 'board': return new Board();
+				case 'board': return new BoardEditor();
 				case 'richtext': return new RichtextEditor();
-				case 'code': return new Code();
+				case 'code': return new CodeEditor();
 				}
 			} else {
-				return new Code();  // formerly RichtextEditor TODO test
+				return new CodeEditor();  // formerly RichtextEditor TODO test
 			}
 		}
 		
@@ -1767,7 +1768,7 @@ class Document {
 	
 	/**
 	 * Returns a sort criteria which sorts the items correctly in a hierarchical tree manner. 
-	 * Only used in tree behaviour and (indirect) in Board.js (see sortHierarchically()).
+	 * Only used in tree behaviour and (indirect) in BoardEditor.js (see sortHierarchically()).
 	 */
 	static getHierarchicalSortOrderCriteria(doc) {
 		var paddedName = doc.name;

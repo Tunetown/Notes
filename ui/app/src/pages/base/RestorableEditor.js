@@ -29,5 +29,6 @@ class RestorableEditor extends Editor {
 	 * Sets data which has to be loaded instead the data passed in load()
 	 */
 	setVersionRestoreData(data) {
+		throw new Exception('Must be implemented in child classes of RestorableEditor');
 	}
 }

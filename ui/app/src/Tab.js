@@ -19,19 +19,42 @@
 class Tab {  
 	
 	#app = null;
-	#container = null;     // JQuery element
-	
+	#container = null;     // JQuery element containing the pages. 
+
 	#currentPage = null;   // Page or Editor object
 	
-	constructor(app) { 
+	constructor(app, container) { 
 		this.#app = app;
 		this.#container = container;	
 	}
 
 	/**
-	 * Clear content container
+	 * Loads a page or editor instance. The pages have to be loaded 
+	 * with content before being passed here.
 	 */
-	clear() {
+	async loadPage(newPageInstance, data) {
+		if (!(newPageInstance instanceof Page)) throw new Exception('Invalid page');
+		
+		// Set references
+		newPageInstance.setApp(this.#app);
+		newPageInstance.setTab(this);
+		
+		this.#currentPage = newPageInstance;
+		
+		that.getContainer().show();
+		
+		await this.#currentPage.load(data);
+	}
+	
+	/**
+	 * Unload the page if any
+	 */
+	async unload() {
+		if (this.#currentPage) {
+			await this.#currentPage.unload();
+		}
+		this.#currentPage = null;
+		
 		this.#container.empty();
 		this.#container.css('background', '');
 		this.#container.scrollTop(0);
@@ -39,39 +62,7 @@ class Tab {
 		this.#container.off('contextmenu');	
 	}
 	
-	/**
-	 * Hide tab
-	 */
-	hide() {
-		this.#container.hide();
-	}
-	
-	/**
-	 * Show tab
-	 */
-	show() {
-		this.#container.show();
-	}
-	
-	/**
-	 * Returns the JQuery DOM element of the tab
-	 */
-	getContainer() {
-		return this.#container;
-	}
-	
-	/**
-	 * Loads a page or editor instance. 
-	 */
-	loadPage(newPage) {
-		if (!(newPage instanceof Page)) throw new Exception('Invalid page');
-		
-		// Set references
-		newPage.setApp(this.#app);
-		newPage.setTab(this);
-		
-		this.#currentPage = newPage;
-	}
+	//////////////////////////////////////////////////////////////////////////////////
 
 	/**
 	 * Returns the current editor. If the loaded page is just a page 
@@ -92,26 +83,42 @@ class Tab {
 	 * Returns the currently shown document's ID
 	 */
 	getCurrentlyShownId(editorsOnly) {
-		if (this.#currentPage) {
-			if (editorsOnly && !(this.#currentPage instanceof Editor)) return false;
-			
-			return this.#currentPage.getCurrentId();
-		} 
+		if (!this.#currentPage) return false;
+		if (editorsOnly && !(this.#currentPage instanceof Editor)) return false;
 		
-		return false;
+		return this.#currentPage.getCurrentId();
 	}
 
 	/**
-	 * If there is an editor opened, reload it from database.
-	 */	
-	reloadCurrentPage() {
-		var currentId = this.getCurrentlyShownId();
-		if (!currentId) return Promise.resolve();     // No page loaded
-		
-		var that = this;
-		return this.#app.documentAccess.loadDocumentsById([currentId])
-		.then(function() {
-			return that.#currentPage.load(that.#app.getData().getById(currentId));
-		});
+	 * Returns the currently shown document
+	 */
+	getCurrentlyShownDoc(editorsOnly) {
+		if (!this.#currentPage) return null;	
+		if (editorsOnly && !(this.#currentPage instanceof Editor)) return null;
+			
+		return this.#currentPage.getCurrentDoc();
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Returns the JQuery DOM element of the tab
+	 */
+	getContainer() {
+		return this.#container;
+	}
+
+	/**
+	 * Hide tab
+	 */
+	hide() {
+		this.#container.hide();
+	}
+	
+	/**
+	 * Show tab
+	 */
+	show() {
+		this.#container.show();
 	}
 }

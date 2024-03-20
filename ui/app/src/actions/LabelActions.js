@@ -38,7 +38,7 @@ class LabelActions {
 			return db.get(id);
 		})
 		.then(function (data) {
-			that.#app.loadPage(new LabelDefinitionsPage(data));
+			that.#app.loadPage(new LabelDefinitionsPage(), data);
 			
 			return Promise.resolve({ ok: true });
 		});

@@ -36,7 +36,7 @@ class HistoryActions {
 			return db.get(id);
 		})
 		.then(function (data) {
-			that.#app.loadPage(new VersionsPage(data));
+			that.#app.loadPage(new VersionsPage(), data);
 			
 			return Promise.resolve({ ok: true });
 		});
@@ -70,7 +70,12 @@ class HistoryActions {
 						that.#app.routing.call(id);						
 					} else {
 						// Load data into the version viewer
-						that.#app.loadPage(new VersionPage(id, name, reader.result, doc));
+						that.#app.loadPage(new VersionPage(), {
+							id: id, 
+							name: name, 
+							data: reader.result, 
+							doc: doc
+						});
 					}
 					
 					resolve({

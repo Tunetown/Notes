@@ -166,7 +166,10 @@ class DocumentActions {
 			});
 		})
 		.then(function (docConflict) {
-			that.#app.loadPage(new ConflictPage(docConflict, docCurrent));
+			that.#app.loadPage(new ConflictPage(), {
+				docConflict: docConflict, 
+				docCurrent: docCurrent
+			});
 			
 			// Execute callbacks
     		that.#app.callbacks.executeCallbacks('requestConflict', {
@@ -186,7 +189,7 @@ class DocumentActions {
 			return db.get(id);
 		})
 		.then(function(data) {
-			that.#app.loadPage(new RawPage(data));
+			that.#app.loadPage(new RawPage(), data);
 			
 			return Promise.resolve({ ok: true });
 		});		
@@ -591,7 +594,7 @@ class DocumentActions {
 			if (!dataResp.abort) {
 				// Update editor state / changed marker
 				if (e) {
-					e.load(data); //setCurrent(data);				
+					e.loadDocument(data);				
 				}
 				that.#app.update();
 				
@@ -647,9 +650,8 @@ class DocumentActions {
 			docs.push(doc);
 
 			// Unload editor if the item is opened somewhere
-			var e = this.#app.paging.getCurrentPage();
-			if (e && (ids[i] == e.getCurrentId())) {
-				e.unload();
+			if (this.#app.paging.getCurrentlyShownId() == ids[i]) {
+				this.#app.paging.unload();
 			}
 			
 			var docChildren = that.#app.getData().getChildren(ids[i], true);
@@ -1488,9 +1490,9 @@ class DocumentActions {
     		
     		return Promise.resolve({ ok: true });
     	})
-    	.then(function(/*data*/) {
-			return that.#app.paging.reloadCurrentPage();
-		})
+    	/*.then(function() {
+			return that.#app.paging.reloadCurrentPage();  TODO?
+		})*/
     	.then(function(/*data*/) {
     		t.unblock();
 

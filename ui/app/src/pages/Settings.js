@@ -91,7 +91,7 @@ class Settings {
 			});		
 		}
 		if (settings.defaultNoteEditor == 'code') {
-			if (!Code.isValidEditorLanguage(settings.defaultCodeLanguage)) {
+			if (!CodeEditor.isValidEditorLanguage(settings.defaultCodeLanguage)) {
 				errors.push({
 					message: 'Invalid code editor language: ' + settings.defaultCodeLanguage,
 					id: 'settings',

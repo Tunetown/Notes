@@ -61,7 +61,7 @@ class EditorActions {
 			.then(function(data) {
 				var url = URL.createObjectURL(data);
 				
-				return that.#app.loadPage(new AttachmentPreviewPage(doc, url));					
+				return that.#app.loadPage(new AttachmentPage(), { doc: doc, url: url });					
 			})
 			.then(function() {
 				// Execute callbacks
@@ -84,7 +84,7 @@ class EditorActions {
 				}
 				
 				var e = Document.createDocumentEditor(doc);
-				return that.#app.loadPage(e);
+				return that.#app.loadPage(e, doc);
 			})
 			.then(function() {
 				// Execute callbacks

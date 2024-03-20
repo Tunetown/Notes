@@ -21,11 +21,43 @@ class Editor extends Page {
 	#dirty = false;       // Are there any unsaved changes?
 	
 	/**
+	 * Returns the editor mode for this instance, as used in the document.
+	 */
+	getEditorMode() {
+		throw new Exception('Must be implemented in child classes of Editor');
+	}
+	
+	/**
 	 * Can be used to signal that the page also needs all navigation data loaded.
 	 */
 	needsHierarchyData() {
 		return false;
 	}
+
+	/**
+	 * Stop any pending auto-save callbacks
+	 */
+	async stopDelayedSave() {
+	}
+	
+	/**
+	 * Returns the content string
+	 */
+	getContent() {
+		return false;
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Call a document
+	 */
+	_callDocument(id) {
+		this._app.nav.setSearchText('');
+		this._app.routing.call(id);
+	}
+
+	//////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * Resets the editors dirty state.
@@ -47,32 +79,4 @@ class Editor extends Page {
 	isDirty() {
 		return this.#dirty;
 	}
-	
-	/**
-	 * Stop any pending auto-save callbacks
-	 */
-	async stopDelayedSave() {
-	}
-	
-	/**
-	 * Returns the content string
-	 */
-	getContent() {
-		return false;
-	}
-	
-	/**
-	 * Hide options menu
-	 */
-	hideOptions() {
-	}
-	
-	/**
-	 * Call a document
-	 */
-	_callDocument(id) {
-		this._app.nav.setSearchText('');
-		this._app.routing.call(id);
-	}
-
 }

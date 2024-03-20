@@ -100,7 +100,7 @@ class Routing {
 				that.#app.startApp()
 				.then(function(data) {
 					that.#app.resetPage();
-					return that.#app.loadPage(new HelpPage(docpage));
+					return that.#app.loadPage(new HelpPage(), docpage);
 				})
 				.catch(function(err) {
 					that.#app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
@@ -337,7 +337,7 @@ class Routing {
 					
 					return Promise.resolve(data.treePromise)
 					.then(function(data) {
-						return that.#app.loadPage(new HashtagsPage(noteId));
+						return that.#app.loadPage(new HashtagsPage(), noteId);
 					});
 				})
 				.catch(function(err) {
@@ -425,7 +425,7 @@ class Routing {
 					
 					return Promise.resolve(data.treePromise)
 					.then(function(data) {
-						return that.#app.loadPage(new RefsPage(noteId));
+						return that.#app.loadPage(new RefsPage(), noteId);
 					});
 				})
 				.catch(function(err) {

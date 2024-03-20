@@ -27,31 +27,37 @@ class PageMenu {
 	/**
 	 * Generates the options for the different editors. Returns an array holding the options divs.
 	 */
-	get(editor, options) {
+	get(page, options) {
 		if (!options) options = {};
 		
 		if (this.#app.device.isLayoutMobile()) options.noOpenInNavigation = true;
-		if (!editor.getEditorMode || !editor.getEditorMode()) options.noEditorModeSwitch = true;   TODO TODO // typ abfragen (instanceof Editor)
 		
-		var openedDoc = this.#app.device.getData().getById(editor.getCurrentId());
+		var editorMode = '';
+		if (!(page instanceof Editor)) {
+			options.noEditorModeSwitch = true;
+		} else {
+			editorMode = page.getEditorMode();
+		}
+		
+		var openedDoc = this.#app.device.getData().getById(page.getCurrentId());
 		if (!openedDoc || (openedDoc.type != 'note') || ((openedDoc.editor != 'richtext') && (openedDoc.editor != 'code'))) options.noTags = true;
 		
 		var that = this;
 		return [
 			// Editor mode
 			options.noEditorModeSwitch ? null : $('<div class="userbutton"></div>').append(
-				Document.getEditorModeSelector(editor.getEditorMode(), {
+				Document.getEditorModeSelector(editorMode, {
 					prefix: 'Editor: ',
 					cssClass: 'userbuttonselect'
 				})
 				.on('change', function(event) {
 					event.stopPropagation();
-					editor.hideOptions();
+					that.#app.hideOptions();
 					
 					// Change board mode
-					that.#app.actions.editor.saveEditorMode(editor.getCurrentId(), this.value)
+					that.#app.actions.editor.saveEditorMode(page.getCurrentId(), this.value)
 					.then(function(data) {
-						that.#app.routing.call(editor.getCurrentId());
+						that.#app.routing.call(page.getCurrentId());
 					})
 					.catch(function(err) {
 						that.#app.showAlert('Error: '+ err.message, "E", err.messageThreadId);
@@ -89,11 +95,11 @@ class PageMenu {
 			options.noShare ? null : $('<div class="userbutton"><div class="fa fa-share-square userbuttonIcon"></div>Share</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();
+				that.#app.hideOptions();
 				
 				try {
 					navigator.share({
-						title: editor.getCurrentId(),  // TODO name instead ID
+						title: page.getCurrentDoc() ? page.getCurrentDoc().name : page.getCurrentId(), 
 						url: location.href
 					});
   
@@ -106,9 +112,9 @@ class PageMenu {
 			options.noCreate ? null : $('<div class="userbutton"><div class="fa fa-plus userbuttonIcon"></div>Create</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				that.#app.actions.document.create(editor.getCurrentId())
+				that.#app.actions.document.create(page.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
 						that.#app.showAlert(data.message, "S", data.messageThreadId);
@@ -123,14 +129,14 @@ class PageMenu {
 			options.noRename ? null : $('<div class="userbutton"><div class="fa fa-pencil-alt userbuttonIcon"></div>Rename</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				that.#app.actions.document.renameItem(editor.getCurrentId())
+				that.#app.actions.document.renameItem(page.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
 						that.#app.showAlert(data.message, "S", data.messageThreadId);
 					}
-					that.#app.routing.call(editor.getCurrentId());
+					that.#app.routing.call(page.getCurrentId());
 				})
 				.catch(function(err) {
 					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
@@ -141,9 +147,9 @@ class PageMenu {
 			options.noMove ? null : $('<div class="userbutton"><div class="fa fa-arrows-alt userbuttonIcon"></div>Move</div>')
 	        .on('click', function(event) {
 	        	event.stopPropagation();
-	        	editor.hideOptions();
+	        	that.#app.hideOptions();
 	        	
-	        	that.#app.actions.document.moveItems([editor.getCurrentId()])
+	        	that.#app.actions.document.moveItems([page.getCurrentId()])
 	        	.catch(function(err) {
 					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
@@ -153,9 +159,9 @@ class PageMenu {
 	        options.noCopy ? null : $('<div class="userbutton"><div class="fa fa-copy userbuttonIcon"></div>Copy</div>')
 	        .on('click', function(event) {
 	        	event.stopPropagation();
-	        	editor.hideOptions();
+	        	that.#app.hideOptions();
 	        	
-	        	that.#app.actions.document.copyItem(editor.getCurrentId())
+	        	that.#app.actions.document.copyItem(page.getCurrentId())
 	        	.catch(function(err) {
 					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 				});
@@ -165,9 +171,9 @@ class PageMenu {
 	        options.noDelete ? null : $('<div class="userbutton"><div class="fa fa-trash userbuttonIcon"></div>Delete</div>')
 	        .on('click', function(event) {
 	        	event.stopPropagation();
-	        	editor.hideOptions();	
+	        	that.#app.hideOptions();	
 	        	
-	        	var delId = editor.getCurrentId();
+	        	var delId = page.getCurrentId();
 	        	
 	        	that.#app.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
 	        	that.#app.actions.document.deleteItems([delId])
@@ -189,9 +195,9 @@ class PageMenu {
 	        options.noTags ? null : $('<div class="userbutton"><div class="fa fa-hashtag userbuttonIcon"></div>Hashtags</div>')
 	        .on('click', function(event) {
 	        	event.stopPropagation();
-	        	editor.hideOptions();
+	        	that.#app.hideOptions();
 	        	
-	        	that.#app.routing.callHashtags(editor.getCurrentId());
+	        	that.#app.routing.callHashtags(page.getCurrentId());
 	        }),
 
 	        // Labels
@@ -201,18 +207,18 @@ class PageMenu {
 	        )
 	        .on('click', function(event) {
 	        	event.stopPropagation();
-	        	editor.hideOptions();
+	        	that.#app.hideOptions();
 	        	
-	        	that.#app.routing.callLabelDefinitions(editor.getCurrentId());
+	        	that.#app.routing.callLabelDefinitions(page.getCurrentId());
 	        }),
 
 			// Create Reference
 			options.noCreateReference ? null : $('<div class="userbutton"><div class="fa fa-sitemap userbuttonIcon"></div>Create Reference</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				var id = editor.getCurrentId();
+				var id = page.getCurrentId();
 				
 				that.#app.actions.reference.createReference(id)
 				.then(function(data) {
@@ -232,27 +238,27 @@ class PageMenu {
 			options.noRefs ? null : $('<div class="userbutton"><div class="fa fa-long-arrow-alt-right userbuttonIcon"></div>References</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				that.#app.routing.call('refs/' + editor.getCurrentId());
+				that.#app.routing.call('refs/' + page.getCurrentId());
 			}),
 	        
 	        // History
 	        options.noHistory ? null : $('<div class="userbutton"><div class="fa fa-history userbuttonIcon"></div>History</div>')
 	        .on('click', function(event) {
 	        	event.stopPropagation();
-	        	editor.hideOptions();
+	        	that.#app.hideOptions();
 	        	
-	        	that.#app.routing.call("history/" + editor.getCurrentId());
+	        	that.#app.routing.call("history/" + page.getCurrentId());
 	        }),
 	        
 			// Download
 			options.noDownload ? null : $('<div class="userbutton"><div class="fa fa-download userbuttonIcon"></div>Download</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				Document.downloadDocumentDialog(editor.getCurrentId())
+				Document.downloadDocumentDialog(page.getCurrentId())
 				.catch(function(err) {
 					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
 				});
@@ -262,9 +268,9 @@ class PageMenu {
 			options.noOpenInNavigation ? null : $('<div class="userbutton"><div class="fa fa-sitemap userbuttonIcon"></div>Show in Navigation</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				that.#app.nav.highlightDocument(editor.getCurrentId(), !that.#app.device.isLayoutMobile());
+				that.#app.nav.highlightDocument(page.getCurrentId(), !that.#app.device.isLayoutMobile());
 			}),
 			
 			$('<div class="userbuttonLine"></div>'),
@@ -273,9 +279,9 @@ class PageMenu {
 			options.noRawView ? null : $('<div class="userbutton"><div class="fa fa-code userbuttonIcon"></div>Raw JSON</div>')
 			.on('click', function(event) {
 				event.stopPropagation();
-				editor.hideOptions();	
+				that.#app.hideOptions();	
 				
-				that.#app.routing.callRawView(editor.getCurrentId());
+				that.#app.routing.callRawView(page.getCurrentId());
 			}),
 			
 			!openedDoc ? null : $('<div class="userbuttonLine"></div>'),

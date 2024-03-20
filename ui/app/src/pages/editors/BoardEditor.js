@@ -16,152 +16,230 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Board {
+class BoardEditor extends Editor {
+
+	#current = null;       // Current docuemnt
+
+	#boardGrid = null;     // Main grid instance
+	#columnGrids = [];     // Array of column grid instances
 	
 	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Board.instance) Board.instance = new Board();
-		return Board.instance;
-	}
-	
-	/**
-	 * Tells if the editor needs tree data loaded before load() is called.
+	 * Tells that the editor needs tree data loaded before load() is called.
 	 */
 	needsHierarchyData() {
 		return true;
 	}
 	
 	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentId() {
+		return this.#current ? this.#current._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current;
+	}
+	
+	/**
+	 * Returns the editor mode for this.
+	 */
+	getEditorMode() {
+		return 'board';
+	}
+	
+	/**
+	 * Hides all option menus for the editor TODO still needed?
+	 *
+	hideOptions() {
+		this.#app.hideMenu();
+		this.#app.hideOptions();
+	}
+	
+	/**
+	 * Return current HTML content of the editor. (In this case, the board document does
+	 * not evaluate the content, so we just return the document's content as-is)
+	 */
+	getContent() {
+		return this.#current ? Docment.getContent(this.#current) : ""; 
+	}
+	
+	/**
+	 * Unloads the editor
+	 */
+	async unload() {
+		this._app.registerOptionsCallbacks({
+			id: this.getEditorMode()
+		});
+		
+		this._app.deleteCallbacks(this.getEditorMode());
+				
+		this.#current = null;
+		this.#destroy();
+		
+		this._tab.getContainer().empty();
+		
+		this.#current = null;
+		this._app.setStatusText();
+		
+		this._app.update();  // TODO still necessary?
+	}
+	
+	/**
 	 * Loads the given data into the editor (which also is initialized here at first time).
 	 */
-	load(doc) {
+	async load(doc) {
 		var that = this;
 
-		var n = Notes.getInstance();
-		n.setCurrentEditor(this);
-		n.setCurrentPage(this);
-
-		this.destroy();
+		await this.unload(); 
 
 		// Callbacks for color picking
-		Notes.getInstance().registerOptionsCallbacks({
-			id: 'board',
+		this._app.registerOptionsCallbacks({
+			id: this.getEditorMode(),
 			
 			onColorInputUpdate: function(doc, back, input) {
-				that.refreshColors(doc._id);
+				that.#refreshColors(doc._id);
 			},
 		});
 		
 		// Callbacks for actions
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'delete',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'copy',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'moveDocumentAfterSave',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'rename',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'create',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'setBoardBackgroundImage',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'saveLabels',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
-		Callbacks.getInstance().registerCallback(
-			'board',
+		this._app.callbacks.registerCallback(
+			this.getEditorMode(),
 			'saveLabelDefinitions',
 			function(id) {
-				that.refresh();
+				that.#refresh();
 			}
 		);
 		
 		// Build buttons
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Board options..." id="boardOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();Board.getInstance().callOptions(event);"></div>'), 
+		this._app.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Board options..." id="boardOptionsButton" class="fa fa-ellipsis-v"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				that.#callPageOptions();
+			}), 
 		]);
 		
 		var docs = [doc];
-		var children = n.getData().getChildren(doc._id);
+		var children = this._app.getData().getChildren(doc._id);
 		
 		for(var c in children) {
 			docs.push(children[c]);
 			
-			var subChildren = n.getData().getChildren(children[c]._id);
+			var subChildren = this._app.getData().getChildren(children[c]._id);
 			for (var sc in subChildren) {
 				docs.push(subChildren[sc]);
 			}
 		}
 		
-		return DocumentAccess.getInstance().loadDocuments(docs)
-		.then(function(resp) {
-			that.setCurrent(doc);
-			
-			// Build board
-			that.buildBoard(doc);
-			
-			NoteTree.getInstance().updateFavorites();
-			
-			that.restoreScrollPosition();
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
-		});
+		await this._app.documentAccess.loadDocuments(docs);
+
+		this.#current = doc;
+
+		// Show loaded note in the header bar 
+		var txt = "";
+		if (doc) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
+		this._app.setStatusText(txt);
+	
+		// Build board
+		this.#buildBoard(doc);
+		
+		this._app.nav.updateFavorites();
+		
+		this.#restoreScrollPosition();
 	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Check basic property correctness TODO solve otherwise
+	 */
+	static checkBasicProps(doc, errors) {
+		if (doc.boardBackground) {  // This is relevant for all documents!
+			errors.push({
+				message: 'Document contains deprecated boardBackground reference',
+				id: doc._id,
+				type: 'W',
+				solverReceipt: [{
+					action: 'deleteProperty',
+					propertyName: 'boardBackground'
+				}]
+			});		
+		}
+	}
+
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
 	 * Build the board DOM
 	 */
-	buildBoard(doc) {
-		var n = Notes.getInstance();
+	#buildBoard(doc) {
 		var that = this;
 		
 		// Build containers
 		var dragContainer = $('<div class="board-drag-container"></div>');
 		var boardContainer = $('<div class="board"></div>');
+		var boardBack = $('<div id="boardBackground" style="display:none"></div>');
 		
-		$('#contentContainer').empty();
+		var container = this._tab.getContainer();
+		container.empty();
 		
 		// Add background and content container. Default is light grey.
-		var boardBack = $('<div id="boardBackground" style="display:none"></div>');
-		$('#contentContainer').css('background', 'lightgrey');
-		$('#contentContainer').append(
+		
+		container.css('background', 'lightgrey');
+		container.append(
 			boardBack,
 			
 			$('<div id="board-scroll-container"></div>').append(
@@ -173,11 +251,11 @@ class Board {
 		);
 
 		// Right click on background
-		$('#contentContainer').contextmenu(function(e) {
+		container.contextmenu(function(e) {
 			e.preventDefault();
 			e.stopPropagation();
 			
-			n.callOptions([doc._id], Tools.extractX(e), Tools.extractY(e), {
+			that._app.callOptions([doc._id], Tools.extractX(e), Tools.extractY(e), {
 				noCopy: true,
 				noMove: true,
 				noDelete: true,
@@ -188,7 +266,7 @@ class Board {
 		});
 		
 		// Asyncronously load the background image, if any
-		BoardActions.getInstance().getBoardBackground(doc._id)
+		that._app.actions.board.getBoardBackground(doc._id)
 		.then(function(imageData) {
 			Document.setBackground(imageData, false, boardBack);
 			boardBack.css('display', 'block');
@@ -197,15 +275,15 @@ class Board {
 			if (err && (err.status == 404)) {
 				return;
 			}
-			n.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
+			that._app.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
 		})
 		
 		// Build board DOM structure first
-		var containerHeight = $('#contentContainer').height() - 35;
-		var mobileWidth = ($('#contentContainer').width() - 40);
+		var containerHeight = container.height() - 35;
+		var mobileWidth = container.width() - 40;
 		if (mobileWidth > 300) mobileWidth = 300;
 		
-		var lists = n.getData().getChildren(doc._id);
+		var lists = that._app.getData().getChildren(doc._id);
 		Document.sortHierarchically(lists);
 		
 		var boardWidth = 0;		
@@ -217,7 +295,7 @@ class Board {
 			
 			// Column items
 			var items = [];
-			var subList = n.getData().getChildren(lists[l]._id);
+			var subList = that._app.getData().getChildren(lists[l]._id);
 			Document.sortHierarchically(subList);
 			
 			for(var i in subList) {
@@ -228,7 +306,7 @@ class Board {
 				Document.setItemBackground(subList[i], itemContent, subList[i].backColor ? subList[i].backColor : 'white');
 				if (subList[i].color) itemContent.css('color', subList[i].color);
 				
-				var itemIconClass = this.getItemIconClass(subList[i]);
+				var itemIconClass = this.#getItemIconClass(subList[i]);
 				
 				var itemEl = $('<div class="board-item"></div>');
 				var itemHdr = $('<div class="board-item-content-header"></div>')
@@ -251,11 +329,11 @@ class Board {
 										e.preventDefault();
 							    		e.stopPropagation();
 							    		
-							    		that.saveScrollPosition();
+							    		that.#saveScrollPosition();
 							    		
 							    		var data = $(e.currentTarget).parent().parent().data();
 
-										Notes.getInstance().callOptions(
+										that._app.callOptions(
 											[data.id], 
 											Tools.extractX(e), 
 											Tools.extractY(e),
@@ -276,27 +354,18 @@ class Board {
 									onGestureFinishCallback: function(event) {
 										var data = $(event.currentTarget).parent().data();
 										
-										that.saveScrollPosition();
+										that.#saveScrollPosition();
 										
-										if (Notes.getInstance().hideOptions()) return;										
-										
-										// Focus the document in navigation
-										/*var d = Notes.getInstance().getData();
-										var targetDoc = Document.getTargetDoc(d.getById(data.id));
-										if (d.hasChildren(targetDoc._id)) {
-											NoteTree.getInstance().open(targetDoc._id);											
-										} else {
-											NoteTree.getInstance().focus(targetDoc._id);
-										}*/
+										if (that._app.hideOptions()) return;										
 										
 										// Open the document
-										Notes.getInstance().routing.call(data.id);
+										that._app.routing.call(data.id);
 									},
 									
 									delayedHoldCallback: function(event) {
 										var data = $(event.currentTarget).parent().data();
 
-										Notes.getInstance().callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
+										that._app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
 									},
 									delayHoldMillis: 600
 								});
@@ -306,11 +375,11 @@ class Board {
 									e.preventDefault();
 						    		e.stopPropagation();
 
-						    		that.saveScrollPosition();
+						    		that.#saveScrollPosition();
 						    		
 						    		var data = $(e.currentTarget).parent().data();
 						    		
-									Notes.getInstance().callOptions(
+									that._app.callOptions(
 										[data.id], 
 										Tools.extractX(e), 
 										Tools.extractY(e),
@@ -340,7 +409,7 @@ class Board {
 							var id = $(this).data().id;
 							if (!id) return;
 							
-							that.toggleExpandedState(id);
+							that.#toggleExpandedState(id);
 						}),
 
 						$('<div class="board-column-header-minimize-collapsed-headline"></div>')
@@ -366,7 +435,7 @@ class Board {
 							var id = $(this).data().id;
 							if (!id) return;
 							
-							that.toggleExpandedState(id);
+							that.#toggleExpandedState(id);
 						})
 					)
 					.each(function(i) {
@@ -374,15 +443,13 @@ class Board {
 						this.selectEvent = new TouchClickHandler(this, {
 							delayedHoldCallback: function(event) {
 								var data = $(event.currentTarget).parent().parent().data();
-								that.saveScrollPosition();
+								that.#saveScrollPosition();
 			
-								var n = Notes.getInstance();
-								
 								// Do not show options when the item is inside a hidden board
-								var doc = n.getData().getById(data.id);
+								var doc = that._app.getData().getById(data.id);
 								if (!doc || (doc.boardState && doc.boardState.collapsed)) return;
 								
-								n.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
+								that._app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
 							},
 							delayHoldMillis: 600,
 							dontStopPropagation: true
@@ -393,11 +460,11 @@ class Board {
 							e.preventDefault();
 			        		e.stopPropagation();
 			        		
-			        		that.saveScrollPosition();
+			        		that.#saveScrollPosition();
 			        		
 			        		var data = $(e.currentTarget).parent().parent().data();
 			
-		        			Notes.getInstance().callOptions(
+		        			that._app.callOptions(
 		        				[data.id], 
 		        				Tools.extractX(e), 
 		        				Tools.extractY(e),
@@ -416,7 +483,7 @@ class Board {
 			
 			var itemWidth;
 			if (isCollapsed) itemWidth = 50;
-			else itemWidth = Device.getInstance().isLayoutMobile() ? mobileWidth : 300;  // TODO make last one adjustable
+			else itemWidth = that._app.device.isLayoutMobile() ? mobileWidth : 300;  // TODO make last one adjustable
 			boardWidth += itemWidth + 10;
 			
 			var boardCol = $('<div class="board-column" data-id="' + lists[l]._id + '"></div>');
@@ -441,7 +508,7 @@ class Board {
 								
 								var data = $(event.currentTarget).parent().parent().data();
 								
-								n.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
+								that._app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
 							})
 							.append(items)
 						)
@@ -460,16 +527,16 @@ class Board {
 					elements: boardCol,
 					callback: function(files, definition, element) {
 						var id = $(element).data().id;
-						var lst = n.getData().getById(id);
+						var lst = that._app.getData().getById(id);
 						if (!lst) {
 							return;
 						}
 						
 						console.log("Dropped " + files.length + " files into " + lst.name);
 						
-						AttachmentActions.getInstance().uploadAttachments(id, files)
+						that._app.actions.attachment.uploadAttachments(id, files)
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}
 				}
@@ -502,7 +569,7 @@ class Board {
 		
 		// Initialize the column grids so we can drag those items around.
 		var itemContainers = boardContainer.find('.board-column-content');
-		this.columnGrids = [];
+		this.#columnGrids = [];
 
 		itemContainers.each(function (i) {
 			var colId = $(itemContainers[i]).data().id;
@@ -510,13 +577,13 @@ class Board {
 				items: '.board-item',
 				dragEnabled: true,
 				dragSort: function () {
-					return that.columnGrids;
+					return that.#columnGrids;
 				},
 				dragHandle: '.board-item-content-header-text',
 				dragContainer: dragContainer[0],
 				dragStartPredicate: {
 					distance: 0,
-					delay: Device.getInstance().isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
+					delay: this._app.device.isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 				},
 				dragAutoScroll: {
 					targets: (item) => {
@@ -551,29 +618,30 @@ class Board {
 				item.oldHeight = item.getElement().style.height;
 				item.getElement().style.width = item.getWidth() + 'px';
 				item.getElement().style.height = item.getHeight() + 'px';
-				Notes.getInstance().hideOptions();
+				
+				that._app.hideOptions();
 			})
 			.on('dragReleaseEnd', function (item) {
 				item.getElement().style.width = item.oldWidth;
 				item.getElement().style.height = item.oldHeight;
 				item.getGrid().refreshItems([item]);
 				
-				that.saveOrder(item);
+				that.#saveOrder(); //item);
 			})
 			.on('layoutStart', function () {
-				if (that.boardGrid) that.boardGrid.refreshItems().layout();
+				if (that.#boardGrid) that.#boardGrid.refreshItems().layout();
 			});
 
-			that.columnGrids.push(grid);
+			that.#columnGrids.push(grid);
 		});
 
 		// Initialize board grid so we can drag those columns around.
-		this.boardGrid = new Muuri(boardContainer[0], {
+		this.#boardGrid = new Muuri(boardContainer[0], {
 			dragEnabled: true,
 			dragHandle: '.board-column-header',
 			dragStartPredicate: {
 				distance: 50,
-				delay: Device.getInstance().isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
+				delay: this._app.device.isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 			},
 			dragAutoScroll: {
 				targets: (item) => {
@@ -598,18 +666,20 @@ class Board {
 			itemPlaceholderClass: 'bmuuri-item-placeholder'
 		})
 		.on('dragInit', function (item) {
-			Notes.getInstance().hideOptions();
+			that._app.hideOptions();
 		})
 		.on('dragReleaseEnd', function (item) {
-			that.saveOrder(item);
+			that.#saveOrder(); //item);
 		});
 		
 		// Height of the preview element (must be set here because of CSS rendering bugs in iOS webkit)		
 		$('.board-item-content-preview').each(function(i) {
 			var itemContent = $(this).parent();
+			
 			var soll = itemContent.offset().top + itemContent.height();
 			var ist = $(this).offset().top + $(this).height();
 			var diff = ist - soll;
+			
 			if (diff != 0) {
 				var previewHeight = $(this).height() - diff; 
 				$(this).css('height', previewHeight);		
@@ -620,17 +690,15 @@ class Board {
 	/**
 	 * Refresh board
 	 */
-	refresh() {
-		if (this.current) this.load(this.current);
+	#refresh() {
+		if (this.#current) this.load(this.#current);
 	}
 	
 	/**
 	 * Toggle the expanded state of the passed document ID
 	 */
-	toggleExpandedState(id) {
-		var n = Notes.getInstance();
-		
-		var doc = n.getData().getById(id);
+	#toggleExpandedState(id) {
+		var doc = this._app.getData().getById(id);
 		if (!doc) return;
 		
 		if (!doc.boardState) doc.boardState = {};
@@ -639,26 +707,24 @@ class Board {
 		doc.boardState.collapsed = !doc.boardState.collapsed;
 		
 		// Update
-		this.refresh();
+		this.#refresh();
 		
 		// Save state on DB
-		BoardActions.getInstance().saveBoardState(id, doc.boardState)
-		/*.then(function(data) {
-			n.showAlert(data.message ? data.message : 'Saved list state', 'S');
-		})*/
+		var that = this;
+		this._app.actions.board.saveBoardState(id, doc.boardState)
 		.catch(function(err) {
-			n.showAlert(err.message ? err.message : 'Error saving list state', 'E', err.messageThreadId);
+			that._app.showAlert(err.message ? err.message : 'Error saving list state', 'E', err.messageThreadId);
 		});
 	}
 
 	/**
 	 * Returns the fa class for the item icon, or falsy if no icon should be shown.
 	 */
-	getItemIconClass(doc) {
+	#getItemIconClass(doc) {
 		if (doc.type == 'attachment') return 'fa-paperclip';
 		if (doc.type == 'reference') return 'fa-long-arrow-alt-right';
 		if (doc.type == 'note' && doc.editor == 'board') return 'fa-border-all'; 
-		if (Notes.getInstance().getData().hasChildren(doc._id)) return 'fa-plus';
+		if (this._app.getData().hasChildren(doc._id)) return 'fa-plus';
 
 		return null;
 	}
@@ -666,8 +732,8 @@ class Board {
 	/**
 	 * Refreshes all appearance attributes of the ID
 	 */
-	refreshColors(id) {
-		var d = Notes.getInstance().getData();
+	#refreshColors(id) {
+		var d = this._app.getData();
 		
 		var doc = d.getById(id);
 		if (!doc) return;
@@ -700,44 +766,44 @@ class Board {
 	/**
 	 * Kill the grids
 	 */
-	destroy() {
-		if (this.boardGrid) {
-			this.boardGrid.destroy();
+	#destroy() {
+		if (this.#boardGrid) {
+			this.#boardGrid.destroy();
 		}
 		
-		for(var i in this.columnGrids || []) {
-			this.columnGrids[i].destroy();
+		for(var i in this.#columnGrids || []) {
+			this.#columnGrids[i].destroy();
 		}
 	}
 	
 	/**
-	 * Re-layout the grids
-	 */
-	layout() {
-		if (this.boardGrid) this.boardGrid.layout();
+	 * Re-layout the grids TODO cleanup
+	 *
+	#layout() {
+		if (this.#boardGrid) this.#boardGrid.layout();
 	
-		for(var i in this.columnGrids || []) {
-			this.columnGrids[i].layout();
+		for(var i in this.#columnGrids || []) {
+			this.#columnGrids[i].layout();
 		}
 	}
 	
 	/**
 	 * Scans all items and saves the ones that have changed parent or order
 	 */
-	saveOrder(movedItem) {
-		if (!this.boardGrid) return;
-		if (!this.columnGrids) return;
+	#saveOrder() {
+		if (!this.#boardGrid) return;
+		if (!this.#columnGrids) return;
 		
-		this.saveScrollPosition();
+		this.#saveScrollPosition();
 		
-		if (Notes.getInstance().optionsVisible()) return;
+		if (this._app.optionsVisible()) return;
 		
 		var ids = [];
-		var d = Notes.getInstance().getData();
+		var d = this._app.getData();
 		
 		// Column orders
 		var no = 1;
-		var cItems = this.boardGrid.getItems();
+		var cItems = this.#boardGrid.getItems();
 		for(var i in cItems) {
 			var iid = $(cItems[i].getElement()).find('.board-column-container').data().id;
 			if (!iid) continue;
@@ -748,22 +814,17 @@ class Board {
 			var newOrder = no++;
 			var oldOrder = Document.getRelatedOrder(doc);
 			if (oldOrder != newOrder) {
-				/*Document.addChangeLogEntry(doc, 'orderChanged', {
-					from: oldOrder,
-					to: newOrder
-				});*/
-				
 				Document.setRelatedOrder(doc, false, newOrder);
 				ids.push(iid);
 			}
 		}
 		
 		// Item orders and parents
-		for(var c in this.columnGrids || []) {
-			var colId = $(this.columnGrids[c].getElement()).data().id;
+		for(var c in this.#columnGrids || []) {
+			var colId = $(this.#columnGrids[c].getElement()).data().id;
 			
 			no = 1;
-			var iItems = this.columnGrids[c].getItems();
+			var iItems = this.#columnGrids[c].getItems();
 			for(var i in iItems) {
 				var iid = $(iItems[i].getElement()).find('.board-item-content').data().id;
 				if (!iid) continue;
@@ -775,20 +836,10 @@ class Board {
 				var oldOrder = Document.getRelatedOrder(doc);
 				var push = false;
 				if (oldOrder != newOrder) {
-					/*Document.addChangeLogEntry(doc, 'orderChanged', {
-						from: oldOrder,
-						to: newOrder
-					});*/
-					
 					Document.setRelatedOrder(doc, false, newOrder);
 					push = true;
 				}
 				if (doc.parent != colId) {
-					/*Document.addChangeLogEntry(doc, 'parentChanged', {
-						from: doc.parent,
-						to: colId
-					});*/
-					
 					d.setParent(iid, colId);
 					push = true;
 				}
@@ -799,27 +850,28 @@ class Board {
 		
 		if (ids.length == 0) return;
 
-		NoteTree.getInstance().destroy();
-		NoteTree.getInstance().init(true);
+		this._app.nav.destroy();
+		this._app.nav.init(true);
 
-		DocumentAccess.getInstance().saveItems(ids)
+		var that = this;
+		this._app.documentAccess.saveItems(ids)
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+			that._app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 		});
 	}
 	
 	/**
 	 * Returns the scroll container (which is carrying the scroll position)
 	 */
-	getScrollContainer() {
+	#getScrollContainer() {
 		return $('#board-scroll-container'); 
 	}
 	
 	/**
 	 * Returns the current scroll position
 	 */
-	getScrollPosition() {
-		var scrollContainer = this.getScrollContainer();
+	#getScrollPosition() {
+		var scrollContainer = this.#getScrollContainer();
 		
 		return {
 			scrollX: scrollContainer.scrollLeft(),
@@ -830,180 +882,51 @@ class Board {
 	/**
 	 * Saves the current scroll position.
 	 */
-	saveScrollPosition() {
-		ClientState.getInstance().saveBoardState(this.getScrollPosition());
+	#saveScrollPosition() {
+		this._app.state.saveBoardState(this.#getScrollPosition());
 	}
 	
 	/**
 	 * Restore the last saved scroll position
 	 */
-	restoreScrollPosition() {
-		var state = ClientState.getInstance().getBoardState();
+	#restoreScrollPosition() {
+		var state = this._app.state.getBoardState();
 		
-		var scrollContainer = this.getScrollContainer();
+		var scrollContainer = this.#getScrollContainer();
 		if (state.scrollX) scrollContainer.scrollLeft(state.scrollX);
 		if (state.scrollY) scrollContainer.scrollTop(state.scrollY);
 	}
 	
 	/**
-	 * Remembers the currently loaded note data in this.current. Also adjusts the loaded note text etc.
-	 */
-	setCurrent(doc) {
-		this.current = doc;
-
-		var n = Notes.getInstance();
-		
-		var txt = "";
-		if (doc) txt = doc.name + (Device.getInstance().isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
-
-		// Show loaded note in the header bar 
-		//var that = this;
-		n.setStatusText(txt/*, function(event) {
-			event.stopPropagation();
-			that.hideOptions();	
-			
-			// Rename
-			DocumentActions.getInstance().renameItem(that.getCurrentId())
-			.then(function(data) {
-				if (data.message) {
-					n.showAlert(data.message, "S", data.messageThreadId);
-				}
-				n.routing.call(that.getCurrentId());
-			})
-			.catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-			});
-		}*/ );
-	}
-	
-	/**
-	 * Returns the ID of the loaded note, if any, or false if none is loaded.
-	 */
-	getCurrentId() {
-		return this.current ? this.current._id : false;
-	}
-
-	/**
 	 * Calls the note options of the tree
 	 */
-	callOptions(event) {
-		event.stopPropagation();
-		
-		var n = Notes.getInstance();
+	#callPageOptions() {
 		var that = this;
 		
-		this.saveScrollPosition();
+		this.#saveScrollPosition();
 		
-		n.showMenu('editorOptions', function(cont) {
+		this._app.showMenu('editorOptions', function(cont) {
 			cont.append(
 				// Background image
 				$('<div class="userbutton"><div class="fa fa-image userbuttonIcon"></div>Background Image</div>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					that.hideOptions();
+					that._app.hideOptions();
 					
-					BoardActions.getInstance().setBoardBackgroundImage(that.getCurrentId())
+					that._app.actions.board.setBoardBackgroundImage(that.getCurrentId())
 					.then(function(/*data*/) {
-						n.routing.call(that.getCurrentId());
+						that._app.routing.call(that.getCurrentId());
 					})
 					.catch(function(err) {
-						Notes.getInstance().showAlert(err.message ? err.message : 'Error setting background image', err.abort ? 'I' : "E", err.messageThreadId);
+						that._app.showAlert(err.message ? err.message : 'Error setting background image', err.abort ? 'I' : "E", err.messageThreadId);
 					});
 				}),	
 			);
 			
 			cont.append(
-				new PageMenu(that.#app).get(that)
+				new PageMenu(that._app).get(that)
 			);
 		});
-	}
-	
-	getType() {
-		return 'note';
-	}
-
-	/**
-	 * Returns the editor mode for this.
-	 */
-	getEditorMode() {
-		return 'board';
-	}
-	
-	/**
-	 * Hides all option menus for the editor
-	 */
-	hideOptions() {
-		var n = Notes.getInstance();
-		
-		n.hideMenu();
-		n.hideOptions();
-	}
-	
-	/**
-	 * Return current HTML content of the editor.
-	 */
-	getContent() {
-		return this.current ? Docment.getContent(this.current) : ""; 
-	}
-	
-	/**
-	 * Unloads the editor
-	 */
-	unload() {
-		Notes.getInstance().registerOptionsCallbacks({
-			id: 'board'
-		});
-		Callbacks.getInstance().deleteCallbacks('board');
-				
-		this.setCurrent();
-		this.resetDirtyState();
-		this.destroy();
-		
-		var n = Notes.getInstance();
-		
-		n.update();
-	}
-	
-	/**
-	 * Returns the dirty state of the editor
-	 */
-	isDirty() {
-		return false;
-	}
-
-	/**
-	 * Set the editor dirty
-	 */
-	setDirty() {
-	}
-	
-	/**
-	 * Refresh editor dirty state
-	 */
-	resetDirtyState() {
-	}
-	
-	/**
-	 * Stop delayed save
-	 */
-	stopDelayedSave() {
-	}
-	
-	/**
-	 * Check basic property correctness
-	 */
-	static checkBasicProps(doc, errors) {
-		if (doc.boardBackground) {  // This is relevant for all documents!
-			errors.push({
-				message: 'Document contains deprecated boardBackground reference',
-				id: doc._id,
-				type: 'W',
-				solverReceipt: [{
-					action: 'deleteProperty',
-					propertyName: 'boardBackground'
-				}]
-			});		
-		}
 	}
 }
 	

@@ -16,49 +16,177 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class RichtextEditor {
+class RichtextEditor extends RestorableEditor {
 	
-	static linkClass = 'notesTMCELink';       ///< Class for the internal links
-	static tagClass = 'notesTMCETag';         ///< Class for the hashtags
+	static #LINK_CLASS = 'notesTMCELink';       ///< Class for the internal links
+	static #TAG_CLASS = 'notesTMCETag';         ///< Class for the hashtags
+	
+	#current = null;                            // Current document
+	#editorId = false;                          // Editor element ID (must be unique globally)
+	
+	#versionRestoreData = null;
+	#versionRestoreMode = false;
+	
+	#timeoutHandle = null;
+	
+	#cursorElementId = false;
+	#cursorElementSeed = false;
+	
 	
 	constructor() {
-		this.editorId = "editorContent";
+		// Set editor element ID (must be unique globally, so we generate a 
+		// new one for each instance of this editor)
+		this.#editorId = "editorContent_" + Tools.getUuid();   
 	}
 	
 	/**
-	 * Returns the DOM elements for the editor.
+	 * Returns the editor mode for this.
 	 */
+	getEditorMode() {
+		return 'richtext';
+	}
+	
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentId() {
+		return this.#current ? this.#current._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current;
+	}
+
+	/**
+	 * Sets data to be loaded into the editor instead of the passed data in load().
+	 */
+	setVersionRestoreData(data) {
+		this.#versionRestoreData = data;
+	}
+	
+	/**
+	 * Returns if the editor is in restore mode.
+	 */
+	getRestoreMode() {
+		return !!this.#versionRestoreMode;
+	}
+	
+	/**
+	 * Return current HTML content of the editor.
+	 */
+	getContent() {
+		return this.#getEditor().getContent();
+	}
+	
+	/**
+	 * Stop delayed save
+	 */
+	async stopDelayedSave() {
+		if (this.#timeoutHandle) clearTimeout(this.#timeoutHandle);
+	}
+	
+	/**
+	 * Returns the dirty state of the editor
+	 */
+	isDirty() {
+		return super.isDirty() ? true : (this.#getEditor() ? this.#getEditor().isDirty() : false);
+	}
+
+	/**
+	 * Set the editor dirty
+	 */
+	setDirty() {
+		super.setDirty();
+		
+		if (this.#getEditor()) this.#getEditor().setDirty();
+		
+		this.#updateStatus();
+	}
+	
+	/**
+	 * Refresh editor dirty state
+	 */
+	resetDirtyState() {
+		super.resetDirtyState();
+		
+		if (this.#getEditor()) this.#getEditor().save();
+		
+		this.#updateStatus();
+	}
+	
+	/**
+	 * Hides all option menus for the editor TODO cleanup
+	 *
+	hideOptions() {
+		this._app.hideMenu();
+		this._app.hideOptions();
+	}
+	
+	/**
+	 * Unloads the editor
+	 */
+	async unload() {
+		var editor = this.#getEditor();
+		
+		if (editor) {
+			editor.setContent("");
+			editor.mode.set("readonly");
+		}
+		
+		this.setVersionRestoreData(false);
+		this.resetDirtyState();
+		
+		this.#current = null;
+		this._app.setStatusText();
+		
+		this._tab.getContainer().empty();
+		
+		this._app.update();
+	}
+	
+
+	/**
+	 * Returns the DOM elements for the editor. TODO
+	 *
 	static getContainerDom(teaser) {
 		return $('<div id="editor" class="mainPanel"/>').append( 
-			$('<div id="editorContent"></div>').append(teaser),
+			$('<div id="' + RichtextEditor.editorId + '"></div>').append(teaser),
 		);
 	}
 	
 	/**
 	 * Loads the given data into the editor (which also is initialized here at first time).
 	 */
-	load(doc) {
+	async load(doc) {
 		var that = this;
-		var n = Notes.getInstance();
 		
 		Document.brokenLinksWarning(doc);
+
+		await this.unload();
 		
-		var content = '';
-		if (Document.getContent(doc)) content = Document.getContent(doc);
-		content = this.convertPlainLinksAndTags(content);
+		this.#current = doc;
+
+		// Show loaded note in the header bar 
+		var txt = "";
+		if (data) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
+		this._app.setStatusText(txt);
+		
+		var content = Document.getContent(doc) ? Document.getContent(doc) : '';
+		content = this.#convertPlainLinksAndTags(content);
 			
-		this.setCurrent(doc);
-		n.setCurrentEditor(this);
-		n.setCurrentPage(this);
-		
-		$('#contentContainer').hide();
-		$('#editor').show();
+		var editorEl = $('<div id="' + this.#editorId + '"></div>');
+		this._tab.getContainer().append(
+			editorEl		
+		);
 		
 		if (!tinymce.editors.length) {
-			$('#' + this.editorId).html(content);
+			editorEl.html(content);
 		
 			tinymce.init({
-				selector: '#' + this.editorId,  
+				selector: '#' + this.#editorId,  
 	            height: '100%',
 	            width: '100%',
 	            resize : false,
@@ -66,36 +194,42 @@ class RichtextEditor {
 				content_css: 'ui/app/css/RichtextEditor.css',
 	            setup: function (editor) {
 	                editor.addShortcut('ctrl+s', 'Save', function () {
-						that.saveNote();
+						that.#saveNote();
 	                });
+	                
 	                editor.on('change', function(e) {
-	                	that.updateStatus();
-						that.updateLinkClickHandlers(editor);
-	                	that.startDelayedSave();
+	                	that.#updateStatus();
+						that.#updateLinkClickHandlers(editor);
+	                	that.#startDelayedSave();
 	                });
+	                
 	                editor.on('input', function(e) {
-						that.updateLinkClickHandlers(editor);
-	                	that.startDelayedSave();
+						that.#updateLinkClickHandlers(editor);
+	                	that.#startDelayedSave();
 	                });
+	                
 	                editor.on('click', function(e) {
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
+						that._app.setFocus(Notes.FOCUS_ID_EDITOR);
 	                });
+					
 					editor.on('init', function(e) {
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
+						that._app.setFocus(Notes.FOCUS_ID_EDITOR);
 	                });
+					
 					editor.on('focus', function(e) {
-			            that.hideOptions();
-						Notes.getInstance().setFocus(Notes.FOCUS_ID_EDITOR);
+			            that._app.hideOptions();
+						that._app.setFocus(Notes.FOCUS_ID_EDITOR);
 			        });
+					
 					editor.on('FullscreenStateChanged', function () {
 						// Get rid of mobile keyboard
-						if (Device.getInstance().isTouchAware()) {
+						if (that._app.device.isTouchAware()) {
 							document.activeElement.blur();
 						}
 					});
 					
-					that.setupLinkAutoCompleter(editor);
-					that.updateLinkClickHandlers(editor);
+					that.#setupLinkAutoCompleter(editor);
+					that.#updateLinkClickHandlers(editor);
 	            },
 				plugins: 
 					"code table image lists advlist charmap codesample emoticons fullscreen hr imagetools link media print searchreplace toc",  // textpattern
@@ -107,109 +241,81 @@ class RichtextEditor {
 		} else {
 			// The timeout here is a Workaround for the "component not in context" error in tinymce. 
 			setTimeout(function() {
-				tinymce.get(that.editorId).mode.set("design");
+				that.#getEditor().mode.set("design");
 			}, 10);
 		}
 
 		// Check if there is a restore version. If so, load the content into the editor
-		if (this.versionRestoreData) content = this.versionRestoreData;
+		if (this.#versionRestoreData) content = this.#versionRestoreData;
 		
 		// Load the data to the editor and reset all dirty flags
-		if (tinymce.get(this.editorId).getContent() != content) {
-			tinymce.get(this.editorId).setContent(content);
+		if (this.#getEditor().getContent() != content) {
+			this.#getEditor().setContent(content);
 		}
 		
 		// If we fetched a version, set the editor dirty again
-		if (this.versionRestoreData) {
+		if (this.#versionRestoreData) {
 			this.setDirty();
 		} else {
 			// The timeout here is a Workaround for the "component not in context" error in tinymce. 
 			setTimeout(function() {
-				Editor.getInstance().resetDirtyState();
+				that.resetDirtyState();
 			}, 10);
 		}
 
 		// Build buttons
-		if (this.versionRestoreData) {
-			this.versionRestoreMode = true;
-			n.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Editor.getInstance().saveNote();"></div>'),
-				$('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" id="discardButton" class="fa fa-times" onclick="event.stopPropagation();Editor.getInstance().discard(true);"></div>'),
+		if (this.#versionRestoreData) {
+			this.#versionRestoreMode = true;
+			
+			this._app.setButtons([ 
+				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					that.#saveNote();
+				}),
+				$('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" id="discardButton" class="fa fa-times"></div>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					that.#discard(true);
+				}),
 			]);
 		} else {
-			this.versionRestoreMode = false;
-			n.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save" onclick="event.stopPropagation();Editor.getInstance().saveNote();"></div>'), 
-				$('<div type="button" data-toggle="tooltip" title="Note options..." id="editorOptionsButton" class="fa fa-ellipsis-v" onclick="event.stopPropagation();Editor.getInstance().callOptions(event);"></div>'), 
+			this.#versionRestoreMode = false;
+			
+			this._app.setButtons([ 
+				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					that.#saveNote();
+				}), 
+				$('<div type="button" data-toggle="tooltip" title="Note options..." id="editorOptionsButton" class="fa fa-ellipsis-v"></div>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					that.#callPageOptions(event);
+				}), 
 			]);			
 		}
 		
-		this.versionRestoreData = false;
+		this.#versionRestoreData = false;
 				
-		this.updateStatus();
-		
-		return Promise.resolve();
-	}
-	
-	getType() {
-		return 'note';
+		this.#updateStatus();
 	}
 	
 	/**
-	 * Returns the editor mode for this.
+	 * Returns the tinymce instance
 	 */
-	getEditorMode() {
-		return 'richtext';
+	#getEditor() {
+		return tinymce.get(this.#editorId);
 	}
 	
-	/**
-	 * Remembers the currently loaded note data in this.current. Also adjusts the loaded note text etc.
-	 */
-	setCurrent(data) {
-		this.current = data;
-
-		var n = Notes.getInstance();
-		
-		var txt = "";
-		if (data) txt = data.name + (Device.getInstance().isLayoutMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
-
-		// Show loaded note in the header bar 
-		//var that = this;
-		n.setStatusText(txt /*, function(event) {
-			event.stopPropagation();
-			that.hideOptions();	
-			
-			// Rename
-			DocumentActions.getInstance().renameItem(that.getCurrentId())
-			.then(function(data) {
-				if (data.message) {
-					n.showAlert(data.message, "S", data.messageThreadId);
-				}
-				n.routing.call(that.getCurrentId());
-			})
-			.catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-			});
-		}*/ );
-	}
-	
-	/**
-	 * Returns the ID of the loaded note, if any, or false if none is loaded.
-	 */
-	getCurrentId() {
-		return this.current ? this.current._id : false;
-	}
-
 	/**
 	 * Calls the note options of the tree
 	 */
-	callOptions(event) {
+	#callPageOptions(event) {
 		event.stopPropagation();
 		
-		var n = Notes.getInstance();
 		var that = this;
-		
-		n.showMenu('editorOptions', function(cont) {
+		this._app.showMenu('editorOptions', function(cont) {
 			cont.append(
 				// Search
 				$('<div class="userbutton"></div>').append(
@@ -217,60 +323,51 @@ class RichtextEditor {
 						$('<input type="text" id="editorSearch" placeholder="Type text to search..." />')
 						.on('focus', function(event) {
 							event.stopPropagation();
-							tinymce.get(that.editorId).execCommand('SearchReplace');
-							that.hideOptions();
+							that.#getEditor().execCommand('SearchReplace');
+							that._app.hideOptions();
 						})
 					)
 				),
 			);
 			
 			cont.append(
-				new PageMenu(that.#app).get(that, {
+				new PageMenu(that._app).get(that, {
 					//downloadMimeType: 'text/html',
-					//downloadFilename: that.current.name + '.html' 
+					//downloadFilename: that.#current.name + '.html' 
 				})
 			);
 		});
 	}
 	
 	/**
-	 * Hides all option menus for the editor
-	 */
-	hideOptions() {
-		Notes.getInstance().hideMenu();
-		Notes.getInstance().hideOptions();
-	}
-	
-	/**
-	 * Enter fullscreen mode
-	 */
-	fullscreen() {
-		tinymce.get(this.editorId).execCommand('mceFullScreen');
+	 * Enter fullscreen mode TODO cleanup
+	 *
+	#fullscreen() {
+		this.#getEditor().execCommand('mceFullScreen');
 	}
 	
 	/**
 	 * Trigger saving the note (called by buttons)
 	 */
-	saveNote() {
+	#saveNote() {
 		if (this.isDirty()) {
 			this.stopDelayedSave();
 			
-			var n = Notes.getInstance();
-			n.showAlert("Saving " + this.current.name + "...", "I", "SaveMessages");
+			this._app.showAlert("Saving " + this.#current.name + "...", "I", "SaveMessages");
 			
-			this.convertContentLinksAndTags();
+			this.#convertContentLinksAndTags();
 			
 			var that = this;
-			return DocumentActions.getInstance().save(this.current._id, this.getContent())
+			return this._app.actions.document.save(this.#current._id, this.getContent())
 			.then(function(data) {
-        		if (data.message) n.showAlert(data.message, "S", data.messageThreadId);
+        		if (data.message) that._app.showAlert(data.message, "S", data.messageThreadId);
 
-				if (that.versionRestoreMode) {
-					n.routing.refresh();
+				if (that.#versionRestoreMode) {
+					that._app.routing.refresh();
 				}
         	})
 			.catch(function(err) {
-        		n.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
+        		that._app.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}
 	}
@@ -278,126 +375,53 @@ class RichtextEditor {
 	/**
 	 * Updates the state change marker etc.
 	 */
-	updateStatus() {
+	#updateStatus() {
 		// Changed marker in header
 		//$('#saveButton').toggleClass("buttonDisabled", !this.isDirty())
 		$('#saveButton').css("display", this.isDirty() ? 'inline' : 'none');
-		Notes.getInstance().update();
+		
+		this._app.update();
 	}
 	
 	/**
 	 * Reloads the content from the server, discarding the contents.
 	 */
-	discard(removeButton) {
+	#discard(removeButton) {
 		this.setVersionRestoreData(false);
 		
 		if (removeButton) $('#discardButton').css("display", "none");
 		
-		var n = Notes.getInstance();
-		n.showAlert("Action cancelled.", "I");
+		this._app.showAlert("Action cancelled.", "I");
 
-		//location.reload();
-		n.routing.call("history/" + this.getCurrentId());
-	}
-	
-	/**
-	 * Sets data to be loaded into the editor instead of the passed data in load().
-	 */
-	setVersionRestoreData(data) {
-		this.versionRestoreData = data;
-	}
-	
-	/**
-	 * Returns if the editor is in restore mode.
-	 */
-	getRestoreMode() {
-		return !!this.versionRestoreMode;
-	}
-	
-	/**
-	 * Return current HTML content of the editor.
-	 */
-	getContent() {
-		return tinymce.get(this.editorId).getContent();
-	}
-	
-	/**
-	 * Unloads the editor
-	 */
-	unload() {
-		var n = Notes.getInstance();
-		
-		if (tinymce.get(this.editorId)) {
-			tinymce.get(this.editorId).setContent("");
-			tinymce.get(this.editorId).mode.set("readonly");
-		}
-		
-		this.setCurrent();
-
-		this.setVersionRestoreData(false);
-		this.resetDirtyState();
-		
-		n.update();
-	}
-	
-	/**
-	 * Returns the dirty state of the editor
-	 */
-	isDirty() {
-		return this.dirty ? true : (tinymce.get(this.editorId) ? tinymce.get(this.editorId).isDirty() : false);
-	}
-
-	/**
-	 * Set the editor dirty
-	 */
-	setDirty() {
-		this.dirty = true;
-		if (tinymce.get(this.editorId)) tinymce.get(this.editorId).setDirty();
-		this.updateStatus();
-	}
-	
-	/**
-	 * Refresh editor dirty state
-	 */
-	resetDirtyState() {
-		this.dirty = false;
-		if (tinymce.get(this.editorId)) tinymce.get(this.editorId).save();
-		this.updateStatus();
+		this._app.routing.call("history/" + this.getCurrentId());
 	}
 	
 	/**
 	 * Triggered at editor changes, this attaches a timer function which will itself trigger saving the note at the time
 	 * of execution. Every further call resets the timer duration.
 	 */
-	startDelayedSave() {
-		var secs = Settings.getInstance().settings.autoSaveIntervalSecs;
+	#startDelayedSave() {
+		var secs = this._app.settings.settings.autoSaveIntervalSecs;
 		if (!secs) return;
 		
 		var that = this;
 		this.stopDelayedSave();
-		this.timeoutHandle = setTimeout(function(){
-			if (!tinymce.get(that.editorId).isDirty()) return;
+		this.#timeoutHandle = setTimeout(function(){
+			if (!that.isDirty()) return;
 			
-			that.convertContentLinksAndTags();
+			that.#convertContentLinksAndTags();
 			
-			DocumentActions.getInstance().save(that.getCurrentId(), that.getContent())
+			that._app.actions.document.save(that.getCurrentId(), that.getContent())
 			.catch(function(err) {
-        		Notes.getInstance().showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
+        		that._app.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
         	});
 		}, secs * 1000);
 	}
 	
 	/**
-	 * Stop delayed save
-	 */
-	stopDelayedSave() {
-		if (this.timeoutHandle) clearTimeout(this.timeoutHandle);
-	}
-	
-	/**
 	 * Init the link auto completion.
 	 */
-	setupLinkAutoCompleter(editor) {
+	#setupLinkAutoCompleter(editor) {
 		var that = this;
 		
 		/**
@@ -408,14 +432,17 @@ class RichtextEditor {
 			minChars: 0,
 			columns: 1,
 			highlightOn: ['char_name'],
+			
 			onAction: function(autocompleteApi, rng, value) {
-				that.onAutoCompleteAction(editor, autocompleteApi, rng, value);
+				that.#onAutoCompleteAction(editor, autocompleteApi, rng, value);
 			},
+			
 			fetch: function (pattern) {
-				return that.fetchLinkAutoCompletion(editor, pattern);
+				return that.#fetchLinkAutoCompletion(editor, pattern);
 			},
+			
 			matches: function(rng, text, pattern) {
-				return that.doTriggerLinkAutoCompletion(editor, rng, text, pattern);
+				return that.#doTriggerLinkAutoCompletion(editor, rng, text, pattern);
 			}
 		});
 
@@ -427,14 +454,15 @@ class RichtextEditor {
 			minChars: 0,
 			columns: 1,
 			highlightOn: ['char_name'],
+			
 			onAction: function(autocompleteApi, rng, value) {
-				that.onAutoCompleteAction(editor, autocompleteApi, rng, value);
+				that.#onAutoCompleteAction(editor, autocompleteApi, rng, value);
 			},
 			fetch: function (pattern) {
-				return that.fetchTagAutoCompletion(editor, pattern);
+				return that.#fetchTagAutoCompletion(editor, pattern);
 			},
 			matches: function(rng, text, pattern) {
-				return that.doTriggerTagAutoCompletion(editor, rng, text, pattern);
+				return that.#doTriggerTagAutoCompletion(editor, rng, text, pattern);
 			}
 		});
 	}
@@ -442,7 +470,7 @@ class RichtextEditor {
 	/**
 	 * Returns if the auto completion shall be triggered. This is the case if the last char before the trigger char is [.
 	 */
-	doTriggerLinkAutoCompletion(editor, rng, text, pattern) {
+	#doTriggerLinkAutoCompletion(editor, rng, text, pattern) {
 		var lastChar = text.substring(rng.startOffset-1, rng.startOffset);
 		return (lastChar == Linkage.startChar);
 	}
@@ -450,20 +478,18 @@ class RichtextEditor {
 	/**
 	 * Returns if the auto completion shall be triggered. This is the case if the last char before the trigger char is [.
 	 */
-	doTriggerTagAutoCompletion(editor, rng, text, pattern) {
+	#doTriggerTagAutoCompletion(editor, rng, text, pattern) {
 		return true;
 	}
 	
 	/**
 	 * Returns a TinyMCE Promise wchich returns the list in the TinyMCE auto completer format.
 	 */
-	fetchLinkAutoCompletion(editor, pattern) {
+	#fetchLinkAutoCompletion(editor, pattern) {
 		var that = this;
 		
 		return new tinymce.util.Promise(function (resolve) {
-			resolve(that.getLinkAutocompleteMatchedChars(editor, pattern).map(function (char) {
-				//const classes = [Linkage.getListStyleClass(char.id)];
-				
+			resolve(that.#getLinkAutocompleteMatchedChars(editor, pattern).map(function (char) {
 				return {
 					type: 'cardmenuitem',
 					value: Linkage.startTagRest + char.id + (char.displayText ? (Linkage.separator + char.displayText) : '') + Linkage.endTag,
@@ -489,11 +515,11 @@ class RichtextEditor {
 	/**
 	 * Returns a TinyMCE Promise wchich returns the list in the TinyMCE auto completer format.
 	 */
-	fetchTagAutoCompletion(editor, pattern) {
+	#fetchTagAutoCompletion(editor, pattern) {
 		var that = this;
 		
 		return new tinymce.util.Promise(function (resolve) {
-			resolve(that.getTagAutocompleteMatchedChars(editor, pattern).map(function (char) {
+			resolve(that.#getTagAutocompleteMatchedChars(editor, pattern).map(function (char) {
 				const classes = [Hashtag.getListStyleClass(char.id)];
 				
 				return {
@@ -522,7 +548,7 @@ class RichtextEditor {
 	/**
 	 * Called to perform the text replacement when the user chooses an auto complete option (links).
 	 */
-	onAutoCompleteAction(editor, autocompleteApi, rng, value) {
+	#onAutoCompleteAction(editor, autocompleteApi, rng, value) {
 		// Insert the text
 		editor.selection.setRng(rng);
 		editor.insertContent(value);
@@ -531,24 +557,24 @@ class RichtextEditor {
 		autocompleteApi.hide();
 		
 		// Convert all links to spans
-		this.convertContentLinksAndTags();		
+		this.#convertContentLinksAndTags();		
 		
 		// Update click handlers
-		this.updateLinkClickHandlers(editor);
+		this.#updateLinkClickHandlers(editor);
 	}
 	
 	/**
 	 * Returns the list of proposals for link auto completion.
 	 */
-	getLinkAutocompleteMatchedChars(editor, pattern) {	
-		return Notes.getInstance().getData().getLinkAutocompleteList(pattern);
+	#getLinkAutocompleteMatchedChars(editor, pattern) {	
+		return this._app.getData().getLinkAutocompleteList(pattern);
 	}
 	
 	/**
 	 * Returns the list of proposals for link auto completion.
 	 */
-	getTagAutocompleteMatchedChars(editor, pattern) {
-		return Notes.getInstance().getData().getTagAutocompleteList(pattern);
+	#getTagAutocompleteMatchedChars(editor, pattern) {
+		return this._app.getData().getTagAutocompleteList(pattern);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -556,27 +582,27 @@ class RichtextEditor {
 	/**
 	 * Updates the content replacing all links and tags.
 	 */
-	convertContentLinksAndTags() {
+	#convertContentLinksAndTags() {
 		var content = this.getContent();
 		
 		// Convert links and tags. If nothing changed, quit.
-		var converted = this.convertPlainLinksAndTags(content);
+		var converted = this.#convertPlainLinksAndTags(content);
 		if (content == converted) return;
 
 		// Set the new content on the editor
-		tinymce.get(this.editorId).setContent(converted);
+		this.#getEditor().setContent(converted);
 		
 		// Restore cursor position
-		this.setCursorAfterNode(this.cursorElementId);
+		this.#setCursorAfterNode(this.#cursorElementId);
 	}
 	
 	/**
 	 * Sets the cursor in the editor one step after the end of the DOM element with the passed ID.
 	 */
-	setCursorAfterNode(id) {
-		var cursorNode = tinymce.get(this.editorId).dom.select('#' + id);
+	#setCursorAfterNode(id) {
+		var cursorNode = this.#getEditor().dom.select('#' + id);
 		
-		var sel = tinymce.get(this.editorId).selection;
+		var sel = this.#getEditor().selection;
 		var rng = sel.getRng();
 
 		// Set after the element which has last been replaced
@@ -591,13 +617,13 @@ class RichtextEditor {
 	/**
 	 * Replaces all plain links ([[]]) and hashtags to HTML with click handlers, if not yet converted.
 	 */
-	convertPlainLinksAndTags(content) {
+	#convertPlainLinksAndTags(content) {
 		// This will hold the DOM ID of the last created link or tag element for 
 		// later cursor positioning, after conversion of links and tags.
-		this.cursorElementId = false;
+		this.#cursorElementId = false;
 		
-		if (!ClientState.getInstance().getEditorSettings().dontReplaceLinksInRTEditor) content = this.convertPlainLinks(content);
-		if (!ClientState.getInstance().getEditorSettings().dontReplaceTagsInRTEditor) content = this.convertPlainTags(content);
+		if (!this._app.state.getEditorSettings().dontReplaceLinksInRTEditor) content = this.#convertPlainLinks(content);
+		if (!this._app.state.getEditorSettings().dontReplaceTagsInRTEditor) content = this.#convertPlainTags(content);
 		return content;
 	}
 	
@@ -615,21 +641,26 @@ class RichtextEditor {
 	 *   <span class="notesTMCELink" data-ref="Target" data-link="[[Target|Text]]">Text</span>
 	 *
 	 */
-	convertPlainLinks(content) {
+	#convertPlainLinks(content) {
 		var dom = $('<div>' + content + '</div>');
-		var that = this;
 		var cnt = 0;
-		dom.find('*').not('span.' + Editor.linkClass).each(function() {
+		var that = this;
+		
+		dom.find('*')
+		.not('span.' + Editor.linkClass)
+		.each(function() {
 			var el = $(this);
 			
 			var repl = [];
-			el.contents().filter(function(){ 
+			el.contents()
+			.filter(function() { 
 				return this.nodeType == 3; 
-			}).each(function() {
+			})
+			.each(function() {
 				var textNode = this;
 				var text = textNode.nodeValue;
+				
 				const coll = Linkage.parse(text);
-				//console.log(text + ' ' + coll.length);
 				if (coll.length == 0) return;
 			
 				for(var c=0; c<coll.length; ++c) {
@@ -647,17 +678,17 @@ class RichtextEditor {
 					console.log("Invalid link ignored: " + co.link);
 					continue;	
 				}
-				const link = that.createLinkElement(meta.target, meta.text);
+				const link = that.#createLinkElement(meta.target, meta.text);
 				
 				html = html.replaceAll(co.orig, link);
 				cnt++;
-				//console.log('   -> Replaced ' + co.orig + ' with ' + tag);
 			}
 			$(this).html(html);
 		});
 		
 		if (cnt > 0) {
 			console.log(' -> Editor: Replaced ' + cnt + ' raw links with HTML');
+			
 			return dom.html();
 		} else {
 			return content;			
@@ -678,21 +709,25 @@ class RichtextEditor {
 	 *   <span class="notesTMCETag">#Tagname</span>
 	 *
 	 */
-	convertPlainTags(content) {
+	#convertPlainTags(content) {
 		var dom = $('<div>' + content + '</div>');
-		var that = this;
 		var cnt = 0;
-		dom.find('*').not('span.' + Editor.tagClass).each(function() {
+		var that = this;
+		
+		dom.find('*')
+		.not('span.' + Editor.tagClass)
+		.each(function() {
 			var el = $(this);
 			
 			var repl = [];
-			el.contents().filter(function(){ 
+			el.contents()
+			.filter(function(){ 
 				return this.nodeType == 3; 
-			}).each(function() {
+			})
+			.each(function() {
 				var textNode = this;
 				var text = textNode.nodeValue;
 				const coll = Hashtag.parse(text);
-				//console.log(text + ' ' + coll.length);
 				if (coll.length == 0) return;
 			
 				for(var c=0; c<coll.length; ++c) {
@@ -705,16 +740,16 @@ class RichtextEditor {
 			var html = el.html();
 			for(var c=0; c<repl.length; ++c) {
 				const co = repl[c];
-				const tag = that.createTagElement(co.tag);
+				const tag = that.#createTagElement(co.tag);
 				html = html.replaceAll(co.orig, tag);
 				cnt++;
-				//console.log('   -> Replaced ' + co.orig + ' with ' + tag);
 			}
 			$(this).html(html);
 		});
 		
 		if (cnt > 0) {
 			if (cnt > 0) console.log(' -> Editor: Replaced ' + cnt + ' raw hashtags with HTML');
+			
 			return dom.html();
 		} else {
 			return content;			
@@ -724,20 +759,34 @@ class RichtextEditor {
 	/**
 	 * Re-sets all onclick handlers for the internal links.
 	 */
-	updateLinkClickHandlers(editor) {
+	#updateLinkClickHandlers(editor) {
 		var that = this;
+		
+		function linkClick(event) {
+			event.preventDefault();
+			event.stopPropagation();
+			
+			that.#onLinkClick(event);
+		}
+		
+		function tagClick(event) {
+			event.preventDefault();
+			event.stopPropagation();
+		
+			that.#onTagClick(event);
+		}
 		
 		setTimeout(function() {
 			const links = editor.contentDocument.getElementsByClassName(Editor.linkClass);
 			for (var i=0; i<links.length; ++i) {
-				links[i].removeEventListener("click", that.onLinkClick);
-				links[i].addEventListener("click", that.onLinkClick);
+				links[i].removeEventListener("click", linkClick);
+				links[i].addEventListener("click", linkClick);
 			}
 			
 			const tags = editor.contentDocument.getElementsByClassName(Editor.tagClass);
 			for (var i=0; i<tags.length; ++i) {
-				tags[i].removeEventListener("click", that.onTagClick);
-				tags[i].addEventListener("click", that.onTagClick);
+				tags[i].removeEventListener("click", tagClick);
+				tags[i].addEventListener("click", tagClick);
 				
 				// Colors
 				const tag = Hashtag.extractTagFromElement($(tags[i]));
@@ -751,28 +800,29 @@ class RichtextEditor {
 	/**
 	 * Generates a link span HTML. Returns a string.
 	 */
-	createLinkElement(target, text) {
-		if (!this.cursorElementSeed) this.cursorElementSeed = 1;
-		this.cursorElementId = Tools.getUuid(this.cursorElementSeed++);
-		return '<span id="' + this.cursorElementId + '" class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>&nbsp;';
+	#createLinkElement(target, text) {
+		if (!this.#cursorElementSeed) this.#cursorElementSeed = 1;
+		
+		this.#cursorElementId = Tools.getUuid(this.#cursorElementSeed++);
+		
+		return '<span id="' + this.#cursorElementId + '" class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>&nbsp;';
 	}
 	
 	/**
 	 * Generates a tag span HTML. Returns a string.
 	 */
-	createTagElement(target) {
-		if (!this.cursorElementSeed) this.cursorElementSeed = 1;
-		this.cursorElementId = Tools.getUuid(this.cursorElementSeed++);
-		return '<span id="' + this.cursorElementId + '" class="' + Editor.tagClass + '">' + Hashtag.startChar + target + '</span>&nbsp;';
+	#createTagElement(target) {
+		if (!this.#cursorElementSeed) this.#cursorElementSeed = 1;
+		
+		this.#cursorElementId = Tools.getUuid(this.#cursorElementSeed++);
+		
+		return '<span id="' + this.#cursorElementId + '" class="' + Editor.tagClass + '">' + Hashtag.startChar + target + '</span>&nbsp;';
 	}
 	
 	/**
 	 * Click handler for internal links.
 	 */
-	onLinkClick(event) {
-		event.preventDefault();
-		event.stopPropagation();
-		
+	#onLinkClick(event) {
 		if (!event.currentTarget) return;
 		
 		const ref = $(event.currentTarget).data('ref');
@@ -784,18 +834,15 @@ class RichtextEditor {
 	/**
 	 * Click handler for hashtags.
 	 */
-	onTagClick(event) {
-		event.preventDefault();
-		event.stopPropagation();
-		
+	#onTagClick(event) {
 		if (!event.currentTarget) return;
 		
 		const tag = Hashtag.extractTagFromElement($(event.currentTarget)); //.text();
 		if (!tag) return;
 		
 		if (event.ctrlKey || event.metaKey) {
-			const currentId = Editor.getInstance().getCurrentId();
-			Notes.getInstance().routing.callHashtags(currentId);
+			const currentId = this.getCurrentId();
+			this._app.routing.callHashtags(currentId);
 		} else {
 			Hashtag.showTag(tag);
 		}

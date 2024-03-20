@@ -29,9 +29,12 @@ class VersionView {
 	/**
 	 * Loads the passed version history data into the versions view.
 	 * 
-	 * id/name: ID and version name
-	 * data: Content of the version
-	 * doc: The original document
+	 * {
+	 *   id: version id
+	 *   name: version name
+	 *   data: Content of the version
+	 *   doc: The original document
+	 * }
 	 */
 	load(id, name, data, doc) {
 		var n = Notes.getInstance();
