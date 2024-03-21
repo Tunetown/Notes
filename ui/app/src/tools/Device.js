@@ -20,6 +20,7 @@ class Device {
 	
 	#app = null;
 	
+	#initialized = false;
 	#currentMobileState = false;
 	#currentOrientation = false;
 	#currentTouchAwareState = false;
@@ -27,9 +28,6 @@ class Device {
 	
 	constructor(app) {
 		this.#app = app;
-		
-		// Detect device properties 
-		this.#initBuffers();
 		
 		// Reload or refresh page some milliseconds after resizing has stopped
 		this.#initResizeHandler();		
@@ -39,6 +37,7 @@ class Device {
 	 * Returns if we are on a small mobile device.
 	 */
 	isLayoutMobile() {
+		this.#initBuffers();
 		return this.#currentMobileState;
 	}
 
@@ -46,6 +45,7 @@ class Device {
 	 * Returns the orientation of the device.
 	 */
 	getOrientation() {
+		this.#initBuffers();
 		return this.#currentOrientation;
 	}
 	
@@ -53,12 +53,15 @@ class Device {
 	 * Returns if we are on a touch aware device
 	 */
 	isTouchAware() {
+		this.#initBuffers();
 		return this.#currentTouchAwareState;
 	}
 
 	/**
 	 * Disables the back swipe gesture. 
 	 * Taken from https://www.outsystems.com/forums/discussion/77514/disable-swipe-to-previous-screen-some-android-and-ios/
+	 * 
+	 * TODO cleanup
 	 *
 	disableBackSwipe() {
 		document.addEventListener('touchstart', function(e) {
@@ -75,9 +78,13 @@ class Device {
 	 * are plenty and can affect performance severely)
 	 */
 	#initBuffers() {
+		if (this.#initialized) return;
+		
 		this.#currentMobileState = this.#isReallyMobile();
 		this.#currentTouchAwareState = this.#isReallyTouchAware();
 		this.#currentOrientation = this.#getRealOrientation();
+		
+		this.#initialized = true;
 		
 		console.log("Device is " + (this.isTouchAware() ? '' : 'not ') + "touch aware");		
 	}
@@ -91,6 +98,8 @@ class Device {
 			if (that.#resizeHandler) clearTimeout(that.#resizeHandler);
 			
 			that.#resizeHandler = setTimeout(function() {
+				that.#initBuffers();
+				
 				that.#currentOrientation = that.#getRealOrientation();
 				
 				if (that.#isReallyMobile() != that.#currentMobileState) {

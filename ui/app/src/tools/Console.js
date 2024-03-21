@@ -32,7 +32,7 @@ class Console {
 		Console.#state = new ClientState(null);
 		
 		// We use a map of callbacks for custom hooks
-		Consol.#callbacks = new Map();
+		Console.#callbacks = new Map();
 		 
 		// Create wrappers to the standard log functions
 		console.stdlog = console.log.bind(console);

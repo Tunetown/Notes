@@ -218,7 +218,7 @@ class Routing {
 	 * has been loaded)
 	 */
 	#landingPage(regardLastLoaded) {
-		var lastLoaded = regardLastLoaded ? this.#app.getLastOpenedUrl() : false;
+		var lastLoaded = regardLastLoaded ? this.#app.state.getLastOpenedUrl() : false;
 
 		var that = this;
 		this.#app.startApp()

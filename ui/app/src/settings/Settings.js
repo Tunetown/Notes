@@ -23,7 +23,7 @@ class Settings {
 	constructor(app) {
 		this.#app = app;
 		
-		this.settings = this.getDefaults();
+		this.settings = this.#getDefaults();
 	}
 	
 	/**

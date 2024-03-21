@@ -78,7 +78,7 @@ class Tab {
 		}
 		
 		this.#resetContainer();
-		this.resetDirtyState();
+		this.resetEditorDirtyState();
 		this.setStatusText();
 	}
 	

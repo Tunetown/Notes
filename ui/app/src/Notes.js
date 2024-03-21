@@ -18,6 +18,8 @@
  */
 class Notes {  
 	
+	#updatedViews = false;
+	
 	constructor() { 
 		this.appVersion = '1.0.0';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
 
@@ -103,7 +105,7 @@ class Notes {
 		Document.setApp(this); // TODO
 		
 		this.documentAccess = new DocumentAccess(this);
-		this.documentChecks = new Dthis.documentChecks(this);
+		this.documentChecks = new DocumentChecks(this);
 		this.views = new Views(this);
 		this.callbacks = new Callbacks();
 		this.styles = new Styles();
@@ -215,8 +217,8 @@ class Notes {
 				// Called when syncing has paused.
 				syncPausedHandler: function() {
 					// If not yet done, check the views.
-					if (!that.updatedViews) {
-						that.updatedViews = true;
+					if (!that.#updatedViews) {
+						that.#updatedViews = true;
 
 						that.views.updateViews()
 						.catch(function(err) {
@@ -430,6 +432,7 @@ class Notes {
 	 * Sets a message callback for receiving SW messages
 	 */
 	setServiceWorkerMessageCallback(id, callback) {
+		if (!this.#swCallbacks) this.#swCallbacks = new Map();
 		this.#swCallbacks.set(id, callback);
 	}
 	
@@ -437,6 +440,7 @@ class Notes {
 	 * Removes a message callback for receiving SW messages
 	 */
 	removeServiceWorkerMessageCallback(id) {
+		if (!this.#swCallbacks) return;
 		this.#swCallbacks.delete(id);
 	}
 	
@@ -561,9 +565,9 @@ class Notes {
 			try {
 				if (this.db.profileHandler.importProfile(profile)) {
 					// Reset databases: We have a new connection profile which has to be set up from scratch
-					that.updatedViews = false;
+					this.#updatedViews = false;
 					
-					d.reset();
+					this.db.reset();
 				}
 				
 			} catch (e) {
@@ -611,8 +615,8 @@ class Notes {
 			//       so we only do this the first time the app launches. In the pull requests during sync,
 			//       the views are always checked as there is no hurry there.
 			if (!that.db.profileHandler.getCurrentProfile().clone) {
-				if (!that.updatedViews) {
-					that.updatedViews = true;
+				if (!that.#updatedViews) {
+					that.#updatedViews = true;
 
 					return that.views.updateViews()
 					.then(function(resp) {
@@ -919,7 +923,7 @@ class Notes {
 					$('<nav id="treenav"></nav>') 
 					: 
 					$('<nav id="treenav"></nav>')
-					.css('width', this.nav.getTreeState().treeWidth),  // Pre-set tree width here
+					.css('width', this.state.getTreeState().treeWidth),  // Pre-set tree width here
 				
 				// Main content
 				$('<article id="article"></article>').append([  // TODO make div

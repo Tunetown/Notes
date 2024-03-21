@@ -52,10 +52,78 @@ class Hashtag {
 		var coll = [];
 		var state = {};
 		for(var i=0; i<content.length; ++i) {
-			const token = this.#parseChar(content[i], i, state, i == (content.length-1)/*, outsideTagsOnly*/);
+			const token = this.parseChar(content[i], i, state, i == (content.length-1)/*, outsideTagsOnly*/);
 			if (token) coll.push(token);
 		}
 		return coll;
+	}
+	
+		/**
+	 * Parsing function for one character. Expects the character, its position and a state object (empty object at the start).
+	 * isAtEnd has to be true only when the last available character has been passed.
+	 * outsideTagsOnly can be set to ignore all tags which are inside tag brackets (><). 
+	 *
+	 * Return a token descriptor if a token has been found.  
+	 */
+	parseChar(c, pos, state, isAtEnd) {
+		function evalToken(endPos) {
+			state.capturing = false;
+			state.end = endPos;
+
+			if (state.start < state.end) {
+				if (
+						(
+							(!state.startingChar) 
+							|| 
+							(Hashtag.startingPreChars.indexOf(state.startingChar) >= 0)
+						) 
+						&& 
+						(
+							isAtEnd
+							||
+							(Hashtag.terminationChars.indexOf(c) >= 0)
+						)
+					)
+				{
+					state.last = c;
+					return {
+						start: state.start,
+						end: state.end,
+						orig: Hashtag.startChar + state.buffer,
+						tag: Hashtag.trim(state.buffer),
+					};
+				}
+			}
+			return null;
+		}
+		
+		if (state.capturing) {
+			if (Hashtag.allowedChars.indexOf(c) < 0) {
+				var token = evalToken(pos);
+				if (token) return token;
+			}
+			
+			state.buffer += c;
+			
+			if (isAtEnd) {
+				var token = evalToken(pos + 1);
+				if (token) return token;
+			}
+		}
+
+		if ((!state.capturing) && (c == Hashtag.startChar)) {
+			state.capturing = true;
+			state.start = pos + 1;
+			state.buffer = '';
+			
+			state.startingChar = false;
+			if (pos > 0) {
+				state.startingChar = state.last;
+			}
+		}
+		
+		state.last = c;
+		return null;
 	}
 	
 	/**
@@ -149,74 +217,6 @@ class Hashtag {
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	/**
-	 * Parsing function for one character. Expects the character, its position and a state object (empty object at the start).
-	 * isAtEnd has to be true only when the last available character has been passed.
-	 * outsideTagsOnly can be set to ignore all tags which are inside tag brackets (><). 
-	 *
-	 * Return a token descriptor if a token has been found.  
-	 */
-	#parseChar(c, pos, state, isAtEnd) {
-		function evalToken(endPos) {
-			state.capturing = false;
-			state.end = endPos;
-
-			if (state.start < state.end) {
-				if (
-						(
-							(!state.startingChar) 
-							|| 
-							(Hashtag.startingPreChars.indexOf(state.startingChar) >= 0)
-						) 
-						&& 
-						(
-							isAtEnd
-							||
-							(Hashtag.terminationChars.indexOf(c) >= 0)
-						)
-					)
-				{
-					state.last = c;
-					return {
-						start: state.start,
-						end: state.end,
-						orig: Hashtag.startChar + state.buffer,
-						tag: Hashtag.trim(state.buffer),
-					};
-				}
-			}
-			return null;
-		}
-		
-		if (state.capturing) {
-			if (Hashtag.allowedChars.indexOf(c) < 0) {
-				var token = evalToken(pos);
-				if (token) return token;
-			}
-			
-			state.buffer += c;
-			
-			if (isAtEnd) {
-				var token = evalToken(pos + 1);
-				if (token) return token;
-			}
-		}
-
-		if ((!state.capturing) && (c == Hashtag.startChar)) {
-			state.capturing = true;
-			state.start = pos + 1;
-			state.buffer = '';
-			
-			state.startingChar = false;
-			if (pos > 0) {
-				state.startingChar = state.last;
-			}
-		}
-		
-		state.last = c;
-		return null;
-	}
 	
 	/**
 	 * Tries to guess what the tag might need to look like.

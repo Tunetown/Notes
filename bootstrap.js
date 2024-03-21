@@ -169,7 +169,6 @@ const APP_SOURCE_DEFINITIONS = [
     
     { src: './ui/app/src/navigation/behaviours/TreeBehaviour.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/navigation/behaviours/DetailBehaviour.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/navigation/behaviours/TileBehaviour.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/navigation/NoteTree.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/navigation/Behaviours.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/navigation/MuuriGrid.js', tag: 'script', type: 'text/javascript' },
