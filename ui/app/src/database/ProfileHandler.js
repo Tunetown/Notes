@@ -18,6 +18,8 @@
  */
 class ProfileHandler {
 	
+	#current = false;
+	
 	/**
 	 * Options have to be:
 	 * {
@@ -54,8 +56,8 @@ class ProfileHandler {
 	 */
 	importProfile(content) {
 		if (content == 'local') {
-			if (this.current != 'local') {
-				this.current = 'local';
+			if (this.#current != 'local') {
+				this.#current = 'local';
 				return true;
 			} else {
 				return false;
@@ -83,7 +85,7 @@ class ProfileHandler {
 			throw new Error("No URL contained in profile");
 		}
 
-		if (obj.url == this.current) {
+		if (obj.url == this.#current) {
 			return false;
 		} else {
 			this.selectOrCreateProfile(obj.url);
@@ -102,16 +104,16 @@ class ProfileHandler {
 	 * Returns the current profile's data. If no profile is selected this selects the local profile.
 	 */
 	getCurrentProfile() {
-		var curr = this.getProfile(this.current);
+		var curr = this.getProfile(this.#current);
 		if (curr) return curr;
 
 		// The current profile does not exist or is not allowed: Select the local or default one.
-		this.current = this.getDefaultProfile();
+		this.#current = this.getDefaultProfile();
 		
-		curr = this.getProfile(this.current);
+		curr = this.getProfile(this.#current);
 		if (curr) return curr;
 		
-		console.log("Error: Could not load profile: " + this.current);
+		console.log("Error: Could not load profile: " + this.#current);
 		return null;
 	}
 	
@@ -158,7 +160,7 @@ class ProfileHandler {
 		this.options.saveProfilesCallback(newProfiles);
 
 		// Select default profile
-		this.current = this.getDefaultProfile();
+		this.#current = this.getDefaultProfile();
 	}
 	
 	/**
@@ -194,9 +196,9 @@ class ProfileHandler {
 		
 		var prof = this.getProfile(url);
 		if (prof) {
-			this.current = prof.url;
+			this.#current = prof.url;
 			
-			console.log("Selected profile: " + this.current);
+			console.log("Selected profile: " + this.#current);
 			return false;
 			
 		} else {
@@ -207,7 +209,7 @@ class ProfileHandler {
 				autoSync: false	
 			});
 			
-			this.current = url;
+			this.#current = url;
 			return true;			
 		}
 	}

@@ -73,8 +73,6 @@ class AttachmentPage extends Page {
 	 */
 	async unload() {
 		this.#current = null;
-		
-		this._tab.getContainer().empty();
 	}
 	
 	/**
@@ -85,15 +83,14 @@ class AttachmentPage extends Page {
 	async load(data) {
 		var that = this;
 		
-		await this.unload();
-		
 		this._app.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Download ' + data.doc.name + '" id="dnldButton" class="fa fa-download"></div>')
+			$('<div type="button" data-toggle="tooltip" title="Download ' + data.doc.name + '" class="fa fa-download"></div>')
 			.on('click', function(event) {
 				event.stopPropagation();
 				that.#download();
 			}),
-			$('<div type="button" data-toggle="tooltip" title="Options..." id="editorOptionsButton" class="fa fa-ellipsis-v"></div>')
+			
+			$('<div type="button" data-toggle="tooltip" title="Options..." class="fa fa-ellipsis-v"></div>')
 			.on('click', function(event) {
 				event.stopPropagation();
 				that.#callPageOptions(event);
@@ -111,7 +108,7 @@ class AttachmentPage extends Page {
 		var attsize = Tools.convertFilesize(att.length);
 		
 		// Set note name in the header
-		this._app.setStatusText(data.doc.name + ' (' + attsize + ')');
+		this._tab.setStatusText(data.doc.name + ' (' + attsize + ')');
 		this._app.allowViewportScaling(true);
 
 		if (!data.doc.content_type || data.doc.content_type.startsWith('text/')) {
@@ -134,7 +131,7 @@ class AttachmentPage extends Page {
 		} else {
 			// Try object tag to embed the content (for pdf/mp3/...)
 			this._tab.getContainer().append(
-				$('<object class="preview" data="' + data.url + '#toolbar=0&navpanes=0&scrollbar=0" type="' + data.doc.content_type + '" ><span id="previewteaser">Preview not available</span></object>')
+				$('<object class="preview" data="' + data.url + '#toolbar=0&navpanes=0&scrollbar=0" type="' + data.doc.content_type + '" ><span class="previewteaser">Preview not available</span></object>')
 			);
 		}
 		

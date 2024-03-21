@@ -16,37 +16,40 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Check {
+class CheckPage extends Page {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Check.instance) Check.instance = new Check();
-		return Check.instance;
+	#checks = null;
 	
-	}
+	#checklistContainer = null;
+	#closeMessageButton = null;
+	#runallButton = null;
+	
+	#docChecks = null;
+	#allDocs = null;
 
 	constructor() {
 		var that = this;
-		this.checks = new Map([
+
+		this.#docChecks = new DocumentChecks(this._app);
+
+		this.#checks = new Map([
 			['ddocCheck', {
 				description: 'Views consistency',
 				runner: function(onFinish) {
-					that.processCheck(
-						Views.getInstance().checkViews(),
+					that.#processCheck(
+						that._app.views.checkViews(),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Views.getInstance().updateViews();
+					return that._app.views.updateViews();
 				}
 			}],
 			['settingsCheck', {
 				description: 'Settings consistency',
 				runner: function(onFinish) {
-					that.processCheck(
-						SettingsActions.getInstance().checkSettings(),
+					that.#processCheck(
+						that._app.settings.checkSettings(),
 						onFinish
 					);
 				}
@@ -54,47 +57,47 @@ class Check {
 			['unnecessaryDdocCheck', {
 				description: 'Unnecessary views',
 				runner: function(onFinish) {
-					that.processCheck(
-						Views.getInstance().checkUnusedViews(),
+					that.#processCheck(
+						that._app.views.checkUnusedViews(),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return Views.getInstance().deleteUnusedViews();
+					return that._app.views.deleteUnusedViews();
 				}
 			}],
 			['basicCheck', {
 				usesAllDocs: true,
 				description: 'Document Integrity',
 				runner: function(onFinish, allDocs) {
-					that.processCheck(
-						DocumentChecks.getInstance().checkDocumentsData(allDocs),
+					that.#processCheck(
+						that.#docChecks.checkDocumentsData(allDocs),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return DocumentChecks.getInstance().solveDocumentErrors(errors);
+					return that.#docChecks.solveDocumentErrors(errors);
 				}
 			}],
 			['metaCheck', {
 				usesAllDocs: true,
 				description: 'Document Metadata',
 				runner: function(onFinish, allDocs) {
-					that.processCheck(
-						DocumentChecks.getInstance().checkDocumentsMeta(allDocs),
+					that.#processCheck(
+						that.#docChecks.checkDocumentsMeta(allDocs),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return DocumentChecks.getInstance().repairDocumentsMeta(ids);
+					return that.#docChecks.repairDocumentsMeta(ids);
 				}
 			}],
 			['treeDocsCheck', {
 				usesAllDocs: true,
 				description: 'Tree structure integrity',
 				runner: function(onFinish, allDocs) {
-					that.processCheck(
-						DocumentChecks.getInstance().checkDocumentsRefs(allDocs),
+					that.#processCheck(
+						that.#docChecks.checkDocumentsRefs(allDocs),
 						onFinish
 					);
 				}
@@ -103,27 +106,27 @@ class Check {
 				usesAllDocs: true,
 				description: 'Conflicts',
 				runner: function(onFinish, allDocs) {
-					that.processCheck(
-						DocumentChecks.getInstance().checkDocumentsConflicts(allDocs),
+					that.#processCheck(
+						that.#docChecks.checkDocumentsConflicts(allDocs),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					return DocumentChecks.getInstance().repairDocumentsConflicts();
+					return that.#docChecks.repairDocumentsConflicts();
 				}
 			}],
 			['syncChecks', {
 				description: 'Local/Remote consistency',
 				runner: function(onFinish) {
-					that.processCheck(
-						Database.getInstance().syncHandler.checkConsistency(function(msg, type) {
+					that.#processCheck(
+						that._app.db.syncHandler.checkConsistency(function(msg, type) {
 							console.log(msg, type);
 						}),
 						onFinish
 					);
 				},
 				solver: function(ids, errors) {
-					Database.getInstance().syncHandler.syncManually();
+					that._app.db.syncHandler.syncManually();
 					return Promise.resolve({
 						dontRunCheck: true
 					});
@@ -133,8 +136,8 @@ class Check {
 				usesAllDocs: true,
 				description: 'Document Size Statistics',
 				runner: function(onFinish, allDocs) {
-					that.processCheck(
-						DocumentAccess.getInstance().getStats(allDocs),
+					that.#processCheck(
+						that._app.documentAccess.getStats(allDocs),
 						onFinish
 					);
 				}
@@ -149,18 +152,19 @@ class Check {
 	/**
 	 * Show page
 	 */
-	load() {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
+	async load() {
+		var that = this;
 		
 		var checkRows = [];
-		for (const [name, check] of this.checks.entries()) {
+		for (const [name, check] of this.#checks.entries()) {
 			checkRows.push(
-				this.getRow(check)
+				this.#getRow(check)
 			);
 		}
 		
-		$('#contentContainer').append(
+		this.#checklistContainer = $('<div class="checkList" />');
+		
+		this._tab.getContainer().append(
 			$('<table class="table table-striped table-hover" />').append(
 				[
 					$('<thead class="bg-primary"/>').append(
@@ -181,21 +185,31 @@ class Check {
 			$('<br>'),
 			$('<br>'),
 			$('<br>'),
-			$('<div id="checkList" />')
+			this.#checklistContainer
 		);
 		
 		// Set note name in the header bar
-		n.setStatusText("Database Consistency Check");
+		this._tab.setStatusText("Database Consistency Check");
 
 		// Buttons
-		n.setButtons([ 
-			$('<div id="closeMsgButton" type="button" data-toggle="tooltip" title="Close message list" class="fa fa-times" onclick="event.stopPropagation();Check.getInstance().closeMessages()"></div>'), 
-			$('<div id="runAllButton" type="button" data-toggle="tooltip" title="Run all checks" class="fa fa-play" onclick="event.stopPropagation();Check.getInstance().runAll()"></div>'),
+		this.#closeMessageButton = $('<div type="button" data-toggle="tooltip" title="Close message list" class="fa fa-times"></div>');		
+		this.#runallButton = $('<div type="button" data-toggle="tooltip" title="Run all checks" class="fa fa-play"></div>');
+
+		this._app.setButtons([ 
+			this.#closeMessageButton
+			.on('click', function(event) {
+				event.stopPropagation();
+				that.#closeMessages()
+			}), 
+			
+			this.#runallButton
+			.on('click', function(event) {
+				event.stopPropagation();
+				that.#runAll()
+			}),
 		]);
 		
-		//n.updateDimensions();
-		
-		$('#closeMsgButton').css('display', 'none');
+		this.#closeMessageButton.css('display', 'none');
 	}
 
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -204,15 +218,15 @@ class Check {
 	/**
 	 * Runs a check. This can be called from anyone. Returns a promise.
 	 */
-	runCheck(check) {
+	#runCheck(check) {
 		// Hide play button
-		$('#checkButton_' + check.name).css('display', 'none');
-		$('#listButton_' + check.name).css('display', 'none');
-		$('#solveButton_' + check.name).css('display', 'none');
+		$('#checkButton_' + check.name + '_' + this._getPageId()).css('display', 'none');
+		$('#listButton_' + check.name + '_' + this._getPageId()).css('display', 'none');
+		$('#solveButton_' + check.name + '_' + this._getPageId()).css('display', 'none');
 		
 		// Set status to running
-		this.setStatus(check.name, 'running');
-		this.setOutputText(check.name, 'Running...'); 
+		this.#setStatus(check.name + '_' + this._getPageId(), 'running');
+		this.#setOutputText(check.name + '_' + this._getPageId(), 'Running...'); 
 
 		// Start processing
 		var that = this;
@@ -221,14 +235,14 @@ class Check {
 			 * Callback which MUST be called by the callbacks before returning.
 			 */
 			function onFinish(status, outputText, messages) {
-				if (outputText) that.setOutputText(check.name, outputText); 
-				if (status) that.setStatus(check.name, status);
+				if (outputText) that.#setOutputText(check.name + '_' + this._getPageId(), outputText); 
+				if (status) that.#setStatus(check.name + '_' + this._getPageId(), status);
 				
-				$('#checkButton_' + check.name).css('display', 'block');
-				$('#listButton_' + check.name).css('display', (messages && messages.length) ? 'block' : 'none');
-				$('#solveButton_' + check.name).css('display', 'block'); //check.solver ? 'block' : 'none');
+				$('#checkButton_' + check.name + '_' + this._getPageId()).css('display', 'block');
+				$('#listButton_' + check.name + '_' + this._getPageId()).css('display', (messages && messages.length) ? 'block' : 'none');
+				$('#solveButton_' + check.name + '_' + this._getPageId()).css('display', 'block'); //check.solver ? 'block' : 'none');
 				
-				that.checks.get(check.name).messages = messages;
+				that.#checks.get(check.name).messages = messages;
 				
 				resolve({
 					ok: true
@@ -237,12 +251,12 @@ class Check {
 			
 			// Call callbacks, passing the event and the onFinish callback.
 			if (check.usesAllDocs) {
-				if (that.allDocs) {
+				if (that.#allDocs) {
 					// Use the current allDocs buffer, if existent.
-					check.runner(onFinish, that.allDocs);
+					check.runner(onFinish, that.#allDocs);
 				} else {
 					// Get all docs beforehand
-					DocumentAccess.getInstance().getAllDocs()
+					that._app.documentAccess.getAllDocs()
 					.then(function(all) {
 						check.runner(onFinish, all);
 					})
@@ -260,12 +274,13 @@ class Check {
 	/**
 	 * Run all checks. Returns a promise holding all checks promise returns.
 	 */
-	runAll() {
+	#runAll() {
 		// Get all documents, then run tests on it.
 		var that = this;
-		DocumentAccess.getInstance().getAllDocs()
+	
+		this._app.documentAccess.getAllDocs()
 		.then(function(all) {
-			that.allDocs = all;
+			that.#allDocs = all;
 			
 			// Run checks
 			var ret = [];
@@ -281,7 +296,7 @@ class Check {
 		})
 		.then(function(data) {
 			// Clear allDocs buffer again.
-			that.allDocs = null;
+			that.#allDocs = null;
 			
 			return Promise.resolve(data);
 		});
@@ -294,7 +309,7 @@ class Check {
 	 * Processes a check returning ok flag and errors array. This is called in the check definitions to 
 	 * generalize error handling.
 	 */
-	processCheck(promise, onFinish) {
+	#processCheck(promise, onFinish) {
 		var that = this;
 
 		function evalReturn(res, status) {
@@ -302,7 +317,7 @@ class Check {
 			if (res.message) {
 				txt += res.message + '<br>';
 			}
-			var ev = that.evaluateErrors(res);
+			var ev = that.#evaluateErrors(res);
 			txt += ev.summary;
 		
 			onFinish(status ? status : (ev.status ? ev.status : 'error'), txt, res.errors);
@@ -319,7 +334,7 @@ class Check {
 	/**
 	 * Returns an object with evaluated errors.
 	 */
-	evaluateErrors(res) {
+	#evaluateErrors(res) {
 		if (!res.errors) {
 			return {
 				status: 'error',
@@ -379,21 +394,22 @@ class Check {
 	/**
 	 * Generate a DOM row holding a check.
 	 */
-	getRow(check) { 
+	#getRow(check) { 
 		var that = this;
-		return $('<tr id="' + check.name + '"></tr>').append([
+		
+		return $('<tr id="' + check.name + '_' + this._getPageId() + '"></tr>').append([
 			$('<th scope="row"><span class="fa fa-question-circle iconGrey trashitemicon"></span></th>'),
 			$('<td>' + check.description + '</td>'),
 			$('<td></td>').append(
-				this.getListOption(check),
-				this.getRunOption(check),
-				this.getSolveOption(check),
+				this.#getListOption(check),
+				this.#getRunOption(check),
+				this.#getSolveOption(check),
 			),
 			$('<td class="checkOutput"></td>')
 			.on('click', function(e) {
 				e.stopPropagation();
 				
-				that.showMessages(check);
+				that.#showMessages(check);
 			})
 		]);
 	}
@@ -401,51 +417,52 @@ class Check {
 	/**
 	 * Generates a run button.
 	 */
-	getRunOption(check) {
+	#getRunOption(check) {
 		var that = this;
-		return $('<div data-toggle="tooltip" title="Run check" class="fa fa-play versionButton" id="checkButton_' + check.name + '"/>')
+		
+		return $('<div data-toggle="tooltip" title="Run check" class="fa fa-play versionButton" id="checkButton_' + check.name  + '_' + this._getPageId() + '"/>')
 		.on('click', function(e) {
 			e.stopPropagation();
 
-			that.allDocs = null;
-			that.runCheck(check);
+			that.#allDocs = null;
+			that.#runCheck(check);
 		});
 	}
 
 	/**
 	 * Generates a list button.
 	 */
-	getListOption(check) {
+	#getListOption(check) {
 		var that = this;
-		return $('<div data-toggle="tooltip" title="Display log" class="fa fa-list versionButton" style="display: none;" id="listButton_' + check.name + '"/>')
+		
+		return $('<div data-toggle="tooltip" title="Display log" class="fa fa-list versionButton" style="display: none;" id="listButton_' + check.name + '_' + this._getPageId() + '"/>')
 		.on('click', function(e) {
 			e.stopPropagation();
 			
-			that.showMessages(check);
+			that.#showMessages(check);
 		});
 	}
 	
 	/**
 	 * Generates a list button.
 	 */
-	getSolveOption(check) {
+	#getSolveOption(check) {
 		var that = this;
-		//if (!check.solver) return null;
 		
-		return $('<div data-toggle="tooltip" title="Solve problems" class="fa fa-syringe versionButton" style="display: none;" id="solveButton_' + check.name + '"/>')
+		return $('<div data-toggle="tooltip" title="Solve problems" class="fa fa-syringe versionButton" style="display: none;" id="solveButton_' + check.name + '_' + this._getPageId() + '"/>')
 		.on('click', function(e) {
 			e.stopPropagation();
 			
-			that.solve(check);
+			that.#solve(check);
 		});
 	}
 	
 	/**
 	 * Solve problems.
 	 */
-	solve(check) {
+	#solve(check) {
 		// Global solver, if any
-		if (check.solver) return this.solveGlobal(check);
+		if (check.solver) return this.#solveGlobal(check);
 		
 		if (!confirm('Try to solve problems?\n\n')) return Promise.reject();
 		
@@ -454,25 +471,25 @@ class Check {
 		
 		var promises = [];
 		for(var m in check.messages) {
-			promises.push(DocumentChecks.getInstance().solveDocumentErrors([check.messages[m]]));
+			promises.push(this.#docChecks.solveDocumentErrors([check.messages[m]]));
 		}
 		
 		return Promise.all(promises) 
 		.then(function() {
-			return TreeActions.getInstance().requestTree();
+			return that._app.actions.nav.requestTree();
 		})
 		.then(function() {
-			Notes.getInstance().showAlert('Solved ' + promises.length + ' problems.', 'I');
+			that._app.showAlert('Solved ' + promises.length + ' problems.', 'I');
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
+			that._app.showAlert(err.message, 'E', err.messageThreadId);
 		});
 	}
 	
 	/**
 	 * Call the check's solver
 	 */
-	solveGlobal(check) {
+	#solveGlobal(check) {
 		if (!check.solver) return Promise.reject();
 		
 		console.log('Running global solver for check ' + check.description);
@@ -489,7 +506,7 @@ class Check {
 		ids = Tools.removeDuplicates(ids);
 
 		if (ids.length == 0) {
-			Notes.getInstance().showAlert('No documents to solve.');
+			this._app.showAlert('No documents to solve.');
 			return Promise.resolve();
 		}
 		
@@ -502,15 +519,15 @@ class Check {
 		var that = this;
 		return check.solver(ids, check.messages)
 		.then(function(data) {
-			Notes.getInstance().showAlert((data && data.message) ? data.message : 'Solving finished.', 'S');
+			that._app.showAlert((data && data.message) ? data.message : 'Solving finished.', 'S');
 			if (data.dontRunCheck) return Promise.resolve();
 			return that.runCheck(check);
 		})
 		.then(function() {
-			return TreeActions.getInstance().requestTree();
+			return that._app.actions.nav.requestTree();
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert((err && err.message) ? err.message : 'Error solving problems.', 'E');
+			that._app.showAlert((err && err.message) ? err.message : 'Error solving problems.', 'E');
 			if (err.dontRunCheck) return Promise.resolve();
 			return that.runCheck(check);
 		});
@@ -519,56 +536,60 @@ class Check {
 	/**
 	 * Show message s for a check
 	 */
-	showMessages(check) {
-		$('#runAllButton').css('display', 'none');
-		$('#closeMsgButton').css('display', 'block');
+	#showMessages(check) {
+		this.#runallButton.css('display', 'none');
+		this.#closeMessageButton.css('display', 'block');
 		
-		Notes.getInstance().setStatusText('Results of: ' + check.description);
+		this._tab.setStatusText('Results of: ' + check.description);
 		
-		this.displayResults(check);
+		this.#displayResults(check);
 	}
 	
 	/**
 	 * Close message list
 	 */
-	closeMessages() {
-		$('#checkList').css('display', 'none');
+	#closeMessages() {
+		this.#checklistContainer.css('display', 'none');
 		
-		$('#runAllButton').css('display', 'block');
-		$('#closeMsgButton').css('display', 'none');
+		this.#runallButton.css('display', 'block');
+		this.#closeMessageButton.css('display', 'none');
 		
-		Notes.getInstance().setStatusText("Database Consistency Check");
+		this._tab.setStatusText("Database Consistency Check");
 	}
 	
 	/**
 	 * Display results of the passed check.
 	 */
-	displayResults(check) {
-		$('#checkList').css('display', 'block');
+	#displayResults(check) {
+		this.#checklistContainer.css('display', 'block');
 		
-		new CheckList($('#checkList'), check);
+		new CheckList(this._app).process(
+			this.#checklistContainer, 
+			check
+		);
 	}
 
 	/**
 	 * Set the output text of a row.
 	 */
-	setOutputText(rowId, text) {
+	#setOutputText(rowId, text) {
 		$('#' + rowId + ' .checkOutput').html(text)
 	}
 
 	/**
 	 * Set the status icon of a row.
 	 */
-	setStatus(rowId, status) {
+	#setStatus(rowId, status) {
 		var icon = $('#' + rowId + ' .trashitemicon');
+		
 		icon.removeClass();
-		icon.addClass('trashitemicon ' + this.getStatusIcon(status));
+		icon.addClass('trashitemicon ' + this.#getStatusIcon(status));
 	}
 	
 	/**
 	 * Get icon classes for the passed status.
 	 */
-	getStatusIcon(status) {
+	#getStatusIcon(status) {
 		switch(status) {
 		case 'running': return 'fa fa-running';
 		case 'unknown': return 'fa fa-question-circle iconGrey';

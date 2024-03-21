@@ -23,7 +23,7 @@ class Graph {
 	/**
 	 * Expects a container element (non-jquery, standard DOM element) to render the graph into.
 	 */
-	constructor(app, containerId, infoPanel) {
+	constructor(app, container, infoPanel) {
 		this.#app = app;
 		
 		var that = this;
@@ -35,7 +35,7 @@ class Graph {
 		this.nodeIds = new Map();
 	
 		this.infoPanel = infoPanel;
-		$('#' + containerId).mousemove(function(e) {
+		container.mousemove(function(e) {
 			that.infoPanel.css('left', (e.offsetX + 20) + 'px');
 			that.infoPanel.css('top', (e.offsetY + 20) + 'px');
 		});
@@ -43,7 +43,7 @@ class Graph {
 		this.defaultNodeRadius = 7;
 	
 		// Graph
-		this.graph = new Neo4jd3('#' + containerId, {
+		this.graph = new Neo4jd3(container, {  // TODO check if this works with a element (formerly, the selector string has been passed)
 			minCollision: 15,
 			neo4jData: { results: [] },
 			nodeRadius: this.defaultNodeRadius,
@@ -55,7 +55,7 @@ class Graph {
 			onNodeMouseEnter: function(node) {
 				that.infoPanel.css('display', 'block');	
 				
-				var doc = that.#app.getData().getById(node.properties.docId);
+				var doc = that.#app.data.getById(node.properties.docId);
 				if (doc) {
 					that.infoPanel.css('background-color', doc.backColor ? doc.backColor : 'white');
 					that.infoPanel.css('color', doc.color ? doc.color : 'black');
@@ -82,7 +82,7 @@ class Graph {
 		});
 		
 		$('.neo4jd3-graph').css('background-color', Config.graphBackgroundColor);
-		$('#graphContainer').css('background-color', Config.graphBackgroundColor);
+		container.css('background-color', Config.graphBackgroundColor);
 	}
 	
 	stop() {
@@ -100,7 +100,7 @@ class Graph {
 		};
 		
 		// Nodes
-		var dd = this.#app.getData();
+		var dd = this.#app.data;
 		for(var d=0; d<docs.length; ++d) {
 			var doc = docs[d];
 			

@@ -227,7 +227,7 @@ class Document {
 		BoardEditor.checkBasicProps(doc, errors);
 		
 		// Check label definitions and labels.
-		LabelDefinitions.check(doc, errors, allDocs);
+		LabelDefinitionsPage.check(doc, errors, allDocs);
 	}
 	
 	/**
@@ -412,7 +412,7 @@ class Document {
 	}
 	
 	static checkLinkages(doc, cl, errors, ignoreBrokenLinksInContent) {
-		var d = Document.app.getData();
+		var d = Document.app.data;
 		
 		if (!cl) {
 			cl = Document.clone(doc);
@@ -540,11 +540,7 @@ class Document {
 				Document.app.showAlert(
 					'Broken metadata (' + errors.length + ' errors) in document ' + doc.name + ' (' + doc._id + '), please re-save it or repair in Settings.', 
 					'E', 
-					'brokenMetaMessages' /*, 
-					false, 
-					function(msgCont, event) {
-						Notes.getInstance().routing.call(doc._id);
-					}*/
+					'brokenMetaMessages'
 				);
 			}
 		}, 500);
@@ -564,7 +560,7 @@ class Document {
 		if (!doc) return null;
 		if (doc.type != 'reference') return doc;
 
-		return Document.getTargetDoc(Document.app.getData().getById(doc.ref));
+		return Document.getTargetDoc(Document.app.data.getById(doc.ref));
 	}
 	
 	/**
@@ -645,7 +641,7 @@ class Document {
 		if (!doc) return [];
 		if (!doc.content) return [];
 	
-		const tags = Hashtag.parse(doc.content);
+		const tags = Document.app.hashtag.parse(doc.content);
 	
 		var ret = [];
 		for(var i=0; i<tags.length; ++i) {
@@ -661,7 +657,7 @@ class Document {
 	static lock(id) {
 		if (!id) throw new Error('No ID passed to lock');
 		
-		var doc = Document.app.getData().getById(id);
+		var doc = Document.app.data.getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		if (doc.lock) {
@@ -677,7 +673,7 @@ class Document {
 	static unlock(id) {
 		if (!id) throw new Error('No ID passed to lock');
 		
-		var doc = Document.app.getData().getById(id);
+		var doc = Document.app.data.getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		delete doc.lock;
@@ -733,7 +729,7 @@ class Document {
 		delete doc.navItemElement;
 		//Document.strip(doc);
 				
-		var d = Document.app.getData();
+		var d = Document.app.data;
 		if (d) {
 			d.setParent(doc._id, src.parent);
 			if (doc._conflicts && doc._conflicts.length) {
@@ -981,7 +977,7 @@ class Document {
 	 * Returns if the passed document can be directly restored in its editor.
 	 */
 	static canRestore(id) {
-		var doc = Document.app.getData().getById(id);
+		var doc = Document.app.data.getById(id);
 		var e = Document.createDocumentEditor(doc);
 		
 		return e instanceof RestorableEditor;
@@ -993,7 +989,7 @@ class Document {
 	 * TODO better concept for this without pre-setting the data
 	 */
 	static setRestoreData(id, content) {
-		var doc = Document.app.getData().getById(id);
+		var doc = Document.app.data.getById(id);
 		var e = Document.createDocumentEditor(doc);
 		
 		if (!(e instanceof RestorableEditor)) throw new Error('Editor cannot restore: ' + id);
@@ -1177,7 +1173,7 @@ class Document {
 		
 		var name = def.name ? def.name : ('Label-' + doc.name);
 		var color = def.color ? def.color : '#06feab';
-		var id = def.id ? def.id : Document.app.db.getData().generateIdFrom(name);
+		var id = def.id ? def.id : Document.app.data.generateIdFrom(name);
 		
 		if (!doc.labelDefinitions) doc.labelDefinitions = [];
 		doc.labelDefinitions.push({
@@ -1236,7 +1232,7 @@ class Document {
 	 * Removes all labels from the document which do not exist anymore.
 	 */
 	static removeInvalidLabels(doc) {
-		var d = Document.app.getData();
+		var d = Document.app.data;
 
 		var nl = [];
 		for(var i in doc.labels) {
@@ -1256,7 +1252,7 @@ class Document {
 	 * Returns HTML elements for the labels of the document.
 	 */
 	static getLabelElements(doc, cssClass) {
-		var labels = Document.app.getData().getActiveLabelDefinitions(doc._id);
+		var labels = Document.app.data.getActiveLabelDefinitions(doc._id);
 		var ret = [];
 		
 		for(var i in labels || []) {
@@ -1281,13 +1277,13 @@ class Document {
 	 * Returns HTML elements for the hashtags of the document.
 	 */
 	static getTagElements(doc, cssClass) {
-		var tags = Document.app.getData().getTags([doc]);
+		var tags = Document.app.data.getTags([doc]);
 		var ret = [];
 		
 		for(var i in tags || []) {
 			var el = $('<div data-id="' + (doc ? doc._id : '') + '" data-tag="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-hashtag ' + (cssClass ? cssClass : '') + '"></div>');
 		
-			var col = Hashtag.getColor(tags[i]);
+			var col = Document.app.hashtag.getColor(tags[i]);
 			
 			el.css('background-color', col);
 			el.on('touchstart mousedown', function(event) {
@@ -1302,7 +1298,7 @@ class Document {
 				if (event.ctrlKey || event.metaKey) {
 					Document.app.routing.callHashtags(data.id);
 				} else {
-					Hashtag.showTag(data.tag);
+					Document.app.hashtag.showTag(data.tag);
 				}
 			})
 			
@@ -1326,10 +1322,10 @@ class Document {
 	 * to the current doc state. Returns true if the tree should be rebuilt.
 	 */
 	static containsTreeRelevantChanges(doc, current) {
-		if (!Document.app.getData()) return false;
+		if (!Document.app.data) return false;
 		
 		if (!current) {
-			current = Document.app.getData().getById(doc._id);
+			current = Document.app.data.getById(doc._id);
 		}
 		if (!current) {
 			if (!doc.deleted && !doc._deleted) {
@@ -1527,7 +1523,7 @@ class Document {
 	 */
 	static isPartOfBoard(doc) {
 		if (!doc) return false;
-		var d = Document.app.getData();
+		var d = Document.app.data;
 		
 		// Document itself
 		if (doc.editor == 'board') return true;
@@ -1552,7 +1548,7 @@ class Document {
 	 * Shows the download dialog for the given document. Returns a Promise.
 	 */
 	static downloadDocumentDialog(id) {
-		var d = Document.app.getData();
+		var d = Document.app.data;
 		
 		var doc = d.getById(id);
 		if (!doc) return Promise.reject({
@@ -1681,7 +1677,7 @@ class Document {
 		if (!options.timestamps) options.timestamps = 'all';
 		if (!options.fileName) throw new Error('No filename passed for downloading');
 		
-		var d = Document.app.getData();
+		var d = Document.app.data;
 		
 		// Get document
 		var doc = d.getById(id);
@@ -1701,7 +1697,7 @@ class Document {
 	 * Helper for downloadDocument(). Collects contents recursively.
 	 */
 	static collectContents(doc, depth, options, prefix) {
-		var d = Document.app.getData();
+		var d = Document.app.data;
 		if (!prefix) prefix = '';
 		
 		var includeTimestamps = false;

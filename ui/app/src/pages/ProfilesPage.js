@@ -16,31 +16,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Profiles {
-	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Profiles.instance) Profiles.instance = new Profiles();
-		return Profiles.instance;
-	}
+class ProfilesPage extends Page {
 	
 	/**
 	 * Loads the passed version history data into the versions view.
 	 */
-	load() {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-		
-		var d = Database.getInstance();
+	async load() {
+		var d = this._app.db;
 		
 		// Set note name in the header
-		n.setStatusText("Choose notebook"); 
+		this._tab.setStatusText("Choose notebook"); 
 
 		// Build list of available remotes
 		var remoteList = [];
 		var profiles = d.profileHandler.getProfiles();
+		
 		for(var p in profiles) {
 			var cloned = profiles[p].clone;
 			var synced = profiles[p].autoSync;
@@ -51,6 +41,7 @@ class Profiles {
 			var clonedTooltipText = cloned ? 'The notebook is cloned locally' : 'The notebook is not cloned locally';
 			var syncedTooltipText = synced ? 'The notebook is auto-synced to the remote server' : 'The notebook is not auto-synced to the remote server';
 			
+			var that = this;
 			remoteList.push(
 				$('<tr></tr>').append(
 					$('<td class="profileSelectElementContainer"></td>').append(
@@ -58,43 +49,44 @@ class Profiles {
 						.on('click', function(event) {
 							event.stopPropagation();
 							
-							Database.getInstance().profileHandler.selectOrCreateProfile($(this).data().url);
-							Database.getInstance().reset();
-							Notes.getInstance().routing.call();
+							d.profileHandler.selectOrCreateProfile($(this).data().url);
+							d.reset();
+							that._app.routing.call();
 						})
 					),
+					
 					$('<td class="profileSelectInfo"></td>')
 					.append(
 						(profiles[p].url != "local") 
-						? 
-						[ 
-							$('<span class="profileSelectStatusIcons"></span>').append(
-								$('<span data-toggle="tooltip" title="' + clonedTooltipText + '" class="' + cloneIconClasses + '"></span>'),
-								$('<span data-toggle="tooltip" title="' + syncedTooltipText + '" class="' + syncIconClasses + '"></span>')
-							),
-							
-							$('<span class="profileSelectStatusText"></span>')
-							.html(profiles[p].url),
-							
-							$('<a data-url="' + profiles[p].url + '" href="javascript:void(0);" class="profileSelectStatusCloseLink">Close...</a>')
-							.on('click', function(event) {
-								event.stopPropagation();
-								var url = $(this).data().url;
-								
-								if (!confirm('Really close the notebook at ' + url + '? This will only delete local data, the remote database is not being touched.')) {
-									return;
-								}
-								Database.getInstance().profileHandler.deleteProfile(url);
-								Database.getInstance().reset();
-								
-								location.reload();
-							})
-						]
-						:
-						[
-							$('<span class="profileSelectStatusText"></span>')
-							.html('Local notebook')
-						]
+							? 
+								[ 
+									$('<span class="profileSelectStatusIcons"></span>').append(
+										$('<span data-toggle="tooltip" title="' + clonedTooltipText + '" class="' + cloneIconClasses + '"></span>'),
+										$('<span data-toggle="tooltip" title="' + syncedTooltipText + '" class="' + syncIconClasses + '"></span>')
+									),
+									
+									$('<span class="profileSelectStatusText"></span>')
+									.html(profiles[p].url),
+									
+									$('<a data-url="' + profiles[p].url + '" href="javascript:void(0);" class="profileSelectStatusCloseLink">Close...</a>')
+									.on('click', function(event) {
+										event.stopPropagation();
+										var url = $(this).data().url;
+										
+										if (!confirm('Really close the notebook at ' + url + '? This will only delete local data, the remote database is not being touched.')) {
+											return;
+										}
+										d.profileHandler.deleteProfile(url);
+										d.reset();
+										
+										location.reload();
+									})
+								]
+							:
+								[
+									$('<span class="profileSelectStatusText"></span>')
+									.html('Local notebook')
+								]
 					)
 				)
 			);
@@ -105,54 +97,24 @@ class Profiles {
 				$('<td class="profileSelectElementContainer"></td>').append(
 					$('<button class="btn btn-secondary profileSelectBtnFixed">Open Notebook from CouchDB URL...</button>')
 					.on('click', function() {
-						var url = prompt('CouchDB Address:', SettingsContent.getDatabaseUrlProposal(Database.getInstance().profileHandler.getCurrentProfile().url));
+						var url = prompt('CouchDB Address:', SettingsContent.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
 						if (!url) return;
 						
-						Database.getInstance().reset();
-						Notes.getInstance().routing.call('', url);
+						d.reset();
+						that._app.routing.call('', url);
 					})
 				)
 			)
 		);
-		/*remoteList.push(
-			$('<tr></tr>').append(
-				$('<td class="profileSelectElementContainer"></td>').append(
-					$('<button class="btn btn-secondary profileSelectBtnFixed">Open Notebook...</button>')
-					.on('click', function() {
-						var setting = prompt('Import profile:');
-						if (!setting) return;
-						
-						var d = Database.getInstance();
-						var n = Notes.getInstance();
-						
-						try {
-							d.profileHandler.importProfile(setting);
-							d.get().then(function(data) {
-								d.reset();
-								n.routing.call('settings');
-							}).catch(function(err) {
-								d.reset();
-								n.routing.call('settings');
-							});
-			
-							n.setStatusText('Importing profile');
-							
-						} catch (e) {
-							n.showAlert('Error importing profile: ' + e);
-						}
-					})
-				)
-			)
-		);*/
-
+		
 		var overview = $('<div class="prettyPageBody profileDocContent"></div>');
 
 		// Build profiles page
-		$('#contentContainer').append(
-			$('<div id="#profileSelection"></div>').append(
+		this._tab.getContainer().append(
+			$('<div class="profileSelection"></div>').append(
 				$('<div class="prettyPageBody"><h3>Welcome to the Notes App!</h3>Please select an already opened Notebook, or add a new one. You can also choose the local option for testing the app locally with no remote server connected. See the <a href="#/doc/usage">usage documentation</a> for details.<br><br></div>'),
 				
-				$('<table id="profileList"></table>').append(
+				$('<table class="profileList"></table>').append(
 					$('<tbody></tbody>').append(
 						remoteList
 					)
@@ -169,8 +131,5 @@ class Profiles {
 		jQuery.get(baseURL, function(data) {
 			overview.html(data);
 		});
-		/*.fail(function(err) {
-			contentContainer.html(err.responseText);	
-		});*/
 	}
 }

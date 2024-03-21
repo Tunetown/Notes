@@ -20,6 +20,9 @@
  */
 class TouchClickHandler {
 	
+	#currentPos = null;
+	#posAtStart = null;
+	
 	/**
 	 * element: The element to attach the events to
 	 * options: Object holding the callbacks and options. The following are defined:
@@ -50,11 +53,11 @@ class TouchClickHandler {
 		if (!options.mouseEventBlockMillis) options.mouseEventBlockMillis = 10;
 		
 		// We use some position markers to track user activity, which are initialised here to reduce object garbage.
-		this.currentPos = {
+		this.#currentPos = {
 			x: -1,
 			y: -1
 		};
-		this.posAtStart = {
+		this.#posAtStart = {
 			x: -1,
 			y: -1
 		}
@@ -115,8 +118,8 @@ class TouchClickHandler {
 			that.captureCurrentPosition(event);
 
 			// Remember start position
-			that.posAtStart.x = Tools.extractX(event);
-			that.posAtStart.y = Tools.extractY(event);
+			that.#posAtStart.x = Tools.extractX(event);
+			that.#posAtStart.y = Tools.extractY(event);
 			
 			// If defined, start the delayed hold timer
 			that.mouseDownTimerElapsed = false;
@@ -194,34 +197,34 @@ class TouchClickHandler {
 		 * Saves the current user position in an instance attribute (currentPos)
 		 */
 		this.captureCurrentPosition = function(event) {
-			that.currentPos.x = Tools.extractX(event);
-			that.currentPos.y = Tools.extractY(event);
+			that.#currentPos.x = Tools.extractX(event);
+			that.#currentPos.y = Tools.extractY(event);
 		}
 			
 		/**
 		 * Tells if the user has been moved since posAtStart has been set.
 		 */
 		this.userHasMoved = function(event) {
-			if (!that.posAtStart) return false;
-			if (!that.currentPos) return false;
-			if (!that.currentPos.x) return false;
-			if (!that.currentPos.y) return false;
-			if (that.currentPos.x < 0) return false;
-			if (that.currentPos.y < 0) return false;
+			if (!that.#posAtStart) return false;
+			if (!that.#currentPos) return false;
+			if (!that.#currentPos.x) return false;
+			if (!that.#currentPos.y) return false;
+			if (that.#currentPos.x < 0) return false;
+			if (that.#currentPos.y < 0) return false;
 			
 			var x, y;
 			if (event) {
 				x = Tools.extractX(event);
 				y = Tools.extractY(event);
-				if (x < 0) x = that.currentPos.x;
-				if (y < 0) y = that.currentPos.y;
+				if (x < 0) x = that.#currentPos.x;
+				if (y < 0) y = that.#currentPos.y;
 			} else {
-				x = that.currentPos.x;
-				y = that.currentPos.y;
+				x = that.#currentPos.x;
+				y = that.#currentPos.y;
 			}
 			
-			var xdiff = Math.abs(x - that.posAtStart.x);
-			var ydiff = Math.abs(y - that.posAtStart.y);
+			var xdiff = Math.abs(x - that.#posAtStart.x);
+			var ydiff = Math.abs(y - that.#posAtStart.y);
 			return Math.max(xdiff, ydiff) > 20;
 		}
 	}

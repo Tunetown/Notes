@@ -87,7 +87,7 @@ class NotesImporter {
 		
 		var options = this.parseOptions();
 
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var data = JSON.parse(jsonString);
 		
 		// Prepare for existing IDs. This is done in the original jsonString, which is then re-parsed.

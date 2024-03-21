@@ -315,7 +315,7 @@ class DocumentChecks {
 							type: 'E'
 						});	
 					} else {
-						if (!that.checkRefsDocExists(allDocs.rows, doc.ref)) {
+						if (!that.#checkRefsDocExists(allDocs.rows, doc.ref)) {
 							errors.push({
 								message: 'Broken reference: Target ' + doc.ref + ' does not exist',
 								messageThreadId: 'CheckRefsMessages',
@@ -324,7 +324,7 @@ class DocumentChecks {
 							});	
 						}
 						
-						var refChildren = that.getRefChidren(allDocs.rows, doc._id);
+						var refChildren = that.#getRefChidren(allDocs.rows, doc._id);
 						for (var rr in refChildren) {
 							errors.push({
 								message: 'Child of reference document detected: ' + refChildren[rr]._id,
@@ -342,7 +342,7 @@ class DocumentChecks {
 				}
 				
 				if (!doc.deleted) {
-					that.checkHasRoot(allDocs.rows, doc, errors, doc._id);
+					that.#checkHasRoot(allDocs.rows, doc, errors, doc._id);
 				}
 			}
 			
@@ -365,7 +365,7 @@ class DocumentChecks {
 	 * Checks if id exists in docs. 
 	 * Helper for checkDocumentsRefs().
 	 */
-	checkRefsDocExists(docs, id) {
+	#checkRefsDocExists(docs, id) {
 		for(var i in docs) {
 			var doc2 = docs[i].doc;
 			if (doc2._id == id) {
@@ -379,7 +379,7 @@ class DocumentChecks {
 	 * Gets Children of an ID.
 	 * Helper for checkDocumentsRefs().
 	 */
-	getRefChidren(docs, id) {
+	#getRefChidren(docs, id) {
 		var ret = [];
 		for(var i in docs) {
 			var doc2 = docs[i].doc;
@@ -393,7 +393,7 @@ class DocumentChecks {
 	/**
 	 * Helper for checkDocumentsRefs().
 	 */
-	checkHasRoot(docs, doc, errors, docId) {
+	#checkHasRoot(docs, doc, errors, docId) {
 		if (!doc.hasOwnProperty('parent')) {
 			errors.push({
 				message: 'Parent missing (document is not displayed)',
@@ -419,7 +419,7 @@ class DocumentChecks {
 			if (docs[i].doc.deleted) continue;
 			
 			if (docs[i].doc._id == doc.parent) {
-				return this.checkHasRoot(docs, docs[i].doc, errors, docId);
+				return this.#checkHasRoot(docs, docs[i].doc, errors, docId);
 			}
 		}
 		

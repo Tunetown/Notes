@@ -18,8 +18,8 @@
  */
 class RichtextEditor extends RestorableEditor {
 	
-	static #LINK_CLASS = 'notesTMCELink';       ///< Class for the internal links
-	static #TAG_CLASS = 'notesTMCETag';         ///< Class for the hashtags
+	//static #LINK_CLASS = 'notesTMCELink';       ///< Class for the internal links   TODO cleanup
+	//static #TAG_CLASS = 'notesTMCETag';         ///< Class for the hashtags  
 	
 	#current = null;                            // Current document
 	#editorId = false;                          // Editor element ID (must be unique globally)
@@ -32,11 +32,13 @@ class RichtextEditor extends RestorableEditor {
 	#cursorElementId = false;
 	#cursorElementSeed = false;
 	
+	#saveButton = null;
+	#discardButton = null;
 	
 	constructor() {
 		// Set editor element ID (must be unique globally, so we generate a 
 		// new one for each instance of this editor)
-		this.#editorId = "editorContent_" + Tools.getUuid();   
+		this.#editorId = "editorContent_" + this._getPageId();   
 	}
 	
 	/**
@@ -134,20 +136,16 @@ class RichtextEditor extends RestorableEditor {
 		if (editor) {
 			editor.setContent("");
 			editor.mode.set("readonly");
+			editor.destroy();                 // TODO deos this work?
 		}
 		
 		this.setVersionRestoreData(false);
-		this.resetDirtyState();
 		
 		this.#current = null;
-		this._app.setStatusText();
 		
-		this._tab.getContainer().empty();
-		
-		this._app.update();
+		this._app.update();  // TODO still necessary?
 	}
 	
-
 	/**
 	 * Returns the DOM elements for the editor. TODO
 	 *
@@ -165,14 +163,12 @@ class RichtextEditor extends RestorableEditor {
 		
 		Document.brokenLinksWarning(doc);
 
-		await this.unload();
-		
 		this.#current = doc;
 
 		// Show loaded note in the header bar 
 		var txt = "";
 		if (data) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
-		this._app.setStatusText(txt);
+		this._tab.setStatusText(txt);
 		
 		var content = Document.getContent(doc) ? Document.getContent(doc) : '';
 		content = this.#convertPlainLinksAndTags(content);
@@ -263,17 +259,21 @@ class RichtextEditor extends RestorableEditor {
 			}, 10);
 		}
 
+		this.#saveButton = $('<div type="button" data-toggle="tooltip" title="Save Note" class="fa fa-save"></div>');
+		this.#discardButton = $('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" class="fa fa-times"></div>');
+
 		// Build buttons
 		if (this.#versionRestoreData) {
 			this.#versionRestoreMode = true;
 			
 			this._app.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
+				this.#saveButton
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#saveNote();
 				}),
-				$('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" id="discardButton" class="fa fa-times"></div>')
+				
+				this.#discardButton
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#discard(true);
@@ -283,12 +283,13 @@ class RichtextEditor extends RestorableEditor {
 			this.#versionRestoreMode = false;
 			
 			this._app.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
+				this.#saveButton
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#saveNote();
 				}), 
-				$('<div type="button" data-toggle="tooltip" title="Note options..." id="editorOptionsButton" class="fa fa-ellipsis-v"></div>')
+				
+				$('<div type="button" data-toggle="tooltip" title="Note options..." class="fa fa-ellipsis-v"></div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#callPageOptions(event);
@@ -320,7 +321,7 @@ class RichtextEditor extends RestorableEditor {
 				// Search
 				$('<div class="userbutton"></div>').append(
 					$('<div class="searchBar"></div>').append(
-						$('<input type="text" id="editorSearch" placeholder="Type text to search..." />')
+						$('<input type="text" placeholder="Type text to search..." />')
 						.on('focus', function(event) {
 							event.stopPropagation();
 							that.#getEditor().execCommand('SearchReplace');
@@ -378,7 +379,7 @@ class RichtextEditor extends RestorableEditor {
 	#updateStatus() {
 		// Changed marker in header
 		//$('#saveButton').toggleClass("buttonDisabled", !this.isDirty())
-		$('#saveButton').css("display", this.isDirty() ? 'inline' : 'none');
+		this.#saveButton.css("display", this.isDirty() ? 'inline' : 'none');
 		
 		this._app.update();
 	}
@@ -389,7 +390,7 @@ class RichtextEditor extends RestorableEditor {
 	#discard(removeButton) {
 		this.setVersionRestoreData(false);
 		
-		if (removeButton) $('#discardButton').css("display", "none");
+		if (removeButton) this.#discardButton.css("display", "none");
 		
 		this._app.showAlert("Action cancelled.", "I");
 
@@ -520,7 +521,7 @@ class RichtextEditor extends RestorableEditor {
 		
 		return new tinymce.util.Promise(function (resolve) {
 			resolve(that.#getTagAutocompleteMatchedChars(editor, pattern).map(function (char) {
-				const classes = [Hashtag.getListStyleClass(char.id)];
+				const classes = [that._app.hashtag.getListStyleClass(char.id)];
 				
 				return {
 					type: 'cardmenuitem',
@@ -567,14 +568,14 @@ class RichtextEditor extends RestorableEditor {
 	 * Returns the list of proposals for link auto completion.
 	 */
 	#getLinkAutocompleteMatchedChars(editor, pattern) {	
-		return this._app.getData().getLinkAutocompleteList(pattern);
+		return this._app.data.getLinkAutocompleteList(pattern);
 	}
 	
 	/**
 	 * Returns the list of proposals for link auto completion.
 	 */
 	#getTagAutocompleteMatchedChars(editor, pattern) {
-		return this._app.getData().getTagAutocompleteList(pattern);
+		return this._app.data.getTagAutocompleteList(pattern);
 	}
 	
 	////////////////////////////////////////////////////////////////////////////////////////////////
@@ -727,7 +728,7 @@ class RichtextEditor extends RestorableEditor {
 			.each(function() {
 				var textNode = this;
 				var text = textNode.nodeValue;
-				const coll = Hashtag.parse(text);
+				const coll = that._app.hashtag.parse(text);
 				if (coll.length == 0) return;
 			
 				for(var c=0; c<coll.length; ++c) {
@@ -789,8 +790,8 @@ class RichtextEditor extends RestorableEditor {
 				tags[i].addEventListener("click", tagClick);
 				
 				// Colors
-				const tag = Hashtag.extractTagFromElement($(tags[i]));
-				const tagColor = Hashtag.getColor(tag);
+				const tag = that._app.hashtag.extractTagFromElement($(tags[i]));
+				const tagColor = that._app.hashtag.getColor(tag);
 				if (tag) $(tags[i]).css('background-color', tagColor);
 				if (tag) $(tags[i]).css('color', Tools.getForegroundColor(tagColor));
 			}
@@ -837,14 +838,14 @@ class RichtextEditor extends RestorableEditor {
 	#onTagClick(event) {
 		if (!event.currentTarget) return;
 		
-		const tag = Hashtag.extractTagFromElement($(event.currentTarget)); //.text();
+		const tag = this._app.hashtag.extractTagFromElement($(event.currentTarget)); //.text();
 		if (!tag) return;
 		
 		if (event.ctrlKey || event.metaKey) {
 			const currentId = this.getCurrentId();
 			this._app.routing.callHashtags(currentId);
 		} else {
-			Hashtag.showTag(tag);
+			this._app.hashtag.showTag(tag);
 		}
 	}
 }

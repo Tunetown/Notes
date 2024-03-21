@@ -138,7 +138,7 @@ class ObsidianExporter {
 	 */
 	prepareDocuments(docs, docsPrepped) {
 		var attRefs = [];
-		var d = this.#app.getData();
+		var d = this.#app.data;
 
 		// Add the root index file
 		var rootDoc = this.createRootIndexDoc();
@@ -198,7 +198,7 @@ class ObsidianExporter {
 	 * Fills the docsPrepped, attRefs and promises arrays by the passed doc. Returns nothing.
 	 */
 	prepareDocument(docsPrepped, attRefs, promises, doc) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var that = this;
 		
 		// Get file path. This removes illegal characters.
@@ -536,7 +536,7 @@ class ObsidianExporter {
 	 * Generates label links for all documents. Returns a stats object.
 	 */
 	createLabelLinkages(docsPrepped) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		var labelsAdded = 0;
 		var labelsIgnored = 0;
@@ -595,7 +595,7 @@ class ObsidianExporter {
 	 * about the path actually exported.
 	 */
 	addFile(docsPrepped, folder, basename, extension, doc, content) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		/**
 		 * Compose the file base name (no escaping!) using the (optional) iteration number passed.
@@ -741,7 +741,7 @@ class ObsidianExporter {
 	 * derived from the already prepped docs. Returns an array of objects.
 	 */
 	getChildrenOfPath(docsPrepped, parentPath) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var ret = [];
 		
 		/**
@@ -950,7 +950,7 @@ class ObsidianExporter {
 	 * Returns the content for a obsidian kanban board file.
 	 */
 	createKanbanFileContent(docsPrepped, dp) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		// Start building the content string with the frontmatter
 		var ret = "---\n\nkanban-plugin: basic\n\n---\n\n";

@@ -18,21 +18,22 @@
  */
 class Hashtag {
 	
-	static app = null;
+	#app = null;
 
-	static setApp(app) {
-		Document.app = app;
+	constructor(app) {
+		this.#app = app;
 	}
 	
+	static #stylePrefix = 'tag_';
 	static startChar = '#';                                                                     ///< First character of the start tag
-	static allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';    ///< Allowed characters
-	static startingPreChars = ' 	\n\r>&' + String.fromCharCode(160);                         ///< Characters allowed before the hashtag 
-	static terminationChars = ' 	\n\r<&' + String.fromCharCode(160);                         ///< Characters allowed after the hashtag
+	static #allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';    ///< Allowed characters
+	static #startingPreChars = ' 	\n\r>&' + String.fromCharCode(160);                         ///< Characters allowed before the hashtag 
+	static #terminationChars = ' 	\n\r<&' + String.fromCharCode(160);                         ///< Characters allowed after the hashtag
 	 
 	/**
 	 * Extracts the tag name from a JQuery element's text content.
 	 */
-	static extractTagFromElement(el) {
+	extractTagFromElement(el) {
 		var tag = el.text();
 		if (tag.substring(0, Hashtag.startChar.length) != Hashtag.startChar) return false;
 		if (!tag) return false;
@@ -47,16 +48,94 @@ class Hashtag {
 	 * Hashtags must end with either a space, newline, carriage return or tab, or < and & signs to include HTML entities but exclude colors etc.,
 	 * and start with nothing, a new line, carriagne return, > sign or space or tab. 
 	 */
-	static parse(content) {
+	parse(content) {
 		var coll = [];
 		var state = {};
 		for(var i=0; i<content.length; ++i) {
-			const token = Hashtag.parseChar(content[i], i, state, i == (content.length-1)/*, outsideTagsOnly*/);
+			const token = this.#parseChar(content[i], i, state, i == (content.length-1)/*, outsideTagsOnly*/);
 			if (token) coll.push(token);
 		}
 		return coll;
 	}
 	
+	/**
+	 * Reads from the state object if the algorithm is currently capturing a token.
+	 */
+	static isCapturing(state) {
+		return state && state.capturing;
+	}
+	
+	/**
+	 * Returns the passed tag's color code. If no color is 
+	 * set in the global metadata, a random color is returned and also saved.
+	 */
+	getColor(tag) {
+		if (!tag) return Config.defaultHashtagColor;
+		tag = tag.toLowerCase();
+		
+		var that = this;
+		
+		function randomColor() {
+			const col = Hashtag.#getColorProposal(tag);
+			
+			that.#app.actions.hashtag.setColor(tag, col);
+			
+			return col;
+		}
+		
+		const meta = this.#app.actions.meta.meta[HashtagActions.metaFileName];
+		if (!meta) return randomColor();
+		
+		const hash = Tools.hashCode(tag);
+		if(!meta.hasOwnProperty(hash)) return randomColor();
+		
+		const tagmeta = meta[hash];
+		if (!tagmeta.color) return randomColor();
+		
+		return tagmeta.color;
+	}
+	
+	/**
+	 * Returns if the passed tag has a custom color.
+	 */
+	hasColor(tag) {
+		if (!tag) return false;
+		tag = tag.toLowerCase();
+		
+		const meta = this.#app.actions.meta.meta[HashtagActions.metaFileName];
+		if (!meta) return false;
+		
+		const hash = Tools.hashCode(tag);
+		if(!meta.hasOwnProperty(hash)) return false;
+		
+		const tagmeta = meta[hash];
+		if (!tagmeta.color) return false;
+		
+		return true;
+	}
+	
+	/**
+	 * Returns a dynamic CSS class name for the given tag, to be used in lists.
+	 */
+	getListStyleClass(tag) {
+		const col = this.getColor(tag);
+		const styleStr = 'background-color: ' + col + ' !important; color: rgba(0,0,0,0) !important; margin-right: 4px;  border-radius: 10px; content: "__";';
+		return this.#app.styles.getStyleClass(Hashtag.#stylePrefix + tag, ':before', styleStr);
+	}
+	
+	/**
+	 * Used by all pages etc. to show a tag's mentions.
+	 */
+	showTag(tag) {
+		tag = Hashtag.trim(tag.toLowerCase());
+		
+		if (this.#app.isLayoutMobile()) {
+			this.#app.routing.callSearch('tag:' + tag);
+		} else {
+			this.#app.nav.setSearchText('tag:' + tag);
+		}
+	}
+
 	/**
 	 * Trims a text to get a valid hashtag.
 	 */
@@ -69,6 +148,8 @@ class Hashtag {
 		return ret;
 	}
 	
+	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
 	/**
 	 * Parsing function for one character. Expects the character, its position and a state object (empty object at the start).
 	 * isAtEnd has to be true only when the last available character has been passed.
@@ -76,7 +157,7 @@ class Hashtag {
 	 *
 	 * Return a token descriptor if a token has been found.  
 	 */
-	static parseChar(c, pos, state, isAtEnd) {
+	#parseChar(c, pos, state, isAtEnd) {
 		function evalToken(endPos) {
 			state.capturing = false;
 			state.end = endPos;
@@ -138,15 +219,6 @@ class Hashtag {
 	}
 	
 	/**
-	 * Reads from the state object if the algorithm is currently capturing a token.
-	 */
-	static isCapturing(state) {
-		return state && state.capturing;
-	}
-	
-	static metaFileName = 'tagMeta';
-	
-	/**
 	 * Tries to guess what the tag might need to look like.
 	 */
 	static #getColorProposal(tag) {
@@ -156,76 +228,5 @@ class Hashtag {
 		}
 		
 		return Tools.getRandomColor();
-	}
-	
-	/**
-	 * Returns the passed tag's color code. If no color is 
-	 * set in the global metadata, a random color is returned and also saved.
-	 */
-	static getColor(tag) {
-		if (!tag) return Config.defaultHashtagColor;
-		tag = tag.toLowerCase();
-		
-		function randomColor() {
-			const col = Hashtag.#getColorProposal(tag);
-			
-			Hashtag.app.actions.hashtag.setColor(tag, col);
-			
-			return col;
-		}
-		
-		const meta = Hashtag.app.actions.meta.meta[Hashtag.metaFileName];
-		if (!meta) return randomColor();
-		
-		const hash = Tools.hashCode(tag);
-		if(!meta.hasOwnProperty(hash)) return randomColor();
-		
-		const tagmeta = meta[hash];
-		if (!tagmeta.color) return randomColor();
-		
-		return tagmeta.color;
-	}
-	
-	/**
-	 * Returns if the passed tag has a custom color.
-	 */
-	static hasColor(tag) {
-		if (!tag) return false;
-		tag = tag.toLowerCase();
-		
-		const meta = Hashtag.app.actions.meta.meta[Hashtag.metaFileName];
-		if (!meta) return false;
-		
-		const hash = Tools.hashCode(tag);
-		if(!meta.hasOwnProperty(hash)) return false;
-		
-		const tagmeta = meta[hash];
-		if (!tagmeta.color) return false;
-		
-		return true;
-	}
-	
-	static stylePrefix = 'tag_';
-	
-	/**
-	 * Returns a dynamic CSS class name for the given tag, to be used in lists.
-	 */
-	static getListStyleClass(tag) {
-		const col = Hashtag.getColor(tag);
-		const styleStr = 'background-color: ' + col + ' !important; color: rgba(0,0,0,0) !important; margin-right: 4px;  border-radius: 10px; content: "__";';
-		return Hashtag.app.styles.getStyleClass(Hashtag.stylePrefix + tag, ':before', styleStr);
-	}
-	
-	/**
-	 * Used by all pages etc. to show a tag's mentions.
-	 */
-	static showTag(tag) {
-		tag = Hashtag.trim(tag.toLowerCase());
-		
-		if (Device.getInstance().isLayoutMobile()) {
-			Hashtag.app.routing.callSearch('tag:' + tag);
-		} else {
-			Hashtag.app.nav.setSearchText('tag:' + tag);
-		}
 	}
 }

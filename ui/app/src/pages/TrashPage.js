@@ -16,53 +16,46 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Trash {
-	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Trash.instance) Trash.instance = new Trash();
-		return Trash.instance;
-	}
+class TrashPage extends Page {
 	
 	/**
 	 * Show trash bin
 	 */
-	load(docs) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-				
-		// Build new table from the data
+	async load(docs) {
 		var rows = new Array();
 		var allSize = 0;
+		var that = this;
+
+		// Build new table from the data
 		for(var i in docs || []) {
 			var doc = docs[i].doc;
+
 			var butts = $('<span class="listOptionContainer" />').append(
 				[
-					$('<div data-toggle="tooltip" title="Restore Note" class="fa fa-redo versionButton" data-name="' + doc.name + '"id="vref_' + doc._id + '"/>')
-					.on('click', function(e) {
-						var id = $(this).attr('id').substring('vref_'.length);
-						DocumentActions.getInstance().undeleteItem(id)
+					$('<div data-toggle="tooltip" title="Restore Note" class="fa fa-redo versionButton" data-name="' + doc.name + '" data-id="' + doc._id + '"/>')
+					.on('click', function(/*e*/) {
+						var id = $(this).data().id;
+						
+						that._app.actions.document.undeleteItem(id)
 						.then(function(data) {
-							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
-							Notes.getInstance().routing.call('trash');
+							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
+							that._app.routing.call('trash');
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					}),
-					$('<div data-toggle="tooltip" title="Delete permanently" class="fa fa-trash versionButton" data-name="' + doc.name + '" id="vref_' + doc._id + '"/>')
-					.on('click', function(e) {
-						var id = $(this).attr('id').substring('vref_'.length);
+					$('<div data-toggle="tooltip" title="Delete permanently" class="fa fa-trash versionButton" data-name="' + doc.name + '" data-id="' + doc._id + '"/>')
+					.on('click', function(/*e*/) {
+						var id = $(this).data().id;
 						
-						DocumentActions.getInstance().deleteItemPermanently(id)
+						that._app.actions.document.deleteItemPermanently(id)
 						.then(function(data) {
 							if (data.message) {
-								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
+								that._app.showAlert(data.message, "S", data.messageThreadId);
 							}
 						}).catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					})
 				]
@@ -79,14 +72,14 @@ class Trash {
 			}
 			
 			var parent = doc.parent;
-			var parentDoc = n.getData().getById(doc.parent);
+			var parentDoc = this._app.data.getById(doc.parent);
 			if (parentDoc) parent = parentDoc.name;
 			
-			var vSize = this.getVersionsSize(Document.getAttachments(doc));
+			var vSize = this.#getVersionsSize(Document.getAttachments(doc));
 			var cSize = Document.getContent(doc) ? Document.getContent(doc).length : 0;
 			allSize += vSize + cSize;
 			
-			var numVersions = this.countVersions(Document.getAttachments(doc));
+			var numVersions = this.#countVersions(Document.getAttachments(doc));
 			
 			rows.push(
 				$('<tr>').append(
@@ -95,14 +88,18 @@ class Trash {
 						$('<td>' + parent + '</td>'),
 						$('<td data-num="' + numVersions + '">' + numVersions + '</td>'),
 						$('<td data-size="' + (vSize + cSize) + '">' + Tools.convertFilesize(vSize + cSize) + '</td>'),
-						$('<td/>').append(butts),
+						$('<td/>').append(
+							butts
+						),
 					]					
 				)
 			);
 		}
+		
+		var trashTable = $('<table class="table table-striped table-hover" />'); 
 			
-		$('#contentContainer').append(
-			$('<table class="table table-striped table-hover" id="trashTable" />').append(
+		this._tab.getContainer().append(
+			trashTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -123,7 +120,7 @@ class Trash {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#trashTable'), {
+		Tools.makeTableSortable(trashTable, {
 			excludeColumns: [4],
 			sortData: [
 				{
@@ -142,15 +139,19 @@ class Trash {
 		});
 		
 		// Set note name in the header bar
-		n.setStatusText("Trash Bin (" + Tools.convertFilesize(allSize) + ")");
+		this._tab.setStatusText("Trash Bin (" + Tools.convertFilesize(allSize) + ")");
 
 		// Buttons
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Empty trash bin" class="fa fa-trash" onclick="event.stopPropagation();Trash.getInstance().emptyTrash()"></div>') 
+		this._app.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Empty trash bin" class="fa fa-trash"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				that.#emptyTrash();
+			}) 
 		]);
 	}
 	
-	getVersionsSize(atts) {
+	#getVersionsSize(atts) {
 		var cnt = 0;
 		for (var prop in atts) {
 		    if (Object.prototype.hasOwnProperty.call(atts, prop)) cnt += atts[prop].length;
@@ -158,7 +159,7 @@ class Trash {
 		return cnt;
 	}
 	
-	countVersions(atts) {
+	#countVersions(atts) {
 		var cnt = 0;
 		for (var prop in atts) {
 			if (Object.prototype.hasOwnProperty.call(atts, prop)) cnt++;
@@ -166,15 +167,16 @@ class Trash {
 		return cnt;
 	}
 	
-	emptyTrash() {
-		TrashActions.getInstance().emptyTrash()
+	#emptyTrash() {
+		var that = this;
+		this._app.actions.trash.emptyTrash()
 		.then(function(data) {
 			if (data.message) {
-				Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
+				that._app.showAlert(data.message, "S", data.messageThreadId);
 			}
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 		});
 	}
 }

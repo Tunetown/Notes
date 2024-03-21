@@ -18,24 +18,18 @@
  */
 class Settings {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Settings.instance) Settings.instance = new Settings();
-		return Settings.instance;
-	}
+	#app = null;
 	
-	static settingsDocId = 'settings';   /// TODO move to settingsactions
-	
-	constructor() {
+	constructor(app) {
+		this.#app = app;
+		
 		this.settings = this.getDefaults();
 	}
 	
 	/**
 	 * Default settings object
 	 */
-	getDefaults() {
+	#getDefaults() {
 		return {
 			// Theme colors
 			mainColor: Config.defaultThemeColor,
@@ -43,7 +37,7 @@ class Settings {
 
 			// Database options
 			autoSaveIntervalSecs: Config.defaultAutosaveIntervalSecs,
-			dbAccountName: Config.defaultNotebookName, //Database.getInstance().profileHandler.getCurrentProfile().url,
+			dbAccountName: Config.defaultNotebookName,
 
 			// Editor settings
 			defaultNoteEditor: Config.defaultEditorMode,
@@ -62,7 +56,7 @@ class Settings {
 	 * Check the passed settings object. Returns the number of settings properties checked.
 	 */
 	checkSettings(settings, errors) {
-		var defs = this.getDefaults();
+		var defs = this.#getDefaults();
 		
 		var cnt = 0;
 		for (var p in defs) {
@@ -79,9 +73,9 @@ class Settings {
 			}
 		}
 		
-		this.checkNumeric(settings, 'autoSaveIntervalSecs', errors);
-		this.checkNumeric(settings, 'maxUploadSizeMB', errors);
-		this.checkNumeric(settings, 'maxSearchResults', errors);
+		this.#checkNumeric(settings, 'autoSaveIntervalSecs', errors);
+		this.#checkNumeric(settings, 'maxUploadSizeMB', errors);
+		this.#checkNumeric(settings, 'maxSearchResults', errors);
 		
 		if (!Document.isValidEditorMode(settings.defaultNoteEditor)) {
 			errors.push({
@@ -118,7 +112,7 @@ class Settings {
 	/**
 	 * Helper for checkSettings()
 	 */
-	checkNumeric(settings, propName, errors) {
+	#checkNumeric(settings, propName, errors) {
 		if (!settings.hasOwnProperty(propName)) return;  // This has been checked before
 		
 		if (!Tools.isNumber(settings[propName])) {
@@ -131,51 +125,29 @@ class Settings {
 	}
 	
 	/**
-	 * Loads the passed version history data into the versions view.
+	 * Apply current settings to the application
 	 */
-	load() {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
+	apply() {
+		this.#app.setMainColor(this.settings.mainColor);
+		this.#app.setTextColor(this.settings.textColor);
+		this.#app.updateDimensions();
 		
-		// Set page name in the header
-		n.setStatusText("Settings"); 
-		
-		// Build settings page
-		var content = new SettingsContent();
-		$('#contentContainer').append(content.getTable());
-		content.update();
-
-		// Build buttons
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Save Settings" class="fa fa-save" onclick="event.stopPropagation();Settings.getInstance().saveSettings()"></div>'),
-		]);
+		this.#app.nav.updateFavorites();
 	}
 	
 	/**
 	 * Save settings
 	 */
-	saveSettings() {
-		SettingsActions.getInstance().saveSettings()
+	save() {
+		var that = this;
+		
+		return this.#app.actions.settings.saveSettings()
 		.then(function(data) {
-			if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
+			if (data.message) that.#app.showAlert(data.message, 'S', data.messageThreadId);
 		})
 		.catch(function(err) {
-			Notes.getInstance().showAlert('Error saving settings: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error saving settings: ' + err.message, 'E', err.messageThreadId);
 		})
-	}
-	
-	/**
-	 * Apply current settings to the application
-	 */
-	apply() {
-		var n = Notes.getInstance();
-		var t = NoteTree.getInstance();
-		
-		n.setMainColor(this.settings.mainColor);
-		n.setTextColor(this.settings.textColor);
-		n.updateDimensions();
-		
-		t.updateFavorites();
 	}
 	
 	/**
@@ -186,12 +158,5 @@ class Settings {
 		
 		this.settings = data;
 		this.apply();
-	}
-	
-	/**
-	 * Returns the settings as object.
-	 */
-	get() {
-		return this.settings;
 	}
 }

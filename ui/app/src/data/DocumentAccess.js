@@ -29,7 +29,7 @@ class DocumentAccess {
 	 * and is driven by an ID array instead of an array of doc instances.
 	 */
 	loadDocumentsById(ids) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		if (!d) {
 			return Promise.reject({
 				message: 'Data handler still uninitialized',
@@ -153,7 +153,7 @@ class DocumentAccess {
 	 */
 	loadAllDocuments() {
 		var all = [];
-		this.#app.getData().each(function(doc) {
+		this.#app.data.each(function(doc) {
 			all.push(doc);
 		});
 		
@@ -234,8 +234,8 @@ class DocumentAccess {
 	 * Deletion of raw documents (for check solvers)
 	 */
 	deleteDbDocument(id) {
-		this.#app.getData().resetBacklinks();
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
 		
 		var db;
 		return this.#app.db.get()
@@ -265,8 +265,8 @@ class DocumentAccess {
 	 * Save raw document (for check solvers)
 	 */
 	saveDbDocument(doc) {
-		this.#app.getData().resetBacklinks();
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
 		
 		var db;
 		return this.#app.db.get()
@@ -295,14 +295,14 @@ class DocumentAccess {
 			messageThreadId: 'SaveItemMessages'
 		});
 			
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveItemMessages'
 		});
 		
-		this.#app.getData().resetBacklinks();
-		if (!dontResetChildrenBuffers) this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		if (!dontResetChildrenBuffers) this.#app.data.resetChildrenBuffers();
 		
 		return this.#app.db.get()
 		.then(function(db) {
@@ -341,8 +341,8 @@ class DocumentAccess {
 			messageThreadId: 'SaveItemsMessages'
 		});
 			
-		this.#app.getData().resetBacklinks();
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
 			
 		// Remove duplicates
 		ids = Tools.removeDuplicates(ids);
@@ -358,7 +358,7 @@ class DocumentAccess {
 			}
 			Document.lock(ids[l]);
 			
-			var doc = this.#app.getData().getById(ids[l]);
+			var doc = this.#app.data.getById(ids[l]);
 			if (!doc) {
 				return Promise.reject({
 					message: 'Document ' + ids[l] + ' not found',
@@ -378,7 +378,7 @@ class DocumentAccess {
 		})
 		.then(function (data) {
 			// Update revisions
-			var d = that.#app.getData();
+			var d = that.#app.data;
 			for(var i in data || []) {
 				var dd = d.getById(data[i].id);
 				if (!dd) {

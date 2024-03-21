@@ -16,24 +16,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Conflicts {
+class ConflictsPage extends Page {
 	
 	/**
-	 * Singleton factory
+	 * Can be used to signal that the page also needs all navigation data loaded.
 	 */
-	static getInstance() {
-		if (!Conflicts.instance) Conflicts.instance = new Conflicts();
-		return Conflicts.instance;
+	needsHierarchyData() {
+		return true;
 	}
 	
 	/**
 	 * Load the conflict list (after all docs have been loaded!)
 	 */
-	load() {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-		
-		var data = n.getData();
+	async load() {
+		var that = this;
+		var data = this._app.data;
 		
 		// Build new table from the data
 		var rows = new Array();
@@ -47,8 +44,7 @@ class Conflicts {
 						var id = $(this).data().id;
 						var rev = $(this).data().rev;
 						
-						//NoteTree.getInstance().focus(id);
-						Notes.getInstance().routing.callConflict(id, rev);
+						that._app.routing.callConflict(id, rev);
 					}),
 						
 					$('<div data-toggle="tooltip" title="Delete Conflict" class="fa fa-trash versionButton" data-id="' + doc._id + '" data-rev="' + doc._conflicts[c] + '"/>')
@@ -56,36 +52,37 @@ class Conflicts {
 						var id = $(this).data().id;
 						var rev = $(this).data().rev;
 						
-						DocumentActions.getInstance().deleteItemPermanently(id, rev)
+						that._app.actions.document.deleteItemPermanently(id, rev)
 						.then(function(data) {
 							if (data.message) {
-								Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
+								that._app.showAlert(data.message, "S", data.messageThreadId);
 							}
 						}).catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					})
 				]);
 			
 				rows.push(
 					$('<tr>').append([
-							$('<td data-id="' + doc._id + '">' + doc.name + '</td>')
-							.on('click', function(e) {
-								var id = $(this).data().id;
-								
-								//NoteTree.getInstance().focus(id);
-								Notes.getInstance().routing.call(id);
-							}),
-							$('<td>' + doc._conflicts[c] + '</td>'),
-							$('<td>' + doc._rev + '</td>'),
-							$('<td/>').append(butts),
+						$('<td data-id="' + doc._id + '">' + doc.name + '</td>')
+						.on('click', function(e) {
+							var id = $(this).data().id;
+							
+							that._app.routing.call(id);
+						}),
+						$('<td>' + doc._conflicts[c] + '</td>'),
+						$('<td>' + doc._rev + '</td>'),
+						$('<td/>').append(butts),
 					])
 				);
 			}
 		});
 		
-		$('#contentContainer').append(
-			$('<table class="table table-striped table-hover" id="conflictsTable"/>').append(
+		var tab = $('<table class="table table-striped table-hover" />')
+			
+		this._tab.getContainer().append(
+			tab.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -105,7 +102,7 @@ class Conflicts {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#conflictsTable'), {
+		Tools.makeTableSortable(tab, {
 			excludeColumns: [3]
 		});
 	}

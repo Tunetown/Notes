@@ -16,44 +16,55 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Hashtags {
+class HashtagsPage extends Page {
+	
+	#current = null;    // Current document
 	
 	/**
-	 * Singleton factory
+	 * Can be used to signal that the page also needs all navigation data loaded.
 	 */
-	static getInstance() {
-		if (!Hashtags.instance) Hashtags.instance = new Hashtags();
-		return Hashtags.instance;
+	needsHierarchyData() {
+		return true;
 	}
 	
 	/**
-	 * Load the page. ID is optional.
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
 	 */
-	load(id) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-		
+	getCurrentId() {
+		return this.#current ? this.#current._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current ? this.#current : null;
+	}
+	
+	/**
+	 * Load the page. ID is optional. id is optional.
+	 */
+	async load(id) {
 		var doc = null;
-		if (id) doc = n.getData().getById(id);
+		if (id) doc = this._app.data.getById(id);
 
-		this.current = doc;
+		this.#current = doc;
 
-		// Get list of tags
-		var tags = n.getData().getTags(doc ? [doc] : null);
+		// Get list of tags 
+		var tags = this._app.data.getTags(doc ? [doc] : null);
 		
 		// Header text
-		n.setStatusText("All Hashtags" + (doc ? (' of ' + (doc.name ? doc.name : doc._id)) : '') + ' (' + tags.length + ')');
+		this._tab.setStatusText("All Hashtags" + (doc ? (' of ' + (doc.name ? doc.name : doc._id)) : '') + ' (' + tags.length + ')');
 		
 		// Build new table from the data
-		$('#contentContainer').empty();
 		var rows = new Array();
 		
 		var that = this;
 		for(var i in tags || []) {
 			const tag = tags[i];
 			
-			const numDocs = n.getData().getDocumentsWithTag(tag);
-			const tagColor = Hashtag.getColor(tag);
+			const numDocs = this._app.data.getDocumentsWithTag(tag);
+			const tagColor = this._app.hashtag.getColor(tag);
 			
 			// Action buttons (only for current document's labels)
 			var butts = $('<span class="listOptionContainer" />').append(
@@ -61,13 +72,15 @@ class Hashtags {
 					$('<div data-toggle="tooltip" title="Search for documents with the tag" class="fa fa-search versionButton" data-tag="' + tag + '"/>')
 					.on('click', function(e) {
 						e.stopPropagation();
+						
 						var tag = $(this).data().tag;
-						Hashtag.showTag(tag);
+						that._app.hashtag.showTag(tag);
 					}),
 					
 					$('<div data-toggle="tooltip" title="Rename tag in all ' + numDocs.length + ' documents" class="fa fa-pencil-alt versionButton" data-tag="' + tag + '"/>')
 					.on('click', function(e) {
 						e.stopPropagation();
+						
 						var tag = $(this).data().tag;
 						that.#renameTags(tag);
 					}),
@@ -85,9 +98,9 @@ class Hashtags {
 							.css('color', Tools.getForegroundColor(tagColor))
 							.on('click', function(e) {
 								e.stopPropagation();
-								var tag = $(this).data().tag;
 
-								Hashtag.showTag(tag);
+								var tag = $(this).data().tag;
+								that._app.hashtag.showTag(tag);
 							})							
 						),
 						
@@ -100,8 +113,8 @@ class Hashtags {
 							$('<input type="color" data-id="' + tag + '" value="' + tagColor + '">')
 							.on('blur', function(event) {
 					        	event.stopPropagation();
-					        	var id = $(this).data().id;
 								
+					        	var id = $(this).data().id;
 								that.#setTagColor(id, $(this).val());
 					        })
 						),
@@ -114,8 +127,10 @@ class Hashtags {
 			);
 		}
 		
-		$('#contentContainer').append(
-			$('<table class="table table-striped table-hover" id="tagsTable" />').append(
+		var tagsTable = $('<table class="table table-striped table-hover" />');
+		
+		this._tab.getContainer().append(
+			tagsTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -135,7 +150,7 @@ class Hashtags {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#tagsTable'), {
+		Tools.makeTableSortable(tagsTable, {
 			excludeColumns: [2, 3],
 			sortData: [
 				{
@@ -155,44 +170,37 @@ class Hashtags {
 	}
 	
 	/**
-	 * Unload instance
-	 */
-	unload() {
-	}
-	
-	/**
 	 * Prompt user for a new tag name and rename it in all documents. Returns a Promise.
 	 */
 	#renameTags(tag) {
 		var that = this;
 		
-		const n = Notes.getInstance();
-		const docs = n.getData().getDocumentsWithTag(tag);
+		const docs = this._app.data.getDocumentsWithTag(tag);
 		
 		var doclist = '';
 		for(var i in docs) {
 			const doc = docs[i];
-			doclist += n.formatSelectOptionText(n.getData().getReadablePath(doc._id, null, true)) + '\n';
+			doclist += this._app.formatSelectOptionText(n.getData().getReadablePath(doc._id, null, true)) + '\n';
 		}
 		
 		var newTag = prompt('Enter the new tag name. The following documents will be updated: \n' + doclist, tag);
 		if (!newTag) {
-			n.showAlert('Action cancelled.', 'I', 'RenameTagMessages');
+			this._app.showAlert('Action cancelled.', 'I', 'RenameTagMessages');
 			return;
 		}
 		
-		HashtagActions.getInstance().renameTag(tag, newTag)
+		this._app.actions.hashtag.renameTag(tag, newTag)
 		.then(function(ret) {
 			if (ret && ret.message) {
-				n.showAlert(ret.message, 'S', 'RenameTagMessages');				
+				that._app.showAlert(ret.message, 'S', 'RenameTagMessages');				
 			} else {
-				n.showAlert('Renamed ' + tag + ' to ' + newTag, 'S', 'RenameTagMessages');
+				that._app.showAlert('Renamed ' + tag + ' to ' + newTag, 'S', 'RenameTagMessages');
 			}
 
-			n.routing.callHashtags(that.current ? that.current._id : null);
+			that._app.routing.callHashtags(that.#current ? that.#current._id : null);
 		})
 		.catch(function(err) {
-			n.showAlert((err && err.message) ? err.message : 'Error renaming hashtag', 'E', 'RenameTagMessages');
+			that._app.showAlert((err && err.message) ? err.message : 'Error renaming hashtag', 'E', 'RenameTagMessages');
 		})
 	}
 	
@@ -202,13 +210,13 @@ class Hashtags {
 	#setTagColor(tag, color) {
 		var that = this;
 		
-		HashtagActions.getInstance().setColor(tag, color)
+		this._app.actions.hashtag.setColor(tag, color)
 		.then(function() {
-			Notes.getInstance().routing.callHashtags(that.current ? that.current._id : null);
-			TreeActions.getInstance().requestTree();
+			that._app.routing.callHashtags(that.#current ? that.#current._id : null);
+			that._app.actions.nav.requestTree();
 		})
 		.catch(function(err) {
-			n.showAlert((err && err.message) ? err.message : 'Error setting hashtag color', 'E', 'SetTagColorMessages');
+			that._app.showAlert((err && err.message) ? err.message : 'Error setting hashtag color', 'E', 'SetTagColorMessages');
 		})
 	}
 }

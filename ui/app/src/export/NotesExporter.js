@@ -126,7 +126,7 @@ class NotesExporter {
 	static isInternalDocument(id) {
 		if (!id) return false;
 		
-		return NotesExporter.isDesignDocument(id) || (id == Settings.settingsDocId) || (id == MetaActions.metaDocId);
+		return NotesExporter.isDesignDocument(id) || (id == SettingsActions.settingsDocId) || (id == MetaActions.metaDocId);
 	}
 
 	/**

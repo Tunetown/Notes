@@ -53,7 +53,7 @@ class LabelActions {
 			messageThreadId: 'SaveLabelMessages' 
 		});
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveLabelMessages'
@@ -91,7 +91,7 @@ class LabelActions {
 			messageThreadId: 'SaveLabelMessages'
 		});
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveLabelMessages'
@@ -124,7 +124,7 @@ class LabelActions {
 	 * This is reusing the move target input modal dialog.
 	 */
 	moveLabelDefinition(id, labelId) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'MoveLabelMessages'
@@ -160,7 +160,7 @@ class LabelActions {
 	        		return;
 	        	}
 
-	        	tdoc = that.#app.getData().getById(target);
+	        	tdoc = that.#app.data.getById(target);
 	        	if (!tdoc) {
 	        		that.#app.showAlert('Please select a target document.', 'E', 'MoveMessages');
 	        		return;
@@ -216,7 +216,7 @@ class LabelActions {
 		var selector = $('<select></select>');
 		var ids = [];
 
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		d.each(function(doc) {
 			ids.push({
@@ -267,7 +267,7 @@ class LabelActions {
 			});
 		}
 
-		const labels = this.#app.getData().getActiveLabelDefinitions(doc._id);
+		const labels = this.#app.data.getActiveLabelDefinitions(doc._id);
 		
 		if (labels.length == 0) {
 			return Promise.reject({
@@ -309,7 +309,7 @@ class LabelActions {
 				const label = labels[l];
 				const tag = (label.name ? label.name : label.id);
 				if (!label.color) continue;
-				if (Hashtag.hasColor(tag)) continue;
+				if (that.#app.hashtag.hasColor(tag)) continue;
 				
 				// No color in meta data: Add the label color for the tag
 				promises.push(that.#app.actions.hashtag.setColor(tag, label.color));
@@ -326,7 +326,7 @@ class LabelActions {
 		})
 		.then(function(/*data*/) {
 			// Remove labels
-			doc = that.#app.getData().getById(doc._id);
+			doc = that.#app.data.getById(doc._id);
 			doc.labels = [];
 			return that.#documentAccess.saveItem(doc._id);
 		})

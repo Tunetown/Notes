@@ -16,66 +16,65 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class VerifyBackup {
+class VerifyBackupPage extends Page {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!VerifyBackup.instance) VerifyBackup.instance = new VerifyBackup();
-		return VerifyBackup.instance;
-	}
+	#content = null;
+	
+	#importVerificationFileInput = null;
+	#verifyTab = null;
 	
 	/**
 	 * Verify backup files.
 	 */
-	load() {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
+	async load() {
+		this._tab.setStatusText("Verify Backups");
 		
-		n.setStatusText("Verify Backups");
+		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>');
+		 
+		this.#content = $('<div class="prettyPageBody"></div>');
 		
-		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>'); 
-		this.contentContainer = $('<div class="prettyPageBody"></div>');
-		$('#contentContainer').empty(); 
-		$('#contentContainer').append(
+		this._tab.getContainer().append(
 			headerContainer,
-			this.contentContainer  
+			this.#content  
 		);
+		
+		this.#importVerificationFileInput = $('<input type="file" class="form-control" />');
 		
 		var that = this;
 		headerContainer.append( 
 			$('<div></div>').append(
 				$('<div></div>').text('Verify backup (Raw JSON file) against current database: '),
 				$('<br>'),
-				$('<input type="file" class="form-control" id="importVerificationFile" />'),
+				this.#importVerificationFileInput,
 				$('<br>'),
-				$('<button type="button" class="btn btn-primary" id="importVerificationFileButton">Verify!</button>').on('click', function(e) {
+				$('<button type="button" class="btn btn-primary">Verify!</button>').on('click', function(e) {
 					e.stopPropagation();
 					
-					that.showDiff();
+					that.#showDiff();
 				}),
 				$('<br>'),
 				$('<br>'),
 			),
 		);
 		 
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Select notebook..." class="fa fa-home" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile();"></div>'),
+		this._app.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Select notebook..." class="fa fa-home"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				that._app.routing.callSelectProfile();
+			}),
 		]);
 	}
 	
-	showDiff() {
-		if (!this.contentContainer) return;
-		var n = Notes.getInstance();
-		
-		n.showAlert('Started verification, please wait', 'I', 'VerifyProcessMessages');
+	#showDiff() {
+		if (!this.#content) return;
+		this._app.showAlert('Started verification, please wait', 'I', 'VerifyProcessMessages');
 		
 		
-		var file = $('#importVerificationFile')[0].files[0];
+		var file = this.#importVerificationFileInput[0].files[0];
     		
 		if (!file) {
-			n.showAlert('Please select a file to verify.', 'I', 'VerifyProcessMessages');
+			this._app.showAlert('Please select a file to verify.', 'I', 'VerifyProcessMessages');
 			return;
 	    }
     		
@@ -85,21 +84,20 @@ class VerifyBackup {
 		setTimeout(function() {
 			that.#doShowDiff(file)
 			.catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+				that._app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
 			});
 		}, 100);
 	}
 	
 	#doShowDiff(file) {
-		if (!this.contentContainer) return Promise.reject();
+		if (!this.#content) return Promise.reject();
 		
-		//var n = Notes.getInstance();
 		var dataLocal;
 		
-		this.contentContainer.empty();
+		this.#content.empty();
 
 		var that = this;
-		return Database.getInstance().get()
+		return this._app.db.get()
 		.then(function(db) {
 			return db.allDocs({
 				include_docs: true,
@@ -175,9 +173,11 @@ class VerifyBackup {
 					])
 				);
 			}
+			
+			that.#verifyTab = $('<table class="table table-striped table-hover"/>');
 						
-			that.contentContainer.append(
-				$('<table class="table table-striped table-hover" id="verifyTab"/>').append(
+			that.#content.append(
+				that.#verifyTab.append(
 					[
 						$('<thead class="bg-primary"/>').append(
 							$('<tr/>').append(

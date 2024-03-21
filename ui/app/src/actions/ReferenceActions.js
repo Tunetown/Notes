@@ -30,7 +30,7 @@ class ReferenceActions {
 	 * Sets (retargets) a new reference target. id must be a reference.
 	 */
 	setReference(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SetRefMessages'
@@ -42,15 +42,15 @@ class ReferenceActions {
 		});
 		
 		var existingRefs = [id];
-		this.#app.getData().each(function(doc) {
+		this.#app.data.each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
 		var selector = this.#app.getMoveTargetSelector(existingRefs, true);
 		selector.val(doc.ref);
 		
-		var refDoc = this.#app.getData().getById(doc.ref);
-		var parentDoc = this.#app.getData().getById(doc.parent);
+		var refDoc = this.#app.data.getById(doc.ref);
+		var parentDoc = this.#app.data.getById(doc.parent);
 		
 		var that = this;
 		$('#moveTargetSelectorList').empty();
@@ -98,7 +98,7 @@ class ReferenceActions {
 	        		return;
 	        	}
 	        	
-				var tdoc = that.#app.getData().getById(target);
+				var tdoc = that.#app.data.getById(target);
 	        	if (!tdoc) {
 					that.#app.showAlert('Target not found: ' + target, 'E', 'SetRefMessages');
 					return;
@@ -215,14 +215,14 @@ class ReferenceActions {
 	 * Creates a new reference for ID.
 	 */
 	createReference(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'CreateRefMessages'
 		});
 		
 		var existingRefs = [id];
-		this.#app.getData().each(function(doc) {
+		this.#app.data.each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
@@ -256,7 +256,7 @@ class ReferenceActions {
 				// Here, target can be empty for a ref at root level.
 				if (target.length > 0) {
 					// If there is a target, it has to really exist
-					var tdoc = that.#app.getData().getById(target);
+					var tdoc = that.#app.data.getById(target);
 		        	if (!tdoc) {
 						reject({
 							message: 'Target not found: ' + target,
@@ -268,7 +268,7 @@ class ReferenceActions {
 				
 				// Create new document
 				var data = {
-					_id: that.#app.getData().generateIdFrom(doc.name),
+					_id: that.#app.data.generateIdFrom(doc.name),
 					type: 'reference',
 					name: doc.name,
 					parent: target,

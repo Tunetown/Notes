@@ -59,14 +59,13 @@ class Notes {
 		        case 's':
 		            event.preventDefault();
 		            
-		            var e = that.paging.getCurrentEditor();
-		            if (e && e.isDirty()) {
-		            	e.stopDelayedSave();
+					if (that.paging.isEditorDirty()) {
+		            	that.paging.stopEditorDelayedSave();
 		            	 
-		            	var name2show = e.getCurrentDoc() ? e.getCurrentDoc().name : e.getCurrentId();
+		            	var name2show = that.paging.getCurrentlyShownDoc() ? that.paging.getCurrentlyShownDoc().name : that.paging.getCurrentlyShownId();
 		            	that.showAlert("Saving " + name2show + "...", "I", "SaveMessages");   
 		            
-		            	that.actions.document.save(e.getCurrentId(), e.getContent())
+		            	that.actions.document.save(that.paging.getCurrentlyShownId(), that.paging.getEditorContent())
 						.then(function(data) {
 		            		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 		            	})
@@ -102,13 +101,14 @@ class Notes {
 		this.state = new ClientState(this);
 
 		Document.setApp(this); // TODO
-		Hashtag.setApp(this); // TODO
 		
 		this.documentAccess = new DocumentAccess(this);
 		this.documentChecks = new Dthis.documentChecks(this);
 		this.views = new Views(this);
 		this.callbacks = new Callbacks();
 		this.styles = new Styles();
+		this.settings = new Settings(this);
+		this.hashtag = new Hashtag(this);
 		
 		this.actions = {
 			attachment: new AttachmentActions(this, this.documentAccess),	
@@ -120,13 +120,13 @@ class Notes {
 			label: new LabelActions(this, this.documentAccess),	
 			meta: new MetaActions(this, this.documentAccess),	
 			reference: new ReferenceActions(this, this.documentAccess),	
-			settings: new SettingsActions(this, this.documentAccess),	
+			settings: new SettingsActions(this),	
 			trash: new TrashActions(this, this.documentAccess),	
 			nav: new NavigationActions(this, this.documentAccess),	
 		};
 		
 		this.nav = new NoteTree(this);
-		this.paging = new Tab(this, $('<div id="contentContainer" class="mainPanel"/>')); // TODO
+		this.paging = new Tab(this, $('<div class="contentContainer" class="mainPanel"/>')); // TODO
 	}
 	
 	/**
@@ -228,8 +228,6 @@ class Notes {
 				// Called when the live sync (autoSync) gets changes. Checks if the changes are relevant to the tree or the
 				// opened document, and reloads whatever needs to be reloaded.
 				onLiveSyncChangeCallback: function(change, change_seq, final_seq) {
-					var e = that.paging.getCurrentEditor();
-					
 					// Check if we need to update anything. This only applies when we get changes from the remote (pull).
 					if (change.direction == "pull") {
 						var percentage = 0;
@@ -241,15 +239,16 @@ class Notes {
 						that.showProgressBar(percentage);
 						
 						// Update loaded note if the changed document is currently opened
-						if (e && change.change) {
+						if (that.paging.isEditorLoaded() && change.change) {
 							for(var i in change.change.docs || []) {
 								var doc = change.change.docs[i];
 								if (doc._id.startsWith('_')) continue;
 								
-								if (doc._id == e.getCurrentId()) {
+								if (doc._id == that.paging.getCurrentlyShownId()) {
 									console.log("Sync: -> Re-requesting " + (doc.name ? doc.name : doc._id) + ", it has been changed and is opened in an Editor.");
-									if (e.isDirty()) {
-										e.stopDelayedSave();
+									if (that.paging.isEditorDirty()) {
+										that.paging.stopEditorDelayedSave();
+										
 										that.showAlert('Warning: ' + (doc.name ? doc.name : doc._id) + ' has been changed remotely. If you save now, the remote version will be overwritten! Reload the app to keep the server version.', 'W');
 									} else {
 										that.actions.document.request(doc._id)
@@ -325,6 +324,8 @@ class Notes {
 	 */
 	loadPage(newPage, data) {
 		var that = this;
+		
+		this.resetPage();
 		
 		this.paging.loadPage(newPage, data)
 		.catch(function(err) {
@@ -423,13 +424,31 @@ class Notes {
 		});			
 	} 
 	
+	#swCallbacks = null;  // Service worker callbacks
+	
+	/**
+	 * Sets a message callback for receiving SW messages
+	 */
+	setServiceWorkerMessageCallback(id, callback) {
+		this.#swCallbacks.set(id, callback);
+	}
+	
+	/**
+	 * Removes a message callback for receiving SW messages
+	 */
+	removeServiceWorkerMessageCallback(id) {
+		this.#swCallbacks.delete(id);
+	}
+	
 	/**
 	 * Handlers incoming messages from the service worker.
 	 */
 	setupServiceWorkerMessageReceiver() {
-		var that = this; 
+		var that = this;
+		 
+		// Receive messages from the service worker.  
 		navigator.serviceWorker.addEventListener('message', (event) => {
-			// Out of date files
+			// Out of date files (hard wired)
 			if (event.data.outOfDate) {
 				if (that.outOfDateFiles.length == 0) { 
 					setTimeout(function() {
@@ -450,51 +469,53 @@ class Notes {
 				return;
 			}		
 			
-			// User messages
+			// Other callback based messages
 			if (event.data.requestId) {
-				switch(event.data.requestId) {  
-					case 'version':
-						Update.getIstance().setSWVersion(event.data.version); // TODO
-						return;
+				if (this.#swCallbacks) {
+					var cb = this.#swCallbacks.get(event.data.requestId)
 					
-					case 'userMessage': {
-						const msg = event.data.message ? event.data.message : 'SW Message internal Error: No message transmitted';
-						const type = event.data.type ? event.data.type : 'I';
-						const messageGroupId = event.data.messageGroupId ? event.data.messageGroupId : '';
-						
-						console.log("User message from SW received: Type " + type + ", message: " + msg);
-						that.showAlert(msg, type, messageGroupId);
-						
-						return; 
-					}
-					case 'unregisterServiceWorker': {
-						console.log("Service Worker triggers unregistering...");
-
-						if (!confirm("Reinstall now? No notebook data will get lost.")) {
-							that.showAlert("Action cancelled", 'I', "UpdateMessage");
-							return;
-						}
-
-						navigator.serviceWorker.ready 
-						.then(function(registration) {
-							return registration.unregister();
-						})
-						.then(function(success) {
-							that.showAlert("Wait for the installation to complete...", 'I', "UpdateMessage");
-							setTimeout(function() {
-								console.log("Reload page for the new SW to be installed");
-								location.reload();
-							}, 1000); 
-						});
-						
-						return;
-					}
-				}
+					if (cb) cb(event.data);			
+				} 
 			}					
 			
 			// Update requests
 			console.log("Unhandled message from service worker: "); 
 			console.log(event.data);	
+		});
+		
+		// Register message handler callbacks: User message
+		this.setServiceWorkerMessageCallback('userMessage', function(data) {
+			const msg = data.message ? data.message : 'SW Message internal Error: No message transmitted';
+			
+			const type = data.type ? data.type : 'I';
+			const messageGroupId = data.messageGroupId ? data.messageGroupId : '';
+			
+			console.log("User message from SW received: Type " + type + ", message: " + msg);
+			that.showAlert(msg, type, messageGroupId);
+		});
+		
+		// Register message handler callbacks: Unregister service worker message
+		this.setServiceWorkerMessageCallback('unregisterServiceWorker', function(/*data*/) {
+			console.log("Service Worker triggers unregistering...");
+
+			if (!confirm("Reinstall now? No notebook data will get lost.")) {
+				that.showAlert("Action cancelled", 'I', "UpdateMessage");
+				return;
+			}
+
+			navigator.serviceWorker.ready 
+			.then(function(registration) {
+				return registration.unregister();
+			})
+			.then(function(/*success*/) {
+				that.showAlert("Wait for the installation to complete...", 'I', "UpdateMessage");
+				
+				setTimeout(function() {
+					console.log("Reload page for the new SW to be installed");
+					
+					location.reload();
+				}, 1000); 
+			});
 		});
 	}
 	
@@ -603,19 +624,24 @@ class Notes {
 			return Promise.resolve(data);
 		})
 		.then(function(data) {
+			// Load settings document
+			if (data.initialised) {
+				return that.actions.settings.requestSettings()
+				.catch(function(err) {
+					that.showAlert('Error getting settings: ' + err.message, 'E', err.messageThreadId);
+				});
+			}
+			
+			return Promise.resolve(data);
+		})
+		.then(function(data) {
 			// The tree and note requests can run in parallel from here on
 			// for the most pages. For the others we also return the tree and
 			// settings request promises so that following then() handlers can 
 			// wait for them if they need to.
 			var treePromise = null;
-			var settingsPromise = null;
 			
 			if (data.initialised) {
-				settingsPromise = that.actions.settings.requestSettings()
-				.catch(function(err) {
-					that.showAlert('Error getting settings: ' + err.message, 'E', err.messageThreadId);
-				});
-				
 				treePromise = that.actions.nav.requestTree()
 				.catch(function(err) {
 					that.showAlert('Error loading TOC: ' + err.message, 'E', err.messageThreadId);
@@ -633,8 +659,7 @@ class Notes {
 
 			return Promise.resolve({
 				ok: true,
-				treePromise: treePromise,
-				settingsPromise, settingsPromise
+				treePromise: treePromise
 			});
 		})
 		.then(function(data) {
@@ -664,12 +689,11 @@ class Notes {
 	 * Resets the page content elements. treePage is set to true only for the profile root.
 	 */
 	resetPage(treePage) {
-		var e = this.paging.getCurrentEditor();
-		if (e) {
-			if (e.isDirty() && (!((e instanceof RestorableEditor) && e.getRestoreMode()))) {
+		if (this.paging.isEditorLoaded()) {
+			if (this.paging.isEditorDirty() && (!this.paging.getEditorRestoreMode())) {
 				var that = this;
 				
-				this.actions.document.save(e.getCurrentId(), e.getContent())
+				this.actions.document.save(that.paging.getCurrentlyShownId(), that.paging.getEditorContent())
 				.then(function(data) {
 	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 	        	})
@@ -838,7 +862,7 @@ class Notes {
 		const that = this;
 		function addOption(id) {
 			selector.append(
-				$('<option value="' + id + '">' + that.formatSelectOptionText(that.getData().getReadablePath(id, null, true)) + '</option>')
+				$('<option value="' + id + '">' + that.formatSelectOptionText(that.data.getReadablePath(id, null, true)) + '</option>')
 			);
 		}
 		
@@ -907,7 +931,7 @@ class Notes {
 					//RichtextEditor.getContainerDom(teaser),  // TODO cleanup
 					
 					// Console  TODO use normal container
-					$('<div id="console" class="mainPanel"/>')				
+					//$('<div id="console" class="mainPanel"/>') 				
 				])
 				.on('click', function(event) {
 					that.setFocus(Notes.FOCUS_ID_EDITOR);
@@ -1091,7 +1115,7 @@ class Notes {
 	 */
 	updateLinkageButtons() {
 		var page = this.paging.getCurrentPage();
-		var pageSupport = (!!this.paging.getCurrentEditor()) || (page && 
+		var pageSupport = (this.paging.isEditorLoaded()) || (page && 
 		       (typeof page.supportsLinkageFromNavigation == 'function') && 
 		       page.supportsLinkageFromNavigation()
 		);
@@ -1115,12 +1139,9 @@ class Notes {
 	 */
 	getFocusId() {
 		// Check if the page provides an override for focussing
-		var page = this.paging.getCurrentPage();
-		if (page) {
-			var override = page.overrideFocusId();
-			if (override) {
-				return override;
-			}
+		var override = this.paging.overrideFocusId();
+		if (override) {
+			return override;
 		}
 		
 		return this.focusId;
@@ -1363,7 +1384,7 @@ class Notes {
 				}),
 				
 				// Graph
-				!that.state.experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? null :
+				!that.state.experimentalFunctionEnabled(GraphPage.experimentalFunctionId) ? null :
 				$('<div class="userbutton" id="graphMenuItem"><div class="fa fa-project-diagram userbuttonIcon"></div>Graph</div>')
 				.on('click', function(e) {
 					e.stopPropagation();
@@ -1830,20 +1851,20 @@ class Notes {
 	 * Shows the header target selector for the given ID, or hides it if id is falsy.
 	 */
 	setHeaderSelector(id) {
-		if (!this.getData()) return;
+		if (!this.data) return;
 		
 		if (!id) { 
 			$('#headerPathContainer').empty();
 			return;
 		}
 		
-		var doc = this.getData().getById(id);
+		var doc = this.data.getById(id);
 		if (!doc) return null;
 
 		var that = this;
 		$('#headerPathContainer').empty();
 		if (doc.parent) {
-			$('#headerPathContainer').append(this.getData().getLinkedPath(doc.parent, false, false, function(cbdoc) {
+			$('#headerPathContainer').append(this.data.getLinkedPath(doc.parent, false, false, function(cbdoc) {
 				// Open document by header path link
 				that.routing.call(cbdoc._id);
 			}));
@@ -1863,13 +1884,13 @@ class Notes {
 		}];
 
 		var that = this;
-		this.getData().each(function(d) {
+		this.data.each(function(d) {
 			for(var e in excludeIds || []) {
-				if (that.getData().isChildOf(d._id, excludeIds[e])) return;
+				if (that.data.isChildOf(d._id, excludeIds[e])) return;
 			}
 			
 			ids.push({
-				text: that.getData().getReadablePath(d._id),
+				text: that.data.getReadablePath(d._id),
 				id: d._id,
 			});
 		});
@@ -1898,11 +1919,11 @@ class Notes {
 		var ids = [];
 
 		var that = this;
-		this.getData().each(function(d) {
+		this.data.each(function(d) {
 			if (!Document.isImage(d)) return;
 			
 			ids.push({
-				text: that.getData().getReadablePath(d._id),
+				text: that.data.getReadablePath(d._id),
 				id: d._id,
 			});
 		});
@@ -1994,8 +2015,7 @@ class Notes {
 	 */
 	update(dontHideUserMenu) {
 		// Changed marker visibility
-		var e = this.paging.getCurrentEditor();
-		this.setChangeMarker(e ? e.isDirty() : false);
+		this.setChangeMarker(this.paging.isEditorDirty());
 		
 		// Hide user menu
 		if (!dontHideUserMenu) this.hideMenu();
@@ -2047,7 +2067,7 @@ class Notes {
 		$('#editorLinkButtons').css('top', (contentHeight - 20 - $('#editorNavButtons').outerHeight(true)) + "px");
 		
 		// Conflict alert icons
-		$('.conflictMarker').css('display', (this.getData() && this.getData().hasConflicts()) ? 'inline-block' : 'none');
+		$('.conflictMarker').css('display', (this.data && this.data.hasConflicts()) ? 'inline-block' : 'none');
 
 		// Update header size
 		this.updateDimensions();
@@ -2271,7 +2291,7 @@ class Notes {
 		
 		if (this.optionsIds.length <= 1) {
 			// Options for a single document
-			var doc = this.getData().getById(this.optionsIds[0]);
+			var doc = this.data.getById(this.optionsIds[0]);
 	
 			// Options: (default: hidden)
 			$('.contextOptionRename').css('display', options.noRename ? 'none' : 'inline-block');
@@ -2371,7 +2391,7 @@ class Notes {
 		
 		var docs = [];
 		for(var i in ids) {
-			var doc = this.getData().getById(ids[i]);
+			var doc = this.data.getById(ids[i]);
 			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
 			docs.push(doc);
 		}
@@ -2404,7 +2424,7 @@ class Notes {
 		
 		var docs = [];
 		for(var i in ids) {
-			var doc = this.getData().getById(ids[i]);
+			var doc = this.data.getById(ids[i]);
 			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
 			docs.push(doc);
 		}
@@ -2440,7 +2460,7 @@ class Notes {
 		
 		var docs = [];
 		for(var i in ids) {
-			var doc = this.getData().getById(ids[i]);
+			var doc = this.data.getById(ids[i]);
 			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
 			docs.push(doc);
 		}
@@ -2471,12 +2491,5 @@ class Notes {
 	 */
 	setData(d) {
 		this.data = d;
-	}
-	
-	/**
-	 * Returns the current data container
-	 */
-	getData() {
-		return this.data;
 	}
 }

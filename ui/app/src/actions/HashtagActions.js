@@ -18,6 +18,8 @@
  */
 class HashtagActions {
 	
+	static metaFileName = 'tagMeta';
+	
 	#app = null;
 	#documentAccess = null;
 	
@@ -33,7 +35,7 @@ class HashtagActions {
 		if (!tag) return Promise.resolve();
 		tag = tag.toLowerCase();
 		
-		var meta = this.#app.actions.meta.meta[Hashtag.metaFileName];
+		var meta = this.#app.actions.meta.meta[HashtagActions.metaFileName];
 		if (!meta) meta = {};
 		
 		const hash = Tools.hashCode(tag);
@@ -45,7 +47,7 @@ class HashtagActions {
 		
 		meta[hash].color = color;
 		
-		this.#app.actions.meta.meta[Hashtag.metaFileName] = meta;
+		this.#app.actions.meta.meta[HashtagActions.metaFileName] = meta;
 		
 		return this.#app.actions.meta.saveGlobalMeta();
 	}
@@ -64,8 +66,8 @@ class HashtagActions {
 			});
 		}
 		
-		const docs = this.#app.getData().getDocumentsWithTag(tag);
-		const tagColor = Hashtag.getColor(tag);
+		const docs = this.#app.data.getDocumentsWithTag(tag);
+		const tagColor = this.#app.hashtag.getColor(tag);
 		var that = this;
 		
 		// Load documents
@@ -75,7 +77,7 @@ class HashtagActions {
 			
 			for (var i in docs) {
 				// Re-load document from data instance
-				var doc = that.#app.getData().getById(docs[i]._id);
+				var doc = that.#app.data.getById(docs[i]._id);
 				if (!doc) {
 					return Promise.reject({
 						message: 'Document ' + docs[i]._id + ' not found'
@@ -83,7 +85,7 @@ class HashtagActions {
 				}
 				
 				// Get list of tags including their coordinates in the content.
-				const taglist = Hashtag.parse(doc.content);
+				const taglist = that.#app.hashtag.parse(doc.content);
 				
 				// Replace all occurrences of the tag, trackking the index dilataion caused by differences in 
 				// length between the old and the new tag.

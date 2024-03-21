@@ -89,14 +89,14 @@ div.tox-tinymce {
 	opacity: 1.0;
 } 
 
-#versiondata {
+.versiondata {
 	padding: 10px 0px 0 20px;
 	background-color: white;
 	overflow: auto;
 	width: 100%;
 }
 
-#conflictData {
+.conflictData {
 	padding: 10px 0px 0 20px;
 	background-color: white;
 	overflow: auto;
@@ -157,14 +157,14 @@ div.tox-tinymce {
 	font-family: Courier;
 }
 
-#previewteaser {
+.previewteaser {
 	padding: 10px;
 }
 
 /**
  * Console view
  */
-#console {
+.console {
 	background-color: white;
 	font-family: Courier;
 	padding: 8px;
@@ -256,11 +256,11 @@ div.tox-tinymce {
 	margin-right: 10px;
 }
 
-#cdbEndpointSelect {
+.cdbEndpointSelect {
 	width: 200px;
 }
 
-#dbLink {
+.dbLink {
 	width: 100%;
 	margin-top: 10px;
 }
@@ -268,7 +268,7 @@ div.tox-tinymce {
 /**
  * Profile select screen
  */
-#profileSelection {
+.profileSelection {
 	width: 100%;	
  	text-align: center;
  	display: block;
@@ -286,7 +286,7 @@ div.tox-tinymce {
  	width: 100%;
 }
  
-#profileList {
+.profileList {
 	margin-left: 10px;
 }
 
@@ -391,7 +391,7 @@ div.tox-tinymce {
 	white-space: pre;
 }
 
-#checkList {
+.checkList {
 	position: absolute;
 	top: 0;
 	left: 0;
@@ -560,12 +560,12 @@ div.tox-tinymce {
 /**
  * Graph stuff
  */
-#graphContainer {
+.graphContainer {
 	height: 100%;
 	background: #111;
 }
 
-#graphInfoPanel {
+.graphInfoPanel {
 	position: absolute;
 	top: 0px;
 	left: 0px;

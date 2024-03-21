@@ -106,7 +106,7 @@ class EditorActions {
 			messageThreadId: 'SaveEditorModeMessages' 
 		});
 			
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveEditorModeMessages' 

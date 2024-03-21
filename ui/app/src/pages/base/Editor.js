@@ -28,13 +28,6 @@ class Editor extends Page {
 	}
 	
 	/**
-	 * Can be used to signal that the page also needs all navigation data loaded.
-	 */
-	needsHierarchyData() {
-		return false;
-	}
-
-	/**
 	 * Stop any pending auto-save callbacks
 	 */
 	async stopDelayedSave() {

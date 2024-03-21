@@ -291,7 +291,7 @@ class DetailBehaviour {
 	 * Called after an item has been requested.
 	 */
 	afterRequest(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return;
 		
 		this.updateItemMeta(doc);
@@ -447,7 +447,7 @@ class DetailBehaviour {
 			if (!id) return;
 			if (id == that.selectedParent) return;
 			
-			var selectedDoc = that.#app.getData().getById(that.selectedParent);
+			var selectedDoc = that.#app.data.getById(that.selectedParent);
 			if (selectedDoc && (id == selectedDoc.parent)) return;
 			
 			ret.push(id);
@@ -647,7 +647,7 @@ class DetailBehaviour {
 		
 		this.itemHeight = DetailBehaviour.getItemHeight();
 
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		if (!d) return;
 		var selDoc = d.getById(this.selectedParent);
 		if (!selDoc) this.selectedParent = ''; 
@@ -786,7 +786,7 @@ class DetailBehaviour {
 	 * Get sort weight for sorting the items. Should return a numeric value in range [-1..1].
 	 */
 	getSortComparisonValue(docA, docB, docAmeta, docBmeta) {
-		const d = this.#app.getData();
+		const d = this.#app.data;
 		
 		// Parent of the selected item always first (only applies to ref mode, else it is irrelevant because the parent is never shown)
 		if (docAmeta.isParentOfSelectedParent) return -1;
@@ -868,7 +868,7 @@ class DetailBehaviour {
 	 * Determines meta info relevant for categorizing the document's item (most relevant in ref mode only)
 	 */
 	getItemRefTypeDescriptor(doc) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var selectedDoc = d.getById(this.selectedParent);
 		
 		// Hierarchical mode
@@ -903,7 +903,7 @@ class DetailBehaviour {
 	
 	getById(id) {
 		if ((id == '') && (this.mode == 'ref')) return this.rootDocument;
-		return this.#app.getData().getById(id);
+		return this.#app.data.getById(id);
 	}
 	
 	/**
@@ -1034,7 +1034,7 @@ class DetailBehaviour {
 	 * Update preview / metadata of the item to the document
 	 */
 	updateItemMeta(doc, itemContent) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		// Generate meta data text
 		var numChildren = (this.mode == 'ref') ? this.getRefEntries(doc, true).length : d.getChildren(doc._id).length;
@@ -1086,7 +1086,7 @@ class DetailBehaviour {
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
 	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
-		const data = this.#app.getData();
+		const data = this.#app.data;
 		
 		const selectedDoc = data.getById(this.selectedParent);
 		const parentDoc = (selectedDoc && selectedDoc.parent) ? data.getById(selectedDoc.parent) : null;
@@ -1362,14 +1362,14 @@ class DetailBehaviour {
 		if (searchText) {
 			const meta = this.getItemRefTypeDescriptor(doc);
 			
-			return this.#app.getData().evaluateSearch(doc, searchText, show && !meta.isParentOfSelectedParent);
+			return this.#app.data.evaluateSearch(doc, searchText, show && !meta.isParentOfSelectedParent);
 		} else {
 			return show;
 		}
 	}
 	
 	#doShowItem(doc) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var selectedDoc = d.getById(this.selectedParent);
 		
 		if (this.selectedParent == doc._id) return true;
@@ -1421,13 +1421,13 @@ class DetailBehaviour {
 	 * Returns what is regarded as backlink here
 	 */
 	getBacklinks(doc) {
-		return this.#app.getData().getBacklinks(doc)
+		return this.#app.data.getBacklinks(doc)
 	}
 	
 	/**
 	 */
 	hasBackLinkTo(doc, targetId) {
-		return this.#app.getData().hasBackLinkTo(doc, targetId);
+		return this.#app.data.hasBackLinkTo(doc, targetId);
 	}
 	
 	/**
@@ -1452,7 +1452,7 @@ class DetailBehaviour {
 	canBeMoved(id) {
 		if (!id) return false;
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) throw new Error('Cannot find document ' + id);
 		
 		return (doc.parent == this.selectedParent);
@@ -1462,7 +1462,7 @@ class DetailBehaviour {
 	 * Returns all documents which are visible in ref mode.
 	 */
 	getRefEntries(doc, ignoreParent, options) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		if (!options) options = this;
 		
@@ -1554,7 +1554,7 @@ class DetailBehaviour {
 			return true;
 		}
 		
-		var d = this.#app.getData();
+		var d = this.#app.data;
 
 		if (this.enableChildren || (this.mode != 'ref')) {
 			if (d.hasChildren(doc._id)) {
@@ -1692,7 +1692,7 @@ class DetailBehaviour {
 		if (this.mode == 'ref') {
 			this.selectParent(id, fromLinkage);
 		} else {
-			var doc = this.#app.getData().getById(id);
+			var doc = this.#app.data.getById(id);
 			this.selectParent(doc ? doc.parent : "", fromLinkage);
 		}
 	}
@@ -1719,7 +1719,7 @@ class DetailBehaviour {
 
 		if (tarId == this.selectedParent) return false;
 		
-		return !this.#app.getData().isChildOf(tarId, srcId);
+		return !this.#app.data.isChildOf(tarId, srcId);
 	}
 	
 	/**
@@ -1932,7 +1932,7 @@ class DetailBehaviour {
 		
 		if (this.mode != 'ref') return [];
 		
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var selectedDoc = d.getById(this.selectedParent);
 		
 		return [
@@ -2134,7 +2134,7 @@ class DetailBehaviour {
 	 * Returns all related documents (children etc.) for the passed document.
 	 */
 	getRelatedDocuments(id, options) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		var children = (this.mode == 'ref') ? this.getRefEntries(doc, true, options) : d.getChildren(id);
@@ -2155,7 +2155,7 @@ class DetailBehaviour {
 		
 		// If we go deeper in the tree, we also reset the scroll position.
 		if (id) {
-			var docIn = this.#app.getData().getById(id);
+			var docIn = this.#app.data.getById(id);
 			var doc = Document.getTargetDoc(docIn);
 			if (doc && (doc.parent == old)) {
 				this.resetScrollPosition();
@@ -2318,7 +2318,7 @@ class DetailBehaviour {
 		
 		if (this.#app.hideOptions()) return;
 
-		var doc = this.#app.getData().getById(data.id);
+		var doc = this.#app.data.getById(data.id);
 		if (!doc) {
 			if (this.mode == 'ref') {
 				this.selectParentFromEvent('');
@@ -2337,7 +2337,7 @@ class DetailBehaviour {
 			}
 		} else {
 			if (this.mode == 'ref') {
-				var selectedDoc = this.#app.getData().getById(this.selectedParent);
+				var selectedDoc = this.#app.data.getById(this.selectedParent);
 				if (selectedDoc && selectedDoc.parent && (selectedDoc.parent == data.id)) {
 					// Parent if selected: do not open, navigate back.
 					this.selectParentFromEvent(data.id);
@@ -2368,7 +2368,7 @@ class DetailBehaviour {
 
 		if (this.#app.hideOptions()) return;
 
-		var doc = this.#app.getData().getById(data.id);
+		var doc = this.#app.data.getById(data.id);
 		if (!doc) {
 			if (this.mode == 'ref') {
 				this.selectParentFromEvent('');

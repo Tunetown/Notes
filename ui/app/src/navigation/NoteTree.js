@@ -221,7 +221,7 @@ class NoteTree {
 	 * Ready to show favorites array, including sorting and pinned (starred) docs.
 	 */
 	getFavorites() {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		// Add favorites and starred documents with ranks higher than the normal favs, last changed first.
 		var starred = d.getStarredDocs();
@@ -294,7 +294,7 @@ class NoteTree {
 			that.showFavorites(false, true);
 		}
 		
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		if (!d) {
 			clear();			
 			return;
@@ -433,7 +433,7 @@ class NoteTree {
 			}
 		}
 		
-		var data = this.#app.getData();
+		var data = this.#app.data;
 		
 		while (doc.parent && (lines < maxLines)) {
 			var doc = data.getById(doc.parent);
@@ -448,7 +448,7 @@ class NoteTree {
 	 * Add one favorite to the bar (internal usage only).
 	 */
 	addFavoriteToBar(container, favEntry) {
-		var data = this.#app.getData();
+		var data = this.#app.data;
 		if (!data) return;
 		
 		var doc = data.getById(favEntry.id);
@@ -507,7 +507,7 @@ class NoteTree {
 			onGestureFinishCallback: function(event) {
 				event.stopPropagation();
 
-				var d = that.#app.getData();
+				var d = that.#app.data;
 				var data = $(event.currentTarget).data();
 				var targetDoc = Document.getTargetDoc(d.getById(data.id));
 
@@ -546,7 +546,7 @@ class NoteTree {
 	 * items before (and after) filter() is actually called on the grid.
 	 */
 	updateDomItems(add) {
-		var data = this.#app.getData();
+		var data = this.#app.data;
 		if (!data) return;
 		
 		var currentItems = this.grid.grid.getItems();
@@ -650,7 +650,7 @@ class NoteTree {
 			return doc.navItemElement;
 		}
 		
-		var data = this.#app.getData();
+		var data = this.#app.data;
 		if (!data) return;
 		
 		var li = $('<div class="' + this.behaviour.getItemContentClass() + '" />');
@@ -726,7 +726,7 @@ class NoteTree {
 			return;
 		}
 	
-		const data = this.#app.getData();
+		const data = this.#app.data;
 		if (!data) return;
 		
 		//console.log(" -> Starting pre-rendering of navigation items (interval: " + Config.preRenderNavigationDomItemsInterval + "ms, " + data.data.size + " documents)");
@@ -739,7 +739,7 @@ class NoteTree {
 	#doPrepareDomItems() {
 		var that = this;
 		
-		const data = this.#app.getData();
+		const data = this.#app.data;
 		if (!data) return;
 		
 		for(var [key, doc] of data.data) {
@@ -979,7 +979,7 @@ class NoteTree {
 			function(docs) {
 				that.updateSelectedState(true);
 				for(var d in docs) {
-					var persDoc = that.#app.getData() ? that.#app.getData().getById(docs[d]._id) : null;
+					var persDoc = that.#app.data ? that.#app.data.getById(docs[d]._id) : null;
 					if (persDoc) {
 						that.behaviour.afterRequest(persDoc._id);
 					}
@@ -1184,7 +1184,7 @@ class NoteTree {
 		if (!id) return;
 		if (!this.supportsLinkEditorToNavigation()) return;
 
-		if (this.#app.paging.getCurrentEditor()) {
+		if (this.#app.paging.isEditorLoaded()) {
 			// If a note editor is loaded, we just redirect to the document. To prevent endless 
 			// re-linking, we also remember the id which has been called by linkage.
 			this.lastOpenedLinkTarget = id;
@@ -1369,7 +1369,7 @@ class NoteTree {
 			}
 			return;
 		}
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) {
 			this.#app.showAlert("Document " + id + " not found");
 			return;
@@ -1548,10 +1548,7 @@ class NoteTree {
 		
 		// If nothing is selected, select the opened note if any.
 		if (selectOpened && !this.selected) {
-			var e = this.#app.paging.getCurrentPage();
-			if (!e) return;
-			
-			var opened = e.getCurrentId();
+			var opened = this.#app.paging.getCurrentlyShownId();
 
 			if (opened) {
 				this.setSelected(opened);
@@ -1886,9 +1883,9 @@ class NoteTree {
 		var srcId = src.data().id;
     	var tarId = tar.data().id;
 
-		var srcDoc = this.#app.getData().getById(srcId);
+		var srcDoc = this.#app.data.getById(srcId);
     	var srcName = srcDoc.name;
-    	var tarName = tarId ? this.#app.getData().getById(tarId).name : 'Notebook root';
+    	var tarName = tarId ? this.#app.data.getById(tarId).name : 'Notebook root';
     	
     	const srcCanBeMoved = this.canBeMoved(srcId);
     	if (!srcCanBeMoved && moveToSubOfTarget) {
@@ -1928,7 +1925,7 @@ class NoteTree {
 			var childId = $(this.getGridItemContent(all[i])).data().id;
 			if (!childId) continue;
 			
-			var childDoc = this.#app.getData().getById(childId);
+			var childDoc = this.#app.data.getById(childId);
 			if (!this.behaviour.isItemVisible(childDoc, this.getSearchText())) continue; //childDoc.parent != id) continue;
 			
 			var parentId = this.behaviour.getParentId(doc);
@@ -1974,7 +1971,7 @@ class NoteTree {
 	 */
 	refreshColors(id, element) {
 		var that = this;
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var recursive = this.behaviour.enableRecursiveColors();
 
 		// Helpers to get the colors recursively

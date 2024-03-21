@@ -16,37 +16,60 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Refs {
+class RefsPage extends Page {
 	
+	#current = null;
+
 	/**
-	 * Singleton factory
+	 * Tells that the editor needs tree data loaded before load() is called.
 	 */
-	static getInstance() {
-		if (!Refs.instance) Refs.instance = new Refs();
-		return Refs.instance;
+	needsHierarchyData() {
+		return true;
 	}
 	
 	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentId() {
+		return this.#current ? this.#current._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current ? this.#current : null;
+	}
+	
+	/**
+	 * Unload instance
+	 */
+	async unload() {
+		this.#current = null;
+	}
+
+	/**
 	 * Show trash bin
 	 */
-	load(id) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-				
-		var doc = n.getData().getById(id);
+	async load(id) {
+		var doc = this._app.data.getById(id);
 		if (!doc) {
-			n.showAlert('Document ' + id + ' not found');
+			this._app.showAlert('Document ' + id + ' not found');
 			return;
 		}
 		
-		// Get refs to doc
-		var refs = n.getData().getReferencesTo(id);
+		this.#current = doc;
 		
 		// Set note name in the header bar
-		n.setStatusText("References to " + doc.name);
+		this._tab.setStatusText("References to " + doc.name);
+		
+		// Get refs to doc
+		var refs = this._app.data.getReferencesTo(id);
 		
 		// Build table
 		var rows = new Array();
+		
+		var that = this;
 		for(var i in refs) {
 			var ref = refs[i];
 			var butts = $('<span class="listOptionContainer" />').append(
@@ -54,13 +77,14 @@ class Refs {
 					$('<div data-toggle="tooltip" title="Delete Reference" class="fa fa-trash versionButton" data-id="' + ref._id + '"/>')
 					.on('click', function(e) {
 						var rid = $(this).data().id;
-						DocumentActions.getInstance().deleteItems([rid])
+						
+						that._app.documentActions.deleteItems([rid])
 						.then(function(data) {
-							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
-							Notes.getInstance().routing.call('refs/' + id);
+							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
+							that._app.routing.call('refs/' + id);
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
 						});
 					})
 				]
@@ -69,20 +93,24 @@ class Refs {
 			rows.push(
 				$('<tr>').append(
 					[
-						$('<td style="cursor: pointer;" data-id="' + ref._id + '">' + n.getData().getReadablePath(ref._id) + '</td>')
+						$('<td style="cursor: pointer;" data-id="' + ref._id + '">' + this._app.data.getReadablePath(ref._id) + '</td>')
 						.on('click', function(e) {
 							var id = $(this).data().id;
-							NoteTree.getInstance().focus(id);
+							that._app.nav.focus(id);
 						}),
 						$('<td data-ts="' + ref.timestamp + '">' + new Date(ref.timestamp).toLocaleString() + '</td>'),
-						$('<td/>').append(butts),
+						$('<td/>').append(
+							butts
+						),
 					]					
 				)
 			);
 		}
+		
+		var refsTable = $('<table class="table table-striped table-hover" />'); 
 
-		$('#contentContainer').append(
-			$('<table class="table table-striped table-hover" id="refsTable" />').append(
+		this._tab.getContainer().append(
+			refsTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -101,7 +129,7 @@ class Refs {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#refsTable'), {
+		Tools.makeTableSortable(refsTable, {
 			excludeColumns: [2],
 			sortData: [
 				{

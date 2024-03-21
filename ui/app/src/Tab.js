@@ -35,13 +35,27 @@ class Tab {
 	async loadPage(newPageInstance, data) {
 		if (!(newPageInstance instanceof Page)) throw new Exception('Invalid page');
 		
+		// Unload old page if any
+		await this.unload();
+		
 		// Set references
 		newPageInstance.setApp(this.#app);
 		newPageInstance.setTab(this);
 		
 		this.#currentPage = newPageInstance;
 		
-		that.getContainer().show();
+		this.show();
+		
+		await this.#currentPage.load(data);
+	}
+	
+	/**
+	 * If there is a page, its content is set to data.
+	 */
+	async setPageData(data) {
+		if (!this.isLoaded()) return;
+		
+		await this.reset();
 		
 		await this.#currentPage.load(data);
 	}
@@ -50,28 +64,112 @@ class Tab {
 	 * Unload the page if any
 	 */
 	async unload() {
+		await this.reset();
+
+		this.#currentPage = null;
+	}
+
+	/**
+	 * Reset the page
+	 */
+	async reset() {	
 		if (this.#currentPage) {
 			await this.#currentPage.unload();
 		}
-		this.#currentPage = null;
 		
-		this.#container.empty();
-		this.#container.css('background', '');
-		this.#container.scrollTop(0);
-		this.#container.scrollLeft(0);
-		this.#container.off('contextmenu');	
+		this.#resetContainer();
+		this.resetDirtyState();
+		this.setStatusText();
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Returns the current editor. If the loaded page is just a page 
-	 * and no Editor, null is returned.
+	 * Set tab status text
 	 */
-	getCurrentEditor() {
-		return (this.#currentPage instanceof Editor) ? this.#currentPage : null;
+	setStatusText(text) {
+		this.#app.setStatusText(text);
 	}
 	
+	//////////////////////////////////////////////////////////////////////////////////
+
+	/**
+	 * If a page is loaded, this returns a page focus override ID if any.
+	 */
+	overrideFocusId() {
+		if (!this.isLoaded()) return false;
+		
+		return this.#currentPage.overrideFocusId();
+	}
+
+	/**
+	 * If an editor is loaded, the dirty state is reset.
+	 */
+	resetEditorDirtyState() {
+		if (!this.isEditorLoaded()) return;
+		
+		this.#currentPage.resetDirtyState();
+	}
+	
+	/**
+	 * If an editor is loaded, returns if it is dirty.
+	 */
+	isEditorDirty() {
+		if (!this.isEditorLoaded()) return false;
+		
+		return this.#currentPage.isDirty();
+	}
+	
+	/**
+	 * If an editor is loaded, stops its save handlers
+	 */
+	stopEditorDelayedSave() {
+		if (!this.isEditorLoaded()) return;
+		
+		this.#currentPage.stopDelayedSave();		
+	}
+	
+	/**
+	 * If an editor is loaded, returns its content
+	 */
+	getEditorContent() {
+		if (!this.isEditorLoaded()) return false;
+		
+		return this.#currentPage.getContent();
+	}
+	
+	/**
+	 * If the current page is a restorable editor, this returns if it is in restore mode.
+	 */
+	getEditorRestoreMode() {
+		if (!this.isRestorableEditorLoaded()) return false;
+		
+		return this.#currentPage.getRestoreMode();
+	}
+	
+	/**
+	 * Returns if a page is loaded.
+	 */
+	isLoaded() {
+		return !!this.#currentPage;
+	}
+	
+	/**
+	 * Returns if the current page is an editor.
+	 */
+	isEditorLoaded() {
+		return (this.#currentPage instanceof Editor);
+	}
+	
+	/**
+	 * Returns if the current page is a restorable editor.
+	 */
+	isRestorableEditorLoaded() {
+		return (this.#currentPage instanceof RestorableEditor);
+	}
+	
+	//////////////////////////////////////////////////////////////////////////////////
+
 	/**
 	 * Returns the current page instance, if any (editors included).
 	 */
@@ -83,8 +181,8 @@ class Tab {
 	 * Returns the currently shown document's ID
 	 */
 	getCurrentlyShownId(editorsOnly) {
-		if (!this.#currentPage) return false;
-		if (editorsOnly && !(this.#currentPage instanceof Editor)) return false;
+		if (!this.isLoaded()) return false;
+		if (editorsOnly && !this.isEditorLoaded()) return false;
 		
 		return this.#currentPage.getCurrentId();
 	}
@@ -93,8 +191,8 @@ class Tab {
 	 * Returns the currently shown document
 	 */
 	getCurrentlyShownDoc(editorsOnly) {
-		if (!this.#currentPage) return null;	
-		if (editorsOnly && !(this.#currentPage instanceof Editor)) return null;
+		if (!this.isLoaded()) return null;
+		if (editorsOnly && !this.isEditorLoaded()) return null;
 			
 		return this.#currentPage.getCurrentDoc();
 	}
@@ -106,6 +204,17 @@ class Tab {
 	 */
 	getContainer() {
 		return this.#container;
+	}
+	
+	/**
+	 * Reset container
+	 */
+	#resetContainer() {
+		this.#container.empty();
+		this.#container.css('background', '');
+		this.#container.scrollTop(0);
+		this.#container.scrollLeft(0);
+		this.#container.off('contextmenu');	
 	}
 
 	/**

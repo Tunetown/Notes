@@ -91,7 +91,7 @@ class TrelloImporter {
 			});
 		}
 		
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		
 		// Parse data
 		var data = JSON.parse(jsonString);
@@ -304,7 +304,7 @@ class TrelloImporter {
 			var name = resp.name ? resp.name : fileName;
 			var strippedName = Document.stripAttachmentName(fileName);
 			doc = {
-				_id: that.#app.getData().generateIdFrom(name),
+				_id: that.#app.data.generateIdFrom(name),
 				type: "attachment",
 				name: name,
 				parent: parentId,

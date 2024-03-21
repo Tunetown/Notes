@@ -27,16 +27,202 @@ class Routing {
 		this.rootPlaceholder = 'root';
 	}
 	
-	// Select notebook site (this redirects to the last loaded site if the landing page
-	// has been loaded)
-	#landingPage(context, regardLastLoaded) {
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Set up routing
+	 */
+	setup(selector) {
+		var that = this;
+		this.sammy = $.sammy(selector, function() {
+			/**
+			 * Landing page //////////////////////////////////////////////////////////////////////////////////////////
+			 */
+			this.get('#/', function() {
+				that.#landingPage(true);
+			});
+			
+			this.get('#/notebooks', function() {
+				that.#landingPage(false);
+			});
+
+			/**
+			 * Documentation ////////////////////////////////////////////////////////////////////////////////////////
+			 */
+			this.get('#/doc', function() {
+				that.#loadPage(new HelpPage());
+			});
+			this.get('#/doc/:docpage', function() {
+				that.#loadPage(new HelpPage(), false, this.params['docpage']);
+			});
+			
+			/**
+			 * Pages not related to a profile ///////////////////////////////////////////////////////////////////////
+			 */
+			this.get('#/console', function() {
+				that.#loadPage(new ConsolePage());
+			});
+			
+			this.get('#/update', function() {
+				that.#loadPage(new UpdatePage());
+			});
+
+			/**
+			 * Profile Root /////////////////////////////////////////////////////////////////////////////////////////
+			 */						
+			this.get('#/:profile', function() {
+				that.#profileRoot(this.params);
+			});
+
+			this.get('#/:profile/', function() {
+				that.#profileRoot(this.params);
+			});
+
+			this.get('#/:profile/search/:token', function() {
+				// Profile root with search text passed as URI parameter
+				const token = this.params['token'];
+				that.#profileRoot(this.params, true)
+				.then(function() {
+					that.#app.nav.setSearchText(token);
+				});
+			});
+			
+			// Profile root with selected parent ID passed as URI parameter
+			this.get('#/:profile/select/', function() {
+				that.#profileRoot(this.params, true)
+				.then(function() {
+					that.#app.nav.focus('');
+				});
+			});
+			this.get('#/:profile/select/:id', function() {
+				const id = this.params['id'];
+				that.#profileRoot(this.params, true)
+				.then(function() {
+					that.#app.nav.focus(id ? id : '');
+				});
+			});
+			
+			/**
+			 * Profile dependent general pages ///////////////////////////////////////////////////////////////////////////////
+			 */
+			this.get('#/:profile/settings', function() {
+				that.#settingsPage(this.params['profile']);
+			});
+			
+			this.get('#/:profile/generate', function() {
+				that.#loadPage(new GeneratePage(), this.params['profile']);
+			});
+			
+			this.get('#/:profile/graph', function() {
+				that.#loadPage(new GraphPage(), this.params['profile']);
+			});
+			
+			this.get('#/:profile/trash', function() {
+				that.#triggerAction(function() {
+					return that.#app.actions.trash.showTrash();
+				}, this.params['profile']);
+			});
+			
+			this.get('#/:profile/verifyrawdata', function() {
+				that.#loadPage(new VerifyBackupPage(), this.params['profile']);
+			});
+			
+			this.get('#/:profile/check', function() {
+				that.#loadPage(new CheckPage(), this.params['profile']);
+			});
+
+			this.get('#/:profile/conflicts', function() {
+				that.#loadPage(new ConflictsPage(), this.params['profile']);
+			});
+			
+			this.get('#/:profile/tags', function() {
+				that.#loadPage(new HashtagsPage(), this.params['profile']);
+			});
+			
+			this.get('#/:profile/tags/:noteId', function() {
+				that.#loadPage(new HashtagsPage(), this.params['profile'], this.params['noteId']);
+			});
+			
+			this.get('#/:profile/labels', function() {
+				that.#loadPage(new LabelDefinitionsPage(), this.params['profile']);
+			});
+
+			/**
+			 * Pages related to a note //////////////////////////////////////////////////////////////////////////////////
+			 */
+
+			this.get('#/:profile/history/:noteId/:versionName', function() {
+				const noteId = this.params['noteId'];
+				const versionName = this.params['versionName'];
+				that.#triggerAction(function() {
+					return that.#app.actions.history.requestVersion(noteId, versionName);
+				}, this.params['profile'], true);
+			});
+			
+			// Version history of a note
+			this.get('#/:profile/history/:noteId', function() {
+				const noteId = this.params['noteId'];
+				that.#triggerAction(function() {
+					return that.#app.actions.history.showHistory(noteId);
+				}, this.params['profile'], true);
+			});
+
+			// References to a note
+			this.get('#/:profile/refs/:noteId', function() {
+				that.#loadPage(new RefsPage(), this.params['profile'], this.params['noteId']);
+			});
+			
+			// Conflict of a note
+			this.get('#/:profile/c/:noteId/:revId', function() {
+				const noteId = this.params['noteId'];
+				const revId = this.params['revId'];
+				that.#triggerAction(function() {
+					return that.#app.actions.document.requestConflict(noteId, revId);
+				}, this.params['profile']);
+			});
+			
+			// Label definitions of an item
+			this.get('#/:profile/ld/:noteId', function() {
+				const noteId = this.params['noteId'];
+				that.#triggerAction(function() {
+					return that.#app.actions.label.requestLabelDefinitions(noteId);
+				}, this.params['profile'], true);
+			});
+			
+			// Raw JSON view for an item
+			this.get('#/:profile/raw/:noteId', function() {
+				const noteId = this.params['noteId'];
+				that.#triggerAction(function() {
+					return that.#app.actions.document.requestRawView(noteId);
+				}, this.params['profile'], true);
+			});
+			
+			// Open document
+			this.get('#/:profile/:noteId', function() {
+				that.#openDocument(this.params['profile'], this.params['noteId']);
+			});
+			
+			// Document with search text predefined 
+			this.get('#/:profile/:noteId/search/:token', function() {     // TODO test this
+				that.#openDocument(this.params['profile'], this.params['noteId'], this.params['token']);
+			});
+		});
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Select notebook site (this redirects to the last loaded site if the landing page
+	 * has been loaded)
+	 */
+	#landingPage(regardLastLoaded) {
 		var lastLoaded = regardLastLoaded ? this.#app.getLastOpenedUrl() : false;
 
 		var that = this;
 		this.#app.startApp()
-		.then(function(data) {
-			that.#app.resetPage();
-			
+		.then(function() {
 			if (lastLoaded) {
 				console.log("Redirect to last loaded: " + lastLoaded);
 				location.href = lastLoaded;
@@ -50,11 +236,21 @@ class Routing {
 		});
 	}
 
-	// Profile root: Show overview
-	#profileRoot(context, params) {
+	/**
+	 * Profile root: Show overview
+	 */
+	#profileRoot(params, waitForTree) {
 		var that = this;
 		
+		if (waitForTree) this.#app.state.resetTreeFocusId();
+		
 		return this.#app.startApp(params['profile'])
+		.then(function(data) {
+			if (!data || !data.ok) return Promise.reject();
+			if (!waitForTree) return Promise.resolve(data);
+			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			return Promise.resolve(data);
+		})
 		.then(function(data) {
 			that.#app.resetPage(true);
 			that.#app.setStatusText();
@@ -67,496 +263,86 @@ class Routing {
 		.catch(function(err) {
 			that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
 		});
-	};
-
-
+	}
+	
 	/**
-	 * Set up routing
+	 * Loads a page instance
 	 */
-	setup(selector) {
+	#loadPage(pageInstance, profile, pageData) {
 		var that = this;
-		this.sammy = $.sammy(selector, function() {
-			this.get('#/', function(context) {
-				that.#landingPage(context, true);
-			});
-			this.get('#/notebooks', function(context) {
-				that.#landingPage(context, false);
-			});
-
-			// Documentation
-			this.get('#/doc', function(context) {
-				that.#app.startApp()
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.loadPage(new HelpPage());
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			this.get('#/doc/:docpage', function(context) {
-				var docpage = this.params['docpage'];
-				
-				that.#app.startApp()
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.loadPage(new HelpPage(), docpage);
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading help page: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Console
-			this.get('#/console', function(context) {
-				that.#app.startApp()
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.loadPage(new ConsolePage());
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Update page
-			this.get('#/update', function(context) {
-				that.#app.startApp()
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.loadPage(new UpdatePage());
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading update page: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-						
-			this.get('#/:profile', function(context) {
-				that.#profileRoot(context, this.params);
-			});
-			this.get('#/:profile/', function(context) {
-				that.#profileRoot(context, this.params);
-			});
-			
-			// Profile root with search text passed as URI parameter
-			this.get('#/:profile/search/:token', function(context) {
-				const token = this.params['token'];
-				
-				that.#app.state.resetTreeFocusId();
-				
-				that.#profileRoot(context, this.params)
-				.then(function(resp) {
-					if (!resp || !resp.ok || !token) return Promise.reject();
-					
-					if (resp.startAppData && resp.startAppData.treePromise) {
-						return resp.startAppData.treePromise;
-					} else {
-						return Promise.resolve();
-					}
-				})
-				.then(function() {
-					that.#app.nav.setSearchText(token);
-				});
-			});
-			
-			// Profile root with selected parent ID passed as URI parameter
-			this.get('#/:profile/select/', function(context) {
-				that.#app.state.resetTreeFocusId();
-				
-				that.#profileRoot(context, this.params)
-				.then(function(resp) {
-					if (!resp || !resp.ok) return Promise.reject();
-					
-					if (resp.startAppData && resp.startAppData.treePromise) {
-						return resp.startAppData.treePromise;
-					} else {
-						return Promise.resolve();
-					}
-				})
-				.then(function() {
-					that.#app.nav.focus('');
-				});
-			});
-			this.get('#/:profile/select/:id', function(context) {
-				that.#app.state.resetTreeFocusId();
-				
-				const id = this.params['id'];
-				that.#profileRoot(context, this.params)
-				.then(function(resp) {
-					if (!resp || !resp.ok) return Promise.reject();
-					
-					if (resp.startAppData && resp.startAppData.treePromise) {
-						return resp.startAppData.treePromise;
-					} else {
-						return Promise.resolve();
-					}
-				})
-				.then(function() {
-					that.#app.nav.focus(id ? id : '');
-				});
-			});
-			
-			// Settings
-			this.get('#/:profile/settings', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					return Promise.all([data.settingsPromise, data.treePromise])
-					.then(function(data) {
-						that.#app.resetPage();
-						return that.#app.loadPage(new SettingsPage());
-					})
-					.catch(function(err) {
-						that.#app.resetPage();
-						that.#app.setStatusText('No settings found');
-						return that.#app.loadPage(new SettingsPage());
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Generator
-			this.get('#/:profile/generate', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					return Promise.resolve(data.treePromise);
-				})
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.loadPage(new GeneratePage());
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Graph view
-			this.get('#/:profile/graph', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					return Promise.all([data.treePromise, data.settingsPromise])
-					.then(function(data) {
-						return that.#app.loadPage(new GraphPage());
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Trash bin
-			this.get('#/:profile/trash', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					// NOTE: The trash bin needs the basic tree data only to reference 
-					//       parents. This is why we wait for the tree here.
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.actions.trash.showTrash();
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading trash: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Verify backup
-			this.get('#/:profile/verifyrawdata', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					that.#app.loadPage(new VerifyBackupPage());
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Checks
-			this.get('#/:profile/check', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					that.#app.loadPage(new CheckPage());
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-
-			// All conflicts
-			this.get('#/:profile/conflicts', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					// NOTE: This needs all tree data, so we wait for the tree promise first
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.loadPage(new ConflictsPage());
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading conflicts: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// All hashtags
-			this.get('#/:profile/tags', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.loadPage(new HashtagsPage());
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading tags overview: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Hashtags of a note
-			this.get('#/:profile/tags/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.loadPage(new HashtagsPage(), noteId);
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading tags overview: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// All labels
-			this.get('#/:profile/labels', function(context) {
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					// NOTE: This needs all tree data, so we wait for the tree promise first
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.loadPage(new LabelDefinitionsPage());
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading labels: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-
-			// Version of a note
-			this.get('#/:profile/history/:noteId/:versionName', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				var versionName = this.params['versionName'];
-				if (!versionName) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.actions.history.requestVersion(noteId, versionName);
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading version: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Version history of a note
-			this.get('#/:profile/history/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.actions.history.showHistory(noteId);
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading history: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-
-			// References to a note
-			this.get('#/:profile/refs/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					
-					return Promise.resolve(data.treePromise)
-					.then(function(data) {
-						return that.#app.loadPage(new RefsPage(), noteId);
-					});
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading references: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Conflict of a note
-			this.get('#/:profile/c/:noteId/:revId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				var revId = this.params['revId'];
-				if (!revId) {
-					that.#app.showAlert('No revision received', 'E');
-					return;
-				}
-				
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.actions.document.requestConflict(noteId, revId);
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading conflict: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Label definitions of an item
-			this.get('#/:profile/ld/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				// NOTE: This needs the parents and label definitions of the whole tree.
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					return Promise.resolve(data.treePromise);
-				})
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.actions.label.requestLabelDefinitions(noteId);
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading labels: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Raw JSON view for an item
-			this.get('#/:profile/raw/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				
-				that.#app.startApp(this.params['profile'])
-				.then(function(data) {
-					that.#app.resetPage();
-					return that.#app.actions.document.requestRawView(noteId);
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading raw JSOn view: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			this.get('#/:profile/:noteId', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-
-				that.#openDocument(context, this.params, noteId)
-				.then(function(data) {
-					if (!data || !data.ok) return Promise.reject({
-						message: 'Error in Routing.opeDocument()' + (data && data.message) ? (': ' + data.message) : ''
-					});
-					return Promise.resolve(data.startAppData.treePromise);
-				})
-				.then(function() {
-					that.#app.nav.setSearchText();
-					that.#app.nav.editorOpened(noteId);
-					
-					that.#app.callbacks.executeCallbacks('openDocumentAndTree', noteId);
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
-			
-			// Item with search text predefined
-			this.get('#/:profile/:noteId/search/:token', function(context) {
-				var noteId = this.params['noteId'];
-				if (!noteId) {
-					that.#app.showAlert('No ID received', 'E');
-					return;
-				}
-				var token = this.params['token'];
-				
-				that.#openDocument(context, this.params, noteId)
-				.then(function(data) {
-					if (!data || !data.ok) return Promise.reject({
-						message: 'Error in Routing.opeDocument()' + (data && data.message) ? (': ' + data.message) : ''
-					});
-					return Promise.resolve(data.startAppData.treePromise);
-				})
-				.then(function() {
-					if (token) that.#app.nav.setSearchText(token);
-					
-					that.#app.callbacks.executeCallbacks('openDocumentAndTree', noteId);
-				})
-				.catch(function(err) {
-					that.#app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
-				});
-			});
+		
+		return this.#app.startApp(profile)
+		.then(function(data) {
+			if (!data || !data.ok) return Promise.reject();
+			if (!pageInstance.needsHierarchyData()) return Promise.resolve(data);
+			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			return Promise.resolve(data);
+		})
+		.then(function() {
+			return that.#app.loadPage(pageInstance, pageData);
+		})
+		.catch(function(err) {
+			that.#app.showAlert('Error loading page: ' + err.message, 'E', err.messageThreadId);
 		});
 	}
 	
-	#openDocument(context, params, noteId) {
+	/**
+	 * Triggers a callback after startApp. callback will be called with the data returned by Notes.startApp().
+	 */
+	#triggerAction(callback, profile, waitForTree) {
 		var that = this;
 		
-		return this.#app.startApp(params['profile'])
+		return this.#app.startApp(profile)
 		.then(function(data) {
-			that.#app.resetPage();
-			
-			var doc = Document.getTargetDoc(that.#app.getData() ? that.#app.getData().getById(noteId) : null);
+			if (!data || !data.ok) return Promise.reject();
+			if (!waitForTree) return Promise.resolve(data);
+			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			return Promise.resolve(data);
+		})
+		.then(function(data) {
+			return callback(data);
+		})
+		.catch(function(err) {
+			that.#app.showAlert('Error loading page: ' + err.message, 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Loads the settings page
+	 */
+	#settingsPage(profile) {
+		var that = this;
+		
+		return this.#app.startApp(profile)
+		.then(function(data) {
+			return data.treePromise
+			.then(function() {
+				return that.#app.loadPage(new SettingsPage());
+			})
+			.catch(function() {
+				that.#app.setStatusText('No settings found');
+				return that.#app.loadPage(new SettingsPage());
+			});
+		})
+		.catch(function(err) {
+			that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Open a document
+	 */
+	#openDocument(profile, noteId, searchToken) {
+		var that = this;
+		
+		return this.#app.startApp(profile)
+		.then(function(data) {
+			if (!data || !data.ok) return Promise.reject();
+			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			return Promise.resolve(data);
+		})
+		.then(function(data) {
+			var doc = Document.getTargetDoc(that.#app.data ? that.#app.data.getById(noteId) : null);
 			if (that.#app.db.profileHandler.getCurrentProfile().clone && doc) {
 				// If the data is already there, use it
 				return that.#app.actions.editor.requestEditor(doc)
@@ -576,6 +362,15 @@ class Routing {
 					})
 				});
 			}
+		})
+		.then(function() {
+			that.#app.nav.editorOpened(noteId);
+			that.#app.nav.setSearchText(searchToken);
+			
+			that.#app.callbacks.executeCallbacks('openDocumentAndTree', noteId);
+		})
+		.catch(function(err) {
+			that.#app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
 		});
 	}
 	

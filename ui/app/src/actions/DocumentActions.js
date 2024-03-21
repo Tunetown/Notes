@@ -79,7 +79,7 @@ class DocumentActions {
 				}
 				
 				if (e.needsHierarchyData()) {
-					if (!that.#app.getData()) {
+					if (!that.#app.data) {
 						return that.#app.actions.nav.requestTree();
 					} else {
 						return Promise.resolve({
@@ -109,15 +109,15 @@ class DocumentActions {
 			}
 			
 			// Update data model
-			if (that.#app.getData()) {
-				var docPers = that.#app.getData().getById(id);
+			if (that.#app.data) {
+				var docPers = that.#app.data.getById(id);
 				if (docPers) {
 					Document.update(docPers, doc);
 					Document.setLoaded(docPers);
 				}
 				
 				if (doc.type == 'reference') {
-					var docPersTarget = that.#app.getData().getById(doc.ref);
+					var docPersTarget = that.#app.data.getById(doc.ref);
 					if (docPersTarget) {
 						Document.update(docPersTarget, data);
 						Document.setLoaded(docPersTarget);
@@ -202,7 +202,7 @@ class DocumentActions {
 	 * Creates one or more documents (in case of attachments multiple selection) in the passed parent ID.
 	 */
 	create(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc && (id.length > 0)) return Promise.reject({
 			message: 'Item ' + id + ' does not exist',
 			messageThreadId: 'CreateMessages'
@@ -214,18 +214,17 @@ class DocumentActions {
 		});
 
 		var existingRefs = [];
-		this.#app.getData().each(function(doc) {
+		this.#app.data.each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
 		var refSelector = this.#app.getMoveTargetSelector(existingRefs, true);
 
-		var e = this.#app.paging.getCurrentPage();
 		refSelector.val('');
 		
 		var typeSelector = Document.getAvailableTypeSelect('createTypeInput');
 
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetChildrenBuffers();
 
 		var type;
 		var name;
@@ -248,7 +247,7 @@ class DocumentActions {
 					$('#refCell').css('display', (this.value == 'reference') ? 'block' : 'none');
 					
 					if (e && (this.value == 'reference')) {
-						var cur = that.#app.getData().getById(e.getCurrentId());
+						var cur = that.#app.data.getById(e.getCurrentId());
 						if (cur) {
 							$('#createNameInput').val(cur.name);
 						}
@@ -274,7 +273,7 @@ class DocumentActions {
 				refSelector
 				.on('change', function(/*event*/) {
 					if ($('#createTypeInput').val() == 'reference') {
-						var tdoc = that.#app.getData().getById(this.value);
+						var tdoc = that.#app.data.getById(this.value);
 						if (tdoc) {
 							$('#createNameInput').val(tdoc.name);
 						}
@@ -307,7 +306,7 @@ class DocumentActions {
 
 				if (that.createTimeoutHandler) clearTimeout(that.createTimeoutHandler);
 				that.createTimeoutHandler = setTimeout(function() {
-					var ex = that.#app.getData().documentNameExists(val);
+					var ex = that.#app.data.documentNameExists(val);
 					$('#createWarnIcon').css('display', ex ? 'inline-block' : 'none');
 					$('#createWarnText').css('display', ex ? 'inline-block' : 'none');
 				}, 300);
@@ -414,7 +413,7 @@ class DocumentActions {
 					var strippedName = Document.stripAttachmentName(file.name);
 					
 				    var data = {
-						_id: that.#app.getData().generateIdFrom(file.name),
+						_id: that.#app.data.generateIdFrom(file.name),
 						type: "attachment",
 						name: file.name,
 						parent: id,
@@ -439,7 +438,7 @@ class DocumentActions {
 				
 			} else {
 				var data = {
-					_id: that.#app.getData().generateIdFrom(name),
+					_id: that.#app.data.generateIdFrom(name),
 					type: type,
 					name: name,
 					parent: id,
@@ -499,7 +498,7 @@ class DocumentActions {
 				var doc = data.rows[d].doc;
 				
 				// Update data model
-				that.#app.getData().add(doc);
+				that.#app.data.add(doc);
 			}
 			
 			// Execute callbacks
@@ -523,9 +522,7 @@ class DocumentActions {
 			messageThreadId: "SaveMessages"
 		});
 			
-		var e = this.#app.paging.getCurrentEditor();
-		
-		var data = this.#app.getData().getById(id);
+		var data = this.#app.data.getById(id);
 		if (!data) {
 			return Promise.reject({
 				message: 'Document ' + id + ' not found',
@@ -539,7 +536,7 @@ class DocumentActions {
 		return this.#documentAccess.loadDocuments([data])
 		.then(function(/*resp*/) {
 			if (Document.getContent(data) == content) {
-				if (e) e.resetDirtyState();
+				that.#app.paging.resetEditorDirtyState();
 				
 				return Promise.reject({ 
 					abort: true,
@@ -593,9 +590,10 @@ class DocumentActions {
 		.then(function (dataResp) {
 			if (!dataResp.abort) {
 				// Update editor state / changed marker
-				if (e) {
+				/*if (e) {
 					e.loadDocument(data);				
-				}
+				}*/
+				that.#app.paging.setPageData(data);
 				that.#app.update();
 				
 				// Execute callbacks
@@ -626,7 +624,7 @@ class DocumentActions {
 					messageThreadId: "SaveMessages"
 				});
 			} else {
-				if (e) e.resetDirtyState();
+				that.#app.paging.resetEditorDirtyState();
 				
 				return Promise.resolve(dataResp);
 			}
@@ -642,7 +640,7 @@ class DocumentActions {
 		var docs = [];
 		var children = [];
 		for(var i in ids) {
-			var doc = this.#app.getData().getById(ids[i]);
+			var doc = this.#app.data.getById(ids[i]);
 			if (!doc) return Promise.reject({ 
 				message: 'Document ' + ids[i] + ' not found',
 				messageThreadId: "DeleteMessages"
@@ -654,7 +652,7 @@ class DocumentActions {
 				this.#app.paging.unload();
 			}
 			
-			var docChildren = that.#app.getData().getChildren(ids[i], true);
+			var docChildren = that.#app.data.getChildren(ids[i], true);
 			for(var c in docChildren) {
 				children.push(docChildren[c]);
 			}
@@ -679,14 +677,14 @@ class DocumentActions {
 		
 		for(var i in docs) {
 			var doc = docs[i];
-			var crefs = this.#app.getData().getReferencesTo(doc._id);
+			var crefs = this.#app.data.getReferencesTo(doc._id);
 			for(var o in crefs || []) {
 				addContainedRef(crefs[o]);
 			}
 		}
 
 		for(var c in children) {
-			var crefs = this.#app.getData().getReferencesTo(children[c]._id);
+			var crefs = this.#app.data.getReferencesTo(children[c]._id);
 			for(var o in crefs || []) {
 				addContainedRef(crefs[o]);
 			}
@@ -695,7 +693,7 @@ class DocumentActions {
 		if (containedRefs.length) { 
 			var str = '';
 			for(var o in containedRefs) {
-				str += this.#app.getData().getReadablePath(containedRefs[o]._id) + '\n';
+				str += this.#app.data.getReadablePath(containedRefs[o]._id) + '\n';
 			}
 			
 			return Promise.reject({
@@ -730,7 +728,7 @@ class DocumentActions {
 				var doc = docs[d];
 				doc.deleted = true;
 				Document.addChangeLogEntry(doc, 'deleted');
-				console.log('Deleting ' + that.#app.getData().getReadablePath(doc._id));
+				console.log('Deleting ' + that.#app.data.getReadablePath(doc._id));
 				ids.push(doc._id);
 			}
 			
@@ -752,7 +750,7 @@ class DocumentActions {
 	 * Rename items in general.
 	 */
 	renameItem(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Item ' + id + ' not found',
 			messageThreadId: 'RenameMessages'
@@ -799,14 +797,14 @@ class DocumentActions {
 			messageThreadId: 'CopyMessages'
 		});
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'CopyMessages'
 		});
 		
-		this.#app.getData().resetBacklinks();
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
 		
 		var db;
 		var newDoc;
@@ -836,7 +834,7 @@ class DocumentActions {
 			
 			// Create a new note with the content of the original.
 			newDoc = {
-				_id: that.#app.getData().generateIdFrom(name),
+				_id: that.#app.data.generateIdFrom(name),
 				type: doc.type,
 				name: name,
 				parent: doc.parent,
@@ -858,7 +856,7 @@ class DocumentActions {
 		})
 		.then(function(data) {
 			newDoc._rev = data.rev;
-			that.#app.getData().add(newDoc);
+			that.#app.data.add(newDoc);
 			
 			// Execute callbacks
     		that.#app.callbacks.executeCallbacks('copy', newDoc);
@@ -881,7 +879,7 @@ class DocumentActions {
 		ids = Tools.removeDuplicates(ids);
 		
 		for(var i in ids) {
-			var doc = this.#app.getData().getById(ids[i]);
+			var doc = this.#app.data.getById(ids[i]);
 			if (!doc) return Promise.reject({
 				message: 'Document ' + ids[i] + ' not found',
 				messageThreadId: 'MoveMessages'
@@ -901,7 +899,7 @@ class DocumentActions {
 		for(var i in ids) {
 			existingRefs.push(ids[i]);
 		}
-		this.#app.getData().each(function(doc) {
+		this.#app.data.each(function(doc) {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
@@ -937,7 +935,7 @@ class DocumentActions {
 	        	
 	        	that.moveDocuments(ids, target, true)
 	        	.then(function(/*data*/) {
-	        		var tdoc = this.#app.getData().getById(target);
+	        		var tdoc = this.#app.data.getById(target);
 	        		
 					resolve({
 						ok: true,
@@ -972,7 +970,7 @@ class DocumentActions {
 	 * With moveToSubOfTarget you control if the note shall be moved as a subnode of target (true) or beneath the target (false).
 	 */
 	moveDocuments(ids, targetId, moveToSubOfTarget) {
-		var docTarget = this.#app.getData().getById(targetId);
+		var docTarget = this.#app.data.getById(targetId);
 		if (docTarget.type == 'reference') {
 			return Promise.reject({
 				message: 'Cannot move into references.',
@@ -984,7 +982,7 @@ class DocumentActions {
 
 		var docsSrc = [];
     	for(var i in ids) {
-    		var doc = this.#app.getData().getById(ids[i]);
+    		var doc = this.#app.data.getById(ids[i]);
     		if (!doc) {
     			return Promise.reject({
     				message: 'Document ' + ids[i] + ' not found',
@@ -997,9 +995,9 @@ class DocumentActions {
     	
     	var parentsChildren;
     	if (!targetId || moveToSubOfTarget) {
-    		parentsChildren = this.#app.getData().getChildren(targetId);
+    		parentsChildren = this.#app.data.getChildren(targetId);
     	} else {
-    		parentsChildren = this.#app.getData().getChildren(docTarget.parent);
+    		parentsChildren = this.#app.data.getChildren(docTarget.parent);
     	}
     	
     	for(var i in parentsChildren) {
@@ -1011,7 +1009,7 @@ class DocumentActions {
 	    		var siblings = this.#app.nav.reorderVisibleSiblings(docsSrc[s], true);
 	    		
 	    		for(var i in siblings) {
-					var sibling = this.#app.getData().getById(siblings[i]);
+					var sibling = this.#app.data.getById(siblings[i]);
 		    		if (!sibling) {
 		    			return Promise.reject({
 		    				message: 'Document ' + siblings[i] + ' not found',
@@ -1035,7 +1033,7 @@ class DocumentActions {
 	    					to: targetId
 	    				});
 	    				
-	    				that.#app.getData().setParent(docsSrc[s]._id, targetId);
+	    				that.#app.data.setParent(docsSrc[s]._id, targetId);
 	    				updateIds.push(docsSrc[s]._id);
 	    			}
 	    		}
@@ -1047,7 +1045,7 @@ class DocumentActions {
 		    				to: docTarget.parent
 		    			});
 		    			
-		    			that.#app.getData().setParent(docsSrc[s]._id, docTarget.parent);
+		    			that.#app.data.setParent(docsSrc[s]._id, docTarget.parent);
 		    			updateIds.push(docsSrc[s]._id);
 		    		}
 	    		}
@@ -1100,12 +1098,12 @@ class DocumentActions {
 	 * Saves the order of items for the passed parent as visible in navigation, without changing anything else
 	 */
 	saveChildOrders(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 
 		var docsInvolved = [doc];
 		var siblings = this.#app.nav.reorderVisibleSiblings(doc, true);
 		for(var i in siblings) {
-			var sibling = this.#app.getData().getById(siblings[i]);
+			var sibling = this.#app.data.getById(siblings[i]);
     		if (!sibling) {
     			return Promise.reject({
     				message: 'Document ' + siblings[i] + ' not found',
@@ -1151,7 +1149,7 @@ class DocumentActions {
 	 * Sets the star flag of an item.
 	 */
 	setStarFlag(id, flagActive) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Item ' + id + ' not found',
 			messageThreadId: 'StarMessages'
@@ -1235,8 +1233,8 @@ class DocumentActions {
 	undeleteItem(id) {
 		var db;
 		
-		this.#app.getData().resetBacklinks();
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
 		
 		var doc = null;
 		var that = this;
@@ -1276,7 +1274,7 @@ class DocumentActions {
 			});
 			
 			// Reset parent if not existing anymore
-			if (doc.parent && !that.#app.getData().getById(doc.parent)) {
+			if (doc.parent && !that.#app.data.getById(doc.parent)) {
 				doc.parent = "";
 			}
 			
@@ -1292,7 +1290,7 @@ class DocumentActions {
 				
 				Document.updateMeta(undeleteDocs[i]);
 				
-				console.log('Undeleting ' + that.#app.getData().getReadablePath(undeleteDocs[i]._id));
+				console.log('Undeleting ' + that.#app.data.getReadablePath(undeleteDocs[i]._id));
 			}
 
 			return db.bulkDocs(undeleteDocs);
@@ -1330,8 +1328,8 @@ class DocumentActions {
 		var db;
 		var doc;
 		
-		this.#app.getData().resetBacklinks();
-		this.#app.getData().resetChildrenBuffers();
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
 		
 		var that = this;
 		return this.#app.db.get()
@@ -1400,7 +1398,7 @@ class DocumentActions {
 		
 		var docs = [];
 		for(var i in ids) {
-			var doc = this.#app.getData().getById(ids[i]);
+			var doc = this.#app.data.getById(ids[i]);
 			if (!doc) return Promise.reject({
 				message: 'Document ' + ids[i] + ' not found',
 				messageThreadId: 'SetItemBgImageMessages'
@@ -1447,7 +1445,7 @@ class DocumentActions {
 
 		var docsSrc = [];
     	for(var i in ids) {
-    		var doc = this.#app.getData().getById(ids[i]);
+    		var doc = this.#app.data.getById(ids[i]);
     		if (!doc) {
     			return Promise.reject({
     				message: 'Document ' + ids[i] + ' not found',
@@ -1505,7 +1503,7 @@ class DocumentActions {
 	 * Returns a promise with the backImage data for the document.
 	 */
 	loadItemBackgroundImage(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) {
 			return Promise.reject({
 				message: 'Document ' + id + ' not found',
@@ -1552,7 +1550,7 @@ class DocumentActions {
 			//console.log(' -> Late Loader: Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
 			
 			// Update data model
-			if (that.#app.getData()) {
+			if (that.#app.data) {
 				if (doc) {
 					doc.backImage = backImage;
 					

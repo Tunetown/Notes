@@ -18,25 +18,28 @@
  */
 class Console {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Console.instance) Console.instance = new Console();
-		return Console.instance;
-	}
-
+	static buffer = [];    // Message buffer: { message:string, type:string, stack:string }
+	static #state = null;  
+	static #callbacks = null;
+	
 	/**
 	 * Adds a wrapper to the standard console log function, to collect everything here.
 	 * 
 	 * Adapted from https://stackoverflow.com/questions/19846078/how-to-read-from-chromes-console-in-javascript
 	 */
 	static init() {
+		// This class has its own ClientState instance which has no access to the app itself
+		Console.#state = new ClientState(null);
+		
+		// We use a map of callbacks for custom hooks
+		Consol.#callbacks = new Map();
+		 
 		// Create wrappers to the standard log functions
 		console.stdlog = console.log.bind(console);
 		console.stdinfo = console.info.bind(console);
 		console.stdwarn = console.warn.bind(console);
 		console.stderror = console.error.bind(console);
+		console.stdclear = console.clear.bind(console);
 		
 		/**
 		 * Helper function, which does the acrtual logging
@@ -94,78 +97,96 @@ class Console {
 				logit(arguments[l], 'E');
 			}
 		}
+		
+		console.clear = function() {
+			console.stdclear.apply(console);
+			Console.#clear();
+			
+			Console.#welcomeMessage();
+		}
 
 		// Get persisted messages from memory
-		var cs = ClientState.getInstance().getConsoleSettings();
+		var cs = Console.#state.getConsoleSettings();
 		if (cs.log) {
 			for (var l in cs.log) {
 				Console.#log(
 					cs.log[l].msg,
 					cs.log[l].type,
-					true	
+					true	           // Dont persist
 				);
 			}
 		}
 
-		Console.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');		
+		Console.#welcomeMessage();		
 	}
 	
 	/**
-	 * Clear console with optional intro text
+	 * Sets a log callback
 	 */
-	static clear() {
-		$('#console').empty();  // TODO
+	static setLogCallback(id, callback) {
+		if (!Console.#callbacks) throw new Exception('Console not initialized');
 		
-		var cs = ClientState.getInstance().getConsoleSettings();
-		if (cs.log) cs.log = [];
-		ClientState.getInstance().saveConsoleSettings(cs);
+		var entry = Console.#callbacks.get(id) || {};
 		
+		entry.logCallback = callback;
+		
+		Console.#callbacks.set(id, entry);
+	}
+	
+	/**
+	 * Sets a log callback
+	 */
+	static setClearCallback(id, callback) {
+		if (!Console.#callbacks) throw new Exception('Console not initialized');
+		
+		var entry = Console.#callbacks.get(id) || {};
+		
+		entry.clearCallback = callback;
+		
+		Console.#callbacks.set(id, entry);
+	}
+	
+	/**
+	 * Removes a callback by its ID
+	 */
+	static removeCallbacks(id) {
+		if (!Console.#callbacks) throw new Exception('Console not initialized');
+		Console.#callbacks.delete(id);
+	}
+	
+	/**
+	 * Outputs the welcome message (on the internal buffer only)
+	 */
+	static #welcomeMessage() {
 		Console.#log("================== Console initialized at " + new Date().toLocaleDateString() + " ====================", 'I');
 	}
 	
 	/**
-	 * Set title for console (header text)
+	 * Clear internal buffer and persistent entries
 	 */
-	setTitle(title) {
-		this.title = title;
-	}
-	
-	/**
-	 * Shows the console
-	 */
-	show() {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
+	static #clear() {
+		if (!Console.#state) throw new Exception('Console not initialized');
 		
-		// Set note name in the header
-		n.setStatusText(this.title ? this.title : "Console");
+		Console.buffer = [];
 		
-		// Switch to this view
-		$('#contentContainer').hide();
-		$('#console').show();
+		var cs = Console.#state.getConsoleSettings();
+		cs.log = [];
+		Console.#state.saveConsoleSettings(cs);
 		
-		this.scrollToBottom();
-		
-		// Build buttons
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Clear console" class="fa fa-trash" onclick="event.stopPropagation();Console.getInstance().clear()"></div>'),
-		]);
-	}
-	
-	/**
-	 * Scroll to console to bottom
-	 */
-	scrollToBottom() {
-		// Scroll down
-		setTimeout(function() { 
-			$('#console').scrollTop($("#console").prop("scrollHeight"));
-		}, 0);
+		// Callbacks
+		for(var c in Console.#callbacks) {
+			var entry = Console.#callbacks.get(c);
+			if (!entry) continue;
+			if (!entry.clearCallback) continue;
+			entry.clearCallback();
+		}
 	}
 	
 	/**
 	 * Logging (internal for all types).
 	 */
 	static #log(txt, type, dontPersist) {
+		if (!Console.#state) throw new Exception('Console not initialized');
 		if (!txt) return;
 		if (!type) type = "I";
 		
@@ -186,38 +207,32 @@ class Console {
 		setTimeout(function() {
 			if (!dontPersist) {
 				txt = timestamp + " " + txt;
-			}
 
-			if (!dontPersist) {
-				var cs = ClientState.getInstance().getConsoleSettings();
+				var cs = Console.#state.getConsoleSettings();
 				if (cs.persist) {
 					if (!cs.log) cs.log = [];
 					cs.log.push({
 						msg: txt,
 						type: type
 					});
-					ClientState.getInstance().saveConsoleSettings(cs);
+					Console.#state.saveConsoleSettings(cs);
 				}
 			}
 			
-			$('#console').append(
-				$('<div data-stack="' + stack + '" class="console-line console-type-' + type + ' ' + (txt ? '' : ' console-emptyline') + '"/>').html(txt)
-				.on('click', function(e) {
-					e.stopPropagation();
-					const stackAttr = $(this).attr('data-stack');
-					if (!stackAttr) return;
-					
-					if ($(this).children().length > 0) {
-						$(this).html(txt);
-					} else {
-						$(this).append(
-							$('<div class="console-stack"></div>').html(stackAttr.substr(6))
-						);
-					}
-				})
-			);
+			// Log the entry			
+			Console.buffer.push({
+				message: txt,
+				type: type, 
+				stack: stack
+			});
 			
-			Console.getInstance().scrollToBottom();
+			// Callbacks
+			for(var c in Console.#callbacks) {
+				var entry = Console.#callbacks.get(c);
+				if (!entry) continue;
+				if (!entry.logCallback) continue;
+				entry.logCallback(txt, type, stack);
+			}
 		}, 0);
 	}
 	

@@ -18,19 +18,34 @@
  */
 class CheckList {
 	
-	constructor(el, check) {
+	#app = null;
+	#docChecks = null;
+	
+	constructor(app) {
+		this.#app = app;
+		
+		this.#docChecks = new DocumentChecks(this.#app);	
+	}
+	
+	/**
+	 * Process a check
+	 */
+	process(el, check) {
 		el.empty();
 		
 		if (!check.messages) return;
 		
 		// Sort messages by document ID
-		check.messages.sort(function(a, b) {return a.id < b.id; });
+		check.messages.sort(function(a, b) {
+			return a.id < b.id; 
+		});
 		
 		// Count errors types
 		var numErrors = 0;
 		var numWarnings = 0;
 		var numInfo = 0;
 		var numSuccess = 0;
+		
 		for(var m in check.messages) {
 			var msg = check.messages[m];
 			if (!msg.type) {
@@ -38,17 +53,19 @@ class CheckList {
 				continue;
 			}
 			switch(msg.type) {
-			case 'E': numErrors++; break;
-			case 'W': numWarnings++; break;
-			case 'I': numInfo++; break;
-			case 'S': numSuccess++; break;
-			default: numErrors++; break;
+				case 'E': numErrors++; break;
+				case 'W': numWarnings++; break;
+				case 'I': numInfo++; break;
+				case 'S': numSuccess++; break;
+				default: numErrors++; break;
 			}
 		}
 		
 		// Build messages table
 		var rows = [];
-		var d = Notes.getInstance().getData();
+		var d = this.#app.data;
+
+		var that = this;
 		for(var e in check.messages) {
 			var msg = check.messages[e];
 			
@@ -60,7 +77,7 @@ class CheckList {
 				$('<tr data-id="' + (msg.id ? msg.id : '') + '"></tr>').append([
 					// Type of message
 					$('<td></td>').append(
-						$('<span class="' + this.getMessageTypeIcon(msg.type) + ' trashitemicon"></span>')
+						$('<span class="' + this.#getMessageTypeIcon(msg.type) + ' trashitemicon"></span>')
 					),
 					
 					// Message text
@@ -79,7 +96,7 @@ class CheckList {
 						
 						var data = $(this).parent().data();
 						if (data && data.id) {
-							Notes.getInstance().routing.call(data.id);
+							that.#app.routing.call(data.id);
 						}
 					}),
 					
@@ -114,15 +131,15 @@ class CheckList {
 							
 							if (!confirm('Try to solve ' + id + ' (' + numSteps + ' steps)?\n\n' + stepsStr)) return;
 							
-							DocumentChecks.getInstance().solveDocumentErrors([ms])
+							that.#docChecks.solveDocumentErrors([ms])
 							.then(function(data) {
-								return TreeActions.getInstance().requestTree();
+								return that.#app.actions.nav.requestTree();
 							})
 							.then(function(data) {
-								Notes.getInstance().showAlert(data.message, 'I', data.messageThreadId);
+								that.#app.showAlert(data.message, 'I', data.messageThreadId);
 							})
 							.catch(function(err) {
-								Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
+								that.#app.showAlert(err.message, 'E', err.messageThreadId);
 							});
 						}),
 						
@@ -134,7 +151,7 @@ class CheckList {
 							var id = $(this).data().id;
 							if (!id) return;
 							
-							Notes.getInstance().routing.callRawView(id);
+							that.#app.routing.callRawView(id);
 						}),
 							
 						// Delete
@@ -147,15 +164,15 @@ class CheckList {
 							
 							if (!confirm('Really delete document ' + id + ' from database?')) return;
 							
-							DocumentAccess.getInstance().deleteDbDocument(id)
+							that.#app.documentAccess.deleteDbDocument(id)
 							.then(function(data) {
-								return TreeActions.getInstance().requestTree();
+								return that.#app.actions.nav.requestTree();
 							})
 							.then(function(data) {
-								Notes.getInstance().showAlert(data.message, 'I', data.messageThreadId);
+								that.#app.showAlert(data.message, 'I', data.messageThreadId);
 							})
 							.catch(function(err) {
-								Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
+								that.#app.showAlert(err.message, 'E', err.messageThreadId);
 							});
 						})
 					),
@@ -164,8 +181,10 @@ class CheckList {
 		}
 		
 		// Build table headers
+		var checkListTable = $('<table class="table table-striped table-hover" />');		
+		
 		el.append(
-			$('<table class="table table-striped table-hover" id="checkListTable" />').append(
+			checkListTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -183,10 +202,10 @@ class CheckList {
 					$('<tbody/>').append(
 						$('<tr></tr>').append([
 							$('<td colspan="3"></td>').append(
-								this.createSelector('E', 'msgCheckError', numErrors),
-								this.createSelector('W', 'msgCheckWarning', numWarnings),
-								this.createSelector('I', 'msgCheckInfo', numInfo),
-								this.createSelector('S', 'msgCheckSuccess', numSuccess),
+								this.#createSelector('E', 'msgCheckError', numErrors),
+								this.#createSelector('W', 'msgCheckWarning', numWarnings),
+								this.#createSelector('I', 'msgCheckInfo', numInfo),
+								this.#createSelector('S', 'msgCheckSuccess', numSuccess),
 							),
 						])
 					).append(
@@ -199,7 +218,7 @@ class CheckList {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#checkListTable'), {
+		Tools.makeTableSortable(checkListTable, {
 			startIndex: 2,
 			excludeColumns: [6]
 		});
@@ -208,7 +227,7 @@ class CheckList {
 	/**
 	 * Creates a header msg type selector 
 	 */
-	createSelector(msgType, className, num) {
+	#createSelector(msgType, className, num) {
 		function handleSelector(event, el, className, num) {
 			event.stopPropagation();
 			$(el).find('.' + className).removeClass(className);
@@ -239,7 +258,7 @@ class CheckList {
 	/**
 	 * Get icon classes for the passed message type.
 	 */
-	getMessageTypeIcon(type) {
+	#getMessageTypeIcon(type) {
 		switch(type) {
 		case 'S': return 'msgCheckSuccess fa fa-check-circle iconGreen';
 		case 'I': return 'msgCheckInfo fa fa-info-circle iconBlue';
@@ -248,5 +267,4 @@ class CheckList {
 		}
 		return 'msgCheckError fa fa-question-circle iconRed';
 	}
-
 }

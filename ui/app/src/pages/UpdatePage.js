@@ -16,79 +16,106 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Update {
+class UpdatePage extends Page {
 	
-	/**
-	 * Singleton factory
-	 */
-	static getInstance() {
-		if (!Update.instance) Update.instance = new Update();
-		return Update.instance;
+	#content = null;
+	
+	#swVersionDisplay = null;
+	
+	async unload() {
+		this._app.removeServiceWorkerMessageCallback('version');
 	}
 	
 	/**
 	 * Loads the passed version history data into the versions view. doc is a cdb document
 	 */
-	load(manually) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
+	async load(manually) {
+		this._app.triggerUpdateCheck(manually);
 		
-		n.triggerUpdateCheck(manually);
+		this._tab.setStatusText("About");
 		
-		n.setStatusText("About");
+		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>');
+		 
+		this.#content = $('<div class="prettyPageBody"></div>');
 		
-		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>'); 
-		this.contentContainer = $('<div class="prettyPageBody"></div>');
-		$('#contentContainer').empty(); 
-		$('#contentContainer').append(
+		this._tab.getContainer().append(
 			headerContainer,
-			this.contentContainer  
+			this.#content  
 		);
+		
+		this.#swVersionDisplay = $('<span>Please wait...</span>');
 		
 		headerContainer.append( 
-			$('<div><h3>Notes App</h3><p>Version ' + n.appVersion + '</p><p>(C) 2021-2022 Thomas Weber (tom-vibrant[at]gmx.de)</p><p>License: GPL v3</p><p>Service Worker Version: <span id="swVersion">Please wait...</span></p></div><br>'),
+			$('<div></div>').append(
+				$('<h3>Notes App</h3>'),
+				
+				$('<p>Version ' + this._app.appVersion + '</p>'),
+				
+				$('<p>(C) 2021-2022 Thomas Weber (tom-vibrant[at]gmx.de)</p>'),
+				
+				$('<p>License: GPL v3</p>'),
+				
+				$('<p>Service Worker Version: </p>').append(
+					this.#swVersionDisplay
+				)
+			),
+			
+			$('<br>')
 		);
 		 
-		var files = n.outOfDateFiles;
+		var files = this._app.outOfDateFiles;
+		
+		var that = this;
 		if (files.length == 0) {
 			headerContainer.append( 
 				$('<div>The app is up to date with the host (' + location.host + '). If you want to re-load the whole app sources anyway, click here:</div><br>'),
+				
 				$('<button class="btn btn-primary updateInstallBtn">Reload App Sources...</button><br><br>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					Notes.getInstance().installUpdates();
+					that._app.installUpdates();
 				}),
+				
 				$('<button class="btn btn-secondary updateRefreshBtn">Re-Scan...</button><br><br>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					n.showAlert("Scan for Updates...", "I", 'UpdateScanMessages');
-					Update.getInstance().load(true);
+					that._app.showAlert("Scan for Updates...", "I", 'UpdateScanMessages');
+					
+					that.load(true);
 				}),
-				/*$('<button class="btn btn-secondary updateRefreshBtn">Validate Sources...</button><br><br>')
-				.on('click', function(event) {
-					event.stopPropagation();
-					Notes.getInstance().checkSources();
-				}),*/
+
 				$('<div><span style="color: red;">If you get errors after updating, please empty your browser cache and, if you installed it locally, re-install the app.</span></div><br>'),
 				$('<div><em>Technical Info: This forces the service worker to be reinstalled, and loads all sources from the host again. The PWA installation is not touched!</em></div><br>'),
 			);
 		} else {
 			headerContainer.append(
 				$('<div>Updates are available from ' + location.host + '. Click here to install them:</div><br>'),
+				
 				$('<div class="btn btn-primary updateInstallBtn">Install Updates...</div><br><br>')
 				.on('click', function(event) {
-					Notes.getInstance().installUpdates();
+					that._app.installUpdates();
 				})
 			);
 			
-			this.contentContainer.append(
-				$('<a onclick="Update.getInstance().showDiff()" href="javascript:void(0);">Show files to be updated...</a>')
+			this.#content.append(
+				$('<a href="javascript:void(0);">Show files to be updated...</a>')
+				.on('click', function(event) {
+					that.#showDiff();
+				})
 			);
 		}
 		
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Select notebook..." class="fa fa-home" onclick="event.stopPropagation();Notes.getInstance().routing.callSelectProfile();"></div>'),
+		this._app.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Select notebook..." class="fa fa-home"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				that._app.routing.callSelectProfile();
+			}),
 		]);
+		
+		this._app.setServiceWorkerMessageCallback('version', function(data) {
+			that.#setSWVersion(data.version);
+		});
 		
 		this.#triggerSWVersionLoad();
 	}
@@ -104,16 +131,16 @@ class Update {
 		});	
 	}
 	
-	setSWVersion(version) {
-		$('#swVersion').text(version);
+	#setSWVersion(version) {
+		this.#swVersionDisplay.text(version);
 	}
 	
-	showDiff() {
-		if (!this.contentContainer) return;
+	#showDiff() {
+		if (!this.#content) return;
 		
-		var n = Notes.getInstance();
-		var files = n.outOfDateFiles;
+		var files = this._app.outOfDateFiles;
 		var chgRows = new Array();
+		
 		for(var i=0; i<files.length; ++i) {
 			var url = files[i]; 
 			
@@ -124,8 +151,8 @@ class Update {
 			);
 		}
 		
-		this.contentContainer.empty();
-		this.contentContainer.append(
+		this.#content.empty();
+		this.#content.append(
 			$('<table class="table table-striped table-hover" />').append(
 				[
 					$('<thead class="bg-primary"/>').append(

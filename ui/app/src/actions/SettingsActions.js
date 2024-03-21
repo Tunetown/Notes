@@ -18,12 +18,12 @@
  */
 class SettingsActions {
 	
+	static settingsDocId = 'settings'; 
+
 	#app = null;
-	#documentAccess = null;
 	
-	constructor(app, documentAccess) {
+	constructor(app) {
 		this.#app = app;
-		this.#documentAccess = documentAccess;
 	}
 	
 	/**
@@ -34,7 +34,7 @@ class SettingsActions {
 		
 		return this.#app.db.get()
 		.then(function(db) {
-			return db.get(Settings.settingsDocId);
+			return db.get(SettingsActions.settingsDocId);
 		})
 		.then(function (data) {
 			that.#app.settings.set(data);
@@ -71,10 +71,10 @@ class SettingsActions {
 		return this.#app.db.get()
 		.then(function(_db) {
 			db = _db;
-			return db.get(Settings.settingsDocId);
+			return db.get(SettingsActions.settingsDocId);
 		})
 		.then(function (oldDoc) {
-			doc = that.#app.settings.get();
+			doc = that.#app.settings.settings;
 			doc._id = Settings.settingsDocId;
 			doc._rev = oldDoc._rev;
 			
@@ -112,7 +112,7 @@ class SettingsActions {
 		
 		return this.#app.db.get()
 		.then(function(db) {
-			return db.get(Settings.settingsDocId);
+			return db.get(SettingsActions.settingsDocId);
 		})
 		.then(function (data) {
 			var errors = [];
@@ -124,7 +124,7 @@ class SettingsActions {
 			});
 		})
 		.then(function(data) {
-			return that.#app.db.checkConflicts(Settings.settingsDocId)
+			return that.#app.db.checkConflicts(SettingsActions.settingsDocId)
 			.then(function(data2) {
 				var resp = Tools.mergeCheckResponses([data, data2]);
 				resp.numChecked = 1;

@@ -27,6 +27,9 @@ class CodeEditor extends RestorableEditor {
 	#timeoutHandle = null;
 	#highlightState = null;
 	
+	#saveButton = null;
+	#discardButton = null;
+	
 	/**
 	 * Sets data to be loaded into the editor instead of the passed data in load().
 	 */
@@ -91,14 +94,7 @@ class CodeEditor extends RestorableEditor {
 		this.#current = null;
 		this.setVersionRestoreData(false);
 		
-		this.resetDirtyState();
-
-		this.#current = null;
-		this._app.setStatusText();
-		
-		this._tab.getContainer().empty();
-		
-		this._app.update();
+		this._app.update();  // TODO still necessary
 	}
 	
 	/**
@@ -107,8 +103,6 @@ class CodeEditor extends RestorableEditor {
 	async load(doc) {
 		var that = this;
 		
-		await this.unload();
-		
 		Document.brokenLinksWarning(doc);
 		
 		this.#current = doc;
@@ -116,7 +110,7 @@ class CodeEditor extends RestorableEditor {
 		// Show loaded note in the header bar 
 		var txt = "";
 		if (doc) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
-		this._app.setStatusText(txt);
+		this._tab.setStatusText(txt);
 		
 		await Tools.getScripts([
 			'ui/lib/codemirror/mode/' + this.#getEditorLanguage() + '/' + this.#getEditorLanguage() + '.js'
@@ -130,7 +124,7 @@ class CodeEditor extends RestorableEditor {
 		if (this.#versionRestoreData) content = this.#versionRestoreData;
 		
 		// Create the editor instance
-		this.#editor = CodeMirror($('#contentContainer')[0], {
+		this.#editor = CodeMirror(this._tab.getContainer()[0], {
 			value: content,
 			mode: this.#getEditorLanguage(),
 			extraKeys: ec,
@@ -152,12 +146,12 @@ class CodeEditor extends RestorableEditor {
 				var pos = stream.pos;
 				var ch = stream.next();
 	
-				Hashtag.parseChar(ch, pos, state, stream.eol());
+				that._app.hashtag.parseChar(ch, pos, state, stream.eol());
 				while (!stream.eol() && Hashtag.isCapturing(state)) {
 					pos = stream.pos;
 					ch = stream.next();
 				
-					var token = Hashtag.parseChar(ch, pos, state, stream.eol());
+					var token = that._app.hashtag.parseChar(ch, pos, state, stream.eol());
 					if (token) {
 						if (!stream.sol() && !stream.eol()) stream.backUp(1);
 					
@@ -182,17 +176,20 @@ class CodeEditor extends RestorableEditor {
 		});
 		
 		// Build buttons
+		this.#saveButton = $('<div type="button" data-toggle="tooltip" title="Save Note" class="fa fa-save"></div>');
+		this.#discardButton = $('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" class="fa fa-times"></div>');
+		
 		if (this.#versionRestoreData) {
 			this.#versionRestoreMode = true;
 			
 			this._app.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
+				this.#saveButton
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#saveCode();
 				}), 
 				
-				$('<div type="button" data-toggle="tooltip" title="Discard and Reload Note" id="discardButton" class="fa fa-times"></div>')
+				this.#discardButton
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#discard(true);
@@ -202,25 +199,25 @@ class CodeEditor extends RestorableEditor {
 			this.#versionRestoreMode = false;
 			
 			this._app.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
+				this.#saveButton
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#saveCode();
 				}), 
 				
-				$('<div type="button" data-toggle="tooltip" title="Undo" id="undoButton" class="fa fa-undo"></div>')
+				$('<div type="button" data-toggle="tooltip" title="Undo" class="fa fa-undo"></div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#undo();
 				}), 
 				
-				$('<div type="button" data-toggle="tooltip" title="Redo" id="redoButton" class="fa fa-redo"></div>')
+				$('<div type="button" data-toggle="tooltip" title="Redo" class="fa fa-redo"></div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#redo();
 				}), 
 				
-				$('<div type="button" data-toggle="tooltip" title="Note options..." id="codeOptionsButton" class="fa fa-ellipsis-v"></div>')
+				$('<div type="button" data-toggle="tooltip" title="Note options..." class="fa fa-ellipsis-v"></div>')
 				.on('click', function(event) {
 					event.stopPropagation();
 					that.#callPageOptions(event);
@@ -236,28 +233,6 @@ class CodeEditor extends RestorableEditor {
 		}
 		
 		this.#versionRestoreData = false;
-		
-		//}) TODO cleanup
-		/*.catch(function(err) {
-			that._app.showAlert(err.message, 'E', err.messageThreadId);
-			
-			// Build buttons
-			that._app.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Save Note" id="saveButton" class="fa fa-save"></div>')
-				.on('click', function(event) {
-					event.stopPropagation();
-					that.#saveCode();
-				}), 
-				
-				$('<div type="button" data-toggle="tooltip" title="Note options..." id="codeOptionsButton" class="fa fa-ellipsis-v"></div>')
-				.on('click', function(event) {
-					event.stopPropagation();
-					that.#callPageOptions(event);
-				}), 
-			]);			
-
-			that.#updateStatus();
-		});*/
 	}
 	
 	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -348,37 +323,6 @@ class CodeEditor extends RestorableEditor {
 		this.#editor.redo();
 	}
 
-	/**	
-	 * Remembers the currently loaded note data in this.current. Also adjusts the loaded note text etc.
-	 *
-	setCurrent(doc) {
-		this.current = doc;
-
-		var n = Notes.getInstance();
-		
-		var txt = "";
-		if (doc) txt = doc.name + (Device.getInstance().isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
-
-		// Show loaded note in the header bar 
-		//var that = this;
-		n.setStatusText(txt/*, function(event) {
-			event.stopPropagation();
-			that.hideOptions();	
-			
-			// Rename
-			DocumentActions.getInstance().renameItem(that.getCurrentId())
-			.then(function(data) {
-				if (data.message) {
-					n.showAlert(data.message, "S", data.messageThreadId);
-				}
-				n.routing.call(that.getCurrentId());
-			})
-			.catch(function(err) {
-				n.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
-			});
-		} );
-	}*/
-	
 	/**
 	 * Calls the note options of the tree
 	 */
@@ -457,7 +401,7 @@ class CodeEditor extends RestorableEditor {
 	 */
 	#updateStatus() {
 		// Changed marker in header
-		$('#saveButton').css("display", this.isDirty() ? 'inline' : 'none');
+		this.#saveButton.css("display", this.isDirty() ? 'inline' : 'none');
 		this._app.update();
 	}
 	
@@ -467,7 +411,7 @@ class CodeEditor extends RestorableEditor {
 	#discard(removeButton) {
 		this.setVersionRestoreData(false);
 		
-		if (removeButton) $('#discardButton').css("display", "none");
+		if (removeButton) this.#discardButton.css("display", "none");
 		
 		this._app.showAlert("Action cancelled.", "I");
 
@@ -571,7 +515,7 @@ class CodeEditor extends RestorableEditor {
 	 * This actually composes the autocomplete list.
 	 */
 	#getLinkAutocompleteOptions(cm, option, typedToken, start, end) {
-		var proposals = this._app.getData().getLinkAutocompleteList(typedToken);
+		var proposals = this._app.data.getLinkAutocompleteList(typedToken);
 		var list = [];
 		for(var i in proposals) {
 			list.push({
@@ -590,13 +534,13 @@ class CodeEditor extends RestorableEditor {
 	 * This actually composes the autocomplete list.
 	 */
 	#getTagAutocompleteOptions(cm, option, typedToken, start, end) {
-		var proposals = this._app.getData().getTagAutocompleteList(typedToken);
+		var proposals = this._app.data.getTagAutocompleteList(typedToken);
 		var list = [];
 		for(var i in proposals) {
 			list.push({
 				text: proposals[i].id + ' ',
 				displayText: Hashtag.startChar + proposals[i].text,
-				className: Hashtag.getListStyleClass(proposals[i].id)
+				className: this._app.hashtag.getListStyleClass(proposals[i].id)
 			});
 		}
 		
@@ -652,8 +596,8 @@ class CodeEditor extends RestorableEditor {
 				tags[i].addEventListener("touchstart", tagClick);
 				
 				// Colors
-				const tag = Hashtag.extractTagFromElement($(tags[i]));
-				const tagColor = Hashtag.getColor(tag);
+				const tag = that._app.hashtag.extractTagFromElement($(tags[i]));
+				const tagColor = that._app.hashtag.getColor(tag);
 				if (tag) $(tags[i]).css('background-color', tagColor);
 				if (tag) $(tags[i]).css('color', Tools.getForegroundColor(tagColor));
 			}
@@ -687,7 +631,7 @@ class CodeEditor extends RestorableEditor {
 			const currentId = this.getCurrentId();
 			this._app.routing.callHashtags(currentId);
 		} else {
-			Hashtag.showTag(tag);
+			this._app.hashtag.showTag(tag);
 		}
 	}
 }

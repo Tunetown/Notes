@@ -61,14 +61,13 @@ class TrashActions {
 	 * Requests to empty the trash.
 	 */
 	emptyTrash() {
-		var n = Notes.getInstance();
 		var db;
 
 		var that = this;
-		return Database.getInstance().get()
+		return this.#app.db.get()
 		.then(function(dbRef) {
 			db = dbRef;
-			return db.query(Views.getInstance().getViewDocId() + '/deleted', {
+			return db.query(that.#app.views.getViewDocId() + '/deleted', {
 				include_docs: true
 			});
 		})
@@ -90,7 +89,6 @@ class TrashActions {
 			return db.bulkDocs(docs);
 		})
 		.then(function (/*data*/) {
-			n.resetPage();
 			return that.showTrash();
 		})
 		.then(function (/*data*/) {
@@ -101,5 +99,4 @@ class TrashActions {
 			});
 		});
 	}
-
 }

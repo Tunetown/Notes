@@ -61,7 +61,7 @@ class AttachmentActions {
 			});
 		}
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) {
 			return Promise.reject({
 				message: 'Item ' + id + ' does not exist',
@@ -113,7 +113,7 @@ class AttachmentActions {
 			}
 		}
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc && id.length) return Promise.reject({
 			message: 'Document ' + id + ' does not exist',
 			messageThreadId: 'UpdateAttMessages'
@@ -134,7 +134,7 @@ class AttachmentActions {
 			$('#dropFilesText').html('Add ' + files.length + ' files?');
 			
 			var existingRefs = [];
-			that.#app.getData().each(function(doc) {
+			that.#app.data.each(function(doc) {
 				if (doc.type == 'reference') existingRefs.push(doc._id);
 			});
 			
@@ -173,7 +173,7 @@ class AttachmentActions {
 
 				targetId = targetSelector.val();
 				if (targetId != id) {
-					doc = that.#app.getData().getById(targetId);
+					doc = that.#app.data.getById(targetId);
 					if (!doc && targetId.length) {
 						that.#app.showAlert('Document ' + targetId + ' not found', 'E', 'UplAttMessages');
 						return;
@@ -185,7 +185,7 @@ class AttachmentActions {
 					var strippedName = Document.stripAttachmentName(file.name);
 					
 				    var data = {
-						_id: that.#app.getData().generateIdFrom(file.name),
+						_id: that.#app.data.generateIdFrom(file.name),
 						type: "attachment",
 						name: file.name,
 						parent: targetId,
@@ -251,7 +251,7 @@ class AttachmentActions {
 				var docc = data.rows[d].doc;
 				
 				// Update data model
-				that.#app.getData().add(docc);
+				that.#app.data.add(docc);
 			}
 			
 			that.#app.routing.call(targetId);
@@ -272,7 +272,7 @@ class AttachmentActions {
 	 * Replaces the passed doc (must be an attachment) from a file
 	 */
 	updateAttachmentFromFile(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' does not exist',
 			messageThreadId: 'UpdateAttUrlMessages'

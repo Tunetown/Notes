@@ -21,6 +21,9 @@ class ClientState {
 
 	#app = null;
 
+	/**
+	 * Here, app is optional!
+	 */
 	constructor(app) {
 		this.#app = app;
 		
@@ -502,6 +505,8 @@ class ClientState {
 	 * Saves the current tree state in a browser cookie.
 	 */
 	saveTreeState() {
+		if (!this.#app) throw new Exception('No app reference');
+		
 		var state = this.getLocal(this.getTreeStateCid());
 		
 		this.#app.nav.behaviour.saveState(state);
@@ -520,6 +525,8 @@ class ClientState {
 	 * Loads a saved state from the cookie, and applies it to the tree.
 	 */
 	restoreTreeState() {
+		if (!this.#app) throw new Exception('No app reference');
+		
 		var state = this.getTreeState();
 	
 		// Behaviour specific fields
@@ -555,6 +562,7 @@ class ClientState {
 	 * Resets the focussing ID of the current tree state.
 	 */
 	resetTreeFocusId() {
+		if (!this.#app) throw new Exception('No app reference');
 		if (!this.#app.nav.behaviour) return;
 		
 		var state = this.getLocal(this.getTreeStateCid());
@@ -621,6 +629,7 @@ class ClientState {
 		if (generic) {
 			return 'notes_' + cid;
 		} else {
+			if (!this.#app) throw new Exception('No app reference for profile specific client state access');
 			var uid = this.#app.db.determineLocalDbName();
 			return uid + '_' + cid;
 		}

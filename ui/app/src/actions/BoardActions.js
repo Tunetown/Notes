@@ -39,7 +39,7 @@ class BoardActions {
 			messageThreadId: 'SaveBoardStateMessages' 
 		});
 			
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveBoardStateMessages' 
@@ -79,7 +79,7 @@ class BoardActions {
 			messageThreadId: 'GetBoardBackgroundMessages'
 		});
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' does not exist',
 			messageThreadId: 'GetBoardBackgroundMessages'
@@ -113,7 +113,7 @@ class BoardActions {
 			messageThreadId: 'SaveBoardBgImageMessages' 
 		});
 		
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveBoardBgImageMessages' 
@@ -122,7 +122,7 @@ class BoardActions {
 		var that = this;
 		return this.getBoardBackground(doc._id)
 		.then(function(imageData) {
-			doc = that.#app.getData().getById(doc._id);  // Reload doc 
+			doc = that.#app.data.getById(doc._id);  // Reload doc 
 			
 			return that.#imageDialog.askForImage(
 				doc,
@@ -168,7 +168,7 @@ class BoardActions {
 	 * Saves the passed image data to the passed document as board background.
 	 */
 	saveBoardBackgroundImage(id, imageData) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
 			messageThreadId: 'SaveBoardBgImageMessages' 

@@ -16,28 +16,19 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Help {
+class HelpPage extends Page {
 	
 	/**
-	 * Singleton factory
+	 * Loads the passed version history data into the versions view. doc is a cdb document.
+	 * 
+	 * docpage is optional.
 	 */
-	static getInstance() {
-		if (!Help.instance) Help.instance = new Help(); 
-		return Help.instance;
-	}
-	
-	/**
-	 * Loads the passed version history data into the versions view. doc is a cdb document
-	 */
-	load(docpage) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-		
-		n.setStatusText("Help Pages");
+	async load(docpage) {
+		this._tab.setStatusText("Help Pages");
 		
 		var headerContainer = $('<div class="prettyPageBody helpPageHeader"></div>');
 		var contentContainer = $('<div class="prettyPageBody"></div>');
-		$('#contentContainer').append(
+		this._tab.getContainer().append(
 			headerContainer, 
 			contentContainer
 		);
@@ -61,16 +52,5 @@ class Help {
 				contentContainer.html(err.responseText);	
 			}); 
 		}
-		
-		/*n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Select Profile" class="fa fa-times" onclick="event.stopPropagation();Help.getInstance().leave();"></div>'),
-		]);*/
-	}
-	
-	/**
-	 * Leave to profile selection page
-	 */
-	leave() {
-		Routing.getInstance().callSelectProfile();
 	}
 }

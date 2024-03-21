@@ -169,7 +169,7 @@ class ContextMenu {
 						that.#app.hideOptions();
 						if (that.#app.optionsIds.length != 1) return;
 
-						var doc = that.#app.getData().getById(that.#app.optionsIds[0]);
+						var doc = that.#app.data.getById(that.#app.optionsIds[0]);
 						if (!doc) return;
 						
 						that.#app.routing.callLabelDefinitions(that.#app.optionsIds[0]);
@@ -182,7 +182,7 @@ class ContextMenu {
 						that.#app.hideOptions();
 						if (that.#app.optionsIds.length != 1) return;
 
-						var doc = Notes.getInstance().getData().getById(that.#app.optionsIds[0]);
+						var doc = that.#app.data.getById(that.#app.optionsIds[0]);
 						if (!doc) return;
 						
 						if (!Document.hasTypeHistory(doc.type)) {
@@ -291,7 +291,7 @@ class ContextMenu {
 						event.stopPropagation();
 						if (!that.#app.optionsIds.length) return;
 						
-						var doc = that.#app.getData().getById(that.#app.optionsIds[0]);
+						var doc = that.#app.data.getById(that.#app.optionsIds[0]);
 						if (!doc) return;
 						
 						that.#app.actions.document.setStarFlag(doc._id, !doc.star)

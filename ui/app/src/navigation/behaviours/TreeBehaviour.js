@@ -257,7 +257,7 @@ class TreeBehaviour {
 		var that = this;
 		return {
 			treeSort: function (item, element) {
-				var d = that.#app.getData();
+				var d = that.#app.data;
 				var data = $(element).find('.' + that.getItemContentClass()).data(); 
 				var doc = d.getById(data.id);
 				
@@ -328,7 +328,7 @@ class TreeBehaviour {
 		tags.css('min-height', this.treeFontSize + 'px');
 		tags.css('max-height', this.treeFontSize + 'px');
 		
-		var data = this.#app.getData();
+		var data = this.#app.data;
 		var hasChildren = data.hasChildren(doc._id);
 		var iconEl = itemContent.find('.' + this.getIconClass());
 		iconEl.toggleClass('folder', hasChildren);
@@ -343,7 +343,7 @@ class TreeBehaviour {
 	}
 	
 	getById(id) {
-		return this.#app.getData().getById(id);
+		return this.#app.data.getById(id);
 	}
 	
 	/**
@@ -351,7 +351,7 @@ class TreeBehaviour {
 	 */
 	getRelatedDocuments(id) {
 		// TODO sort data!
-		return this.#app.getData().getChildren(id);
+		return this.#app.data.getChildren(id);
 	}
 
 	/**
@@ -362,7 +362,7 @@ class TreeBehaviour {
 		
 		// If a search is going on, we show all items the search is positive for
 		if (searchText) {
-			return this.#app.getData().evaluateSearch(doc, searchText, show);
+			return this.#app.data.evaluateSearch(doc, searchText, show);
 		} else {
 			return show;
 		}
@@ -384,7 +384,7 @@ class TreeBehaviour {
 	 * Returns if the document has children.
 	 */
 	hasChildren(doc) {
-		var data = this.#app.getData();
+		var data = this.#app.data;
 		return data.hasChildren(doc._id);
 	}
 	
@@ -462,7 +462,7 @@ class TreeBehaviour {
 	 * Sets focus on the given document.
 	 */
 	focus(id, fromLinkage) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		this.#expander.expandPathTo(doc ? doc.parentDoc : "");
 	}
 	
@@ -478,7 +478,7 @@ class TreeBehaviour {
 	 * Opens the given document in the navigation.
 	 */
 	open(id) {
-		var doc = this.#app.getData().getById(id);
+		var doc = this.#app.data.getById(id);
 		this.#expander.expandPathTo(doc);
 		this.#grid.setSelected(id);
 	}
@@ -520,7 +520,7 @@ class TreeBehaviour {
 	 * dropInto denotes if the user wants to drop into or nebeath the target.
 	 */
 	isDropAllowed(src, tar, dropInto) {
-		return !this.#app.getData().isChildOf(tar.data().id, src.data().id);
+		return !this.#app.data.isChildOf(tar.data().id, src.data().id);
 	}
 	
 	/**
@@ -539,7 +539,7 @@ class TreeBehaviour {
 	 * Receives the document type, returns a string containing the class(es).
 	 */
 	getIconStyleClass(isOpened, docIn) {
-		var d = this.#app.getData();
+		var d = this.#app.data;
 		var doc = Document.getTargetDoc(docIn);
 		
 		if ((doc.type == 'note') && (doc.editor == 'board') && !isOpened) return 'fa fa-border-all'; 
@@ -739,7 +739,7 @@ class TreeBehaviour {
 		this.#grid.setSelected(data.id);
 		
 		// Expand/collapse
-		if (this.#app.getData().hasChildren(data.id)) {
+		if (this.#app.data.hasChildren(data.id)) {
 			if (this.#expander.isExpanded(data.id)) {
 				this.#expander.collapseById(data.id);
 			} else {

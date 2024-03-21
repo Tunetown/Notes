@@ -18,10 +18,11 @@
  */
 class BoardEditor extends Editor {
 
-	#current = null;       // Current docuemnt
+	#current = null;             // Current docuemnt
 
-	#boardGrid = null;     // Main grid instance
-	#columnGrids = [];     // Array of column grid instances
+	#boardGrid = null;           // Main grid instance
+	#columnGrids = [];           // Array of column grid instances
+	#scrollContainer = null;     // Scroll container JQuery element
 	
 	/**
 	 * Tells that the editor needs tree data loaded before load() is called.
@@ -80,11 +81,6 @@ class BoardEditor extends Editor {
 		this.#current = null;
 		this.#destroy();
 		
-		this._tab.getContainer().empty();
-		
-		this.#current = null;
-		this._app.setStatusText();
-		
 		this._app.update();  // TODO still necessary?
 	}
 	
@@ -93,8 +89,6 @@ class BoardEditor extends Editor {
 	 */
 	async load(doc) {
 		var that = this;
-
-		await this.unload(); 
 
 		// Callbacks for color picking
 		this._app.registerOptionsCallbacks({
@@ -165,7 +159,7 @@ class BoardEditor extends Editor {
 		
 		// Build buttons
 		this._app.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Board options..." id="boardOptionsButton" class="fa fa-ellipsis-v"></div>')
+			$('<div type="button" data-toggle="tooltip" title="Board options..." class="fa fa-ellipsis-v"></div>')
 			.on('click', function(event) {
 				event.stopPropagation();
 				that.#callPageOptions();
@@ -173,12 +167,12 @@ class BoardEditor extends Editor {
 		]);
 		
 		var docs = [doc];
-		var children = this._app.getData().getChildren(doc._id);
+		var children = this._app.data.getChildren(doc._id);
 		
 		for(var c in children) {
 			docs.push(children[c]);
 			
-			var subChildren = this._app.getData().getChildren(children[c]._id);
+			var subChildren = this._app.data.getChildren(children[c]._id);
 			for (var sc in subChildren) {
 				docs.push(subChildren[sc]);
 			}
@@ -191,7 +185,7 @@ class BoardEditor extends Editor {
 		// Show loaded note in the header bar 
 		var txt = "";
 		if (doc) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
-		this._app.setStatusText(txt);
+		this._tab.setStatusText(txt);
 	
 		// Build board
 		this.#buildBoard(doc);
@@ -231,7 +225,8 @@ class BoardEditor extends Editor {
 		// Build containers
 		var dragContainer = $('<div class="board-drag-container"></div>');
 		var boardContainer = $('<div class="board"></div>');
-		var boardBack = $('<div id="boardBackground" style="display:none"></div>');
+		var boardBack = $('<div class="boardBackground" style="display:none"></div>');
+		this.#scrollContainer = $('<div class="board-scroll-container"></div>');
 		
 		var container = this._tab.getContainer();
 		container.empty();
@@ -242,7 +237,7 @@ class BoardEditor extends Editor {
 		container.append(
 			boardBack,
 			
-			$('<div id="board-scroll-container"></div>').append(
+			this.#scrollContainer.append(
 				dragContainer,
 				$('<div class="board-container"></div>').append(
 					boardContainer
@@ -283,7 +278,7 @@ class BoardEditor extends Editor {
 		var mobileWidth = container.width() - 40;
 		if (mobileWidth > 300) mobileWidth = 300;
 		
-		var lists = that._app.getData().getChildren(doc._id);
+		var lists = that._app.data.getChildren(doc._id);
 		Document.sortHierarchically(lists);
 		
 		var boardWidth = 0;		
@@ -295,7 +290,7 @@ class BoardEditor extends Editor {
 			
 			// Column items
 			var items = [];
-			var subList = that._app.getData().getChildren(lists[l]._id);
+			var subList = that._app.data.getChildren(lists[l]._id);
 			Document.sortHierarchically(subList);
 			
 			for(var i in subList) {
@@ -446,7 +441,7 @@ class BoardEditor extends Editor {
 								that.#saveScrollPosition();
 			
 								// Do not show options when the item is inside a hidden board
-								var doc = that._app.getData().getById(data.id);
+								var doc = that._app.data.getById(data.id);
 								if (!doc || (doc.boardState && doc.boardState.collapsed)) return;
 								
 								that._app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event));
@@ -527,7 +522,7 @@ class BoardEditor extends Editor {
 					elements: boardCol,
 					callback: function(files, definition, element) {
 						var id = $(element).data().id;
-						var lst = that._app.getData().getById(id);
+						var lst = that._app.data.getById(id);
 						if (!lst) {
 							return;
 						}
@@ -593,7 +588,7 @@ class BoardEditor extends Editor {
 								priority: 0 
 							},
 							{ 
-								element: $('#board-scroll-container')[0],
+								element: that.#scrollContainer[0],   // TODO test this (auto scroll on dragging)
 								priority: 1 
 							},
 						];
@@ -647,7 +642,7 @@ class BoardEditor extends Editor {
 				targets: (item) => {
 					return [
 						{ 
-							element: $('#board-scroll-container')[0],
+							element: that.#scrollContainer[0],   // TODO test this (auto scroll on dragging)
 							priority: 1 
 						},
 					];
@@ -698,7 +693,7 @@ class BoardEditor extends Editor {
 	 * Toggle the expanded state of the passed document ID
 	 */
 	#toggleExpandedState(id) {
-		var doc = this._app.getData().getById(id);
+		var doc = this._app.data.getById(id);
 		if (!doc) return;
 		
 		if (!doc.boardState) doc.boardState = {};
@@ -724,7 +719,7 @@ class BoardEditor extends Editor {
 		if (doc.type == 'attachment') return 'fa-paperclip';
 		if (doc.type == 'reference') return 'fa-long-arrow-alt-right';
 		if (doc.type == 'note' && doc.editor == 'board') return 'fa-border-all'; 
-		if (this._app.getData().hasChildren(doc._id)) return 'fa-plus';
+		if (this._app.data.hasChildren(doc._id)) return 'fa-plus';
 
 		return null;
 	}
@@ -733,7 +728,7 @@ class BoardEditor extends Editor {
 	 * Refreshes all appearance attributes of the ID
 	 */
 	#refreshColors(id) {
-		var d = this._app.getData();
+		var d = this._app.data;
 		
 		var doc = d.getById(id);
 		if (!doc) return;
@@ -799,7 +794,7 @@ class BoardEditor extends Editor {
 		if (this._app.optionsVisible()) return;
 		
 		var ids = [];
-		var d = this._app.getData();
+		var d = this._app.data;
 		
 		// Column orders
 		var no = 1;
@@ -861,21 +856,12 @@ class BoardEditor extends Editor {
 	}
 	
 	/**
-	 * Returns the scroll container (which is carrying the scroll position)
-	 */
-	#getScrollContainer() {
-		return $('#board-scroll-container'); 
-	}
-	
-	/**
 	 * Returns the current scroll position
 	 */
 	#getScrollPosition() {
-		var scrollContainer = this.#getScrollContainer();
-		
 		return {
-			scrollX: scrollContainer.scrollLeft(),
-			scrollY: scrollContainer.scrollTop()
+			scrollX: this.#scrollContainer.scrollLeft(),
+			scrollY: this.#scrollContainer.scrollTop()
 		};
 	}
 	
@@ -892,9 +878,8 @@ class BoardEditor extends Editor {
 	#restoreScrollPosition() {
 		var state = this._app.state.getBoardState();
 		
-		var scrollContainer = this.#getScrollContainer();
-		if (state.scrollX) scrollContainer.scrollLeft(state.scrollX);
-		if (state.scrollY) scrollContainer.scrollTop(state.scrollY);
+		if (state.scrollX) this.#scrollContainer.scrollLeft(state.scrollX);
+		if (state.scrollY) this.#scrollContainer.scrollTop(state.scrollY);
 	}
 	
 	/**

@@ -16,40 +16,60 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class LabelDefinitions {
+class LabelDefinitionsPage extends Page {
+	
+	#current = null;     // Current document
+	
+	#saveLabelsHandler = null;
 	
 	/**
-	 * Singleton factory
+	 * Tells that the editor needs tree data loaded before load() is called.
 	 */
-	static getInstance() {
-		if (!LabelDefinitions.instance) LabelDefinitions.instance = new LabelDefinitions();
-		return LabelDefinitions.instance;
+	needsHierarchyData() {
+		return true;
+	}
+	
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentId() {
+		return this.#current ? this.#current._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current ? this.#current : null;
+	}
+	
+	/**
+	 * Unload instance
+	 */
+	async unload() {
+		this.#current = null;
 	}
 	
 	/**
 	 * Loads the passed version history data into the versions view. doc is a cdb document
+	 * and is optional.
 	 */
-	load(doc) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-		
-		this.current = doc;
+	async load(doc) {
+		this.#current = doc;
 		
 		if (doc) {
-			n.setStatusText("Label definitions of " + doc.name);
+			this._tab.setStatusText("Label definitions of " + doc.name);
 		} else {
-			n.setStatusText("All Label definitions");
+			this._tab.setStatusText("All Label definitions");
 		}
 		
-		// Clear list
-		$('#contentContainer').empty();
-		
 		// Get list of labels
-		var labels = doc ? n.getData().getLabelDefinitions(doc._id) : n.getData().getAllLabelDefinitions();
+		var labels = doc ? this._app.data.getLabelDefinitions(doc._id) : this._app.data.getAllLabelDefinitions();
 
 		// Build new table from the data
 		var rows = new Array();
 		var that = this;
+		
 		for(var i in labels || []) {
 			var label = labels[i];
 			if (!label.id) continue;
@@ -66,7 +86,7 @@ class LabelDefinitions {
 						var id = $(this).data().id;
 						var owner = $(this).data().owner;
 
-						that.searchLabel(id, owner);
+						that.#searchLabel(id, owner);
 					}),
 					!(!doc || (label.owner == doc._id)) ? null : $('<div data-toggle="tooltip" title="Move label definition" class="fa fa-arrows-alt versionButton" data-owner="' + label.owner + '" data-id="' + label.id + '"/>')
 					.on('click', function(e) {
@@ -74,7 +94,7 @@ class LabelDefinitions {
 						var id = $(this).data().id;
 						var owner = $(this).data().owner;
 
-						that.moveLabelDefinition(id, owner);
+						that.#moveLabelDefinition(id, owner);
 					}),
 					!(!doc || (label.owner == doc._id)) ? null : $('<div data-toggle="tooltip" title="Delete label definition" class="fa fa-trash versionButton" data-owner="' + label.owner + '" data-id="' + label.id + '"/>')
 					.on('click', function(e) {
@@ -82,31 +102,33 @@ class LabelDefinitions {
 						var id = $(this).data().id;
 						var owner = $(this).data().owner;
 						
-						that.deleteLabelDefinition(id, owner);
+						that.#deleteLabelDefinition(id, owner);
 					})
 				]
 			);
 			
 			var ownerLink;
 			var ownerPath;
+			
 			if (!doc || (label.owner != doc._id)) {
-				var ownerDoc = n.getData().getById(label.owner);
-				ownerPath = n.getData().getReadablePath(ownerDoc._id);
+				var ownerDoc = this._app.data.getById(label.owner);
+				
+				ownerPath = this._app.data.getReadablePath(ownerDoc._id);
 				ownerLink = $('<span class="listLink" data-owner="' + ownerDoc._id + '">' + ownerPath + '</span>')
 				.on('click', function(event) {
 					event.stopPropagation();
+
 					var owner = $(this).data().owner;
 					if (!owner) return;
 					
-					Notes.getInstance().routing.call(owner);
+					that._app.routing.call(owner);
 				})
 			} else {
-				ownerPath = n.getData().getReadablePath(doc._id);
+				ownerPath = this._app.data.getReadablePath(doc._id);
 				ownerLink = $('<span class="listInactive"></span>').html(ownerPath);
 			}
 			
 			rows.push(
-				//$('<tr style="background-color: ' + label.color + ';">')
 				$('<tr>')
 				.append(
 					[
@@ -121,7 +143,7 @@ class LabelDefinitions {
 										onSwitchColor: '#337ab7',
 										onChange: function() {
 											var id = $(that2).data().id;
-											that.setLabel(id, !!this.getChecked());
+											that.#setLabel(id, !!this.getChecked());
 										}
 									});
 								}, 0);
@@ -136,7 +158,7 @@ class LabelDefinitions {
 								var id = $(this).data().id;
 								var owner = $(this).data().owner;
 
-								that.renameLabelDefinition(id, owner);
+								that.#renameLabelDefinition(id, owner);
 							})							
 						),
 						
@@ -152,7 +174,7 @@ class LabelDefinitions {
 						        	var id = $(this).data().id;
 						        	var owner = $(this).data().owner;
 									
-									that.setLabelDefinitionColor(id, owner, $(this).val())
+									that.#setLabelDefinitionColor(id, owner, $(this).val())
 						        })
 						),
 
@@ -168,15 +190,17 @@ class LabelDefinitions {
 			);
 		}
 		
-		$('#contentContainer').append(
-			!this.current ? null : 
+		var labelsTable = $('<table class="table table-striped table-hover" />');
+		
+		this._tab.getContainer().append(
+			!this.#current ? null : 
 			$('<div style="padding: 15px;"></div>').append(
-				$('<a style="cursor: pointer;">Convert all labels of ' + this.current.name + ' to hashtags</a>')
-				.on('click', function(event) {
-					LabelActions.getInstance().convertLabelsToTags(that.current)
+				$('<a style="cursor: pointer;">Convert all labels of ' + this.#current.name + ' to hashtags</a>')
+				.on('click', function() {
+					that._app.actions.label.convertLabelsToTags(that.#current)
 					.then(function(ret) {
 						if (ret && ret.message) {
-							Notes.getInstance().showAlert(ret.message, 'S');
+							that._app.showAlert(ret.message, 'S');
 						}
 					})
 					.catch(function(err) {
@@ -185,7 +209,7 @@ class LabelDefinitions {
 				}),
 			),
 			
-			$('<table class="table table-striped table-hover" id="labelsTable" />').append(
+			labelsTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -207,7 +231,7 @@ class LabelDefinitions {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#labelsTable'), {
+		Tools.makeTableSortable(labelsTable, {
 			excludeColumns: [0, 4],
 			sortData: [
 				{
@@ -234,232 +258,20 @@ class LabelDefinitions {
 		
 		// Buttons
 		if (doc) {
-			n.setButtons([ 
-				$('<div type="button" data-toggle="tooltip" title="Add label" class="fa fa-plus" onclick="event.stopPropagation();LabelDefinitions.getInstance().addLabelDefinition()"></div>') 
+			this._app.setButtons([ 
+				$('<div type="button" data-toggle="tooltip" title="Add label" class="fa fa-plus"></div>')
+				.on('click', function(event) {
+					event.stopPropagation();
+					that.#addLabelDefinition();
+				}) 
 			]);	
 		}
 	}
 	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 	/**
-	 * Unload instance
-	 */
-	unload() {
-		this.current = null;
-	}
-	
-	/**
-	 * Triggers (delayed) saving of the items labels
-	 */
-	triggerSaveLabels() {
-		if (this.saveLabelsHandler) clearTimeout(this.saveLabelsHandler);
-		
-		if (!this.current) return;
-		
-		var d = Notes.getInstance().getData();
-		var doc = d.getById(this.current._id);
-		if (!doc) return;
-		
-		var that = this;
-		this.saveLabelsHandler = setTimeout(function() {
-			var labels = doc.labels;
-			DocumentAccess.getInstance().loadDocuments([doc])
-			.then(function(/*resp*/) {
-				doc.labels = labels;
-				
-				return LabelActions.getInstance().saveLabels(doc._id);
-			})
-			.then(function(/*data*/) {
-				if (!that.current) return;
-				
-				var docl = d.getById(doc._id);
-				if (!docl) return;
-				
-				that.load(docl);
-			})
-			.catch(function(err) {
-				Notes.getInstance().showAlert(err.message ? err.message : 'Error saving labels for ' + doc.name, err.abort ? 'I' : 'E', err.messageThreadId);
-			});
-		}, 1000);
-	}
-	
-	/**
-	 * Adds the passed label id to the current document
-	 */
-	setLabel(id, shouldBeSet) {
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(this.current._id);
-		if (!doc) return;
-		
-		if (!Document.toggleLabel(doc, id, shouldBeSet)) return;
-		
-		// Trigger saving delayed to prevent locking conflicts
-		this.triggerSaveLabels();
-	}
-	
-	/**
-	 * Set a labels color
-	 */
-	setLabelDefinitionColor(id, owner, color) {
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(owner);
-		if (!doc) return;
-		
-		var that = this;
-		DocumentAccess.getInstance().loadDocuments([doc])
-		.then(function(/*resp*/) {
-			var def = Document.getLabelDefinition(doc, id);
-			def.color = color;
-			
-			return LabelActions.getInstance().saveLabelDefinitions(doc._id);
-		})
-		.then(function(/*data*/) {
-			that.load(that.current);
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
-		});
-	}
-	
-	/**
-	 * Rename a label definition
-	 */
-	renameLabelDefinition(id, owner) {
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(owner);
-		if (!doc) return;
-		
-		var that = this;
-		DocumentAccess.getInstance().loadDocuments([doc])
-		.then(function(resp) {
-			var def = Document.getLabelDefinition(doc, id);
-			
-			var name = prompt('Name for label: ', def.name);
-			if (!name) return;
-			def.name = name;
-		
-			return LabelActions.getInstance().saveLabelDefinitions(doc._id)
-		})
-		.then(function(data) {
-			that.load(that.current);
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
-		});
-	}
-	
-	/**
-	 * Delete a label definition
-	 */
-	deleteLabelDefinition(id, owner) {
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(owner);
-		if (!doc) return;
-		
-		var that = this;
-		DocumentAccess.getInstance().loadDocuments([doc])
-		.then(function(/*resp*/) {
-			var def = Document.getLabelDefinition(doc, id);
-			
-			if (!confirm('Really delete label ' + def.name + '?')) return Promise.reject({
-				message: 'Action canceled.',
-				messageThreadId: 'LoadDocumentMessages',
-				abort: true
-			});
-			
-			if (!Document.removeLabelDefinition(doc, id)) return Promise.resolve({
-				noReload: true,
-				ok: true
-			});
-		
-			return LabelActions.getInstance().saveLabelDefinitions(doc._id);
-		})
-		.then(function(data) {
-			if (!data || !data.noReload) that.load(that.current);
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
-		});
-	}
-	
-	/**
-	 * Move a label definition
-	 */
-	moveLabelDefinition(id, owner) {
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(owner);
-		if (!doc) return;
-		
-		//var def = Document.getLabelDefinition(doc, id);
-		
-		//var that = this;
-		LabelActions.getInstance().moveLabelDefinition(doc._id, id)
-		.then(function(data) {
-			if (data.newOwner) Notes.getInstance().routing.callLabelDefinitions(data.newOwner);
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
-		});
-	}
-	
-	/**
-	 * Add a label
-	 */
-	addLabelDefinition() {
-		if (!this.current) return;
-		
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(this.current._id);
-		if (!doc) return;
-		
-		var name = prompt('Name for the new label: ');
-		if (!name) return;
-		
-		var that = this;
-		DocumentAccess.getInstance().loadDocuments([doc])
-		.then(function(resp) {
-			Document.addLabelDefinition(doc, {
-				name: name
-			});
-		
-			return LabelActions.getInstance().saveLabelDefinitions(doc._id);
-		})
-		.then(function(data) {
-			that.load(that.current);
-		})
-		.catch(function(err) {
-			Notes.getInstance().showAlert(err.message ? err.message : 'Error creating new label', err.abort ? 'I' : 'E', err.messageThreadId);
-		});
-	}
-	
-	/**
-	 * Search for the label
-	 */
-	searchLabel(id, owner) {
-		var d = Notes.getInstance().getData();
-		
-		var doc = d.getById(owner);
-		if (!doc) return;
-		
-		var def = Document.getLabelDefinition(doc, id);
-		if (!def) return;
-		
-		if (Device.getInstance().isLayoutMobile()) {
-			Notes.getInstance().routing.call();
-		}
-		
-		setTimeout(function() {
-			NoteTree.getInstance().setSearchText('label:' + def.name);
-		}, 0);
-	}
-	
-	/**
-	 * Check document labels and definitions.
+	 * Check document labels and definitions. TODO solve otherwise
 	 */
 	static check(doc, errors, allDocs) {
 		for(var l in doc.labelDefinitions || []) {
@@ -482,11 +294,11 @@ class LabelDefinitions {
 					message: 'Label definition ID is missing: ' + JSON.stringify(def),
 					id: doc._id,
 					type: 'E',
-					solver: function(pDoc) {
+					/*solver: function(pDoc) {  TODO
 						for (var ll in pDoc.labelDefinitions) {
-							if (!pDoc.labelDefinitions[ll].id) pDoc.labelDefinitions[ll].id = Notes.getInstance().getData().generateIdFrom(pDoc.labelDefinitions[ll].name);
+							if (!pDoc.labelDefinitions[ll].id) pDoc.labelDefinitions[ll].id = Notes.getIstance().getData().generateIdFrom(pDoc.labelDefinitions[ll].name);
 						}
-					}
+					}*/
 				});		
 			}
 			if (!def.color) {
@@ -529,7 +341,7 @@ class LabelDefinitions {
 				var label = doc.labels[l];
 				
 				// Check if definition can be found
-				var adef = LabelDefinitions.getLabelDefinitionForChecks(doc._id, label, allDocs);
+				var adef = LabelDefinitionsPage.#getLabelDefinitionForChecks(doc._id, label, allDocs);
 				if (!adef) {
 					errors.push({
 						message: 'Label definition not found: ' + label,
@@ -548,7 +360,7 @@ class LabelDefinitions {
 	 * Searches for a label definition and returns it, or null if not found.
 	 * Only used for check.
 	 */
-	static getLabelDefinitionForChecks(docId, labelId, allDocs) {
+	static #getLabelDefinitionForChecks(docId, labelId, allDocs) {
 		var doc = null;
 		for(var a in allDocs) {
 			if (allDocs[a].doc._id == docId) {
@@ -570,9 +382,224 @@ class LabelDefinitions {
 		}
 		
 		if (doc.parent) {
-			return this.getLabelDefinitionForChecks(doc.parent, labelId, allDocs);
+			return LabelDefinitionsPage.#getLabelDefinitionForChecks(doc.parent, labelId, allDocs);
 		}
 		
 		return null;
+	}	
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Triggers (delayed) saving of the items labels
+	 */
+	#triggerSaveLabels() {
+		if (this.#saveLabelsHandler) clearTimeout(this.#saveLabelsHandler);
+		
+		if (!this.#current) return;
+		
+		var d = this._app.data;
+		var doc = d.getById(this.#current._id);
+		if (!doc) return;
+		
+		var that = this;
+		this.#saveLabelsHandler = setTimeout(function() {
+			var labels = doc.labels;
+			
+			that._app.documentAccess.loadDocuments([doc])
+			.then(function(/*resp*/) {
+				doc.labels = labels;
+				
+				return that._app.actions.label.saveLabels(doc._id);
+			})
+			.then(function(/*data*/) {
+				if (!that.#current) return;
+				
+				var docl = d.getById(doc._id);
+				if (!docl) return;
+				
+				return that.load(docl);
+			})
+			.catch(function(err) {
+				that._app.showAlert(err.message ? err.message : 'Error saving labels for ' + doc.name, err.abort ? 'I' : 'E', err.messageThreadId);
+			});
+		}, 1000);
 	}
+	
+	/**
+	 * Adds the passed label id to the current document
+	 */
+	#setLabel(id, shouldBeSet) {
+		var d = this._app.data;
+		
+		var doc = d.getById(this.#current._id);
+		if (!doc) return;
+		
+		if (!Document.toggleLabel(doc, id, shouldBeSet)) return;
+		
+		// Trigger saving delayed to prevent locking conflicts
+		this.#triggerSaveLabels();
+	}
+	
+	/**
+	 * Set a labels color
+	 */
+	#setLabelDefinitionColor(id, owner, color) {
+		var d = this._app.data;
+		
+		var doc = d.getById(owner);
+		if (!doc) return;
+		
+		var that = this;
+		this._app.documentAccess.loadDocuments([doc])
+		.then(function(/*resp*/) {
+			var def = Document.getLabelDefinition(doc, id);
+			def.color = color;
+			
+			return that._app.actions.label.saveLabelDefinitions(doc._id);
+		})
+		.then(function(/*data*/) {
+			return that.load(that.#current);
+		})
+		.catch(function(err) {
+			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Rename a label definition
+	 */
+	#renameLabelDefinition(id, owner) {
+		var d = this._app.data;
+		
+		var doc = d.getById(owner);
+		if (!doc) return;
+		
+		var that = this;
+		this._app.documentAccess.loadDocuments([doc])
+		.then(function(/*resp*/) {
+			var def = Document.getLabelDefinition(doc, id);
+			
+			var name = prompt('Name for label: ', def.name);
+			if (!name) return;
+			def.name = name;
+		
+			return that._app.actions.label.saveLabelDefinitions(doc._id)
+		})
+		.then(function(data) {
+			return that.load(that.#current);
+		})
+		.catch(function(err) {
+			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Delete a label definition
+	 */
+	#deleteLabelDefinition(id, owner) {
+		var d = this._app.data;
+		
+		var doc = d.getById(owner);
+		if (!doc) return;
+		
+		var that = this;
+		this._app.documentAccess.loadDocuments([doc])
+		.then(function(/*resp*/) {
+			var def = Document.getLabelDefinition(doc, id);
+			
+			if (!confirm('Really delete label ' + def.name + '?')) return Promise.reject({
+				message: 'Action canceled.',
+				messageThreadId: 'LoadDocumentMessages',
+				abort: true
+			});
+			
+			if (!Document.removeLabelDefinition(doc, id)) return Promise.resolve({
+				noReload: true,
+				ok: true
+			});
+		
+			return that._app.actions.label.saveLabelDefinitions(doc._id);
+		})
+		.then(function(data) {
+			if (!data || !data.noReload) return that.load(that.#current);
+		})
+		.catch(function(err) {
+			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Move a label definition
+	 */
+	#moveLabelDefinition(id, owner) {
+		var d = this._app.data;
+		
+		var doc = d.getById(owner);
+		if (!doc) return;
+		
+		var that = this;
+		that._app.actions.label.moveLabelDefinition(doc._id, id)
+		.then(function(data) {
+			if (data.newOwner) that._app.routing.callLabelDefinitions(data.newOwner);
+		})
+		.catch(function(err) {
+			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Add a label
+	 */
+	#addLabelDefinition() {
+		if (!this.#current) return;
+		
+		var d = this._app.data;
+		
+		var doc = d.getById(this.#current._id);
+		if (!doc) return;
+		
+		var name = prompt('Name for the new label: ');
+		if (!name) return;
+		
+		var that = this;
+		this._app.documentAccess.loadDocuments([doc])
+		.then(function(resp) {
+			Document.addLabelDefinition(doc, {
+				name: name
+			});
+		
+			return that._app.actions.label.saveLabelDefinitions(doc._id);
+		})
+		.then(function(data) {
+			return that.load(that.#current);
+		})
+		.catch(function(err) {
+			that._app.showAlert(err.message ? err.message : 'Error creating new label', err.abort ? 'I' : 'E', err.messageThreadId);
+		});
+	}
+	
+	/**
+	 * Search for the label
+	 */
+	#searchLabel(id, owner) {
+		var d = this._app.data;
+		
+		var doc = d.getById(owner);
+		if (!doc) return;
+		
+		var def = Document.getLabelDefinition(doc, id);
+		if (!def) return;
+		
+		if (this._app.device.isLayoutMobile()) {
+			this._app.routing.call();
+		}
+		
+		var that = this;
+		setTimeout(function() {
+			that._app.nav.setSearchText('label:' + def.name);
+		}, 0);
+	}
+	
+
 }

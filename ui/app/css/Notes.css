@@ -154,13 +154,13 @@ article {
 	position: absolute;
 }
 
-#contentContainer {
+.contentContainer {
 	z-index: 10;	
 }
 
-#editor {
+/*#editor {
 	z-index: 20;
-}
+}*/
 
 #popupContainer {
 	position: absolute;

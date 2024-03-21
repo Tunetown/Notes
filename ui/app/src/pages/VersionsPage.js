@@ -16,28 +16,39 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Versions {
+class VersionsPage extends Page {
+	
+	#current = null;
 	
 	/**
-	 * Singleton factory
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
 	 */
-	static getInstance() {
-		if (!Versions.instance) Versions.instance = new Versions();
-		return Versions.instance;
+	getCurrentId() {
+		return this.#current ? this.#current._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current ? this.#current : null;
+	}
+	
+	/**
+	 * Unload instance
+	 */
+	async unload() {
+		this.#current = null;
 	}
 	
 	/**
 	 * Loads the passed version history data into the versions view. doc is a cdb document
 	 */
-	load(doc) {
+	async load(doc) {
 		var that = this;
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
+		this.#current = doc;
 		
-		this.currentId = doc._id;
-		
-		n.setStatusText("History of " + doc.name);
-		$('#contentContainer').empty();
+		this._tab.setStatusText("History of " + doc.name);
 		
 		// Change log
 		var hist = Document.getChangeLog(doc) ? Document.getChangeLog(doc) : [];
@@ -61,6 +72,7 @@ class Versions {
 		var attachments = [];
 		var versionsSize = 0;
 		var atts = Document.getAttachments(doc);
+		
 		for (var prop in atts) {
 		    if (Object.prototype.hasOwnProperty.call(atts, prop)) {
 		    	attachments.push({
@@ -80,34 +92,33 @@ class Versions {
 		for(var i in attachments) {
 			var butts = $('<span class="listOptionContainer" />').append(
 				[
-					$('<div data-toggle="tooltip" title="View Version" class="fa fa-eye versionButton" id="vref_' + attachments[i].name + '"/>')
+					$('<div data-toggle="tooltip" title="View Version" class="fa fa-eye versionButton" data-id="' + attachments[i].name + '"/>')
 					.on('click', function(e) {
-						var name = $(this).attr('id').substring('vref_'.length);
+						const id = $(this).data().id;
+						const cid = that.#current._id;
 						
-						var v = Versions.getInstance();
-						
-						if (Config.versionRestoreImmediately && Document.canRestore(v.currentId)) {
-							HistoryActions.getInstance().requestVersion(v.currentId, name, true);
+						if (Config.versionRestoreImmediately && Document.canRestore(cid)) {
+							that._app.actions.history.requestVersion(cid, id, true);
 						} else {
-							Notes.getInstance().routing.call("history/" + v.currentId + "/" + name);
+							that._app.routing.call("history/" + cid + "/" + id);
 						}
 					}),
-					$('<div data-toggle="tooltip" title="Delete Version" class="fa fa-trash versionButton" id="vref_' + attachments[i].name + '"/>')
+					$('<div data-toggle="tooltip" title="Delete Version" class="fa fa-trash versionButton" data-id="vref_' + attachments[i].name + '"/>')
 					.on('click', function(e) {
-						var name = $(this).attr('id').substring('vref_'.length);
+						const id = $(this).data().id;
+						const cid = that.#current._id;
 						
-						if (!confirm("Do you really want to delete " + name + "?")) {
-							Notes.getInstance().showAlert("Action cancelled.", "I");
+						if (!confirm("Do you really want to delete " + id + "?")) {
+							that._app.showAlert("Action cancelled.", "I");
 							return;
 						}
 						
-						var v = Versions.getInstance();
-						HistoryActions.getInstance().deleteVersion(v.currentId, name)
+						that._app.actions.version.deleteVersion(cid, id)
 						.then(function(data) {
-							if (data.message) Notes.getInstance().showAlert(data.message, 'S', data.messageThreadId);
+							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							Notes.getInstance().showAlert('Error deleting version: ' + err.message, 'E', err.messageThreadId);
+							that._app.showAlert('Error deleting version: ' + err.message, 'E', err.messageThreadId);
 						});
 					})
 				]
@@ -130,17 +141,21 @@ class Versions {
 		var versionSizeStr = Tools.convertFilesize(versionsSize);
 		var bgImageSizeStr = doc.backImage ? Tools.convertFilesize(JSON.stringify(doc.backImage).length) : 'No image';
 		
+		var versionsTable = $('<table class="table table-striped table-hover" />');
+		var changeLogTable = $('<table class="table table-striped table-hover" />');
+		
 		// Table buildup
-		$('#contentContainer').append(
+		this._tab.getContainer().append(
 			$('<div class="h4 contentHeadline"></div>').append(
 				$('<div class="contentHeadlineText">Version History (' + rows.length + ' Entries, ' + versionSizeStr + ')</div>'),
+				
 				$('<div type="button" data-toggle="tooltip" title="Delete Version History" class="contentHeadlineButton fa fa-trash"></div>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					that.deleteHistory();
+					that.#deleteHistory();
 				})
 			),
-			$('<table class="table table-striped table-hover" id="versionsTable" />').append(
+			versionsTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -163,10 +178,10 @@ class Versions {
 				$('<div type="button" data-toggle="tooltip" title="Delete Change Log" class="contentHeadlineButton fa fa-trash"></div>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					that.deleteChangeLog();
+					that.#deleteChangeLog();
 				})
 			),
-			$('<table class="table table-striped table-hover" id="changeLogTable" />').append(
+			changeLogTable.append(
 				[
 					$('<thead class="bg-primary"/>').append(
 						$('<tr/>').append(
@@ -193,7 +208,7 @@ class Versions {
 			$('<br>'),
 		);
 		
-		Tools.makeTableSortable($('#versionsTable'), {
+		Tools.makeTableSortable(versionsTable, {
 			excludeColumns: [1],
 			sortData: [
 				{
@@ -211,7 +226,7 @@ class Versions {
 			]
 		});
 		
-		Tools.makeTableSortable($('#changeLogTable'), {
+		Tools.makeTableSortable(changeLogTable, {
 			sortData: [
 				{
 					colIndex: 0,
@@ -224,59 +239,50 @@ class Versions {
 	}
 	
 	/**
-	 * Unload instance
-	 */
-	unload() {
-		this.currentId = null;
-	}
-	
-	/**
 	 * Triggers deleting the whole history of the current note.
 	 */
-	deleteHistory() {
-		if (!this.currentId) return;
-		var n = Notes.getInstance();
+	#deleteHistory() {
+		if (!this.#current) return;
 
-		var doc = n.getData().getById(this.currentId);
+		var doc = this._app.data.getById(this.#current._id);
 		if (!doc) return;
 		
 		if (!confirm("Do you really want to delete the whole version history of " + doc.name + '?')) {
-			n.showAlert("Action cancelled.", "I");
+			this._app.showAlert("Action cancelled.", "I");
 			return;
 		}
 
 		var that = this;
-		HistoryActions.getInstance().deleteHistory(this.currentId)
+		this._app.actions.history.deleteHistory(this.#current._id)
 		.then(function(/*data*/) {
-			HistoryActions.getInstance().showHistory(that.currentId);
+			that._app.actions.history.showHistory(that.#current._id);
 		})
 		.catch(function(err) {
-			n.showAlert('Error deleting history: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
+			that._app.showAlert('Error deleting history: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
 		});
 	}
 	
 	/**
 	 * Delete the change log of the note.
 	 */
-	deleteChangeLog() {
-		if (!this.currentId) return;
-		var n = Notes.getInstance();
+	#deleteChangeLog() {
+		if (!this.#current) return;
 
-		var doc = n.getData().getById(this.currentId);
+		var doc = this._app.data.getById(this.#current._id);
 		if (!doc) return;
 		
 		if (!confirm("Do you really want to delete the whole change log of " + doc.name + '?')) {
-			n.showAlert("Action cancelled.", "I");
+			this._app.showAlert("Action cancelled.", "I");
 			return;
 		}
 		
 		var that = this;
-		DocumentActions.getInstance().deleteChangeLog(this.currentId)
-		.then(function(data) {
-			HistoryActions.getInstance().showHistory(that.currentId);
+		this._app.actions.document.deleteChangeLog(this.#current._id)
+		.then(function(/*data*/) {
+			that._app.actions.history.showHistory(that.#current._id);
 		})
 		.catch(function(err) {
-			n.showAlert('Error deleting change log: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
+			that._app.showAlert('Error deleting change log: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
 		});
 	}
 }

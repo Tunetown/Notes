@@ -39,7 +39,7 @@ class PageMenu {
 			editorMode = page.getEditorMode();
 		}
 		
-		var openedDoc = this.#app.device.getData().getById(page.getCurrentId());
+		var openedDoc = this.#app.data.getById(page.getCurrentId());
 		if (!openedDoc || (openedDoc.type != 'note') || ((openedDoc.editor != 'richtext') && (openedDoc.editor != 'code'))) options.noTags = true;
 		
 		var that = this;

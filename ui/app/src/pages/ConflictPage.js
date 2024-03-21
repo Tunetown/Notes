@@ -16,29 +16,46 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class Conflict {
+class ConflictPage extends Page {
+	
+	#current = null;
 	
 	/**
-	 * Singleton factory
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
 	 */
-	static getInstance() {
-		if (!Conflict.instance) Conflict.instance = new Conflict();
-		return Conflict.instance;
+	getCurrentId() {
+		return this.#current ? this.#current.docConflict._id : false;
+	}
+
+	/**
+	 * Returns the ID of the loaded note, if any, or false if none is loaded.
+	 */
+	getCurrentDoc() {
+		return this.#current ? this.#current.docConflict : null;
+	}
+	
+	/**
+	 * Reset the "currently shown" flags
+	 */
+	async unload() {
+		this.#current = null;
 	}
 	
 	/**
 	 * Loads the passed version history data into the versions view.
+	 * 
+	 * {
+	 * 	docConflict: conflict document
+	 *  docCurrent:  current document
+	 * }
 	 */
-	load(docConflict, docCurrent) {
-		var n = Notes.getInstance();
-		n.setCurrentPage(this);
-		
+	async load(data) {
 		// Set note name in the header
-		n.setStatusText('Conflict: ' + docConflict.name + ' Revision from ' + new Date(docConflict.timestamp).toLocaleString());
+		this._tab.setStatusText('Conflict: ' + data.docConflict.name + ' Revision from ' + new Date(data.docConflict.timestamp).toLocaleString());
 
-		this.current = docConflict;
+		this.#current = data;
 		
-		var diffs = Diff.diffChars(Document.getContent(docCurrent), Document.getContent(docConflict));
+		var diffs = Diff.diffChars(Document.getContent(data.docCurrent), Document.getContent(data.docConflict));
 		
 		var rows = new Array();
 		var pos = 0;
@@ -65,7 +82,7 @@ class Conflict {
 			pos += diff.count;
 		}
 		
-		$('#contentContainer').append(
+		this._tab.getContainer().append(
 			$('<table class="table table-striped table-hover" />').append(
 				[
 					$('<thead class="thead-dark"/>').append(
@@ -83,46 +100,59 @@ class Conflict {
 			),
 			$('<hr>'),
 
-			$('<div id="conflictData" class="mce-content-body" contenteditable="false"/>').html(Document.getContent(docConflict))
+			$('<div class="conflictData" class="mce-content-body" contenteditable="false"/>').html(
+				Document.getContent(data.docConflict)
+			)
 		);
 		
 		// Clear restore data
-		Document.setRestoreData(docConflict._id);
+		Document.setRestoreData(data.docConflict._id);
 		
-		n.setButtons([ 
-			$('<div type="button" data-toggle="tooltip" title="Set as winner" class="fa fa-redo" onclick="event.stopPropagation();Conflict.getInstance().setAsWinner();"></div>'),
-			$('<div type="button" data-toggle="tooltip" title="Delete conflict" class="fa fa-trash" onclick="event.stopPropagation();Conflict.getInstance().deleteConflict();"></div>')
+		var that = this;
+		this._app.setButtons([ 
+			$('<div type="button" data-toggle="tooltip" title="Set as winner" class="fa fa-redo"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				that.#setAsWinner();
+			}),
+			
+			$('<div type="button" data-toggle="tooltip" title="Delete conflict" class="fa fa-trash"></div>')
+			.on('click', function(event) {
+				event.stopPropagation();
+				that.#deleteConflict();
+			})
 		]);			
 	}
 	
 	/**
 	 * Sets the current revision as winner and returns to the index page
 	 */
-	setAsWinner() {
-		if (!this.current || !this.current._id || !this.current._rev) return;
+	#setAsWinner() {
+		if (!this.#current || !this.#current.docConflict || !this.#current.docConflict._id || !this.#current.docConflict._rev) return;
 
-		Document.setRestoreData(this.current._id, Document.getContent(this.current));
+		Document.setRestoreData(this.#current.docConflict._id, Document.getContent(this.#current.docConflict));
 		
 		// Request the note. This loads the note into the editor freshly, and because the restoreData 
 		// is filled, the editor will show this data in its load() method, in dirty state but without autosaving.
-		Notes.getInstance().routing.call(this.current._id);
+		this._app.routing.call(this.#current.docConflict._id);
 		
-		this.current = null;
+		this.#current = null;
 	}
 	
 	/**
 	 * Deletes the current conflict and returns to the index page
 	 */
-	deleteConflict() {
-		if (!this.current || !this.current._id || !this.current._rev) return;
+	#deleteConflict() {
+		if (!this.#current || !this.#current.docConflict || !this.#current.docConflict._id || !this.#current.docConflict._rev) return;
 		
-		DocumentActions.getInstance().deleteItemPermanently(this.current._id, this.current._rev)
+		var that = this;
+		this._app.actions.document.deleteItemPermanently(this.#current.docConflict._id, this.#current.docConflict._rev)
 		.then(function(data) {
 			if (data.message) {
-				Notes.getInstance().showAlert(data.message, "S", data.messageThreadId);
+				that._app.showAlert(data.message, "S", data.messageThreadId);
 			}
 		}).catch(function(err) {
-			Notes.getInstance().showAlert(err.message, 'E', err.messageThreadId);
+			that._app.showAlert(err.message, 'E', err.messageThreadId);
 		});
 	}
 }

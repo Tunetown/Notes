@@ -20,6 +20,16 @@ class SettingsContent {
 	
 	#app = null;
 	
+	#table = null;
+
+	#dbCheckDisplay = null;
+	#loginCheckDisplay = null;
+	#dbAdminLink = null;
+	#loginSettingsButton = null;
+	#logoutSettingsButton = null;
+	#settingsTrustRow = null;
+	#trustCheck = null;
+	
 	constructor(app) {
 		this.#app = app;
 		
@@ -35,7 +45,7 @@ class SettingsContent {
 		var currentProfile = d.profileHandler.getCurrentProfile();
 		const showSyncOptions = currentProfile ? ((currentProfile.clone && currentProfile.autoSync) || currentProfile.url == "local") : true;
 		
-		this.table = $('<tbody>');
+		this.#table = $('<tbody>');
 		
 		var content = this.#getContent();
 		
@@ -49,14 +59,14 @@ class SettingsContent {
 		this.#addSection('Debugging Options', content.rowsDebugging, true);
 		this.#addSection('Experimental Features', content.rowsExperimentalFeatures, true);
 		
-		this.table.append(
+		this.#table.append(
 			$('<br>'),
 			$('<br>'),
 			$('<br>'),	
 		);
 
 		return $('<table class="table settingsForm"/>').append(
-			this.table
+			this.#table
 		);
 	}
 	
@@ -65,44 +75,50 @@ class SettingsContent {
 	 */
 	update() {
 		var d = this.#app.db;
+		var that = this;
 		
 		// Check DB status
-		d.checkRemoteConnection().then(function(data) {
-			$('#dbcheck').html(data.message);
+		d.checkRemoteConnection()
+		.then(function(data) {
+			that.#dbCheckDisplay.html(data.message);
 			
-			$('#dbAdminLink').empty();
-			$('#dbAdminLink').append(
+			that.#dbAdminLink.empty();
+			that.#dbAdminLink.append(
 				$('<a href="' + d.getAdminLink() + '" target="_blank">Administrate...</a>')
 			);
-		}).catch(function(err) {
-			$('#dbcheck').html('Error: ' + err.message);
-			$('#dbAdminLink').empty();
+		})
+		.catch(function(err) {
+			that.#dbCheckDisplay.html('Error: ' + err.message);
+			that.#dbAdminLink.empty();
 		});
 		
 		// Check login status
-		d.checkRemoteLogin().then(function(data) {
-			$('#loginCheck').html(data.message);
+		d.checkRemoteLogin()
+		.then(function(data) {
+			that.#loginCheckDisplay.html(data.message);
 			
 			if (data.ok) {
-				$('#loginSettingsButton').hide();
-				$('#logoutSettingsButton').show();
+				this.#loginSettingsButton.hide();
+				this.#logoutSettingsButton.show();
 			} else {
-				$('#loginSettingsButton').show();
-				$('#logoutSettingsButton').hide();
+				this.#loginSettingsButton.show();
+				this.#logoutSettingsButton.hide();
 			}
-		}).catch(function(err) {
-			$('#loginCheck').html('Error: ' + err.message);
-			$('#loginSettingsButton').show();
-			$('#logoutSettingsButton').hide();
+		})
+		.catch(function(err) {
+			this.#loginCheckDisplay.html('Error: ' + err.message);
+			this.#loginSettingsButton.show();
+			this.#logoutSettingsButton.hide();
 		});
 		
 		// Trust check
 		const trusted = this.#app.state.isDeviceTrusted();
-		$('#trustCheck').html(trusted ? 'Device is trusted' : '');		
+		this.#trustCheck.html(trusted ? 'Device is trusted' : '');		
+		
 		if (trusted) {
-			$('#settingsTrustRow').show();
+			this.#settingsTrustRow.show();
 		} else {
-			$('#settingsTrustRow').hide();
+			this.#settingsTrustRow.hide();
 		}
 	}
 	
@@ -121,7 +137,7 @@ class SettingsContent {
 		}
 		
 		var that = this;
-		this.table.append(
+		this.#table.append(
 			$('<tr class="bg-primary" data-sectionidhdr="' + secId + '"/>').append(
 				[
 					$('<th class="settingsHdCol" colspan="3" scope="col"><span class="settingsCollapseIcon fa fa-chevron-down"></span>' + title + '</th>'),
@@ -147,7 +163,7 @@ class SettingsContent {
 	
 	#isSectionVisible(sectionId) {
 		var ret = false;
-		this.table.find('tr').each(function() {
+		this.#table.find('tr').each(function() {
 			if ($(this).data('sectionid') == sectionId) {
 				ret = $(this).is(":visible");
 			} 
@@ -156,7 +172,7 @@ class SettingsContent {
 	}
 	
 	#setSectionVisibility(sectionId, shouldBeVisible) {
-		this.table.find('tr').each(function() {
+		this.#table.find('tr').each(function() {
 			if ($(this).data('sectionid') == sectionId) {
 				if (shouldBeVisible) {
 					$(this).show();
@@ -188,12 +204,20 @@ class SettingsContent {
 			remoteList.push($('<option value="' + profiles[p].url + '" ' + ((profiles[p].url == currentP) ? 'selected' : '') + '>' + Tools.getBasename(profiles[p].url) + '</option>'));
 		}
 
+		this.#dbCheckDisplay = $('<div>Database Status</div>');
+		this.#loginCheckDisplay = $('<span/>');
+		this.#dbAdminLink = $('#dbAdminLink');
+		this.#loginSettingsButton = $('<button class="btn btn-secondary settings-button">Login</button>');
+		this.#logoutSettingsButton = $('<button class="btn btn-secondary settings-button">Logout</button>');
+		this.#settingsTrustRow = $('<div/>');
+		this.#trustCheck = $('<span/>');
+
 		var ret = {};
 		ret.rowsSelectNotebook = [
 			$('<tr/>').append(
 				$('<td class="w-auto">Selected Notebook</td>'),
 				$('<td colspan="2"/>').append(
-					$('<select class="settings-button" id="cdbEndpointSelect"></select>')
+					$('<select class="settings-button cdbEndpointSelect"></select>')
 					.append(remoteList)
 					.on('change', function(event) {
 						var url = this.value;
@@ -206,11 +230,11 @@ class SettingsContent {
 					}),
 					$('<br>'),
 					$('<br>'),
-					$('<div id="dbcheck">Database Status</div>'),
-					$('<div id="dbAdminLink"></div>'),
+					this.#dbCheckDisplay,
+					this.#dbAdminLink,
 					$('<br>'),
 					
-					$('<span id="dbUrl"><b>URL:</b> ' + d.profileHandler.getCurrentProfile().url + '</span>'),
+					$('<span><b>URL:</b> ' + d.profileHandler.getCurrentProfile().url + '</span>'),
 					$('<a style="cursor: pointer; padding-left: 10px;">Copy</a>')
 					.on('click', function(event) {
 						navigator.clipboard.writeText(d.profileHandler.getCurrentProfile().url);
@@ -228,7 +252,7 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Authentication</td>'),
 				$('<td colspan="2"/>').append([
-					$('<button class="btn btn-secondary settings-button" id="loginSettingsButton">Login</button>')
+					this.#loginSettingsButton
 					.on('click', function() {
 						d.login()
 						.then(function(data) {
@@ -236,7 +260,7 @@ class SettingsContent {
 						});
 					}),
 					
-					$('<button class="btn btn-secondary settings-button" id="logoutSettingsButton">Logout</button>')
+					this.#logoutSettingsButton
 					.on('click', function(event) {
 						event.stopPropagation();
 						
@@ -254,10 +278,10 @@ class SettingsContent {
 						});
 					}),
 					
-					$('<span id="loginCheck"/>'),
+					this.#loginCheckDisplay,
 					
-					$('<div id="settingsTrustRow"/>').append(
-						$('<button class="btn btn-secondary settings-button" id="untrustSettingsButton">Untrust</button>')
+					this.#settingsTrustRow.append(
+						$('<button class="btn btn-secondary settings-button">Untrust</button>')
 						.on('click', function(event) {
 							event.stopPropagation();
 							
@@ -268,7 +292,7 @@ class SettingsContent {
 							that.#app.routing.call('settings');
 						}), 
 						
-						$('<span id="trustCheck"/>'),							
+						this.#trustCheck,							
 					)
 				])
 			),	
@@ -338,7 +362,7 @@ class SettingsContent {
 					}),
 					*/
 					//$('<br>'),
-					//$('<textarea readonly id="dbLink">' + that.#app.routing.getBasePath() + '</textarea>'),
+					//$('<textarea readonly class="dbLink">' + that.#app.routing.getBasePath() + '</textarea>'),
 				])
 			),	
 		];
@@ -412,7 +436,7 @@ class SettingsContent {
 					.on('change', function() {
 						var s = that.#app.settings;
 						s.settings.dbAccountName = this.value;
-						s.saveSettings();
+						s.save();
 						
 						location.reload();
 					})
@@ -434,7 +458,7 @@ class SettingsContent {
 					})
 					.on('blur', function() {
 						var s = that.#app.settings;
-						s.saveSettings();
+						s.save();
 					})
 				),
 			),
@@ -454,7 +478,7 @@ class SettingsContent {
 					})
 					.on('blur', function() {
 						var s = that.#app.settings;
-						s.saveSettings();
+						s.save();
 					})
 				),
 			),
@@ -469,7 +493,7 @@ class SettingsContent {
 						var s = that.#app.settings;
 						
 						s.settings.defaultNoteEditor = this.value;
-						s.saveSettings();
+						s.save();
 						
 						that.#app.routing.call('settings');
 					}),
@@ -480,7 +504,7 @@ class SettingsContent {
 						var s = that.#app.settings;
 						
 						s.settings.defaultCodeLanguage = this.value;
-						s.saveSettings();
+						s.save();
 					})
 				),
 			),
@@ -497,7 +521,7 @@ class SettingsContent {
 						}									
 						
 						s.settings.autoSaveIntervalSecs = parseFloat(this.value);
-						s.saveSettings();
+						s.save();
 					}),
 					$('<span class="settings-explanation">Seconds (Zero to disable)</span>')
 				),
@@ -515,7 +539,7 @@ class SettingsContent {
 								onChange: function() {
 									var s = that.#app.settings;
 									s.settings.askBeforeMoving = this.getChecked();
-									s.saveSettings();
+									s.save();
 								}
 							});
 						}, 0);
@@ -536,7 +560,7 @@ class SettingsContent {
 								onChange: function() {
 									var s = that.#app.settings;
 									s.settings.reduceHistory = this.getChecked();
-									s.saveSettings();
+									s.save();
 								}
 							});
 						}, 0);
@@ -557,7 +581,7 @@ class SettingsContent {
 						
 						var s = that.#app.settings;
 						s.settings.maxUploadSizeMB = val;
-						s.saveSettings();
+						s.save();
 					}),
 					$('<span class="settings-explanation">MB (Zero to disable)</span>')
 				),
@@ -578,7 +602,7 @@ class SettingsContent {
 						
 						var s = that.#app.settings;
 						s.settings.maxSearchResults = val;
-						s.saveSettings();
+						s.save();
 					}),
 				),
 			),
@@ -597,7 +621,7 @@ class SettingsContent {
 									var s = that.#app.settings;
 									s.settings.showAttachedImageAsItemBackground = !!this.getChecked();
 									
-									s.saveSettings();
+									s.save();
 								}
 							});
 						}, 0);
@@ -1135,7 +1159,7 @@ class SettingsContent {
 					$('<button class="btn btn-secondary settings-button">Edit Settings Document</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						that.#app.routing.callRawView(Settings.settingsDocId);
+						that.#app.routing.callRawView(SettingsActions.settingsDocId);
 					}),
 					
 					// Edit global-meta document
@@ -1157,7 +1181,7 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Enable Graph Page</td>'),
 				$('<td colspan="2" />').append(
-					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.experimentalFunctionEnabled(GraphView.experimentalFunctionId) ? 'checked' : '') + ' />')
+					$('<input class="checkbox-switch" type="checkbox" ' + (this.#app.state.experimentalFunctionEnabled(GraphPage.experimentalFunctionId) ? 'checked' : '') + ' />')
 					.each(function(i) {
 						var that2 = this;
 						setTimeout(function() {
@@ -1166,7 +1190,7 @@ class SettingsContent {
 								onSwitchColor: '#337ab7',
 								disabled:  false,
 								onChange: function() {
-									that.#app.state.enableExperimentalFunction(GraphView.experimentalFunctionId, !!this.getChecked());
+									that.#app.state.enableExperimentalFunction(GraphPage.experimentalFunctionId, !!this.getChecked());
 									that.#app.update();
 								}
 							});
@@ -1237,7 +1261,7 @@ class SettingsContent {
 		
 		// Obsidian export
 		if (format == 'files') {
-			var children = this.#app.getData().getChildren("", true);
+			var children = this.#app.data.getChildren("", true);
 			
 			if (!confirm('Export all ' + children.length + ' documents?')) return;
 			

@@ -19,7 +19,9 @@
 class Page {  
 	
 	_app = null;
-	_tab = null;    // Reference to the tab where the page is loaded in
+	_tab = null;       // Reference to the tab where the page is loaded in
+	
+	#pageId = false;   // Optional unique page ID (only created on request)
 	
 	/**
 	 * Must be implemented in child classes to load the page. unload has
@@ -33,7 +35,6 @@ class Page {
 	 * Must be implemented in child classes to unload the page.
 	 */
 	async unload() {
-		throw new Exception('Must be implemented in child classes of Page');
 	}
 
 	/**
@@ -51,6 +52,20 @@ class Page {
 	}
 
 	/**
+	 * Can be used to signal that the page also needs all navigation data loaded.
+	 */
+	needsHierarchyData() {
+		return false;
+	}
+
+	/**
+	 * Can be used to signal that the page also needs settings data loaded.
+	 */
+	needsSettingsData() {
+		return false;
+	}
+
+	/**
 	 * Optional override for the focus ID (TODO still necessary?)
 	 */
 	overrideFocusId() {
@@ -58,6 +73,15 @@ class Page {
 	}
 
 	////////////////////////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Returns (and creates if needed) an unique page id string.
+	 */
+	_getPageId() {
+		if (!this.#pageId) this.#pageId = Tools.getUuid();
+		
+		return this.#pageId;
+	}
 	
 	/**
 	 * Set main application instance. Must be called before usage.

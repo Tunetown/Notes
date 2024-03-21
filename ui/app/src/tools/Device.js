@@ -20,6 +20,11 @@ class Device {
 	
 	#app = null;
 	
+	#currentMobileState = false;
+	#currentOrientation = false;
+	#currentTouchAwareState = false;
+	#resizeHandler = null;
+	
 	constructor(app) {
 		this.#app = app;
 		
@@ -34,21 +39,21 @@ class Device {
 	 * Returns if we are on a small mobile device.
 	 */
 	isLayoutMobile() {
-		return this.currentMobileState;
+		return this.#currentMobileState;
 	}
 
 	/**
 	 * Returns the orientation of the device.
 	 */
 	getOrientation() {
-		return this.currentOrientation;
+		return this.#currentOrientation;
 	}
 	
 	/**
 	 * Returns if we are on a touch aware device
 	 */
 	isTouchAware() {
-		return this.currentTouchAwareState;
+		return this.#currentTouchAwareState;
 	}
 
 	/**
@@ -70,9 +75,9 @@ class Device {
 	 * are plenty and can affect performance severely)
 	 */
 	#initBuffers() {
-		this.currentMobileState = this.#isReallyMobile();
-		this.currentTouchAwareState = this.#isReallyTouchAware();
-		this.currentOrientation = this.#getRealOrientation();
+		this.#currentMobileState = this.#isReallyMobile();
+		this.#currentTouchAwareState = this.#isReallyTouchAware();
+		this.#currentOrientation = this.#getRealOrientation();
 		
 		console.log("Device is " + (this.isTouchAware() ? '' : 'not ') + "touch aware");		
 	}
@@ -83,13 +88,13 @@ class Device {
 	#initResizeHandler() {
 		var that = this;
 		window.onresize = function() {
-			if (that.resizeHandler) clearTimeout(that.resizeHandler);
+			if (that.#resizeHandler) clearTimeout(that.#resizeHandler);
 			
-			that.resizeHandler = setTimeout(function() {
-				that.currentOrientation = that.#getRealOrientation();
+			that.#resizeHandler = setTimeout(function() {
+				that.#currentOrientation = that.#getRealOrientation();
 				
-				if (that.#isReallyMobile() != that.currentMobileState) {
-					that.currentMobileState = that.#isReallyMobile();
+				if (that.#isReallyMobile() != that.#currentMobileState) {
+					that.#currentMobileState = that.#isReallyMobile();
 					
 					location.reload();
 				} else {
