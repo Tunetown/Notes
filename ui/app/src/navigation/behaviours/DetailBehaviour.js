@@ -614,28 +614,6 @@ class DetailBehaviour {
 	}
 
 	/**
-	 * Item height (local setting).
-	 */
-	static getItemHeight(app) {
-		var g = app.state.getLocalSettings();
-
-		if (g) {
-			if (app.device.isLayoutMobile()) {
-				if (g.detailItemHeightMobile) {
-					return parseFloat(g.detailItemHeightMobile);
-				}
-			} else {
-				if (g.detailItemHeightDesktop) {
-					return parseFloat(g.detailItemHeightDesktop);
-				}
-			}
-		}
-		
-		// Default
-		return Math.round(app.nav.getTreeTextSize() * 4.4);
-	}
-
-	/**
 	 * Called before filtering
 	 */
 	beforeFilter(noAnimations) {
@@ -645,7 +623,7 @@ class DetailBehaviour {
 		$('#' + this.grid.treeRootTopSwitchContainer)
 		.css('height', this.getSelectedItemHeight() + 'px');
 		
-		this.itemHeight = DetailBehaviour.getItemHeight(this.#app);
+		this.itemHeight = this.#app.settings.getNavigationItemHeight();
 
 		var d = this.#app.data;
 		if (!d) return;
@@ -840,9 +818,9 @@ class DetailBehaviour {
 	
 	/**
 	 * Offset of the groups.
-	 */
-	static groupDistance = 100; 
-	static groupMarkerMinDistance = DetailBehaviour.groupDistance * 20;
+	 */ 
+	static groupDistance = 100;                                             // #IGNORE static 
+	static groupMarkerMinDistance = DetailBehaviour.groupDistance * 20;     // #IGNORE static 
 	
 	/**
 	 * Returns a value that determines the 
@@ -1751,11 +1729,11 @@ class DetailBehaviour {
 		node.parent().addClass(this.getGridParentSelectedClass());
 	}
 	
-	static iconClassBoard = 'fa fa-border-all';
-	static iconClassFolderClosed = 'fa fa-plus';
-	static iconClassFolderOpened = 'fa fa-chevron-left';
-	static iconClassAttachment = 'fa fa-paperclip';
-	static iconClassReference = 'fa fa-long-arrow-alt-right';
+	static iconClassBoard = 'fa fa-border-all';                      // #IGNORE static 
+	static iconClassFolderClosed = 'fa fa-plus';                     // #IGNORE static 
+	static iconClassFolderOpened = 'fa fa-chevron-left';             // #IGNORE static 
+	static iconClassAttachment = 'fa fa-paperclip';                  // #IGNORE static 
+	static iconClassReference = 'fa fa-long-arrow-alt-right';        // #IGNORE static 
 	
 	/**
 	 * Returns the icons for the file (can by glyph classes or any other).

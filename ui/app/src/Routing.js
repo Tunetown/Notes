@@ -232,7 +232,7 @@ class Routing {
 		
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
 		});
 	}
 
@@ -248,7 +248,7 @@ class Routing {
 		.then(function(data) {
 			if (!data || !data.ok) return Promise.reject();
 			if (!waitForTree) return Promise.resolve(data);
-			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			if (data.treePromise) return data.treePromise;
 			return Promise.resolve(data);
 		})
 		.then(function(data) {
@@ -257,11 +257,11 @@ class Routing {
 			
 			return Promise.resolve({
 				ok: true,
-				startAppData: data
+				data: data   // Data from startApp
 			});						
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -275,14 +275,14 @@ class Routing {
 		.then(function(data) {
 			if (!data || !data.ok) return Promise.reject();
 			if (!pageInstance.needsHierarchyData()) return Promise.resolve(data);
-			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			if (data.treePromise) return data.treePromise;
 			return Promise.resolve(data);
 		})
 		.then(function() {
 			return that.#app.loadPage(pageInstance, pageData);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error loading page: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error loading page: ' + err.stack, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -296,14 +296,14 @@ class Routing {
 		.then(function(data) {
 			if (!data || !data.ok) return Promise.reject();
 			if (!waitForTree) return Promise.resolve(data);
-			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			if (data.treePromise) return data.treePromise;
 			return Promise.resolve(data);
 		})
 		.then(function(data) {
 			return callback(data);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error loading page: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error loading page: ' + err.stack, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -325,7 +325,7 @@ class Routing {
 			});
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -338,7 +338,7 @@ class Routing {
 		return this.#app.startApp(profile)
 		.then(function(data) {
 			if (!data || !data.ok) return Promise.reject();
-			if (data.startAppData && data.startAppData.treePromise) return data.startAppData.treePromise;
+			if (data.treePromise) return data.treePromise;
 			return Promise.resolve(data);
 		})
 		.then(function(data) {
@@ -349,7 +349,7 @@ class Routing {
 				.then(function() {
 					return Promise.resolve({
 						ok: true,
-						startAppData: data
+						data: data
 					})
 				});
 			} else {
@@ -358,7 +358,7 @@ class Routing {
 				.then(function() {
 					return Promise.resolve({
 						ok: true,
-						startAppData: data
+						data: data
 					})
 				});
 			}
@@ -370,7 +370,7 @@ class Routing {
 			that.#app.callbacks.executeCallbacks('openDocumentAndTree', noteId);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error loading note: ' + err.message, 'E', err.messageThreadId);
+			that.#app.showAlert('Error loading note: ' + err.stack, 'E', err.messageThreadId);
 		});
 	}
 	
@@ -455,6 +455,8 @@ class Routing {
 	
 	/**
 	 * Post processing for last opened URL
+	 * 
+	 * TODO solve otherwise
 	 */
 	static postProcessLastOpenedUrl(url) {
 		return url;

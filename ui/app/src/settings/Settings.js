@@ -159,4 +159,28 @@ class Settings {
 		this.settings = data;
 		this.apply();
 	}
+	
+	////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Item height (local setting) for navigation in detail mode.
+	 */
+	getNavigationItemHeight() {
+		var g = this.#app.state.getLocalSettings();
+
+		if (g) {
+			if (this.#app.device.isLayoutMobile()) {
+				if (g.detailItemHeightMobile) {
+					return parseFloat(g.detailItemHeightMobile);
+				}
+			} else {
+				if (g.detailItemHeightDesktop) {
+					return parseFloat(g.detailItemHeightDesktop);
+				}
+			}
+		}
+		
+		// Default
+		return Math.round(this.#app.nav.getTreeTextSize() * 4.4);
+	}
 }

@@ -18,7 +18,7 @@
  */
 class GraphPage extends Page {
 	
-	#graph = null;
+	#graph = null;  
 	
 	/**
 	 * Can be used to signal that the page also needs all navigation data loaded.
@@ -27,7 +27,7 @@ class GraphPage extends Page {
 		return true;
 	}
 	
-	static experimentalFunctionId = 'GraphPage';
+	static experimentalFunctionId = 'GraphPage';     // #IGNORE static 
 	
 	/**
 	 * Loads the passed version history data into the versions view. doc is a cdb document

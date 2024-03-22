@@ -18,6 +18,14 @@
  */
 class Callbacks {
 	
+	#callbacks = null;
+	#errorHandler = null;
+	
+	constructor(errorHandler) {
+		this.#callbacks = new Map();
+		this.#errorHandler = errorHandler;
+	}
+	
 	/**
 	 * Registers a callback for the given action ID. The callbacks will be called after
 	 * the action has taken place.
@@ -25,28 +33,35 @@ class Callbacks {
 	 * Parameters to the callback are always: (data), where data is a parameter depending on the type of action.
 	 * Each callback can optionally return a promise which is waited for before continuing.
 	 */
-	registerCallback(processId, actionId, callback) {
-		if (!this.callbacks) this.callbacks = new Map();
-	
-		var cb = this.callbacks.get(actionId);
+	registerCallback(processId, actionId, callback, priority) {
+		var cb = this.#callbacks.get(actionId);
 		
-		if (!cb) {
-			cb = {};
-			cb.handlers = new Map();
-			this.callbacks.set(actionId, cb);
+		if (!cb || !cb.handlers) {
+			cb = {
+				handlers: []
+			};
+			this.#callbacks.set(actionId, cb);
 		}
 
-		cb.handlers.set(processId, callback);
+		cb.handlers.push({
+			processId: processId, 
+			callback: callback,
+			priority: priority
+		});
+		
+		cb.handlers.sort(function(a, b) {
+			b.priority - a.priority;
+		});
 	}
 	
 	/**
 	 * Delete all callbacks for the given processID.
 	 */
 	deleteCallbacks(processId) {
-		if (!this.callbacks) return;
-		
-		for(var [actionId, list] of this.callbacks) {
-			list.handlers.set(processId, null);
+		for(var [actionId, list] of this.#callbacks) {
+			list.handlers.filter(function(item) {
+				return item.processId != processId;
+			});
 		}
 	}
 	
@@ -54,21 +69,19 @@ class Callbacks {
 	 * Executes the callbacks for a given action.
 	 */
 	async executeCallbacks(actionId, data) {
-		if (!this.callbacks) return;
+		var cb = this.#callbacks.get(actionId);
+		if (!cb || !cb.handlers) return;
 		
-		var cb = this.callbacks.get(actionId);
-		if (!cb) return;
-		
-		var promises = [];
-		for(var [processId, callback] of cb.handlers) {
-			if (callback) {
-				var p = callback(data);
-				if (p) promises.push(p);
+		for(var i in cb.handlers) {
+			var handler = cb.handlers[i];
+			
+			if (handler.callback) {
+				try {
+					await handler.callback(data);
+				} catch (e) {
+					this.#errorHandler.handle(e);
+				}
 			}
-		}
-		
-		if (promises.length > 0) {
-			await Promise.all(promises);
 		}
 	}
 }

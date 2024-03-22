@@ -155,7 +155,7 @@ class CodeEditor extends RestorableEditor {
 					if (token) {
 						if (!stream.sol() && !stream.eol()) stream.backUp(1);
 					
-						return CodeEditor.tagClassPostfix;
+						return CodeEditor.#tagClassPostfix;
 					}
 				}
 	
@@ -260,7 +260,7 @@ class CodeEditor extends RestorableEditor {
 	/**
 	 * Check basic property correctness TODO solve otherwise
 	 */
-	static checkBasicProps(doc, errors) {
+	static checkBasicProps(doc, errors) { 
 		if (doc.editor != 'code') return;
 		
 		if (doc.editorParams && !CodeEditor.isValidEditorLanguage(doc.editorParams.language)) {
@@ -275,7 +275,7 @@ class CodeEditor extends RestorableEditor {
 	/**
 	 * Creates the language selector.
 	 */
-	static getLanguageSelector(selectedLanguage, cssClass) {
+	static getLanguageSelector(selectedLanguage, cssClass) {     // #IGNORE static 
 		return $('<select class="' + (cssClass ? cssClass : '') + '"></select>').append([
 			$('<option value="markdown">Language: Markdown</option>').prop('selected', 'markdown' == selectedLanguage),
 			$('<option value="javascript">Language: Javascript</option>').prop('selected', 'javascript' == selectedLanguage),
@@ -293,7 +293,7 @@ class CodeEditor extends RestorableEditor {
 	/**
 	 * Returns if the passed language is valid for the editor.
 	 */
-	static isValidEditorLanguage(l) {
+	static isValidEditorLanguage(l) {     // #IGNORE static 
 		var ret = (l == 'markdown') ||
 		(l == 'javascript') ||
 		(l == 'clike') ||
@@ -509,7 +509,7 @@ class CodeEditor extends RestorableEditor {
 		});
 	}
 
-	static #linkTextPrefix = ' -> ';
+	static #linkTextPrefix = ' -> ';     // #IGNORE static 
 
 	/**
 	 * This actually composes the autocomplete list.
@@ -550,10 +550,9 @@ class CodeEditor extends RestorableEditor {
 		};
 	}
 	
-	static linkClass = 'cm-link';
-	
-	static tagClassPostfix = 'notestag';
-	static tagClass = 'cm-' + CodeEditor.tagClassPostfix;
+	static #linkClass = 'cm-link';                              // #IGNORE static 
+	static #tagClassPostfix = 'notestag';                       // #IGNORE static 
+	static #tagClass = 'cm-' + CodeEditor.#tagClassPostfix;     // #IGNORE static 
 	
 	/**
 	 * Re-sets all onclick handlers for the internal links.
@@ -576,9 +575,9 @@ class CodeEditor extends RestorableEditor {
 		}
 		
 		setTimeout(function() {
-			const links = document.getElementsByClassName(CodeEditor.linkClass);
+			const links = document.getElementsByClassName(CodeEditor.#linkClass);
 			for (var i=0; i<links.length; ++i) {
-				links[i].removeEventListener("click", );
+				links[i].removeEventListener("click", linkClick);
 				links[i].addEventListener("click", linkClick);
 				
 				links[i].removeEventListener("touchstart", linkClick);
@@ -587,7 +586,7 @@ class CodeEditor extends RestorableEditor {
 		}, 0);
 		
 		setTimeout(function() {
-			const tags = document.getElementsByClassName(CodeEditor.tagClass);
+			const tags = document.getElementsByClassName(CodeEditor.#tagClass);
 			for (var i=0; i<tags.length; ++i) {
 				tags[i].removeEventListener("click", tagClick);
 				tags[i].addEventListener("click", tagClick);

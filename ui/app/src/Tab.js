@@ -33,7 +33,7 @@ class Tab {
 	 * with content before being passed here.
 	 */
 	async loadPage(newPageInstance, data) {
-		if (!(newPageInstance instanceof Page)) throw new Exception('Invalid page');
+		if (!(newPageInstance instanceof Page)) throw new Error('Invalid page');
 		
 		// Unload old page if any
 		await this.unload();

@@ -124,7 +124,7 @@ class Console {
 	 * Sets a log callback
 	 */
 	static setLogCallback(id, callback) {
-		if (!Console.#callbacks) throw new Exception('Console not initialized');
+		if (!Console.#callbacks) throw new Error('Console not initialized');
 		
 		var entry = Console.#callbacks.get(id) || {};
 		
@@ -137,7 +137,7 @@ class Console {
 	 * Sets a log callback
 	 */
 	static setClearCallback(id, callback) {
-		if (!Console.#callbacks) throw new Exception('Console not initialized');
+		if (!Console.#callbacks) throw new Error('Console not initialized');
 		
 		var entry = Console.#callbacks.get(id) || {};
 		
@@ -150,7 +150,7 @@ class Console {
 	 * Removes a callback by its ID
 	 */
 	static removeCallbacks(id) {
-		if (!Console.#callbacks) throw new Exception('Console not initialized');
+		if (!Console.#callbacks) throw new Error('Console not initialized');
 		Console.#callbacks.delete(id);
 	}
 	
@@ -165,7 +165,7 @@ class Console {
 	 * Clear internal buffer and persistent entries
 	 */
 	static #clear() {
-		if (!Console.#state) throw new Exception('Console not initialized');
+		if (!Console.#state) throw new Error('Console not initialized');
 		
 		Console.buffer = [];
 		
@@ -186,7 +186,7 @@ class Console {
 	 * Logging (internal for all types).
 	 */
 	static #log(txt, type, dontPersist) {
-		if (!Console.#state) throw new Exception('Console not initialized');
+		if (!Console.#state) throw new Error('Console not initialized');
 		if (!txt) return;
 		if (!type) type = "I";
 		

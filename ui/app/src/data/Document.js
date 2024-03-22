@@ -1874,7 +1874,7 @@ class Document {
 			// NOTE: No size is passed here, so repeat backgrounds will not work with references, only with b64 data!
 			Document.setBackground({ ref: doc._id }, overrideBackColor ? overrideBackColor : doc.backColor, element);
 		} else {
-			Doecument.setBackground(false, overrideBackColor ? overrideBackColor : doc.backColor, element);		
+			Document.setBackground(false, overrideBackColor ? overrideBackColor : doc.backColor, element);		
 		}
 	}
 			

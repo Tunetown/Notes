@@ -180,7 +180,7 @@ class HashtagsPage extends Page {
 		var doclist = '';
 		for(var i in docs) {
 			const doc = docs[i];
-			doclist += this._app.formatSelectOptionText(n.getData().getReadablePath(doc._id, null, true)) + '\n';
+			doclist += this._app.formatSelectOptionText(this._app.data.getReadablePath(doc._id, null, true)) + '\n';
 		}
 		
 		var newTag = prompt('Enter the new tag name. The following documents will be updated: \n' + doclist, tag);

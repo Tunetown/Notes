@@ -39,6 +39,9 @@ class MuuriGrid {
 		this.grid.destroy();
 	}
 	
+	/**
+	 * TODO solve otherwise
+	 */
 	static getAnimationDuration(app) {
 		var g = app.state.getLocalSettings();
 		const dev = app.device;

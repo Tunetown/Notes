@@ -131,7 +131,7 @@ class NoteTree {
         		that.#app.hideOptions();
         		
         		that.block();
-				that.#app.acrtions.document.create(that.behaviour.getNewItemParent())
+				that.#app.actions.document.create(that.behaviour.getNewItemParent())
 				.then(function(data) {
 					that.unblock();
 					if (data.message) {
@@ -1567,7 +1567,9 @@ class NoteTree {
 	}
 	
 	/**
-	 * Returns the tree text size
+	 * Returns the tree text size 
+	 * 
+	 * TODO move to settings
 	 */
 	getTreeTextSize() {
 		var g = this.#app.state.getLocalSettings();
@@ -1851,7 +1853,7 @@ class NoteTree {
 		}
 		
 		if (searchText.length > 0) {
-			return this.#app.actions.document.loadAllDocuments()
+			return this.#app.documentAccess.loadAllDocuments()
 			.then(function() { 
 				return new Promise(function(resolve/*, reject*/) {
 					//console.log("Start Filter")

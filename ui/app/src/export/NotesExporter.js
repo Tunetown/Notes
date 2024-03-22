@@ -121,18 +121,18 @@ class NotesExporter {
 	}
 	
 	/**
-	 * Returns if the document is internal.
+	 * Returns if the document is internal.  TODO move somewhere else?
 	 */
-	static isInternalDocument(id) {
+	static isInternalDocument(id) {     // #IGNORE static
 		if (!id) return false;
 		
 		return NotesExporter.isDesignDocument(id) || (id == SettingsActions.settingsDocId) || (id == MetaActions.metaDocId);
 	}
 
 	/**
-	 * Returns if the document is internal.
+	 * Returns if the document is internal.   TODO move somewhere else?
 	 */
-	static isDesignDocument(id) {
+	static isDesignDocument(id) {        // #IGNORE static
 		if (!id) return false;
 		
 		return id.startsWith("_");

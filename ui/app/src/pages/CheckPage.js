@@ -28,6 +28,8 @@ class CheckPage extends Page {
 	#allDocs = null;
 
 	constructor() {
+		super();
+		
 		var that = this;
 
 		this.#docChecks = new DocumentChecks(this._app);

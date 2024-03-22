@@ -18,7 +18,7 @@
  */
 class SettingsActions {
 	
-	static settingsDocId = 'settings'; 
+	static settingsDocId = 'settings';     // #IGNORE static 
 
 	#app = null;
 	

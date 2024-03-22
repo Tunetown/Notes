@@ -28,7 +28,7 @@ class Page {
 	 * been called before, no need to clean up.
 	 */
 	async load(data) {
-		throw new Exception('Must be implemented in child classes of Page');
+		throw new Error('Must be implemented in child classes of Page');
 	}
 
 	/**

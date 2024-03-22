@@ -296,7 +296,7 @@ class LabelDefinitionsPage extends Page {
 					type: 'E',
 					/*solver: function(pDoc) {  TODO
 						for (var ll in pDoc.labelDefinitions) {
-							if (!pDoc.labelDefinitions[ll].id) pDoc.labelDefinitions[ll].id = Notes.getIstance().getData().generateIdFrom(pDoc.labelDefinitions[ll].name);
+							if (!pDoc.labelDefinitions[ll].id) pDoc.labelDefinitions[ll].id = Notes.getIstance().data.generateIdFrom(pDoc.labelDefinitions[ll].name);
 						}
 					}*/
 				});		

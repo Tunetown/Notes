@@ -184,7 +184,7 @@ class NotesImporter {
 			});
 		}
 
-		return NotesImporter.importDocuments(this.#app, data, options.importInternal)
+		return this.#importDocuments(this.#app, data, options.importInternal)
 		.then(function(data) {
 			if (!data.ok) {
 				console.log('Error in import: ' + data.message, 'E');
@@ -204,7 +204,7 @@ class NotesImporter {
 	/**
 	 * Import an array of documents
 	 */
-	static importDocuments(app, docs, importInternalDocs) {
+	#importDocuments(app, docs, importInternalDocs) {
 		var docsInt = [];
 		
 		for(var i in docs) {

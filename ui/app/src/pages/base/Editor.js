@@ -24,7 +24,7 @@ class Editor extends Page {
 	 * Returns the editor mode for this instance, as used in the document.
 	 */
 	getEditorMode() {
-		throw new Exception('Must be implemented in child classes of Editor');
+		throw new Error('Must be implemented in child classes of Editor');
 	}
 	
 	/**

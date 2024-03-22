@@ -251,7 +251,7 @@ class ProfileHandler {
 	/**
 	 * Returns the database name from an url.
 	 */
-	static extractDatabaseName(url) {
+	static extractDatabaseName(url) {         // #IGNORE static
 		if (url == 'local') return 'local';
 		
 		return url.split('/').slice(-1).join();

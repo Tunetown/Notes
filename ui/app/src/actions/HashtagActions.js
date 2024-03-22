@@ -18,7 +18,7 @@
  */
 class HashtagActions {
 	
-	static metaFileName = 'tagMeta';
+	static metaFileName = 'tagMeta';        // #IGNORE static 
 	
 	#app = null;
 	#documentAccess = null;

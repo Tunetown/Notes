@@ -135,6 +135,7 @@ class DocumentActions {
 			return that.#app.actions.editor.requestEditor(targetDoc); 
 		})
 		.catch(function(err) {
+			// In case of 404, we give a clear message, all other errors are just passed
 			if (err.status == 404) {
 				return Promise.reject({
 					message: 'Document ' + id + ' not found',

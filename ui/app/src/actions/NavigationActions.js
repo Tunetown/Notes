@@ -45,7 +45,7 @@ class NavigationActions {
 			}
 
 			// Set new data in a new data container
-			that.#app.setData(new Data(data.rows ? data.rows : [], 'value'));
+			that.#app.setData(new Data(that.#app, data.rows ? data.rows : [], 'value'));
 			
 			// Execute callbacks
 			that.#app.callbacks.executeCallbacks('requestTree');

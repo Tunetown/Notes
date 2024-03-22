@@ -18,13 +18,13 @@
  */
 class Behaviours {
 	
-	static modeIdDetailRef = 'detail-ref';
-	static modeIdTree = 'tree';
+	static modeIdDetailRef = 'detail-ref';   // #IGNORE static
+	static modeIdTree = 'tree';              // #IGNORE static
 	
 	/**
 	 * Returns a mode selector.
 	 */
-	static getModeSelector(id, selectedMode) {
+	static getModeSelector(id, selectedMode) {  // #IGNORE static
 		return $('<select id="' + id + '"></select>').append(
 			$('<option value="' + Behaviours.modeIdDetailRef + '">References</option>').prop('selected', Behaviours.modeIdDetailRef == selectedMode),
 			$('<option value="' + Behaviours.modeIdTree + '">Tree</option>').prop('selected', Behaviours.modeIdTree == selectedMode),
@@ -34,7 +34,7 @@ class Behaviours {
 	/**
 	 * Factory for behaviours
 	 */
-	static get(app, mode, grid) {
+	static get(app, mode, grid) {  // #IGNORE static
 		switch (mode) {
 			case Behaviours.modeIdDetailRef: return new DetailBehaviour(app, grid, true);
 			case Behaviours.modeIdTree: return new TreeBehaviour(app, grid);

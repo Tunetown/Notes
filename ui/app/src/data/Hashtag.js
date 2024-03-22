@@ -18,18 +18,20 @@
  */
 class Hashtag {
 	
+	static startChar = '#';                                                                     ///< First character of the start tag
+
+	static #stylePrefix = 'tag_';
+	static #allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';   ///< Allowed characters
+	static #startingPreChars = ' 	\n\r>&' + String.fromCharCode(160);                         ///< Characters allowed before the hashtag 
+	static #terminationChars = ' 	\n\r<&' + String.fromCharCode(160);                         ///< Characters allowed after the hashtag
+	 
 	#app = null;
+
 
 	constructor(app) {
 		this.#app = app;
 	}
-	
-	static #stylePrefix = 'tag_';
-	static startChar = '#';                                                                     ///< First character of the start tag
-	static #allowedChars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_';    ///< Allowed characters
-	static #startingPreChars = ' 	\n\r>&' + String.fromCharCode(160);                         ///< Characters allowed before the hashtag 
-	static #terminationChars = ' 	\n\r<&' + String.fromCharCode(160);                         ///< Characters allowed after the hashtag
-	 
+
 	/**
 	 * Extracts the tag name from a JQuery element's text content.
 	 */
@@ -75,13 +77,13 @@ class Hashtag {
 						(
 							(!state.startingChar) 
 							|| 
-							(Hashtag.startingPreChars.indexOf(state.startingChar) >= 0)
+							(Hashtag.#startingPreChars.indexOf(state.startingChar) >= 0)
 						) 
 						&& 
 						(
 							isAtEnd
 							||
-							(Hashtag.terminationChars.indexOf(c) >= 0)
+							(Hashtag.#terminationChars.indexOf(c) >= 0)
 						)
 					)
 				{
@@ -98,7 +100,7 @@ class Hashtag {
 		}
 		
 		if (state.capturing) {
-			if (Hashtag.allowedChars.indexOf(c) < 0) {
+			if (Hashtag.#allowedChars.indexOf(c) < 0) {
 				var token = evalToken(pos);
 				if (token) return token;
 			}
@@ -197,7 +199,7 @@ class Hashtag {
 	showTag(tag) {
 		tag = Hashtag.trim(tag.toLowerCase());
 		
-		if (this.#app.isLayoutMobile()) {
+		if (this.#app.device.isLayoutMobile()) {
 			this.#app.routing.callSearch('tag:' + tag);
 		} else {
 			this.#app.nav.setSearchText('tag:' + tag);
@@ -210,7 +212,7 @@ class Hashtag {
 	static trim(tag) {
 		var ret = "";
 		for(var i in tag) {
-			if (Hashtag.allowedChars.indexOf(tag[i]) < 0) continue;
+			if (Hashtag.#allowedChars.indexOf(tag[i]) < 0) continue;
 			ret += tag[i];
 		}
 		return ret;

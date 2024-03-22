@@ -40,6 +40,9 @@ class Notes {
 		// Print version
 		console.info('Notes v' + this.appVersion);
 		
+		// Error handler
+		this.errorHandler = new ErrorHandler(this);
+		
 		// Global error handling
 		this.#initGlobalErrorHandler();
 
@@ -119,7 +122,7 @@ class Notes {
 		this.documentAccess = new DocumentAccess(this);
 		this.documentChecks = new DocumentChecks(this);
 		this.views = new Views(this);
-		this.callbacks = new Callbacks();
+		this.callbacks = new Callbacks(this.errorHandler);
 		this.styles = new Styles();
 		this.settings = new Settings(this);
 		this.hashtag = new Hashtag(this);
@@ -140,7 +143,7 @@ class Notes {
 		};
 		
 		this.nav = new NoteTree(this);
-		this.paging = new Tab(this, $('<div class="contentContainer" class="mainPanel"/>')); // TODO
+		this.paging = new Tab(this, $('<div class="contentContainer mainPanel"/>')); // TODO
 	}
 	
 	/**
@@ -1148,8 +1151,8 @@ class Notes {
 	}
 	
 	
-	static FOCUS_ID_EDITOR = 'editor';
-	static FOCUS_ID_NAVIGATION = 'nav';
+	static FOCUS_ID_EDITOR = 'editor';   // #IGNORE static
+	static FOCUS_ID_NAVIGATION = 'nav';  // #IGNORE static
 
 	focusId = Notes.FOCUS_ID_EDITOR;
 
@@ -2166,7 +2169,7 @@ class Notes {
 		switch (type) {
 		case 'E':
 			msgEl.addClass("btn btn-danger");
-			fadeTime = Config.MESSAGE_ERROR_FADEOUT_AFTER_MS;
+			fadeTime = Config.MESSAGE_ERROR_FADEOUT_AFTER_MS;     // TODO fade out via CSS!
 			console.error(msg);
 			break;
 		case 'W':

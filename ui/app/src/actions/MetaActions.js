@@ -18,7 +18,7 @@
  */
 class MetaActions {
 	
-	static metaDocId = 'global-meta';
+	static metaDocId = 'global-meta';      // #IGNORE static 
 
 	#app = null;
 	#documentAccess = null;

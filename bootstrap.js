@@ -227,6 +227,7 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/tools/HistoryHandler.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/Device.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/Console.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/tools/ErrorHandler.js', tag: 'script', type: 'text/javascript' },
 
     { src: './ui/app/src/Config.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/Routing.js', tag: 'script', type: 'text/javascript' },
@@ -269,7 +270,7 @@ class SourceLoader {
 					break;
 					
 				default:
-					throw new Exception('Invalid file tag: ' + entry.tag);
+					throw new Error('Invalid file tag: ' + entry.tag);
 			}
 		});
 	}
@@ -283,7 +284,7 @@ class SourceLoader {
 	createPrecacheList(definitions) {
 		const that = this;
 		definitions.forEach(function(entry) {
-			if (!entry.hasOwnProperty('src')) throw new Exception('No src defined');
+			if (!entry.hasOwnProperty('src')) throw new Error('No src defined');
 			
 			that.precacheUrls.push(entry.src);
 		});
@@ -293,7 +294,7 @@ class SourceLoader {
 	 * Load a script.
 	 */
 	#requireScript(definition) {
-		if (!definition.hasOwnProperty('src')) throw new Exception('No src defined');
+		if (!definition.hasOwnProperty('src')) throw new Error('No src defined');
 		var scriptTag = document.createElement("script");
 		
 		scriptTag.src = definition.src;
@@ -307,7 +308,7 @@ class SourceLoader {
 	 * Load a resource via link (css/fints etc.).
 	 */
 	#requireLink(definition) {
-		if (!definition.hasOwnProperty('src')) throw new Exception('No src defined');
+		if (!definition.hasOwnProperty('src')) throw new Error('No src defined');
 		var linkTag = document.createElement("link");
 		
 		linkTag.href = definition.src;

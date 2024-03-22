@@ -869,7 +869,7 @@ class SettingsContent {
 			$('<tr/>').append(
 				$('<td class="w-auto">Item Size</td>'),
 				$('<td colspan="2"/>').append(
-					$('<input type="text" value="' + DetailBehaviour.getItemHeight(this.#app) + '" />')
+					$('<input type="text" value="' + this.#app.settings.getNavigationItemHeight() + '" />')
 					.on('change', function() {
 						if (parseFloat(this.value) < Config.minDetailNavigationItemHeight || !parseFloat(this.value)) this.value = Config.minDetailNavigationItemHeight;
 						
@@ -1229,7 +1229,7 @@ class SettingsContent {
 	/**
 	 * Removes the database name from an url.
 	 */
-	static getDatabaseUrlProposal(url) {
+	static getDatabaseUrlProposal(url) {    // #IGNORE static
 		if (url == 'local') return '';
 		
 		return url.split('/').slice(0, -1).join('/') + '/';

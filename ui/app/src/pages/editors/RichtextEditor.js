@@ -18,8 +18,8 @@
  */
 class RichtextEditor extends RestorableEditor {
 	
-	//static #LINK_CLASS = 'notesTMCELink';       ///< Class for the internal links   TODO cleanup
-	//static #TAG_CLASS = 'notesTMCETag';         ///< Class for the hashtags  
+	static #linkClass = 'notesTMCELink';       ///< Class for the internal links  // #IGNORE static 
+	static #tagClass = 'notesTMCETag';         ///< Class for the hashtags        // #IGNORE static 
 	
 	#current = null;                            // Current document
 	#editorId = false;                          // Editor element ID (must be unique globally)
@@ -36,6 +36,8 @@ class RichtextEditor extends RestorableEditor {
 	#discardButton = null;
 	
 	constructor() {
+		super();
+		
 		// Set editor element ID (must be unique globally, so we generate a 
 		// new one for each instance of this editor)
 		this.#editorId = "editorContent_" + this._getPageId();   
@@ -147,15 +149,6 @@ class RichtextEditor extends RestorableEditor {
 	}
 	
 	/**
-	 * Returns the DOM elements for the editor. TODO
-	 *
-	static getContainerDom(teaser) {
-		return $('<div id="editor" class="mainPanel"/>').append( 
-			$('<div id="' + RichtextEditor.editorId + '"></div>').append(teaser),
-		);
-	}
-	
-	/**
 	 * Loads the given data into the editor (which also is initialized here at first time).
 	 */
 	async load(doc) {
@@ -167,7 +160,7 @@ class RichtextEditor extends RestorableEditor {
 
 		// Show loaded note in the header bar 
 		var txt = "";
-		if (data) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(data.timestamp).toLocaleString() + ")");
+		if (doc) txt = doc.name + (this._app.device.isLayoutMobile() ? "" : " (" + new Date(doc.timestamp).toLocaleString() + ")");
 		this._tab.setStatusText(txt);
 		
 		var content = Document.getContent(doc) ? Document.getContent(doc) : '';
@@ -648,7 +641,7 @@ class RichtextEditor extends RestorableEditor {
 		var that = this;
 		
 		dom.find('*')
-		.not('span.' + Editor.linkClass)
+		.not('span.' + RichtextEditor.#linkClass)
 		.each(function() {
 			var el = $(this);
 			
@@ -716,7 +709,7 @@ class RichtextEditor extends RestorableEditor {
 		var that = this;
 		
 		dom.find('*')
-		.not('span.' + Editor.tagClass)
+		.not('span.' + RichtextEditor.#tagClass)
 		.each(function() {
 			var el = $(this);
 			
@@ -778,13 +771,16 @@ class RichtextEditor extends RestorableEditor {
 		}
 		
 		setTimeout(function() {
-			const links = editor.contentDocument.getElementsByClassName(Editor.linkClass);
+			if (!editor) return;
+			if (!editor.contentDocument) return;
+			
+			const links = editor.contentDocument.getElementsByClassName(RichtextEditor.#linkClass);
 			for (var i=0; i<links.length; ++i) {
 				links[i].removeEventListener("click", linkClick);
 				links[i].addEventListener("click", linkClick);
 			}
 			
-			const tags = editor.contentDocument.getElementsByClassName(Editor.tagClass);
+			const tags = editor.contentDocument.getElementsByClassName(RichtextEditor.#tagClass);
 			for (var i=0; i<tags.length; ++i) {
 				tags[i].removeEventListener("click", tagClick);
 				tags[i].addEventListener("click", tagClick);
@@ -806,7 +802,7 @@ class RichtextEditor extends RestorableEditor {
 		
 		this.#cursorElementId = Tools.getUuid(this.#cursorElementSeed++);
 		
-		return '<span id="' + this.#cursorElementId + '" class="' + Editor.linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>&nbsp;';
+		return '<span id="' + this.#cursorElementId + '" class="' + RichtextEditor.#linkClass + '" data-ref="' + target + '" data-link="' + Linkage.composeLink(target, text) + '">' + (text ? text : target) + '</span>&nbsp;';
 	}
 	
 	/**
@@ -817,7 +813,7 @@ class RichtextEditor extends RestorableEditor {
 		
 		this.#cursorElementId = Tools.getUuid(this.#cursorElementSeed++);
 		
-		return '<span id="' + this.#cursorElementId + '" class="' + Editor.tagClass + '">' + Hashtag.startChar + target + '</span>&nbsp;';
+		return '<span id="' + this.#cursorElementId + '" class="' + RichtextEditor.#tagClass + '">' + Hashtag.startChar + target + '</span>&nbsp;';
 	}
 	
 	/**

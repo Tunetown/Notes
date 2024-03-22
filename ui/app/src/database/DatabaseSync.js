@@ -578,6 +578,9 @@ class DatabaseSync {
 		});
 	}
 	
+	/**
+	 * TODO solve otherwise
+	 */
 	static compareDocuments(doc1, doc2) {
 		// Compare contents. For this we have to remove some attributes first 
 		// from the attachments which are installation dependent.
@@ -602,6 +605,8 @@ class DatabaseSync {
 	/**
 	 * Strips the digests and revisions from the passed document's attachments. These are not
 	 * the same among DBs, as they are installation dependent.
+	 * 
+	 * TODO solve otherwise
 	 */
 	static #stripInstallationDependentProps(doc) {
 		if (!doc.hasOwnProperty("_attachments")) return;
