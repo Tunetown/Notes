@@ -118,7 +118,7 @@ class VersionsPage extends Page {
 							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that._app.showAlert('Error deleting version: ' + err.message, 'E', err.messageThreadId);
+							that._app.showAlert('Error deleting version: ' + err.stack, 'E', err.messageThreadId);
 						});
 					})
 				]

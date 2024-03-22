@@ -645,7 +645,7 @@ class DetailBehaviour {
 		$('#' + this.grid.treeRootTopSwitchContainer)
 		.css('height', this.getSelectedItemHeight() + 'px');
 		
-		this.itemHeight = DetailBehaviour.getItemHeight();
+		this.itemHeight = DetailBehaviour.getItemHeight(this.#app);
 
 		var d = this.#app.data;
 		if (!d) return;
