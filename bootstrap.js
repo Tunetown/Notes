@@ -181,34 +181,34 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/settings/Settings.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/settings/SettingsContent.js', tag: 'script', type: 'text/javascript' },
     
-    { src: './ui/app/src/pages/base/Page.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/base/Editor.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/base/RestorableEditor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/base/Page.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/base/Editor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/base/RestorableEditor.js', tag: 'script', type: 'text/javascript' },
 
-    { src: './ui/app/src/pages/editors/RichtextEditor.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/editors/BoardEditor.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/editors/CodeEditor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/editors/RichtextEditor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/editors/BoardEditor.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/editors/CodeEditor.js', tag: 'script', type: 'text/javascript' },
     
-    { src: './ui/app/src/pages/ProfilesPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/ConflictPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/ConflictsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/LabelDefinitionsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/HashtagsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/VersionsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/VersionPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/AttachmentPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/ConsolePage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/TrashPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/RawPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/GraphPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/SettingsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/CheckPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/CheckList.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/RefsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/HelpPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/UpdatePage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/GeneratePage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/pages/VerifyBackupPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/ProfilesPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/ConflictPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/ConflictsPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/LabelDefinitionsPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/HashtagsPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/VersionsPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/VersionPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/AttachmentPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/ConsolePage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/TrashPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/RawPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/GraphPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/SettingsPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/CheckPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/CheckList.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/RefsPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/HelpPage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/UpdatePage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/GeneratePage.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/pages/VerifyBackupPage.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/import/Import.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/import/NotesImporter.js', tag: 'script', type: 'text/javascript' },
@@ -330,3 +330,11 @@ if (typeof document !== 'undefined') {
 	// are then pre-cached by the worker.
 	SOURCE_LOADER.createPrecacheList(APP_SOURCE_DEFINITIONS);
 }
+
+///////////////////////////////////////////////////////////////////////////////////
+
+window.onload = function() {
+	new Notes().run(); 
+}
+
+

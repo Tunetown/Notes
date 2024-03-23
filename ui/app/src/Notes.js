@@ -21,7 +21,7 @@ class Notes {
 	#updatedViews = false;
 	
 	constructor() { 
-		this.appVersion = '1.0.3';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '1.0.4';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];

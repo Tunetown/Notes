@@ -51,7 +51,7 @@ class ContextMenu {
 						})
 						.catch(function(err) {
 							that.#app.nav.unblock();
-							that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -73,7 +73,7 @@ class ContextMenu {
 						})
 						.catch(function(err) {
 							that.#app.nav.unblock();
-							that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -100,7 +100,7 @@ class ContextMenu {
 							that.#app.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that.#app.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 			        }),
 					
@@ -116,7 +116,7 @@ class ContextMenu {
 							that.#app.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that.#app.showAlert(err.message ? err.message : 'Error moving items.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 			        }),
 			       
@@ -132,7 +132,7 @@ class ContextMenu {
 							that.#app.showAlert('Successfully copied item', 'S');
 						})
 						.catch(function(err) {
-							that.#app.showAlert(err.message ? err.message : 'Error copying item.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 							
@@ -158,7 +158,7 @@ class ContextMenu {
 						}).catch(function(err) {
 							that.#app.nav.unblock();
 							
-							that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -261,7 +261,7 @@ class ContextMenu {
 							if (data.message) that.#app.showAlert(data.message, 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that.#app.showAlert(err.message ? err.message : 'Error setting background image for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -300,7 +300,7 @@ class ContextMenu {
 						})
 						.catch(function(err) {
 							that.#app.updateOptionStyles();
-							that.#app.showAlert(err.message ? err.message : 'Error setting star flag for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});					
 					})
 			])

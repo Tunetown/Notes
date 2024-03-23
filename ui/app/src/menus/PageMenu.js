@@ -60,7 +60,7 @@ class PageMenu {
 						that.#app.routing.call(page.getCurrentId());
 					})
 					.catch(function(err) {
-						that.#app.showAlert('Error: '+ err.message, "E", err.messageThreadId);
+						that.#app.errorHandler.handle(err);
 					});
 				})
 				.on('click', function(event) {
@@ -87,7 +87,7 @@ class PageMenu {
 					updateMenuItem(newState);
 				})
 				.catch(function(err) {
-					that.#app.showAlert(err.message ? err.message : 'Error setting star flag for item.', err.abort ? 'I' : 'E', err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});			
 			}),
 			
@@ -104,7 +104,7 @@ class PageMenu {
 					});
   
   				} catch (err) {
-  					that.#app.showAlert('Error sharing content, perhaps your browser does not support this feature yet.', 'W');
+  					that.#app.errorHandler.handle(err);
   				}
 			}),
 			
@@ -121,7 +121,7 @@ class PageMenu {
 					}
 				})
 				.catch(function(err) {
-					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
 			}),
 			
@@ -139,7 +139,7 @@ class PageMenu {
 					that.#app.routing.call(page.getCurrentId());
 				})
 				.catch(function(err) {
-					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
 			}),
 			
@@ -151,7 +151,7 @@ class PageMenu {
 	        	
 	        	that.#app.actions.document.moveItems([page.getCurrentId()])
 	        	.catch(function(err) {
-					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
 	        }),
 	        
@@ -163,7 +163,7 @@ class PageMenu {
 	        	
 	        	that.#app.actions.document.copyItem(page.getCurrentId())
 	        	.catch(function(err) {
-					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
 	        }),
 	        
@@ -184,7 +184,7 @@ class PageMenu {
 	        		that.#app.routing.call();
 	        	})
 				.catch(function(err) {
-	        		that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+	        		that.#app.errorHandler.handle(err);
 	        		that.#app.routing.call(delId);
 	        	});
 	        }),
@@ -230,7 +230,7 @@ class PageMenu {
 					}	        		
 	        	})
 				.catch(function(err) {
-	        		that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+	        		that.#app.errorHandler.handle(err);
 	        	});
 			}),
 	        
@@ -260,7 +260,7 @@ class PageMenu {
 				
 				Document.downloadDocumentDialog(page.getCurrentId())
 				.catch(function(err) {
-					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
 			}),
 			

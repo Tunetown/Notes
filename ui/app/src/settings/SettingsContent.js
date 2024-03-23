@@ -257,6 +257,9 @@ class SettingsContent {
 						d.login()
 						.then(function(data) {
 							that.#app.routing.call('settings');
+						})
+						.catch(function(err) {
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -274,7 +277,7 @@ class SettingsContent {
 							that.#app.routing.call('settings');
 						})
 						.catch(function(err) {
-							that.#app.showAlert(err.message, 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -336,10 +339,7 @@ class SettingsContent {
 						
 						d.replicateLocalTo(url)
 						.catch(function(err) {
-							that.#app.showAlert("Error replicating to " + url);
-							
-							console.log("Error replicating to " + url + ":", 'E');
-							console.log(err);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -354,10 +354,7 @@ class SettingsContent {
 						that.#app.routing.callConsole();
 						d.replicateLocalTo(url)
 						.catch(function(err) {
-							that.#app.showAlert("Error replicating to " + url);
-							
-							console.log("Error replicating to " + url + ":", 'E');
-							console.log(err);
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					*/
@@ -674,7 +671,7 @@ class SettingsContent {
 						
 						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					})
 				),
@@ -860,7 +857,7 @@ class SettingsContent {
 						
 						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					})
 				),
@@ -885,7 +882,7 @@ class SettingsContent {
 						
 						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					})
 				),
@@ -926,7 +923,7 @@ class SettingsContent {
 						
 						that.#app.actions.nav.requestTree()
 						.catch(function(err) {
-							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+							that.#app.errorHandler.handle(err);
 						});
 					})
 				)
@@ -1135,12 +1132,15 @@ class SettingsContent {
 							that.#app.showAlert('Could not delete database.', 'E');
 							return;
 						}
-						prom.then(function(data) {
+						
+						prom
+						.then(function(data) {
 							that.#app.showAlert('Local database is now empty.', 'S');
 							d.reset();
 							that.#app.routing.call('settings');
-						}).catch(function(err) {
-							that.#app.showAlert('Error: ' + err.message, 'E', err.messageThreadId);
+						})
+						.catch(function(err) {
+							that.#app.errorHandler.handle(err);
 						});
 					}),
 					
@@ -1255,7 +1255,7 @@ class SettingsContent {
 				that.#app.showAlert('Exported ' + ((data && data.docs) ? data.docs.length : "[unknown]") + ' documents.', 'S');
 			})
 			.catch(function(err) {
-				that.#app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+				that.#app.errorHandler.handle(err);
 			});
 		}
 		
@@ -1275,7 +1275,7 @@ class SettingsContent {
 				that.#app.showAlert('Exported ' + children.length + ' documents.', 'S');
 			})
 			.catch(function(err) {
-				that.#app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+				that.#app.errorHandler.handle(err);
 			});
 		}
 	}
