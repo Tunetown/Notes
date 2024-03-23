@@ -43,6 +43,7 @@
 .board-container {
 	height: 100%;
 	overflow: hidden;
+	background: #e0e0e0;
 	
 	/* Dragging on mobiles always does weird text selection stuff if the following is omitted: */
 	user-select: none; /* supported by Chrome and Opera */
