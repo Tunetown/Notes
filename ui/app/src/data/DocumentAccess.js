@@ -73,8 +73,6 @@ class DocumentAccess {
 		ids = Tools.removeDuplicates(ids);
 		
 		if (ids.length == 0) {
-			//console.log(" -> Late Loader: All " + docs.length + " required documents already loaded");
-			
 			for(var i in docs) {
 				Document.invalidMetaWarning(docs[i]);
 			}
@@ -139,7 +137,7 @@ class DocumentAccess {
 			}
 			
 			// For debugging
-			console.log(" -> Late Loader: Loaded " + Tools.convertFilesize(JSON.stringify(data).length) + " (" + ids.length + " documents)");
+			console.log(" -> Loaded " + Tools.convertFilesize(JSON.stringify(data).length) + " (" + ids.length + " documents)");
 			
 			return Promise.resolve({
 				ok: true,

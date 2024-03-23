@@ -1548,7 +1548,7 @@ class DocumentActions {
 			
 			var backImage = data.rows[0].value.backImage;
 			
-			//console.log(' -> Late Loader: Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
+			//console.log(' -> Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
 			
 			// Update data model
 			if (that.#app.data) {
