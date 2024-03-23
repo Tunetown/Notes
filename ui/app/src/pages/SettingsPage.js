@@ -32,7 +32,7 @@ class SettingsPage extends Page {
 		this._tab.setStatusText("Settings"); 
 		
 		// Build settings page
-		this.#content = new SettingsContent();
+		this.#content = new SettingsContent(this._app);
 		this._tab.getContainer().append(this.#content.getTable());
 		this.#content.update();
 

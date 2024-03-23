@@ -76,7 +76,7 @@ class BoardEditor extends Editor {
 			id: this.getEditorMode()
 		});
 		
-		this._app.deleteCallbacks(this.getEditorMode());
+		this._app.callbacks.deleteCallbacks(this.getEditorMode());
 				
 		this.#current = null;
 		this.#destroy();
@@ -578,7 +578,7 @@ class BoardEditor extends Editor {
 				dragContainer: dragContainer[0],
 				dragStartPredicate: {
 					distance: 0,
-					delay: this._app.device.isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
+					delay: that._app.device.isLayoutMobile() ? 200 : 0,  // Prevents false item moves on mobiles
 				},
 				dragAutoScroll: {
 					targets: (item) => {

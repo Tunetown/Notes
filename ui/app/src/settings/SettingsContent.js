@@ -98,17 +98,17 @@ class SettingsContent {
 			that.#loginCheckDisplay.html(data.message);
 			
 			if (data.ok) {
-				this.#loginSettingsButton.hide();
-				this.#logoutSettingsButton.show();
+				that.#loginSettingsButton.hide();
+				that.#logoutSettingsButton.show();
 			} else {
-				this.#loginSettingsButton.show();
-				this.#logoutSettingsButton.hide();
+				that.#loginSettingsButton.show();
+				that.#logoutSettingsButton.hide();
 			}
 		})
 		.catch(function(err) {
-			this.#loginCheckDisplay.html('Error: ' + err.message);
-			this.#loginSettingsButton.show();
-			this.#logoutSettingsButton.hide();
+			that.#loginCheckDisplay.html('Error: ' + err.message);
+			that.#loginSettingsButton.show();
+			that.#logoutSettingsButton.hide();
 		});
 		
 		// Trust check

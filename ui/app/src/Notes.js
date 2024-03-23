@@ -87,7 +87,7 @@ class Notes {
 		            		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 		            	})
 						.catch(function(err) {
-		            		that.showAlert((!err.abort ? 'Error: ' : '') + err.stack, err.abort ? 'I' : "E", err.messageThreadId);
+		            		that.errorHandler.handle(err);
 		            	});
 		            }
 		            break;		        
@@ -237,7 +237,7 @@ class Notes {
 
 						that.views.updateViews()
 						.catch(function(err) {
-							that.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+							that.errorHandler.handle(err);
 						});
 					}
 				},
@@ -270,7 +270,7 @@ class Notes {
 									} else {
 										that.actions.document.request(doc._id)
 										.catch(function(err) {
-											that.showAlert('Error loading note: ' + err.stack, 'E', err.messageThreadId);
+											that.errorHandler.handle(err);
 										})
 									}
 									break;
@@ -286,14 +286,14 @@ class Notes {
 							.then(function(resp) {
 								return that.actions.meta.requestGlobalMeta()
 								.catch(function(err) {
-									that.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+									that.errorHandler.handle(err);
 								});
 							})
 							.then(function() {
 								return that.actions.nav.requestTree();
 							})
 							.catch(function(err) {
-								that.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+								that.errorHandler.handle(err);
 							});
 							return;
 						}
@@ -311,7 +311,7 @@ class Notes {
 									
 									that.actions.meta.requestGlobalMeta()
 									.catch(function(err) {
-										that.showAlert('Error requesting global metadata: ' + err.stack, 'E', err.messageThreadId);
+										that.errorHandler.handle(err);
 									});
 								} else if (!treeRequested) {
 									// Update tree if something relevant has changed
@@ -320,7 +320,7 @@ class Notes {
 									
 										that.actions.nav.requestTree()
 										.catch(function(err) {
-											that.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+											that.errorHandler.handle(err);
 										});
 									
 										treeRequested = true;
@@ -346,7 +346,7 @@ class Notes {
 		
 		this.paging.loadPage(newPage, data)
 		.catch(function(err) {
-			that.showAlert(err.stack, err.abort ? 'I' : 'E', err.messageThreadId);
+			that.errorHandler.handle(err);
 		});
 
 	}
@@ -650,7 +650,7 @@ class Notes {
 					return Promise.resolve(data);
 				})
 				.catch(function(err) {
-					that.showAlert('Error getting settings: ' + err.stack, 'E', err.messageThreadId);
+					that.errorHandler.handle(err);
 				});
 			}
 			
@@ -666,7 +666,7 @@ class Notes {
 			if (data.initialised) {
 				treePromise = that.actions.nav.requestTree()
 				.catch(function(err) {
-					that.showAlert('Error loading TOC: ' + err.stack, 'E', err.messageThreadId);
+					that.errorHandler.handle(err);
 				});
 			}
 			
@@ -691,13 +691,16 @@ class Notes {
 				return Promise.resolve(data);				
 			})
 			.catch(function(err) {
-				that.showAlert('Error loading global metadata: ' + err.stack, 'E', err.messageThreadId);
+				//that.showAlert('Error loading global metadata: ' + err.stack, 'E', err.messageThreadId);
+				that.errorHandler.handle(err);
 				return Promise.resolve(data);
 			});
 		})
 		.catch(function(err) {
 			// App start error handling: Show the error and resolve (else the app would be stuck here).
-			that.showAlert("Error connecting to database: " + err.stack, 'E', err.messageThreadId);
+			//that.showAlert("Error connecting to database: " + err.stack, 'E', err.messageThreadId);
+			
+			that.errorHandler.handle(err);
 			
 			// Here we resolve, because the pages should be loaded nevertheless.
 			return Promise.resolve({
@@ -720,7 +723,7 @@ class Notes {
 	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
 	        	})
 				.catch(function(err) {
-	        		that.showAlert((!err.abort ? 'Error: ' : '') + err.stack, err.abort ? 'I' : "E", err.messageThreadId);
+	        		that.errorHandler.handle(err);
 	        	});
 			}
 		}
@@ -828,7 +831,7 @@ class Notes {
 		})
 		.catch(function(err) {
 			//t.unblock();
-			that.showAlert(err.stack, err.abort ? 'I' : "E", err.messageThreadId);
+			that.errorHandler.handle(err);
 		});
 	}
 	
@@ -2501,7 +2504,7 @@ class Notes {
 			return that.documentAccess.saveItems(ids);
 		})
 		.catch(function(err) {
-    		that.showAlert("Error saving metadata: " + err.stack, err.abort ? 'I' : 'E', err.messageThreadId);
+    		that.errorHandler.handle(err);
     	});
 	}
 	

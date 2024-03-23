@@ -401,6 +401,8 @@ class CodeEditor extends RestorableEditor {
 	 */
 	#updateStatus() {
 		// Changed marker in header
+		if (!this.#current) return;
+		
 		this.#saveButton.css("display", this.isDirty() ? 'inline' : 'none');
 		this._app.update();
 	}

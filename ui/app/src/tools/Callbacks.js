@@ -37,18 +37,22 @@ class Callbacks {
 		var cb = this.#callbacks.get(actionId);
 		
 		if (!cb || !cb.handlers) {
+			// No data yet: Create handlers array and map entry
 			cb = {
 				handlers: []
 			};
+			
 			this.#callbacks.set(actionId, cb);
 		}
 
+		// Add handler
 		cb.handlers.push({
 			processId: processId, 
 			callback: callback,
-			priority: priority
+			priority: priority ? priority : 0
 		});
 		
+		// Sort handlers by priority
 		cb.handlers.sort(function(a, b) {
 			b.priority - a.priority;
 		});
