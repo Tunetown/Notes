@@ -29,34 +29,28 @@ class SettingsActions {
 	/**
 	 * Request the settings for the user
 	 */
-	requestSettings() {
-		var that = this;
+	async requestSettings() {
+		var db = await this.#app.db.get();
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.get(SettingsActions.settingsDocId);
-		})
-		.then(function (data) {
-			that.#app.settings.set(data);
-			
+		try {
+			var data = await db.get(SettingsActions.settingsDocId);
+	
+			this.#app.settings.set(data);
+				
 			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('requestSettings', data);
-    		
+			this.#app.callbacks.executeCallbacks('requestSettings', data);
+	    		
 			return Promise.resolve({ ok: true });
-		})
-		.catch(function(err) {
+		
+		} catch(err) {
 			// Not found: This is no severe error in this case, so we resolve the promise instead of rejecting.
-			if (err.status == 404) return Promise.resolve({ 
+			if (err.status == 404) return { 
 				ok: false,
-				message: err.message,
-				messageThreadId: 'RequestSettingsMessages'
-			});
+				message: err.message
+			};
 			
-			return Promise.reject({
-				message: err.message,
-				messageThreadId: 'RequestSettingsMessages'
-			});
-		});
+			throw err;
+		}
 	}
 	
 	/**

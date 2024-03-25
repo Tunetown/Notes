@@ -19,90 +19,76 @@
 class NavigationActions {
 	
 	#app = null;
-	#documentAccess = null;
 	
-	constructor(app, documentAccess) {
+	constructor(app) {
 		this.#app = app;
-		this.#documentAccess = documentAccess;
 	}
 	
 	/**
 	 * Request the note tree, and set the tree view accordingly.
 	 */
-	requestTree() {
-		var db;
-		var that = this; 
+	async requestTree() {
+		var db = await this.#app.db.get();
 		
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.query(that.#app.views.getViewDocId() + '/toc');
-		})
-		.then(function(data) {
+		try {
+			var data = db.query(this.#app.views.getViewDocId() + '/toc');
+	
 			// For debugging
 			if (data.rows.length > 0) {
 				console.log(' -> TOC Loader: ' + Tools.convertFilesize(JSON.stringify(data).length) + ' loaded in ' + data.rows.length + ' documents');
 			}
-
+	
 			// Set new data in a new data container
-			that.#app.setData(new Data(that.#app, data.rows ? data.rows : [], 'value'));
+			this.#app.setData(new Data(this.#app, data.rows ? data.rows : [], 'value'));
 			
 			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('requestTree');
+			this.#app.callbacks.executeCallbacks('requestTree');
 			
 			// (Re)load tree
-			that.#app.nav.destroy();
+			this.#app.nav.destroy();
+				
+			await that.#app.nav.init();
+				
+			return { ok: true };
 			
-			return that.#app.nav.init();
-		})
-		.then(function() {
-			return Promise.resolve({
-				ok: true
-			});
-		})
-		.catch(function(err) {
+		} catch(err) {
 			if (err.status == 404) {
 				// Use fallback method (slow)
-				return that.requestTreeFallback();
+				return await this.requestTreeFallback();
 			}
 			
-			return Promise.reject(err);
-		});
+			throw err;
+		}
 	}
 	
 	/**
 	 * Fallback for requestTree in case the TOC views are missing.
 	 */
-	requestTreeFallback() {
-		var that = this;
+	async requestTreeFallback() {
+		var db = await this.#app.db.get();
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.allDocs({
-				conflicts: true,
-				include_docs: true
-			});
-		})
-		.then(function(data) {
-			// For debugging
-			console.log(' -> TOC Loader: Views not found, using fallback: ' + Tools.convertFilesize(JSON.stringify(data.rows).length) + ' loaded in ' + data.rows.length + ' documents');
-			
-			// Set new data in a new data container
-			that.#app.setData(new Data(data.rows ? data.rows : [], 'doc'));
-			
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('requestTree');
-
-			// (Re)load tree
-			that.#app.nav.destroy();
-			
-			return that.#app.nav.init();
-		})
-		.then(function() {
-			return Promise.resolve({
-				fallback: true,
-				ok: true
-			});
+		var data = await db.allDocs({
+			conflicts: true,
+			include_docs: true
 		});
+
+		// For debugging
+		console.log(' -> TOC Loader: Views not found, using fallback: ' + Tools.convertFilesize(JSON.stringify(data.rows).length) + ' loaded in ' + data.rows.length + ' documents');
+		
+		// Set new data in a new data container
+		this.#app.setData(new Data(data.rows ? data.rows : [], 'doc'));
+		
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('requestTree');
+
+		// (Re)load tree
+		this.#app.nav.destroy();
+		
+		await this.#app.nav.init();
+
+		return {
+			fallback: true,
+			ok: true
+		};
 	}
 }

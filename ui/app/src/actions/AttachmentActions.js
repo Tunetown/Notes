@@ -116,7 +116,7 @@ class AttachmentActions {
 		targetSelector.val(id);
 
 		// Ask user to select the target
-		var answer = await this.#app.view.getDialog().prompt('Add ' + files.length + ' files?', [
+		var answer = await this.#app.view.getDialog().prompt('Add ' + files.length + ' files?', [   // TODO ask in advance! Move out of here.
 			targetSelector
 		]);
 		var targetId = targetSelector.val() ? targetSelector.val() : id;
@@ -205,7 +205,7 @@ class AttachmentActions {
 		if (!doc) throw new Error('Document ' + id + ' does not exist');
 		if (doc.type != 'attachment') throw new Error('Document ' + doc.name + ' is not an attachment');
 
-		var files = await this.#app.view.getDialog().promptFiles('Upload new content for ' + doc.name);
+		var files = await this.#app.view.getDialog().promptFiles('Upload new content for ' + doc.name);     // TODO ask in advance! Move out of here.
 		if (!files) throw new InfoError('Action canceled');
 		
 		var file = files[0];

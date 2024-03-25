@@ -21,13 +21,11 @@ class MetaActions {
 	static metaDocId = 'global-meta';      // #IGNORE static 
 
 	#app = null;
-	#documentAccess = null;
 
 	#lock = false;
 		
-	constructor(app, documentAccess) {
+	constructor(app) {
 		this.#app = app;
-		this.#documentAccess = documentAccess;
 
 		this.meta = {};
 	}
@@ -36,117 +34,88 @@ class MetaActions {
 	 * Request the global metadata. After this is done, the meta data is accessible
 	 * in the meta attribute.
 	 */
-	requestGlobalMeta() {
-		var that = this;
+	async requestGlobalMeta() {
+		var db = await this.#app.db.get();
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.get(MetaActions.metaDocId);
-		})
-		.then(function (data) {
+		try {
+			var data = await db.get(MetaActions.metaDocId);
+	
 			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('requestGlobalMeta', data);
-    		
-			if (data && data.meta) {
-				that.meta = data.meta;	
-				//console.log(' -> Loaded global metadata');
-
-				return Promise.resolve({ 
-					ok: true
-				});
+			this.#app.callbacks.executeCallbacks('requestGlobalMeta', data);
+	    		
+			if (!data || !data.meta) {
+				return {  ok: false };
 			}
-			return Promise.resolve({ 
-				ok: false
-			});
-		})
-		.catch(function(err) {
+
+			this.meta = data.meta;	
+			console.log(' -> Loaded global metadata');  // TODO remove again
+
+			return {  ok: true };
+
+		} catch(err) {
 			// Not found: This is no severe error in this case, so we resolve the promise instead of rejecting.
 			if (err.status == 404) {
 				console.log(' -> No global metadata document exists yet');
 				
-				return Promise.resolve({ 
+				return { 
 					ok: false,
-					message: err.message,
-					messageThreadId: 'RequestMetaMessages'
-				});
+					message: err.message
+				};
 			}
 			
-			return Promise.reject({
-				message: err.message,
-				messageThreadId: 'RequestMetaMessages'
-			});
-		});
+			throw err;
+		}
 	}
 	
 	/**
 	 * Saves the meta data to database.
 	 */
-	saveGlobalMeta() {
-		var that = this;
-		var db;
-		var metadoc;
-		
-		if (this.#lock) {
-			return Promise.reject({
-				message: 'Meta data is locked'
-			});
-		}
+	async saveGlobalMeta() {
+		if (this.#lock) throw new Error('Meta data is locked');
 		this.#lock = true;
 		
-		return this.#app.db.get()
-		.then(function(_db) {
-			db = _db;
-			return db.get(MetaActions.metaDocId)
-			.then(function(data) {
-				metadoc = data;
-				return Promise.resolve();
-			})
-			.catch(function(err) {
-				if (!err) return Promise.reject();
-				if (err.status == 404) {
-					metadoc = {
-						_id: MetaActions.metaDocId,
-					}
-					return Promise.resolve();
-				}
-				that.#lock = false;
-				return Promise.reject();
-			})
-		})
-		.then(function() {
-			if (!metadoc) {
-				that.#lock = false;
-				throw new Error('No meta document created');
-			} 
+		var db = await this.#app.db.get();
 
-			var rev = metadoc._rev;
-			metadoc.meta = that.meta;
-			metadoc.timestamp = Date.now();
-			metadoc._rev = rev;
-			
-			return db.put(metadoc, {
-				force: true
-			});
-		})
-		.then(function (data) {
-			that.#lock = false;
-			
-			if (!data.ok) {
-				return Promise.reject({
-					message: data.message,
-					messageThreadId: 'SaveMetaMessages'
-				});
+		var metadoc;
+		try {
+			metadoc = await db.get(MetaActions.metaDocId);
+		} catch (err) {
+			if (err.status == 404) {
+				metadoc = {
+					_id: MetaActions.metaDocId,
+				}
+			} else {
+				this.#lock = false;
+				throw err;
 			}
+		}
+
+		if (!metadoc) {
+			this.#lock = false;
+			throw new Error('No meta document created');
+		} 
+
+		var rev = metadoc._rev;
+		metadoc.meta = this.meta;
+		metadoc.timestamp = Date.now();
+		metadoc._rev = rev;
+		
+		var resp = await db.put(metadoc, {
+			force: true
+		});
 			
-			console.log(' -> Saved global metadata');
+		this.#lock = false;
 			
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('saveGlobalMeta', metadoc);
+		if (!resp.ok) throw new Error(data.message);
+			
+		console.log(' -> Saved global metadata');
+			
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveGlobalMeta', metadoc);
     		
-			return Promise.resolve({
-				message: "Saved global metadata.",
-				messageThreadId: 'SaveMetaMessages'
-			});
-		})
+		return {
+			ok: true,
+			message: "Saved global metadata."
+		}
 	}
 }

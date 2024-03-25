@@ -90,7 +90,7 @@ class BoardActions {
 		var doc = this.#app.data.getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
-		var backImage;
+		var backImage;// TODO ask in advance! Move out of here.
 		try {
 			var imageData = await this.getBoardBackground(doc._id);
 	

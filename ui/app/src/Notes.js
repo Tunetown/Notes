@@ -136,11 +136,11 @@ class Notes {
 			hashtag: new HashtagActions(this, this.documentAccess),	
 			history: new HistoryActions(this),	
 			label: new LabelActions(this, this.documentAccess),	
-			meta: new MetaActions(this, this.documentAccess),	
+			meta: new MetaActions(this),	
 			reference: new ReferenceActions(this, this.documentAccess),	
 			settings: new SettingsActions(this),	
 			trash: new TrashActions(this, this.documentAccess),	
-			nav: new NavigationActions(this, this.documentAccess),	
+			nav: new NavigationActions(this),	
 		};
 		
 		this.view = new View(this);
