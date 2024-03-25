@@ -46,7 +46,7 @@ class ReferenceActions {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var selector = this.#app.getMoveTargetSelector(existingRefs, true);
+		var selector = this.#app.view.getDocumentSelector(existingRefs, true);
 		selector.val(doc.ref);
 		
 		var refDoc = this.#app.data.getById(doc.ref);
@@ -67,11 +67,11 @@ class ReferenceActions {
 		        	$('#moveTargetSelector').modal('hide');
 
 					if (ret && ret.message) {
-						that.#app.showAlert(ret.message, 'S');
+						that.#app.view.message(ret.message, 'S');
 					}
 				})
 				.catch(function(err) {
-					if (err && err.message) that.#app.showAlert(err.message, 'E');
+					that.#app.errorHandler.handle(err);
 				});
 			})
 		);
@@ -100,7 +100,7 @@ class ReferenceActions {
 	        	
 				var tdoc = that.#app.data.getById(target);
 	        	if (!tdoc) {
-					that.#app.showAlert('Target not found: ' + target, 'E', 'SetRefMessages');
+					that.#app.view.message('Target not found: ' + target, 'E');
 					return;
 				}
 				
@@ -151,7 +151,6 @@ class ReferenceActions {
 		if (!referencedDoc) {
 			return Promise.reject({
 				message: 'The referenced document (ID: ' + + referenceDoc.ref + ') does not exist.',
-				messageThreadId: 'SetRefMessages' 
 			});
 		}
 
@@ -162,14 +161,12 @@ class ReferenceActions {
 		if (parentDoc.type != 'note') {
 			return Promise.reject({
 				message: 'The parent document of this reference (ID: ' + parentDoc.name + ') must be a textual note, but is of type ' + parentDoc.type + '. Conversion not possible.',
-				messageThreadId: 'SetRefMessages' 
 			});
 		}
 		
 		if ((parentDoc.editor != 'code') && (parentDoc.editor != 'richtext')) {
 			return Promise.reject({
 				message: 'The parent document of this reference (ID: ' + parentDoc.name + ') has an invalid editor mode: ' + parentDoc.editor + '. Conversion not possible.',
-				messageThreadId: 'SetRefMessages' 
 			});
 		}
 
@@ -206,7 +203,6 @@ class ReferenceActions {
 			return Promise.resolve({
 				ok: true,
 				message: 'Successfully converted reference' + referenceDoc.name,
-				messageThreadId: 'SetRefMessages'
 			});
     	});
 	}
@@ -226,7 +222,7 @@ class ReferenceActions {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var selector = this.#app.getMoveTargetSelector(existingRefs, false);
+		var selector = this.#app.view.getDocumentSelector(existingRefs, false);
 		
 		$('#createReferenceDialogContent').empty();
 		$('#createReferenceDialogContent').append(selector);
@@ -248,7 +244,6 @@ class ReferenceActions {
 	        		reject({
 	        			abort: true,
 						message: "Action cancelled.",
-						messageThreadId: 'CreateRefMessages'
 					});
 	        		return;
 	        	}
@@ -260,7 +255,6 @@ class ReferenceActions {
 		        	if (!tdoc) {
 						reject({
 							message: 'Target not found: ' + target,
-							messageThreadId: 'CreateRefMessages'
 						});
 						return;
 					}
@@ -320,7 +314,6 @@ class ReferenceActions {
 					resolve({
 						ok: true,
 						message: 'Successfully created ' + newIds.length + ' references.',
-						messageThreadId: 'CreateRefMessages',
 						newIds: newIds
 					});
 				})
@@ -328,7 +321,6 @@ class ReferenceActions {
 					// Error handling
 	        		reject({
 						message: "Error saving target: " + err.message,
-						messageThreadId: 'CreateRefMessages'
 					});
 	        	});
 			});
@@ -338,7 +330,6 @@ class ReferenceActions {
 				reject({
 					abort: true,
 					message: 'Action cancelled.',
-					messageThreadId: 'CreateRefMessages'
 				});
 			});
 			

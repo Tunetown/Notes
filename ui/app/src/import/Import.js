@@ -47,7 +47,7 @@ class Import {
 			var file = $('#importFile')[0].files[0];
     		
     		if (!file) {
-    			that.#app.showAlert('Please select a file to import.', 'E', 'ImportProcessMessages');
+    			that.#app.view.message('Please select a file to import.', 'E');
 				return;
 		    }
     		
@@ -60,7 +60,7 @@ class Import {
 			setTimeout(function() {
 				that.processFile(file)
 				.catch(function(err) {
-					that.#app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
 			}, 100);
 		});
@@ -100,7 +100,7 @@ class Import {
 			return that.#app.actions.nav.requestTree();
 		})
 		.catch(function(err) {
-			that.#app.showAlert((!err.abort ? 'Error importing data: ' : '') + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		})
 	}
 }

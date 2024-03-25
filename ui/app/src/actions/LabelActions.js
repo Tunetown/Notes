@@ -50,13 +50,11 @@ class LabelActions {
 	saveLabelDefinitions(id) {
 		if (!id) return Promise.reject({ 
 			message: 'No ID passed',
-			messageThreadId: 'SaveLabelMessages' 
 		});
 		
 		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveLabelMessages'
 		});
 		
 		Document.addChangeLogEntry(doc, 'labelDefinitionsChanged');	
@@ -73,7 +71,6 @@ class LabelActions {
 				return Promise.resolve({ 
 					ok: true,
 					message: "Successfully saved label definitions of " + doc.name + ".",
-					messageThreadId: 'SaveLabelMessages'
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -88,13 +85,11 @@ class LabelActions {
 	saveLabels(id) {
 		if (!id) return Promise.reject({ 
 			message: 'No ID passed',
-			messageThreadId: 'SaveLabelMessages'
 		});
 		
 		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveLabelMessages'
 		});
 		
 		Document.addChangeLogEntry(doc, 'labelsChanged');	
@@ -111,7 +106,6 @@ class LabelActions {
 				return Promise.resolve({ 
 					ok: true,
 					message: "Successfully saved labels of " + doc.name + ".",
-					messageThreadId: 'SaveLabelMessages'
 				});
 			} else {
 				return Promise.resolve(dataResp);
@@ -127,13 +121,11 @@ class LabelActions {
 		var doc = this.#app.data.getById(id);
 		if (!doc) return Promise.reject({
 			message: 'Document ' + id + ' not found',
-			messageThreadId: 'MoveLabelMessages'
 		});
 
 		var def = Document.getLabelDefinition(doc, labelId);
 		if (!def) return Promise.reject({
 			message: 'Definition for label ' + labelId + ' not found',
-			messageThreadId: 'MoveLabelMessages'
 		});
 		
 		var selector = this.getMoveLabelDefinitionTargetSelector();
@@ -155,14 +147,13 @@ class LabelActions {
 	        		reject({
 	        			abort: true,
 						message: "Action cancelled.",
-						messageThreadId: 'MoveLabelMessages'
 					});
 	        		return;
 	        	}
 
 	        	tdoc = that.#app.data.getById(target);
 	        	if (!tdoc) {
-	        		that.#app.showAlert('Please select a target document.', 'E', 'MoveMessages');
+	        		that.#app.view.message('Please select a target document.', 'E');
 	        		return;
 	        	}
 	       
@@ -184,13 +175,11 @@ class LabelActions {
 						ok: true,
 						newOwner: tdoc._id,
 						message: 'Moved label definition ' + labelId + ' from ' + doc.name + ' to ' + tdoc.name,
-						messageThreadId: 'MoveLabelMessages'
 					});
 	        	})
 	        	.catch(function(err) {
 	        		reject({
 						message: "Error moving label definition: " + err.message,
-						messageThreadId: 'MoveLabelMessages'
 					});
 	        	});
 			});
@@ -200,7 +189,6 @@ class LabelActions {
 				reject({
 					abort: true,
 					message: 'Action cancelled.',
-					messageThreadId: 'MoveLabelMessages'
 				});
 			});
 			
@@ -233,7 +221,7 @@ class LabelActions {
 		
 		for(var i in ids) {
 			selector.append(
-				$('<option value="' + ids[i].id + '">' + this.#app.formatSelectOptionText(ids[i].text) + '</option>')
+				$('<option value="' + ids[i].id + '">' + this.#app.view.formatSelectOptionText(ids[i].text) + '</option>')
 			);
 		}
 		return selector;
@@ -249,21 +237,18 @@ class LabelActions {
 		if (!doc) {
 			return Promise.reject({
 				message: 'No document passed',
-				messageThreadId: 'convertLabelsToTagsMessages' 
 			});
 		}
 
 		if (doc.type != 'note') {
 			return Promise.reject({
 				message: 'Document ' + doc.name + ' must be a textual note, but is of type ' + doc.type + '. Conversion not possible.',
-				messageThreadId: 'convertLabelsToTagsMessages' 
 			});
 		}
 		
 		if ((doc.editor != 'code') && (doc.editor != 'richtext')) {
 			return Promise.reject({
 				message: 'Document ' + doc.name + ' has an invalid editor mode: ' + doc.editor + '. Conversion not possible.',
-				messageThreadId: 'convertLabelsToTagsMessages' 
 			});
 		}
 
@@ -272,7 +257,6 @@ class LabelActions {
 		if (labels.length == 0) {
 			return Promise.reject({
 				message: 'Document ' + doc.name + ' has no labels to convert.',
-				messageThreadId: 'convertLabelsToTagsMessages' 
 			});
 		}
 			
@@ -342,7 +326,6 @@ class LabelActions {
 			return Promise.resolve({
 				ok: true,
 				message: 'Successfully converted ' + labels.length + ' labels to hashtags in ' + doc.name,
-				messageThreadId: 'convertLabelsToTagsMessages'
 			});
     	});
 	}

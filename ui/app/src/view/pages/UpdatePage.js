@@ -79,7 +79,7 @@ class UpdatePage extends Page {
 				$('<button class="btn btn-secondary updateRefreshBtn">Re-Scan...</button><br><br>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					that._app.showAlert("Scan for Updates...", "I", 'UpdateScanMessages');
+					that._app.view.message("Scan for Updates...", "I", 'UpdateScanMessages');
 					
 					that.load(true);
 				}),

@@ -33,167 +33,112 @@ class DocumentActions {
 	/**
 	 * Request the content of a new note and set the editor accordingly.
 	 */
-	request(id) {
-		if (!id) return Promise.reject({
-			message: 'No id passed',
-			messageThreadId: 'RequestMessages'
-		});
+	async request(id) {
+		if (!id) throw new Error('No id passed');
 		
-		var db;
-		var doc;
+		var db = await this.#app.db.get();
 
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.get(id, { 
+		var doc;
+		
+		try {
+			doc = await db.get(id, { 
 				conflicts: true 
 			});
-		})
-		.then(function (data) {
-			doc = data;
+			
+		} catch (err) {
+			// In case of 404, we give a clear message, all other errors are just passed
+			if (err.status == 404) throw new Error('Document ' + id + ' not found');
+			
+			throw err;
+		}
 
-			if (data.type == "attachment") {
-				return Promise.resolve({
-					ok: true					
-				});
-			} else if (data.type == "reference") {
-				if (!data.ref) return Promise.reject({
-					message: 'Error in reference: no target ID exists.',
-					messageThreadId: 'RequestMessages'
-				});
-				
-				that.#app.routing.call(data.ref);
-				
-				return Promise.resolve({
-					ok: true
-				});
-			} else {
-				// Create dummy editor to get the properties
-				var e = Document.createDocumentEditor(data);  
-				if (!e) {
-					return Promise.reject({
-						message: 'No editor found for document type ' + data.type,
-						messageThreadId: 'RequestMessages'
-					});
-				}
-				
-				if (e.needsHierarchyData()) {
-					if (!that.#app.data) {
-						return that.#app.actions.nav.requestTree();
-					} else {
-						return Promise.resolve({
-							ok: true
-						});
-					}
-				} else {
-					return Promise.resolve({
-						ok: true
-					});
+		if (doc.type == "reference") {
+			if (!doc.ref) throw new Error('Error in reference: no target ID exists.');
+			
+			this.#app.routing.call(doc.ref);
+			
+			return {
+				ok: true,
+				redirected: true
+			};
+
+		} else if (doc.type != "attachment") {
+			// Create dummy editor to get the properties
+			var e = Document.createDocumentEditor(doc);  
+			if (!e) {
+				throw new Error('No editor found for document type ' + data.type);
+			}				
+			
+			if (e.needsHierarchyData()) {
+				if (!this.#app.data) {
+					await this.#app.actions.nav.requestTree();
 				}
 			}
-		})
-		.then(function (data) {	
-			if (doc.type != 'reference') {
-				if (!data.ok) {
-					return Promise.reject({
-						message: data.message,
-						messageThreadId: 'RequestMessages'
-					});
-				}
-			} else {
-				return Promise.resolve({
-					ok: true,
-					redirected: true
-				});
+		}
+
+		// Update data model
+		if (this.#app.data) {
+			var docPers = this.#app.data.getById(id);
+			if (docPers) {
+				Document.update(docPers, doc);
+				Document.setLoaded(docPers);
 			}
 			
-			// Update data model
-			if (that.#app.data) {
-				var docPers = that.#app.data.getById(id);
-				if (docPers) {
-					Document.update(docPers, doc);
-					Document.setLoaded(docPers);
-				}
-				
-				if (doc.type == 'reference') {
-					var docPersTarget = that.#app.data.getById(doc.ref);
-					if (docPersTarget) {
-						Document.update(docPersTarget, data);
-						Document.setLoaded(docPersTarget);
-					}
+			if (doc.type == 'reference') {
+				var docPersTarget = this.#app.data.getById(doc.ref);
+				if (docPersTarget) {
+					Document.update(docPersTarget, data);
+					Document.setLoaded(docPersTarget);
 				}
 			}
+		}
 
-			var docs = [doc];
-			var targetDoc = doc;
-			
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('loadDocument', docs);
+		var docs = [doc];
+		var targetDoc = doc;
+		
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('loadDocument', docs);
 
 			// Open document in editor
-			return that.#app.actions.editor.requestEditor(targetDoc); 
-		})
-		.catch(function(err) {
-			// In case of 404, we give a clear message, all other errors are just passed
-			if (err.status == 404) {
-				return Promise.reject({
-					message: 'Document ' + id + ' not found',
-					messageThreadId: 'RequestMessages'
-				});	
-			}
-			
-			return Promise.reject(err);
-		});
+		await this.#app.actions.editor.requestEditor(targetDoc);
+		
+		return { ok: true };
 	}
 	
 	/**
 	 * Request to view a note conflict revision.
 	 */
-	requestConflict(id, rev) {
-		var db;
-		var docCurrent;
-		
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.get(id);
-		})
-		.then(function (docCurrentRef) {
-			docCurrent = docCurrentRef;
-			return db.get(id, {
-				rev: rev
-			});
-		})
-		.then(function (docConflict) {
-			that.#app.loadPage(new ConflictPage(), {
-				docConflict: docConflict, 
-				docCurrent: docCurrent
-			});
-			
-			// Execute callbacks
-    		that.#app.callbacks.executeCallbacks('requestConflict', {
-    			docConflict: docConflict,
-    			docCurrent: docCurrent
-    		});
+	async requestConflict(id, rev) {
+		var db = await this.#app.db.get();
+		var docCurrent = await db.get(id);
+		var docConflict = await db.get(id, {
+			rev: rev
 		});
+
+		await this.#app.loadPage(new ConflictPage(), {
+			docConflict: docConflict, 
+			docCurrent: docCurrent
+		});
+			
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('requestConflict', {
+			docConflict: docConflict,
+			docCurrent: docCurrent
+		});
+
+		return { ok: true };
 	}
 	
 	/**
 	 * Request the raw JSON view for the document.
 	 */
-	requestRawView(id) {
-		var that = this;
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.get(id);
-		})
-		.then(function(data) {
-			that.#app.loadPage(new RawPage(), data);
+	async requestRawView(id) {
+		var db = await this.#app.db.get();
+		var data = await db.get(id);
 			
-			return Promise.resolve({ ok: true });
-		});		
+		await this.#app.loadPage(new RawPage(), data);
+			
+		return { ok: true };
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -219,7 +164,7 @@ class DocumentActions {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var refSelector = this.#app.getMoveTargetSelector(existingRefs, true);
+		var refSelector = this.#app.view.getDocumentSelector(existingRefs, true);
 
 		refSelector.val('');
 		
@@ -247,11 +192,9 @@ class DocumentActions {
 					$('#refLabel').css('display', (this.value == 'reference') ? 'inherit' : 'none');
 					$('#refCell').css('display', (this.value == 'reference') ? 'block' : 'none');
 					
-					if (e && (this.value == 'reference')) {
-						var cur = that.#app.data.getById(e.getCurrentId());
-						if (cur) {
-							$('#createNameInput').val(cur.name);
-						}
+					const cdoc = that.#app.paging.getCurrentlyShownDoc();
+					if (cdoc && (this.value == 'reference')) {
+						$('#createNameInput').val(cdoc.name);
 					}
 					
 					if (this.value == 'attachment') {
@@ -346,7 +289,7 @@ class DocumentActions {
 				type = $('#createTypeInput').val();
 			    
 				if (!type) {
-					that.#app.showAlert('Please specify a type for the new document.', 'E', 'CreateMessages');
+					that.#app.view.message('Please specify a type for the new document.', 'E');
 					return;
 				}
 				
@@ -354,7 +297,7 @@ class DocumentActions {
 		    		files = $('#customFile')[0].files;
 		    		
 		    		if (!files || !files.length) {
-		    			that.#app.showAlert('Please select a file to upload.', 'E', 'CreateMessages');
+		    			that.#app.view.message('Please select a file to upload.', 'E');
 						return;
 				    }
 		    		
@@ -362,7 +305,7 @@ class DocumentActions {
 		    		if (maxMB) {
 			    		for(var f in files) {
 				    		if (files[f].size > (maxMB * 1024 * 1024)) {
-				    			that.#app.showAlert('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.', 'E', 'CreateMessages');
+				    			that.#app.view.message('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.', 'E');
 								return;
 				    		}
 			    		}
@@ -376,19 +319,19 @@ class DocumentActions {
 		    		
 		    	} else if (type == 'reference') {
 		    		if (!name) {
-		    			that.#app.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
+		    			that.#app.view.message('Please specify a name for the new document.', 'E');
 						return;
 				    }
 		    		
 		    		refTarget = refSelector.val();
 		    		
 		    		if (!refTarget) {
-		    			that.#app.showAlert('Please specify target for the reference document.', 'E', 'CreateMessages');
+		    			that.#app.view.message('Please specify target for the reference document.', 'E');
 						return;
 		    		}
 		    	} else {
 		    		if (!name) {
-		    			that.#app.showAlert('Please specify a name for the new document.', 'E', 'CreateMessages');
+		    			that.#app.view.message('Please specify a name for the new document.', 'E');
 						return;
 				    }
 		    	}
@@ -476,7 +419,6 @@ class DocumentActions {
 				if (!data[d].ok) {
 					return Promise.reject({
 						message: 'Error: ' + data[d].message,
-						messageThreadId: 'CreateMessages'
 					});
 				}
 				
@@ -508,7 +450,6 @@ class DocumentActions {
 			return Promise.resolve({
 				ok: true,
 				message: 'Successfully created ' + newIds.length + ' document(s)',
-				messageThreadId: 'CreateMessages',
 				newIds: newIds
 			});
 		}); 
@@ -520,14 +461,12 @@ class DocumentActions {
 	save(id, content) { 
 		if (!id) return Promise.reject({ 
 			message: 'No ID passed',
-			messageThreadId: "SaveMessages"
 		});
 			
 		var data = this.#app.data.getById(id);
 		if (!data) {
 			return Promise.reject({
 				message: 'Document ' + id + ' not found',
-				messageThreadId: "SaveMessages"
 			});
 		}
 		
@@ -542,7 +481,6 @@ class DocumentActions {
 				return Promise.reject({ 
 					abort: true,
 					message: "Nothing changed.",
-					messageThreadId: "SaveMessages"
 				});
 			}
 			
@@ -622,7 +560,6 @@ class DocumentActions {
 				return Promise.resolve({ 
 					ok: true,
 					message: "Successfully saved " + data.name + ".",
-					messageThreadId: "SaveMessages"
 				});
 			} else {
 				that.#app.paging.resetEditorDirtyState();
@@ -644,7 +581,6 @@ class DocumentActions {
 			var doc = this.#app.data.getById(ids[i]);
 			if (!doc) return Promise.reject({ 
 				message: 'Document ' + ids[i] + ' not found',
-				messageThreadId: "DeleteMessages"
 			});
 			docs.push(doc);
 
@@ -653,7 +589,7 @@ class DocumentActions {
 				this.#app.paging.unload();
 			}
 			
-			var docChildren = that.#app.data.getChildren(ids[i], true);
+			var docChildren = this.#app.data.getChildren(ids[i], true);
 			for(var c in docChildren) {
 				children.push(docChildren[c]);
 			}
@@ -820,7 +756,6 @@ class DocumentActions {
 			if (doc.type == "attachment") {
 				return Promise.reject({
 					message: 'Attachments cannot be copied.',
-					messageThreadId: 'CopyMessages'
 				});
 			}
 			
@@ -829,7 +764,6 @@ class DocumentActions {
 				return Promise.reject({
 					abort: true,
 					message: "Nothing changed.",
-					messageThreadId: 'CopyMessages'
 				});
 			}
 			
@@ -904,7 +838,7 @@ class DocumentActions {
 			if (doc.type == 'reference') existingRefs.push(doc._id);
 		});
 		
-		var selector = this.#app.getMoveTargetSelector(existingRefs);
+		var selector = this.#app.view.getDocumentSelector(existingRefs);
 		selector.val(docs[0].parent);
 		selector.css('max-width', '100%');
 		

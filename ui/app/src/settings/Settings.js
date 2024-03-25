@@ -143,10 +143,10 @@ class Settings {
 		
 		return this.#app.actions.settings.saveSettings()
 		.then(function(data) {
-			if (data.message) that.#app.showAlert(data.message, 'S', data.messageThreadId);
+			if (data.message) that.#app.view.message(data.message, 'S', data.messageThreadId);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error saving settings: ' + err.message, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		})
 	}
 	

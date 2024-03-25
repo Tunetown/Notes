@@ -68,7 +68,8 @@ class OnlineSensor {
 					onLine: true
 				});
 				
-			}).catch(function(err) {
+			})
+			.catch(function(err) {
 				return Promise.resolve({
 					onLine: false
 				});

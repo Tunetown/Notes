@@ -189,6 +189,11 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/view/pages/editors/BoardEditor.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/editors/CodeEditor.js', tag: 'script', type: 'text/javascript' },
     
+    { src: './ui/app/src/view/View.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/Dialog.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/ImageDialog.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/MessageHandler.js', tag: 'script', type: 'text/javascript' },
+    
     { src: './ui/app/src/view/pages/ProfilesPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/ConflictPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/ConflictsPage.js', tag: 'script', type: 'text/javascript' },
@@ -221,13 +226,13 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/tools/TouchClickHandler.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/ClientState.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/OnlineSensor.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/tools/ImageDialog.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/Callbacks.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/Styles.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/HistoryHandler.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/Device.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/Console.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/ErrorHandler.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/tools/Errors.js', tag: 'script', type: 'text/javascript' },
 
     { src: './ui/app/src/Config.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/Routing.js', tag: 'script', type: 'text/javascript' },

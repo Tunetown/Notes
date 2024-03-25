@@ -238,7 +238,7 @@ class SettingsContent {
 					$('<a style="cursor: pointer; padding-left: 10px;">Copy</a>')
 					.on('click', function(event) {
 						navigator.clipboard.writeText(d.profileHandler.getCurrentProfile().url);
-						that.#app.showAlert('Copied URL to Clipboard', 'I');
+						that.#app.view.message('Copied URL to Clipboard', 'I');
 					})
 				)
 			)
@@ -270,7 +270,7 @@ class SettingsContent {
 						d.logout()
 						.then(function(data) {
 							if (!data.ok) {
-								that.#app.showAlert(data.message, 'E', data.messageThreadId);
+								that.#app.view.message(data.message, 'E', data.messageThreadId);
 								return;
 							}
 							d.reset();
@@ -290,7 +290,7 @@ class SettingsContent {
 							
 							that.#app.state.setTrustedDeviceCredentials();
 							
-							that.#app.showAlert("Deleted device credentials.", 'I');
+							that.#app.view.message("Deleted device credentials.", 'I');
 							
 							that.#app.routing.call('settings');
 						}), 
@@ -1006,7 +1006,7 @@ class SettingsContent {
 									that.#app.state.saveConsoleSettings(s);
 									
 									Console.clear();
-									that.#app.showAlert('Cleared console logs.', 'I');
+									that.#app.view.message('Cleared console logs.', 'I');
 								}
 							});
 						}, 0);
@@ -1129,13 +1129,13 @@ class SettingsContent {
 						
 						var prom = d.clearLocalDatabase();
 						if (!prom) {
-							that.#app.showAlert('Could not delete database.', 'E');
+							that.#app.view.message('Could not delete database.', 'E');
 							return;
 						}
 						
 						prom
 						.then(function(data) {
-							that.#app.showAlert('Local database is now empty.', 'S');
+							that.#app.view.message('Local database is now empty.', 'S');
 							d.reset();
 							that.#app.routing.call('settings');
 						})
@@ -1242,7 +1242,7 @@ class SettingsContent {
 		var that = this;
 		
 		if (!format) {
-			this.#app.showAlert("No format specified", "E");
+			this.#app.view.message("No format specified", "E");
 			return;
 		}
 		
@@ -1252,7 +1252,7 @@ class SettingsContent {
 
 			(new NotesExporter(this.#app)).exportDatabase()
 			.then(function(data) {
-				that.#app.showAlert('Exported ' + ((data && data.docs) ? data.docs.length : "[unknown]") + ' documents.', 'S');
+				that.#app.view.message('Exported ' + ((data && data.docs) ? data.docs.length : "[unknown]") + ' documents.', 'S');
 			})
 			.catch(function(err) {
 				that.#app.errorHandler.handle(err);
@@ -1272,7 +1272,7 @@ class SettingsContent {
 
 			new ObsidianExporter(this.#app).export(ids)
 			.then(function(/*data*/) {
-				that.#app.showAlert('Exported ' + children.length + ' documents.', 'S');
+				that.#app.view.message('Exported ' + children.length + ' documents.', 'S');
 			})
 			.catch(function(err) {
 				that.#app.errorHandler.handle(err);

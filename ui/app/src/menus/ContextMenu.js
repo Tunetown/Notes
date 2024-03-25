@@ -46,7 +46,7 @@ class ContextMenu {
 							that.#app.nav.unblock();
 							
 							if (data.ok) {
-								that.#app.showAlert("Successfully created document.", "S");
+								that.#app.view.message("Successfully created document.", "S");
 							}
 						})
 						.catch(function(err) {
@@ -68,7 +68,7 @@ class ContextMenu {
 							that.#app.nav.unblock();
 							
 							if (data.message) {
-								that.#app.showAlert(data.message, "S", data.messageThreadId);
+								that.#app.view.message(data.message, "S");
 							}
 						})
 						.catch(function(err) {
@@ -97,7 +97,7 @@ class ContextMenu {
 			        	
 			        	that.#app.actions.reference.setReference(that.#app.optionsIds[0])
 			        	.then(function(data) {
-							that.#app.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
+							that.#app.view.message(data.message ? data.message : 'Successfully moved items', 'S');
 						})
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
@@ -113,7 +113,7 @@ class ContextMenu {
 			        	
 			        	that.#app.actions.document.moveItems(that.#app.optionsIds)
 			        	.then(function(data) {
-							that.#app.showAlert(data.message ? data.message : 'Successfully moved items', 'S', data.messageThreadId);
+							that.#app.view.message(data.message ? data.message : 'Successfully moved items', 'S');
 						})
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
@@ -129,7 +129,7 @@ class ContextMenu {
 						
 						that.#app.actions.document.copyItem(that.#app.optionsIds[0])
 						.then(function(/*data*/) {
-							that.#app.showAlert('Successfully copied item', 'S');
+							that.#app.view.message('Successfully copied item', 'S');
 						})
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
@@ -145,14 +145,14 @@ class ContextMenu {
 						
 						that.#app.nav.block();
 						
-						that.#app.showAlert("Preparing to delete items...", 'I', 'DeleteMessages');
+						that.#app.view.message("Preparing to delete items...", 'I');
 						
 						that.#app.actions.document.deleteItems(that.#app.optionsIds)
 						.then(function(data) {
 							that.#app.nav.unblock();
 							
 							if (data.message) {
-								that.#app.showAlert(data.message, "S", data.messageThreadId);
+								that.#app.view.message(data.message, "S");
 							}
 							
 						}).catch(function(err) {
@@ -174,24 +174,6 @@ class ContextMenu {
 						
 						that.#app.routing.callLabelDefinitions(that.#app.optionsIds[0]);
 					}),
-					
-				// History
-				/*$('<div id="contextOptionHistory" data-toggle="tooltip" title="Note History..." class="contextOptionSingle fa fa-history treebutton roundedButton contextOptionHistory"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.#app.hideOptions();
-						if (that.#app.optionsIds.length != 1) return;
-
-						var doc = that.#app.data.getById(that.#app.optionsIds[0]);
-						if (!doc) return;
-						
-						if (!Document.hasTypeHistory(doc.type)) {
-							that.#app.showAlert('No history available for this type of item.', 'I');
-							return;
-						}
-						
-						that.#app.routing.call("history/" + that.#app.optionsIds[0]);
-					}),*/
 					
 				// Text Color
 		        $('<label id="contextOptionColor" data-toggle="tooltip" title="Set Text Color" class="fa fa-palette treebutton roundedButton contextOptionColor"></div>')
@@ -258,7 +240,7 @@ class ContextMenu {
 						
 						that.#app.actions.document.setItemBackgroundImage(that.#app.optionsIds)
 						.then(function(data) {
-							if (data.message) that.#app.showAlert(data.message, 'S', data.messageThreadId);
+							if (data.message) that.#app.view.message(data.message, 'S');
 						})
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);

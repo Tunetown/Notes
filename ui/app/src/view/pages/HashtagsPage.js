@@ -180,27 +180,27 @@ class HashtagsPage extends Page {
 		var doclist = '';
 		for(var i in docs) {
 			const doc = docs[i];
-			doclist += this._app.formatSelectOptionText(this._app.data.getReadablePath(doc._id, null, true)) + '\n';
+			doclist += this._app.view.formatSelectOptionText(this._app.data.getReadablePath(doc._id, null, true)) + '\n';
 		}
 		
 		var newTag = prompt('Enter the new tag name. The following documents will be updated: \n' + doclist, tag);
 		if (!newTag) {
-			this._app.showAlert('Action cancelled.', 'I', 'RenameTagMessages');
+			this._app.view.message('Action cancelled.', 'I', 'RenameTagMessages');
 			return;
 		}
 		
 		this._app.actions.hashtag.renameTag(tag, newTag)
 		.then(function(ret) {
 			if (ret && ret.message) {
-				that._app.showAlert(ret.message, 'S', 'RenameTagMessages');				
+				that._app.view.message(ret.message, 'S', 'RenameTagMessages');				
 			} else {
-				that._app.showAlert('Renamed ' + tag + ' to ' + newTag, 'S', 'RenameTagMessages');
+				that._app.view.message('Renamed ' + tag + ' to ' + newTag, 'S', 'RenameTagMessages');
 			}
 
 			that._app.routing.callHashtags(that.#current ? that.#current._id : null);
 		})
 		.catch(function(err) {
-			that._app.showAlert((err && err.message) ? err.message : 'Error renaming hashtag', 'E', 'RenameTagMessages');
+			that._app.errorHandler.handle(err);
 		})
 	}
 	
@@ -216,7 +216,7 @@ class HashtagsPage extends Page {
 			that._app.actions.nav.requestTree();
 		})
 		.catch(function(err) {
-			that._app.showAlert((err && err.message) ? err.message : 'Error setting hashtag color', 'E', 'SetTagColorMessages');
+			that._app.errorHandler.handle(err);
 		})
 	}
 }

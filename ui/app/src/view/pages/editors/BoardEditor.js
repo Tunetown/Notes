@@ -270,7 +270,7 @@ class BoardEditor extends Editor {
 			if (err && (err.status == 404)) {
 				return;
 			}
-			that._app.showAlert(err.message ? err.message : 'Error loading board background image: ' + doc.boardBackground, 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		})
 		
 		// Build board DOM structure first
@@ -531,7 +531,7 @@ class BoardEditor extends Editor {
 						
 						that._app.actions.attachment.uploadAttachments(id, files)
 						.catch(function(err) {
-							that._app.showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.errorHandler.handle(err);
 						});
 					}
 				}
@@ -708,7 +708,7 @@ class BoardEditor extends Editor {
 		var that = this;
 		this._app.actions.board.saveBoardState(id, doc.boardState)
 		.catch(function(err) {
-			that._app.showAlert(err.message ? err.message : 'Error saving list state', 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 
@@ -851,7 +851,7 @@ class BoardEditor extends Editor {
 		var that = this;
 		this._app.documentAccess.saveItems(ids)
 		.catch(function(err) {
-			that._app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -903,7 +903,7 @@ class BoardEditor extends Editor {
 						that._app.routing.call(that.getCurrentId());
 					})
 					.catch(function(err) {
-						that._app.showAlert(err.message ? err.message : 'Error setting background image', err.abort ? 'I' : "E", err.messageThreadId);
+						that._app.errorHandler.handle(err);
 					});
 				}),	
 			);

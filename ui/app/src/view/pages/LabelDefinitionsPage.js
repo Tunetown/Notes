@@ -200,11 +200,11 @@ class LabelDefinitionsPage extends Page {
 					that._app.actions.label.convertLabelsToTags(that.#current)
 					.then(function(ret) {
 						if (ret && ret.message) {
-							that._app.showAlert(ret.message, 'S');
+							that._app.view.message(ret.message, 'S');
 						}
 					})
 					.catch(function(err) {
-						if (err && err.message) alert(err.message);
+						that._app.errorHandler.handle(err);
 					});
 				}),
 			),
@@ -421,7 +421,7 @@ class LabelDefinitionsPage extends Page {
 				return that.load(docl);
 			})
 			.catch(function(err) {
-				that._app.showAlert(err.message ? err.message : 'Error saving labels for ' + doc.name, err.abort ? 'I' : 'E', err.messageThreadId);
+				that._app.errorHandler.handle(err);
 			});
 		}, 1000);
 	}
@@ -462,7 +462,7 @@ class LabelDefinitionsPage extends Page {
 			return that.load(that.#current);
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -490,7 +490,7 @@ class LabelDefinitionsPage extends Page {
 			return that.load(that.#current);
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -525,7 +525,7 @@ class LabelDefinitionsPage extends Page {
 			if (!data || !data.noReload) return that.load(that.#current);
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -544,7 +544,7 @@ class LabelDefinitionsPage extends Page {
 			if (data.newOwner) that._app.routing.callLabelDefinitions(data.newOwner);
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message ? err.message : 'Error saving label definitions', err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -575,7 +575,7 @@ class LabelDefinitionsPage extends Page {
 			return that.load(that.#current);
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message ? err.message : 'Error creating new label', err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	

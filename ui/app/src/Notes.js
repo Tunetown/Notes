@@ -33,8 +33,7 @@ class Notes {
 	run() { 
 		var that = this;
 
-		// Redirect console logging (statically, the logs are collected for all instances in one place
-		// because the standard console is also static)
+		// Redirect console logging
 		Console.init();
 		
 		// Print version
@@ -80,11 +79,11 @@ class Notes {
 		            	that.paging.stopEditorDelayedSave();
 		            	 
 		            	var name2show = that.paging.getCurrentlyShownDoc() ? that.paging.getCurrentlyShownDoc().name : that.paging.getCurrentlyShownId();
-		            	that.showAlert("Saving " + name2show + "...", "I", "SaveMessages");   
+		            	that.view.message("Saving " + name2show + "...", "I");   
 		            
 		            	that.actions.document.save(that.paging.getCurrentlyShownId(), that.paging.getEditorContent())
 						.then(function(data) {
-		            		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
+		            		if (data.message) that.view.message(data.message, "S");
 		            	})
 						.catch(function(err) {
 		            		that.errorHandler.handle(err);
@@ -96,7 +95,9 @@ class Notes {
 		});
 
 		// Messages/Alerts box setup
-		this.showAlert("Welcome!", "I", false, true);
+		this.view.message("Welcome!", "I", {
+			alwaysHideAtNewMessage: true
+		});
 		
 		// Hide messages on click TODO modularize
 		$('#messages').click(function() { 
@@ -133,7 +134,7 @@ class Notes {
 			document: new DocumentActions(this, this.documentAccess),	
 			editor: new EditorActions(this, this.documentAccess),	
 			hashtag: new HashtagActions(this, this.documentAccess),	
-			history: new HistoryActions(this, this.documentAccess),	
+			history: new HistoryActions(this),	
 			label: new LabelActions(this, this.documentAccess),	
 			meta: new MetaActions(this, this.documentAccess),	
 			reference: new ReferenceActions(this, this.documentAccess),	
@@ -142,8 +143,10 @@ class Notes {
 			nav: new NavigationActions(this, this.documentAccess),	
 		};
 		
+		this.view = new View(this);
+		
 		this.nav = new NoteTree(this);
-		this.paging = new Tab(this, $('<div class="contentContainer mainPanel"/>')); // TODO
+		this.paging = new Tab(this, $('<div class="contentContainer mainPanel"/>')); // TODO move to UI
 	}
 	
 	/**
@@ -182,6 +185,11 @@ class Notes {
 			// State handler
 			state: this.state,
 			
+			// Error handler
+			handle: function(err) {
+				that.errorHandler.handle(err);
+			},
+				
 			// Called whenever the DB instance has the doubt that there could be offline state.
 			notifyOfflineCallback: function() {
 				that.notifyOfflineState();
@@ -205,8 +213,8 @@ class Notes {
 			// Sync callbacks
 			syncOptions: {
 				// Message to the user
-				alert: function(msg, type, threadId, alwaysHideAtNewMessage, callbackFunction) {
-					that.showAlert(msg, type, threadId, alwaysHideAtNewMessage, callbackFunction);
+				alert: function(msg, type, options) {
+					that.view.message(msg, type, options);
 				},
 				
 				// Update the sync state button in the header
@@ -219,7 +227,7 @@ class Notes {
 					return that.views.updateViews()
 					.then(function(resp) {
 						if (resp.docCreated) {
-							that.showAlert('Successfully initialized database views.', 'S');
+							that.view.message('Successfully initialized database views.', 'S');
 						}
 						return that.actions.nav.requestTree();
 					});
@@ -266,7 +274,7 @@ class Notes {
 									if (that.paging.isEditorDirty()) {
 										that.paging.stopEditorDelayedSave();
 										
-										that.showAlert('Warning: ' + (doc.name ? doc.name : doc._id) + ' has been changed remotely. If you save now, the remote version will be overwritten! Reload the app to keep the server version.', 'W');
+										that.view.message('Warning: ' + (doc.name ? doc.name : doc._id) + ' has been changed remotely. If you save now, the remote version will be overwritten! Reload the app to keep the server version.', 'W');
 									} else {
 										that.actions.document.request(doc._id)
 										.catch(function(err) {
@@ -339,16 +347,9 @@ class Notes {
 	/**
 	 * Loads a new page
 	 */
-	loadPage(newPage, data) {
-		var that = this;
-		
+	async loadPage(newPage, data) {
 		this.resetPage();
-		
-		this.paging.loadPage(newPage, data)
-		.catch(function(err) {
-			that.errorHandler.handle(err);
-		});
-
+		await this.paging.loadPage(newPage, data);
 	}
 	
 	/**
@@ -403,7 +404,7 @@ class Notes {
 		if (p.url && (p.url != 'local') && !p.clone) {
 			var that = this; 
 		
-			this.showAlert(
+			this.view.message(
 				'Warning: This notebook is not available offline. This may be slow with larger documents.', 
 				'W', 
 				'UnSyncedMessages',
@@ -419,10 +420,10 @@ class Notes {
 	 * Install updates.
 	 */
 	installUpdates() {
-		this.showAlert("Installing, please wait...", "I", "UpdateMessage");  
+		this.view.message("Installing, please wait...", "I");  
 
 		if (!navigator.serviceWorker) {
-			this.showAlert("No service worker active, try again or just reload the page.", "W", "UpdateMessage"); 
+			this.view.message("No service worker active, try again or just reload the page.", "W"); 
 			return;			
 		}
 		
@@ -433,7 +434,7 @@ class Notes {
 					requestId: 'update'
 				});
 			} else {
-				this.showAlert("No service worker active, try again or just reload the page.", "W", "UpdateMessage");
+				this.view.message("No service worker active, try again or just reload the page.", "W");
 			}
 			/*if (registration.waiting) {
 				registration.waiting.postMessage(42);  
@@ -471,13 +472,13 @@ class Notes {
 			if (event.data.outOfDate) {
 				if (that.outOfDateFiles.length == 0) { 
 					setTimeout(function() {
-						that.showAlert(
+						that.view.message(
 							"An update is available for this App. Please see the About page in the user menu to install it.", 
 							"W", 
-							"UpdateMessage", 
-							false, 
-							function(msgElement, event) {
-								that.routing.callUpdatePage();
+							{ 
+								callback: function(msgElement, event) {
+									that.routing.callUpdatePage();
+								}
 							}
 						);
 					}, 100); 
@@ -507,10 +508,9 @@ class Notes {
 			const msg = data.message ? data.message : 'SW Message internal Error: No message transmitted';
 			
 			const type = data.type ? data.type : 'I';
-			const messageGroupId = data.messageGroupId ? data.messageGroupId : '';
 			
 			console.log("User message from SW received: Type " + type + ", message: " + msg);
-			that.showAlert(msg, type, messageGroupId);
+			that.view.message(msg, type);
 		});
 		
 		// Register message handler callbacks: Unregister service worker message
@@ -518,7 +518,7 @@ class Notes {
 			console.log("Service Worker triggers unregistering...");
 
 			if (!confirm("Reinstall now? No notebook data will get lost.")) {
-				that.showAlert("Action cancelled", 'I', "UpdateMessage");
+				that.view.message("Action cancelled", 'I');
 				return;
 			}
 
@@ -527,7 +527,7 @@ class Notes {
 				return registration.unregister();
 			})
 			.then(function(/*success*/) {
-				that.showAlert("Wait for the installation to complete...", 'I', "UpdateMessage");
+				that.view.message("Wait for the installation to complete...", 'I');
 				
 				setTimeout(function() {
 					console.log("Reload page for the new SW to be installed");
@@ -554,7 +554,7 @@ class Notes {
 					that.setupServiceWorkerMessageReceiver();
 				}, function(err) {
 					console.log('ServiceWorker registration failed: ', err);
-					that.showAlert('ServiceWorker registration failed: ' + err, "E");
+					that.view.message('ServiceWorker registration failed: ' + err, "E");
 			    });
 		}
 	}
@@ -586,7 +586,7 @@ class Notes {
 				}
 				
 			} catch (e) {
-				this.showAlert('Error in connection address: ' + e);
+				this.view.message('Error in connection address: ' + e);
 
 				// Set up DOM tree
 				this.setupDom();
@@ -691,15 +691,12 @@ class Notes {
 				return Promise.resolve(data);				
 			})
 			.catch(function(err) {
-				//that.showAlert('Error loading global metadata: ' + err.stack, 'E', err.messageThreadId);
 				that.errorHandler.handle(err);
 				return Promise.resolve(data);
 			});
 		})
 		.catch(function(err) {
 			// App start error handling: Show the error and resolve (else the app would be stuck here).
-			//that.showAlert("Error connecting to database: " + err.stack, 'E', err.messageThreadId);
-			
 			that.errorHandler.handle(err);
 			
 			// Here we resolve, because the pages should be loaded nevertheless.
@@ -720,7 +717,7 @@ class Notes {
 				
 				this.actions.document.save(that.paging.getCurrentlyShownId(), that.paging.getEditorContent())
 				.then(function(data) {
-	        		if (data.message) that.showAlert(data.message, "S", data.messageThreadId);
+	        		if (data.message) that.view.message(data.message, "S");
 	        	})
 				.catch(function(err) {
 	        		that.errorHandler.handle(err);
@@ -826,7 +823,7 @@ class Notes {
 		.then(function(data) {
 			//t.unblock();
 			if (data.message) {
-				that.showAlert(data.message, "S", data.messageThreadId);
+				that.view.message(data.message, "S");
 			}
 		})
 		.catch(function(err) {
@@ -887,7 +884,7 @@ class Notes {
 		const that = this;
 		function addOption(id) {
 			selector.append(
-				$('<option value="' + id + '">' + that.formatSelectOptionText(that.data.getReadablePath(id, null, true)) + '</option>')
+				$('<option value="' + id + '">' + that.view.formatSelectOptionText(that.data.getReadablePath(id, null, true)) + '</option>')
 			);
 		}
 		
@@ -1835,7 +1832,7 @@ class Notes {
 	#headerSelectDocument(e) {
 		e.stopPropagation();
 		
-		var selector = this.getMoveTargetSelector(false, true);
+		var selector = this.view.getDocumentSelector(false, true);
 		selector.val('');
 		
 		var that = this;
@@ -1896,94 +1893,6 @@ class Notes {
 		}
 	}
 
-	/**
-	 * Generates and returns a select element containing elements for all available move targets.
-	 * excludeIds will be excluded from the selection, as well as all children of these.
-	 */
-	getMoveTargetSelector(excludeIds, excludeRoot) {
-		var selector = $('<select></select>');
-		
-		var ids = excludeRoot ? [] : [{
-			text: '/',
-			id: ''
-		}];
-
-		var that = this;
-		this.data.each(function(d) {
-			for(var e in excludeIds || []) {
-				if (that.data.isChildOf(d._id, excludeIds[e])) return;
-			}
-			
-			ids.push({
-				text: that.data.getReadablePath(d._id),
-				id: d._id,
-			});
-		});
-		
-		ids.sort(function(a, b) { 
-			if (a.text < b.text) return -1;
-			if (a.text > b.text) return 1;
-			return 0;
-		});
-		
-		for(var i in ids) {
-			selector.append(
-				$('<option value="' + ids[i].id + '">' + this.formatSelectOptionText(ids[i].text) + '</option>')
-			);
-		}
-		
-		return selector;
-	}
-	
-	/**
-	 * Returns a selector element containing all image attachments available
-	 */
-	getBackgroundImageSelector() {
-		var selector = $('<select></select>');
-		
-		var ids = [];
-
-		var that = this;
-		this.data.each(function(d) {
-			if (!Document.isImage(d)) return;
-			
-			ids.push({
-				text: that.data.getReadablePath(d._id),
-				id: d._id,
-			});
-		});
-		
-		ids.sort(function(a, b) { 
-			if (a.text < b.text) return -1;
-			if (a.text > b.text) return 1;
-			return 0;
-		});
-		
-		selector.append(
-			$('<option value="_cancel" selected>No Image</option>')
-		);
-
-		//for(var i=0; i<ids.length; ++i) {
-		for(var i in ids) {
-			selector.append(
-				$('<option value="' + ids[i].id + '">' + this.formatSelectOptionText(ids[i].text) + '</option>')
-			);
-		}
-		
-		return selector;
-	}
-	
-	/**
-	 * Formatting of all select options texts.
-	 */
-	formatSelectOptionText(text) {
-		if (!text) return text;
-		if (this.device.isLayoutMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
-			return '...' + text.substring(text.length - Config.MOBILE_MAX_SELECTOPTION_LENGTH);
-		}
-		return text;
-	}
-	
 	/**
 	 * Sets the passed array of buttons (must be DOM elements).
 	 */
@@ -2148,7 +2057,7 @@ class Notes {
 	 */
 	clearFavorites() {
 		if (!confirm('Clear favorites for this notebook?')) {
-			this.showAlert('Action cancelled.', 'I');
+			this.view.message('Action cancelled.', 'I');
 			return;
 		}
 		
@@ -2161,8 +2070,8 @@ class Notes {
 	 * Alerting. If you pass a thread ID, all older messages with the same ID will be removed first.
 	 * Default type is "E". alwaysHideAtNewMessage can be used if you like to have the message disappearing whenever a new one comes in.
 	 * callbackFunction is optional and executed on clicking the message.
-	 */
-	showAlert(msg, type, threadID, alwaysHideAtNewMessage, callbackFunction) {
+	 *
+	showAert(msg, type, threadID, alwaysHideAtNewMessage, callbackFunction) {
 		if (!type) type = 'E';
 		
 		var msgEl = $('<div class="singleMessageContainer">' + msg + '</div>');

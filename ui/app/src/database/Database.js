@@ -24,7 +24,9 @@ class Database {
 	/**
 	 * Following options are available:
 	 * 
-	 * state:                 State handler
+	 * state:                 State handler instance
+	 * 
+	 * handle:                Error handler callback function(err)
 	 * 
 	 * notifyOfflineCallback: Called when there could potentially be a 
 	 *                        problem with the Internet connection. The
@@ -42,9 +44,11 @@ class Database {
 	 *                        Mandatory.
 	 */
 	constructor(options) {
-		this.options = options;  // TODO private
+		this.options = options;  
 		
 		this.#state = options.state;
+		
+		this.options.profileOptions.handle = this.options.syncOptions.handle = this.options.handle;
 		
 		this.profileHandler = new ProfileHandler(this, this.options.profileOptions);
 		this.syncHandler = new DatabaseSync(this, this.options.syncOptions);
@@ -253,18 +257,15 @@ class Database {
 								});
 							}
 							
-						}).catch(function(err) {
+						})
+						.catch(function(err) {
 							$('#login').css('display', 'none');
 							
 							that.notifyOfflineState();
 							
-							console.log("Connection error: " + err.message);
+							that.options.handle(err);
 							
-							reject({
-								ok: false,
-								message: err.message,
-								messageThreadId: 'DBLoginMessages'
-							});
+							reject(err);
 						});
 					}
 					
@@ -341,14 +342,13 @@ class Database {
 						}, 500);
 					}*/
 					
-				}).catch(function(err) {
+				})
+				.catch(function(err) {
 					that.notifyOfflineState();
 					
-					reject({
-						ok: false,
-						message: 'Could not connect to database: ' + err.message,
-						messageThreadId: 'DBLoginMessages'
-					});
+					that.options.handle(err);
+					
+					reject(err);
 				});
 			});
 		});
@@ -378,12 +378,7 @@ class Database {
 				resolve({
 					ok: true,
 				});
-			}).catch(function(err) {
-				reject({
-					message: err.message,
-					messageThreadId: 'DBLogoutMessages'
-				});
-			});
+			})
 		});
 	}
 	
@@ -505,13 +500,11 @@ class Database {
 					});
 				}
 				
-			}).catch(function(err) {
+			})
+			.catch(function(err) {
 				that.notifyOfflineState();
 				
-				return Promise.reject({ 
-					message: "Error getting session info " + err.message,
-					messageThreadId: 'DBCheckRemoteMessages'
-				});
+				return Promise.reject(err);
 			});
 		}
 	}
@@ -541,7 +534,8 @@ class Database {
 			dbr = data.db;
 			return that.login(dbr, true);
 			
-		}).then(function(data) {
+		})
+		.then(function(data) {
 			if (!data.ok) {
 				console.log("Error: " + data.message, 'E');
 				that.notifyOfflineState();
@@ -556,10 +550,12 @@ class Database {
 				.on('change', function (info) {
 					console.log(" -> Sending Changes...");
 					
-				}).on('paused', function (err) {
+				})
+				.on('paused', function (err) {
 					console.log(" -> Paused...");
 					
-				}).on('denied', function (err) {
+				})
+				.on('denied', function (err) {
 					console.log(" -> Denied: " + err.message, 'E');
 					reject({
 						ok: false,
@@ -567,7 +563,8 @@ class Database {
 						messageThreadId: 'DBReplicateMessages'
 					});
 					
-				}).on('complete', function (info) {
+				})
+				.on('complete', function (info) {
 					console.log(" -> Replication finished, info: ");
 					console.log(info);
 					resolve({ 
@@ -575,7 +572,8 @@ class Database {
 						info: info 
 					});
 					
-				}).on('error', function (err) {
+				})
+				.on('error', function (err) {
 					console.log(" -> Error: " + err.message, 'E');
 					reject({
 						ok: false,
@@ -583,13 +581,10 @@ class Database {
 						messageThreadId: 'DBReplicateMessages'
 					});
 					
-				}).catch(function(err) {
-					console.log(" -> Error: " + err.message, 'E');
-					reject({
-						ok: false,
-						message: err.message,
-						messageThreadId: 'DBReplicateMessages'
-					});
+				})
+				.catch(function(err) {
+					that.options.handle(err);
+					reject(err);
 				});
 			});
 		});

@@ -68,13 +68,13 @@ class VerifyBackupPage extends Page {
 	
 	#showDiff() {
 		if (!this.#content) return;
-		this._app.showAlert('Started verification, please wait', 'I', 'VerifyProcessMessages');
+		this._app.view.message('Started verification, please wait', 'I', 'VerifyProcessMessages');
 		
 		
 		var file = this.#importVerificationFileInput[0].files[0];
     		
 		if (!file) {
-			this._app.showAlert('Please select a file to verify.', 'I', 'VerifyProcessMessages');
+			this._app.view.message('Please select a file to verify.', 'I', 'VerifyProcessMessages');
 			return;
 	    }
     		
@@ -84,7 +84,7 @@ class VerifyBackupPage extends Page {
 		setTimeout(function() {
 			that.#doShowDiff(file)
 			.catch(function(err) {
-				that._app.showAlert(err.message, err.abort ? 'I': "E", err.messageThreadId);
+				that._app.errorHandler.handle(err);
 			});
 		}, 100);
 	}

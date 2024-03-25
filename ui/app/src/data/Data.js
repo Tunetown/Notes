@@ -80,7 +80,7 @@ class Data {
 		if (this.data.size > Config.dontCheckConflictsGloballyBeyondNumRecords) {
 			console.log('WARNING: No global conflict checks, too much data!');
 			
-			that.#app.showAlert('The notebook has become very large (' + this.data.size + ' documents). Consider splitting the notebook soon! <br>Some functionality will be disabled.', 'W');
+			that.#app.view.message('The notebook has become very large (' + this.data.size + ' documents). Consider splitting the notebook soon! <br>Some functionality will be disabled.', 'W');
 			
 			checkRootConflicts = false;
 		}

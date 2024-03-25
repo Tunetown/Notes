@@ -232,7 +232,7 @@ class Routing {
 		
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 
@@ -261,7 +261,7 @@ class Routing {
 			});						
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 	
@@ -282,7 +282,7 @@ class Routing {
 			return that.#app.loadPage(pageInstance, pageData);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error loading page: ' + err.stack, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 	
@@ -303,7 +303,7 @@ class Routing {
 			return callback(data);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error loading page: ' + err.stack, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 	
@@ -325,7 +325,7 @@ class Routing {
 			});
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error: ' + err.stack, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 	
@@ -370,7 +370,7 @@ class Routing {
 			that.#app.callbacks.executeCallbacks('openDocumentAndTree', noteId);
 		})
 		.catch(function(err) {
-			that.#app.showAlert('Error loading note: ' + err.stack, 'E', err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 	

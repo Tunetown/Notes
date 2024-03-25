@@ -117,7 +117,7 @@ class PageMenu {
 				that.#app.actions.document.create(page.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
-						that.#app.showAlert(data.message, "S", data.messageThreadId);
+						that.#app.view.message(data.message, "S");
 					}
 				})
 				.catch(function(err) {
@@ -134,7 +134,7 @@ class PageMenu {
 				that.#app.actions.document.renameItem(page.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
-						that.#app.showAlert(data.message, "S", data.messageThreadId);
+						that.#app.view.message(data.message, "S");
 					}
 					that.#app.routing.call(page.getCurrentId());
 				})
@@ -175,11 +175,11 @@ class PageMenu {
 	        	
 	        	var delId = page.getCurrentId();
 	        	
-	        	that.#app.showAlert("Preparing to delete item...", 'I', 'DeleteMessages');
+	        	that.#app.view.message("Preparing to delete item...", 'I');
 	        	that.#app.actions.document.deleteItems([delId])
 				.then(function(data) {
 	        		if (data.message) {
-	        			that.#app.showAlert(data.message, "S", data.messageThreadId);
+	        			that.#app.view.message(data.message, "S");
 	        		}
 	        		that.#app.routing.call();
 	        	})
@@ -223,7 +223,7 @@ class PageMenu {
 				that.#app.actions.reference.createReference(id)
 				.then(function(data) {
 	        		if (data.message) {
-	        			that.#app.showAlert(data.message, "S", data.messageThreadId);
+	        			that.#app.view.message(data.message, "S");
 	        		}
 					if (data.newIds && (data.newIds.length > 0)) {
 						that.#app.nav.focus(data.newIds[0]);

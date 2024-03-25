@@ -135,12 +135,12 @@ class NoteTree {
 				.then(function(data) {
 					that.unblock();
 					if (data.message) {
-						that.#app.showAlert(data.message, "S", data.messageThreadId);
+						that.#app.view.message(data.message, "S");
 					}
 				})
 				.catch(function(err) {
 					that.unblock();
-					that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+					that.#app.errorHandler.handle(err);
 				});
         	});
 			
@@ -700,7 +700,7 @@ class NoteTree {
 					
 					that.#app.actions.attachment.uploadAttachments(doc._id, files)
 					.catch(function(err) {
-						that.#app.showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
+						that.#app.errorHandler.handle(err);
 					});
 				}
 			}
@@ -811,11 +811,11 @@ class NoteTree {
 		this.#app.actions.document.create(this.behaviour.getNewItemParent())
 		.then(function(data) {
 			if (data.message) {
-				that.#app.showAlert(data.message, "S", data.messageThreadId);
+				that.#app.view.message(data.message, "S");
 			}
 		})
 		.catch(function(err) {
-			that.#app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+			that.#app.errorHandler.handle(err);
 		});
 	}
 	
@@ -951,7 +951,7 @@ class NoteTree {
 					
 					that.#app.actions.attachment.uploadAttachments(that.behaviour.getNewItemParent(), files)
 					.catch(function(err) {
-						that.#app.showAlert(err.message ? err.message : 'Error uploading files', err.abort ? 'I' : 'E', err.messageThreadId);
+						that.#app.errorHandler.handle(err);
 					});
 				}
 			}
@@ -1371,7 +1371,7 @@ class NoteTree {
 		}
 		var doc = this.#app.data.getById(id);
 		if (!doc) {
-			this.#app.showAlert("Document " + id + " not found");
+			this.#app.view.message("Document " + id + " not found");
 			return;
 		}	
 		
@@ -1891,25 +1891,26 @@ class NoteTree {
     	
     	const srcCanBeMoved = this.canBeMoved(srcId);
     	if (!srcCanBeMoved && moveToSubOfTarget) {
-			this.#app.showAlert("Cannot move this document.", "I");
+			this.#app.view.message("Cannot move this document.", "I");
 			return;
 		}
     	
     	var doAsk = srcCanBeMoved && this.#app.settings.settings.askBeforeMoving;
     	if (doAsk && !confirm("Move " + srcName + " to " + tarName + "?")) {
-			this.#app.showAlert("Moving cancelled.", "I");
+			this.#app.view.message("Moving cancelled.", "I");
 			return;
 		}
     	
+    	var that = this;
     	if (srcCanBeMoved) {
 	    	this.#app.actions.document.moveDocuments([srcId], tarId, moveToSubOfTarget)
 	    	.catch(function(err) {
-	    		this.#app.showAlert("Error moving document: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+	    		that.#app.errorHandler.handle(err);
 	    	});
 		} else {
 	    	this.#app.actions.document.saveChildOrders(srcDoc.parent)
 	    	.catch(function(err) {
-	    		this.#app.showAlert("Error reordering documents: " + err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+	    		that.#app.errorHandler.handle(err);
 	    	});			
 		}
 	}

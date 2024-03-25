@@ -54,7 +54,7 @@ class RefsPage extends Page {
 	async load(id) {
 		var doc = this._app.data.getById(id);
 		if (!doc) {
-			this._app.showAlert('Document ' + id + ' not found');
+			this._app.view.message('Document ' + id + ' not found');
 			return;
 		}
 		
@@ -80,11 +80,11 @@ class RefsPage extends Page {
 						
 						that._app.documentActions.deleteItems([rid])
 						.then(function(data) {
-							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
+							if (data.message) that._app.view.message(data.message, 'S', data.messageThreadId);
 							that._app.routing.call('refs/' + id);
 						})
 						.catch(function(err) {
-							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.errorHandler.handle(err);
 						});
 					})
 				]

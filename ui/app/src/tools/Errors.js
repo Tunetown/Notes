@@ -16,34 +16,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class ErrorHandler {
-	
-	#app = null;
-	
-	constructor(app) {
-		this.#app = app;
-	}
-	
-	/**
-	 * Handle an exception
-	 */
-	handle(something) {
-		if (something instanceof Error) {
-			// Exception object: Show message to user
-			this.#app.view.message(
-				something.message, 
-				something.notesDisplayType ? something.notesDisplayType : 'E'  // Custom display type (see Errors.js)
-			);
-		} else if (typeof something == "string") {
-			// Simple text message error
-			this.#app.view.message(
-				something, 
-				'E'
-			);			
-		}
-		
-		// Always output on console as-is
-		console.error(something);
-	}
+
+/**
+ * Error displayed as Info message when handled by ErrorHandler.
+ */
+class InfoError extends Error {
+	notesDisplayType = 'I';
+}
+
+/**
+ * Error displayed as Warning message when handled by ErrorHandler.
+ */
+class WarningError extends Error {
+	notesDisplayType = 'W';
 }
 	

@@ -136,10 +136,10 @@ class CheckList {
 								return that.#app.actions.nav.requestTree();
 							})
 							.then(function(data) {
-								that.#app.showAlert(data.message, 'I', data.messageThreadId);
+								that.#app.view.message(data.message, 'I', data.messageThreadId);
 							})
 							.catch(function(err) {
-								that.#app.showAlert(err.message, 'E', err.messageThreadId);
+								that._app.errorHandler.handle(err);
 							});
 						}),
 						
@@ -169,10 +169,10 @@ class CheckList {
 								return that.#app.actions.nav.requestTree();
 							})
 							.then(function(data) {
-								that.#app.showAlert(data.message, 'I', data.messageThreadId);
+								that.#app.view.message(data.message, 'I', data.messageThreadId);
 							})
 							.catch(function(err) {
-								that.#app.showAlert(err.message, 'E', err.messageThreadId);
+								that._app.errorHandler.handle(err);
 							});
 						})
 					),

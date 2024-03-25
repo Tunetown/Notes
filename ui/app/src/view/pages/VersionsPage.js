@@ -109,16 +109,16 @@ class VersionsPage extends Page {
 						const cid = that.#current._id;
 						
 						if (!confirm("Do you really want to delete " + id + "?")) {
-							that._app.showAlert("Action cancelled.", "I");
+							that._app.view.message("Action cancelled.", "I");
 							return;
 						}
 						
 						that._app.actions.version.deleteVersion(cid, id)
 						.then(function(data) {
-							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
+							if (data.message) that._app.view.message(data.message, 'S', data.messageThreadId);
 						})
 						.catch(function(err) {
-							that._app.showAlert('Error deleting version: ' + err.stack, 'E', err.messageThreadId);
+							that._app.errorHandler.handle(err);
 						});
 					})
 				]
@@ -248,7 +248,7 @@ class VersionsPage extends Page {
 		if (!doc) return;
 		
 		if (!confirm("Do you really want to delete the whole version history of " + doc.name + '?')) {
-			this._app.showAlert("Action cancelled.", "I");
+			this._app.view.message("Action cancelled.", "I");
 			return;
 		}
 
@@ -258,7 +258,7 @@ class VersionsPage extends Page {
 			that._app.actions.history.showHistory(that.#current._id);
 		})
 		.catch(function(err) {
-			that._app.showAlert('Error deleting history: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -272,7 +272,7 @@ class VersionsPage extends Page {
 		if (!doc) return;
 		
 		if (!confirm("Do you really want to delete the whole change log of " + doc.name + '?')) {
-			this._app.showAlert("Action cancelled.", "I");
+			this._app.view.message("Action cancelled.", "I");
 			return;
 		}
 		
@@ -282,7 +282,7 @@ class VersionsPage extends Page {
 			that._app.actions.history.showHistory(that.#current._id);
 		})
 		.catch(function(err) {
-			that._app.showAlert('Error deleting change log: ' + (err.message ? err.message : ''), 'E', err.messageThreadId)
+			that._app.errorHandler.handle(err);
 		});
 	}
 }

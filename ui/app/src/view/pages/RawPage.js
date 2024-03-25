@@ -115,10 +115,10 @@ class RawPage extends Page {
 		var that = this;
 		(new NotesExporter(this._app)).export(ids)
 		.then(function(/*data*/) {
-			that._app.showAlert('Exported ' + children.length + ' documents.', 'S', 'ExportDocsMessages');
+			that._app.view.message('Exported ' + children.length + ' documents.', 'S', 'ExportDocsMessages');
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -138,14 +138,14 @@ class RawPage extends Page {
 			return that._app.actions.nav.requestTree();
 		})
 		.then(function(data) {
-			that._app.showAlert('Saved ' + (doc.name ? doc.name : 'the document') + '.', 'S', 'SaveDbDocMessages');
+			that._app.view.message('Saved ' + (doc.name ? doc.name : 'the document') + '.', 'S', 'SaveDbDocMessages');
 			
 			if (doc._id) {
 				that._app.routing.call('raw/' + doc._id);
 			}
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 }

@@ -55,10 +55,10 @@ class ConflictsPage extends Page {
 						that._app.actions.document.deleteItemPermanently(id, rev)
 						.then(function(data) {
 							if (data.message) {
-								that._app.showAlert(data.message, "S", data.messageThreadId);
+								that._app.view.message(data.message, "S", data.messageThreadId);
 							}
 						}).catch(function(err) {
-							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.errorHandler.handle(err);
 						});
 					})
 				]);

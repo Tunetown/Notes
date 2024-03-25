@@ -38,11 +38,11 @@ class TrashPage extends Page {
 						
 						that._app.actions.document.undeleteItem(id)
 						.then(function(data) {
-							if (data.message) that._app.showAlert(data.message, 'S', data.messageThreadId);
+							if (data.message) that._app.view.message(data.message, 'S', data.messageThreadId);
 							that._app.routing.call('trash');
 						})
 						.catch(function(err) {
-							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+							that._app.errorHandler.handle(err);
 						});
 					}),
 					$('<div data-toggle="tooltip" title="Delete permanently" class="fa fa-trash versionButton" data-name="' + doc.name + '" data-id="' + doc._id + '"/>')
@@ -52,10 +52,11 @@ class TrashPage extends Page {
 						that._app.actions.document.deleteItemPermanently(id)
 						.then(function(data) {
 							if (data.message) {
-								that._app.showAlert(data.message, "S", data.messageThreadId);
+								that._app.view.message(data.message, "S", data.messageThreadId);
 							}
-						}).catch(function(err) {
-							that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+						})
+						.catch(function(err) {
+							that._app.errorHandler.handle(err);
 						});
 					})
 				]
@@ -172,11 +173,11 @@ class TrashPage extends Page {
 		this._app.actions.trash.emptyTrash()
 		.then(function(data) {
 			if (data.message) {
-				that._app.showAlert(data.message, "S", data.messageThreadId);
+				that._app.view.message(data.message, "S", data.messageThreadId);
 			}
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message, err.abort ? 'I' : 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 }

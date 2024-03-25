@@ -149,10 +149,10 @@ class ConflictPage extends Page {
 		this._app.actions.document.deleteItemPermanently(this.#current.docConflict._id, this.#current.docConflict._rev)
 		.then(function(data) {
 			if (data.message) {
-				that._app.showAlert(data.message, "S", data.messageThreadId);
+				that._app.view.message(data.message, "S", data.messageThreadId);
 			}
 		}).catch(function(err) {
-			that._app.showAlert(err.message, 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 }

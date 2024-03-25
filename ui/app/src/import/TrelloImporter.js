@@ -322,7 +322,7 @@ class TrelloImporter {
 			size = resp.size;
 		})
 		.catch(function(err) {
-			console.log('Error downloading file: ' + url, 'W');
+			that.#app.errorHandler.handle(err);
 		});
 		
 		return {

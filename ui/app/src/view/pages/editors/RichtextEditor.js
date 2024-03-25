@@ -347,21 +347,21 @@ class RichtextEditor extends RestorableEditor {
 		if (this.isDirty()) {
 			this.stopDelayedSave();
 			
-			this._app.showAlert("Saving " + this.#current.name + "...", "I", "SaveMessages");
+			this._app.view.message("Saving " + this.#current.name + "...", "I", "SaveMessages");
 			
 			this.#convertContentLinksAndTags();
 			
 			var that = this;
 			return this._app.actions.document.save(this.#current._id, this.getContent())
 			.then(function(data) {
-        		if (data.message) that._app.showAlert(data.message, "S", data.messageThreadId);
+        		if (data.message) that._app.view.message(data.message, "S", data.messageThreadId);
 
 				if (that.#versionRestoreMode) {
 					that._app.routing.refresh();
 				}
         	})
 			.catch(function(err) {
-        		that._app.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
+        		that._app.errorHandler.handle(err);
         	});
 		}
 	}
@@ -385,7 +385,7 @@ class RichtextEditor extends RestorableEditor {
 		
 		if (removeButton) this.#discardButton.css("display", "none");
 		
-		this._app.showAlert("Action cancelled.", "I");
+		this._app.view.message("Action cancelled.", "I");
 
 		this._app.routing.call("history/" + this.getCurrentId());
 	}
@@ -407,7 +407,7 @@ class RichtextEditor extends RestorableEditor {
 			
 			that._app.actions.document.save(that.getCurrentId(), that.getContent())
 			.catch(function(err) {
-        		that._app.showAlert((!err.abort ? 'Error: ' : '') + err.message, err.abort ? 'I' : "E", err.messageThreadId);
+        		that._app.errorHandler.handle(err);
         	});
 		}, secs * 1000);
 	}

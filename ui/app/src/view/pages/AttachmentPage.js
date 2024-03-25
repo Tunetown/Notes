@@ -99,7 +99,7 @@ class AttachmentPage extends Page {
 		
 		var atts = Document.getAttachments(data.doc);
 		if (!atts) {
-			this._app.showAlert('Document ' + data.doc.name + ' has no attachments');
+			this._app.view.message('Document ' + data.doc.name + ' has no attachments');
 			return;
 		}
 		var att = atts['attachment_data'];
@@ -114,19 +114,19 @@ class AttachmentPage extends Page {
 		if (!data.doc.content_type || data.doc.content_type.startsWith('text/')) {
 			// Interpret as text: Load content and show in text area
 			$.ajax({
-				url: url, 
+				url: data.url, 
 				type: "get",
 				dataType: "text",
 				
 				success: function( response ) {
 					// Show in pre tag
-					this._tab.getContainer().append(
+					that._tab.getContainer().append(
 						$('<textarea readonly class="preview textpreview">' + response + '</textarea>')
 					);
 				},
 			})
 			.fail(function(response, status, error) {
-				that._app.showAlert('Server error ' + response.status + ': Please see the logs.');
+				that._app.view.message('Server error ' + response.status + ': Please see the logs.');
 			});
 		} else {
 			// Try object tag to embed the content (for pdf/mp3/...)
@@ -213,13 +213,13 @@ class AttachmentPage extends Page {
 		this._app.actions.attachment.getAttachmentUrl(this.#current.doc._id)
 		.then(function(data) {
 			if (!data.ok || !data.url) {
-				that._app.showAlert(data.message ? data.message : 'Error downloading attachment', 'E', data.messageThreadId);
+				that._app.view.message(data.message ? data.message : 'Error downloading attachment', 'E', data.messageThreadId);
 			}
 			
 			window.saveAs(data.url, that.#current.doc.name);
 		})
 		.catch(function(err) {
-			that._app.showAlert('Error downloading attachment: ' + err.message, 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -238,16 +238,16 @@ class AttachmentPage extends Page {
 					event.stopPropagation();
 					that._app.hideOptions();	
 					
-					that._app.actions.attachments.updateAttachmentFromFile(that.getCurrentId())
+					that._app.actions.attachment.updateAttachmentFromFile(that.getCurrentId())
 					.then(function(data) {
 						if (data.message) {
-							that._app.showAlert(data.message, "S", data.messageThreadId);
+							that._app.view.message(data.message, "S", data.messageThreadId);
 						}
 						
 						that._app.routing.call(that.getCurrentId());
 						
 					}).catch(function(err) {
-						that._app.showAlert(err.message, err.abort ? 'I' : "E", err.messageThreadId);
+						that._app.errorHandler.handle(err);
 					});
 				})
 			);

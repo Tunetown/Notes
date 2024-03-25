@@ -70,7 +70,7 @@ class DatabaseSync {
 		});
 		
 		if (!this.observeHandler) {
-			this.options.alert('Error creating local observer', 'E', 'DBObserveChangeStateMessages');
+			this.options.alert('Error creating local observer', 'E');
 			return;
 		}
 		
@@ -79,24 +79,26 @@ class DatabaseSync {
 			console.log("Observation: Change");
 			that.setSyncState("dirty");
 			
-		}).on('error', function (err) {
+		})
+		.on('error', function (err) {
 			console.log("Observation: error");
 			that.setSyncState("unknown");
 
-			that.options.alert('Sync error: ' + err.message, 'E', 'DBObserveChangeStateMessages');
+			that.options.handle(err);
 
-		}).on('complete', function (info) {
+		})
+		.on('complete', function (info) {
 			console.log("Observation: Stopped");
 			
 			if (that.dbHandler.profileHandler.getCurrentProfile().clone) {
 				that.setSyncState("unknown");
 			}
 
-		}).catch(function(err) {
-			console.log("Observation: error");
+		})
+		.catch(function(err) {
 			that.setSyncState("unknown");
 
-			that.options.alert('Sync error: ' + err.message, 'E', 'DBObserveChangeStateMessages');
+			that.options.handle(err);
 		});
 	}
 	
@@ -156,10 +158,7 @@ class DatabaseSync {
 				if (!change.change.ok) {
 					that.setSyncState("unknown");
 				
-					that.options.alert('Sync error(s): ' + change.change.errors, 'E', 'DBSyncMessages');
-					
-					console.log('DB Sync error(s):');
-					console.log(change);
+					that.options.alert('Sync error(s): ' + change.change.errors, 'E');
 					return;
 				}
 			
@@ -176,12 +175,10 @@ class DatabaseSync {
 					console.log("Sync: Change: " + (done ? 'final ' : '') + change.direction + " to sequence " + last_seq);
 				});
 
-			}).on('paused', function (err) {
+			})
+			.on('paused', function (err) {
 				if (err) {
-					that.options.alert('Sync error: ' + err, 'E', 'DBSyncMessages');
-					
-					console.log('DB Sync error:');
-					console.log(err);
+					that.options.handle(err);
 
 					that.setSyncState("unknown");
 					return;
@@ -197,7 +194,8 @@ class DatabaseSync {
 					that.options.syncPausedHandler();
 				}
 
-			}).on('active', function (info) {
+			})
+			.on('active', function (info) {
 				//console.log("Sync: Active");
 				that.setSyncState("syncing");
 				that.dbHandler.notifyOfflineState();
@@ -206,13 +204,12 @@ class DatabaseSync {
 					that.options.syncActiveHandler(info);
 				}
 
-			}).on('error', function (err) {
+			})
+			.on('error', function (err) {
 				if (err.status == 401) {					
 					console.log('DB Sync error: ' + err.message);
 				} else {
-					that.options.alert('Sync error: ' + err.message, 'E', 'DBSyncMessages');	
-					console.log('DB Sync error: ');
-					console.log(err);
+					that.options.handle(err);	
 				}
 				
 				that.dbHandler.notifyOfflineState();
@@ -221,17 +218,16 @@ class DatabaseSync {
 
 				// Show Login if the error is 401
 				if (err.status == 401) {
-					that.dbHandler.login().catch(function(err) {
-						that.options.alert('Error logging in: ' + err.message, 'E', 'DBSyncMessages');
-						
-						console.log('DB Login error: ');
-						console.log(err);
+					that.dbHandler.login()
+					.catch(function(err) {
+						that.options.handle(err);
 					});
 				}
 				
 				that.restartLiveSync(syncedUrl, "Restarting live sync after sync error: " + err.status);
 
-			}).on('complete', function (info) {
+			})
+			.on('complete', function (info) {
 				console.log("Sync: Stopped");
 
 				if (that.dbHandler.profileHandler.getCurrentProfile().clone) {
@@ -240,9 +236,9 @@ class DatabaseSync {
 
 				that.restartLiveSync(syncedUrl, "Restarting live sync after completion");
 
-			}).catch(function(err) {
-				console.log('DB Error: ');
-				console.log(err);
+			})
+			.catch(function(err) {
+				that.options.handle(err);
 				
 				that.dbHandler.notifyOfflineState();
 				
@@ -253,18 +249,15 @@ class DatabaseSync {
 				ok: true
 			});
 
-		}).catch(function(err) {
-			console.log('DB Error: ');
-			console.log(err);
-			that.dbHandler.notifyOfflineState();
+		})
+		.catch(function(err) {
+			that.options.handle(err);
 			
+			that.dbHandler.notifyOfflineState();
 			
 			that.restartLiveSync(syncedUrl, "Restarting live sync after exception");
 			
-			return Promise.reject({
-				message: err.message,
-				messageThreadId: err.messageThreadId
-			});
+			return Promise.reject(err);
 		});
 	}
 	
@@ -277,6 +270,7 @@ class DatabaseSync {
 			console.log(' -> Canceling sync restart after profile change');
 			return;
 		}
+		
 		if (this.dbHandler.profileHandler.getCurrentProfile().autoSync) {
 			var that = this;
 			setTimeout(function() {
@@ -318,7 +312,7 @@ class DatabaseSync {
 		var dbRemote = this.dbHandler.dbRemote;
 		if (!dbLocal || !dbRemote) return;
 
-		this.options.alert('Starting synchronization...', 'I', 'DBSyncMessages');
+		this.options.alert('Starting synchronization...', 'I');
 		
 		this.blocked = true;
 		this.setSyncState( "syncing");
@@ -327,17 +321,18 @@ class DatabaseSync {
 		this.dbHandler.login().then(function(data) {
 			dbLocal.sync(dbRemote, {
 				filter: that.filter
-			}).then(function(data) {
+			})
+			.then(function(data) {
 				if (!data.pull || !data.pull.ok) {
 					that.dbHandler.notifyOfflineState();
-					that.options.alert('Pull error: ' + data.pull.message, 'E', 'DBSyncMessages');
+					that.options.alert('Pull error: ' + data.pull.message, 'E');
 					that.blocked = false;
 					console.log(data);
 					return;
 				}
 				if (!data.push || !data.push.ok) {
 					that.dbHandler.notifyOfflineState();
-					that.options.alert('Push error: ' + data.push.message, 'E', 'DBSyncMessages');
+					that.options.alert('Push error: ' + data.push.message, 'E');
 					that.blocked = false;
 					console.log(data);
 					return;
@@ -348,7 +343,7 @@ class DatabaseSync {
 				return that.options.onManualSyncFinishedCallback()
 				.then(function(dataResp) {
 					that.dbHandler.refresh();
-					that.options.alert('Successfully synchronized database.', 'S', 'DBSyncMessages');
+					that.options.alert('Successfully synchronized database.', 'S');
 					
 					that.blocked = false;
 
@@ -359,25 +354,24 @@ class DatabaseSync {
 						that.setSyncState("dirty");
 					}
 					
-				}).catch(function(err) {
-					that.options.alert('Sync callback error: ' + err.message, 'E', 'DBSyncMessages');
+				})
+				.catch(function(err) {
+					that.options.handle(err);
+					
 					that.dbHandler.notifyOfflineState();
 					that.setSyncState( "error");
 					
 					that.blocked = false;
-					
-					console.log('DB Sync callback error:');
-					console.log(err);
 				});
 
-			}).catch(function(err) {
-				that.options.alert('Sync error: ' + err.message, 'E', 'DBSyncMessages');
+			})
+			.catch(function(err) {
+				that.options.handle(err);
+				
 				that.dbHandler.notifyOfflineState();
 				that.setSyncState( "error");
 
 				that.blocked = false;
-				console.log('DB Sync error:');
-				console.log(err);
 			});
 		});
 	}
@@ -569,7 +563,7 @@ class DatabaseSync {
 			});
 		})
 		.catch(function(err) {
-			that.options.alert('Check throwed an error: ' + err.message, 'E', 'CheckConsMessages');
+			that.options.handle(err);
 			that.dbHandler.notifyOfflineState();
 			
 			logCallback(err);

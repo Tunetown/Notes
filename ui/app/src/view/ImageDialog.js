@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class ImageDialog {
+class ImageDialog {   // TODO Use generic dialog
 	
 	#app = null;
 	
@@ -55,7 +55,7 @@ class ImageDialog {
 		 * Returns a Promise containing the data string of the referenced attachment document.
 		 */
 		function convertRefToData(idToConvert) {
-			that.#app.showAlert('Converting to data...', 'I', 'SetItemBgImageMessages');
+			that.#app.view.message('Converting to data...', 'I', 'SetItemBgImageMessages');
 			
 			return that.#app.actions.attachment.getAttachmentUrl(idToConvert)
 			.then(function(data) {
@@ -186,7 +186,7 @@ class ImageDialog {
 				case 'ref': {
 					name = 'Attachment Document';
 					
-					var selector = that.#app.getBackgroundImageSelector();
+					var selector = that.#app.view.getBackgroundImageSelector();
 					selector.css('max-width', '100%');
 					selector.attr('id', 'setBgImageDialogRefIdInput');
 					selector.val(imageData ? (imageData.ref ? imageData.ref : '_cancel') : '_cancel');
@@ -221,11 +221,7 @@ class ImageDialog {
 								updatePreviewRescaled(dataurl);
 							})
 							.catch(function(err) {
-								if (err && err.message) {
-									that.#app.showAlert(err.message, "E", err.messageThreadId);
-								} else {
-									that.#app.showAlert("Error converting image", "E", 'SetItemBgImageMessages');
-								}
+								that.#app.errorHandler.handle(err);
 							});
 						})
 					);
@@ -386,7 +382,7 @@ class ImageDialog {
 						var files = $('#setBgImageDialogFileUploadInput')[0].files;
 		    		
 			    		if (!files || !files.length) {
-			    			that.#app.showAlert('No file selected for upload.', 'E', 'SetItemBgImageMessages');
+			    			that.#app.view.message('No file selected for upload.', 'E', 'SetItemBgImageMessages');
 							return;
 					    }
 	

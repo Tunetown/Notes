@@ -29,117 +29,87 @@ class EditorActions {
 	/**
 	 * Opens an appropriate editor for the given document.
 	 */
-	requestEditor(doc) {
-		var that = this;
-		
+	async requestEditor(doc) {
 		if (doc.type == 'reference') {
 			this.#app.routing.call(doc.ref);
 				
-			return Promise.resolve({
+			return {
 				ok: true,
 				redirected: true
-			});
-		} else 
-		if (doc.type == "attachment") {
-			var db;
-			return this.#documentAccess.loadDocuments([doc])
-			.then(function(/*resp*/) {
-				if (doc._conflicts && doc._conflicts.length) {
-					that.#app.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
-				}
-				
-				if (doc.deleted) {
-					that.#app.showAlert('This document is deleted.', 'W', "ConflictWarnings");
-				}
-				
-				return that.#app.db.get();
-			})
-			.then(function(dbRef) {
-				db = dbRef;
-				return that.#app.actions.attachment.resolveAttachment(db, doc._id, doc); 
-			})
-			.then(function(data) {
-				var url = URL.createObjectURL(data);
-				
-				return that.#app.loadPage(new AttachmentPage(), { doc: doc, url: url });					
-			})
-			.then(function() {
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('openDocument', doc);
-				
-				return Promise.resolve({
-					ok: true
-				});
-			});
+			};
+			
+		} 
+		
+		await this.#documentAccess.loadDocuments([doc]);
 
-		} else {
-			return this.#documentAccess.loadDocuments([doc])
-			.then(function(/*resp*/) {
-				if (doc._conflicts && doc._conflicts.length) {
-					that.#app.showAlert('There are conflicts with this document, please check the conflicts list.', 'W', "ConflictWarnings");
-				}
-				
-				if (doc.deleted) {
-					that.#app.showAlert('This document is deleted.', 'W', "ConflictWarnings");
-				}
-				
-				var e = Document.createDocumentEditor(doc);
-				return that.#app.loadPage(e, doc);
-			})
-			.then(function() {
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('openDocument', doc);
-				
-				return Promise.resolve({
-					ok: true
-				});
-			});
+		// Warnings
+		if (doc._conflicts && doc._conflicts.length) {
+			this.#app.view.message('There are conflicts with this document, please check the conflicts list.', 'W');
 		}
+		if (doc.deleted) {
+			this.#app.view.message('This document is deleted.', 'W');
+		}
+
+		if (doc.type == "attachment") {
+			var db = await this.#app.db.get();
+
+			var data = await this.#app.actions.attachment.resolveAttachment(db, doc._id, doc); 
+
+			var url = URL.createObjectURL(data);
+				
+			await this.#app.loadPage(new AttachmentPage(), { doc: doc, url: url });					
+
+			// Execute callbacks
+			this.#app.callbacks.executeCallbacks('openDocument', doc);
+				
+			return {
+				ok: true
+			};
+		}
+
+		var e = Document.createDocumentEditor(doc);
+		await this.#app.loadPage(e, doc);
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('openDocument', doc);
+			
+		return {
+			ok: true
+		};
 	}
 	
 	/** 
 	 * Saves the note's editor mode to the server.
 	 */
-	saveEditorMode(id, editorMode, editorParams) {
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-			messageThreadId: 'SaveEditorModeMessages' 
-		});
+	async saveEditorMode(id, editorMode, editorParams) {
+		if (!id) throw new Error('No ID passed');
 			
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveEditorModeMessages' 
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 		
-		var that = this;
-		return this.#documentAccess.loadDocuments([doc])
-		.then(function(/*resp*/) {
-			Document.addChangeLogEntry(doc, 'editorModeChanged', {
-				from: doc.editor,
-				to: editorMode
-			});	
+		await this.#documentAccess.loadDocuments([doc]);
+
+		Document.addChangeLogEntry(doc, 'editorModeChanged', {
+			from: doc.editor,
+			to: editorMode
+		});	
 			
-			doc.editor = editorMode;
-			if (editorParams) doc.editorParams = editorParams;
+		doc.editor = editorMode;
+		if (editorParams) doc.editorParams = editorParams;
 			
-			return that.#documentAccess.saveItem(id);
-		})
-		.then(function(dataResp) {
-			if (!dataResp.abort) {
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('saveEditorMode', doc);
+		var dataResp = await this.#documentAccess.saveItem(id);
+		if (dataResp.abort) {
+			return dataResp;
+		}
 				
-				console.log("Successfully saved " + doc.name);
-				
-				return Promise.resolve({ 
-					ok: true,
-					message: "Successfully saved " + doc.name + ".",
-					messageThreadId: 'SaveEditorModeMessages' 
-				});
-			} else {
-				return Promise.resolve(dataResp);
-			}
-		});
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveEditorMode', doc);
+		
+		console.log("Successfully saved " + doc.name);
+		
+		return {
+			ok: true,
+			message: "Successfully saved " + doc.name + ".",
+		};
 	}
 }

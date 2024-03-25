@@ -537,7 +537,7 @@ class Document {
 			Document.checkTags(doc, null, errors);
 			
 			if (errors.length > 0) {
-				Document.app.showAlert(
+				Document.app.view.message(
 					'Broken metadata (' + errors.length + ' errors) in document ' + doc.name + ' (' + doc._id + '), please re-save it or repair in Settings.', 
 					'E', 
 					'brokenMetaMessages'
@@ -1866,7 +1866,7 @@ class Document {
 				that.setBackground(backImageData, overrideBackColor ? overrideBackColor : doc.backColor, element);		
 			})
 			.catch(function(err) {
-				console.log('Error determining specific background image: ' + ((err && err.message) ? err.message : ''));
+				Document.app.errorHandler.handle(err);
 			});
 
 		} else if (Document.isImage(doc) && Document.app.settings.settings.showAttachedImageAsItemBackground) {
@@ -1965,7 +1965,8 @@ class Document {
 			// The document has a specific image for this: Start new task to load and handle the background image (which may be stubbed)
 			applyBackgroundImage(imageData)		
 			.catch(function(err) {
-				Document.app.showAlert(err.message ? err.message : 'Error determining background image: ' + imageData.ref, 'E', err.messageThreadId);
+				//Document.app.view.message(err.message ? err.message : 'Error determining background image: ' + imageData.ref, 'E', err.messageThreadId);
+				Document.app.errorHandler.handle(err);
 			});
 		
 		} else if (backColor) {

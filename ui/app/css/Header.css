@@ -131,7 +131,7 @@
 	min-width: 30px;
 }
 
-#msgContainer {
+.msgContainer {
 	position: absolute;
 	top: 10px;
  	left: 50%;
@@ -141,7 +141,7 @@
   	border-radius: 4px;
 }
 
-#messages {
+.messages {
 	padding: 6px 6p;
 }
 

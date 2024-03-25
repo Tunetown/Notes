@@ -481,10 +481,10 @@ class CheckPage extends Page {
 			return that._app.actions.nav.requestTree();
 		})
 		.then(function() {
-			that._app.showAlert('Solved ' + promises.length + ' problems.', 'I');
+			that._app.view.message('Solved ' + promises.length + ' problems.', 'I');
 		})
 		.catch(function(err) {
-			that._app.showAlert(err.message, 'E', err.messageThreadId);
+			that._app.errorHandler.handle(err);
 		});
 	}
 	
@@ -508,7 +508,7 @@ class CheckPage extends Page {
 		ids = Tools.removeDuplicates(ids);
 
 		if (ids.length == 0) {
-			this._app.showAlert('No documents to solve.');
+			this._app.view.message('No documents to solve.');
 			return Promise.resolve();
 		}
 		
@@ -521,7 +521,7 @@ class CheckPage extends Page {
 		var that = this;
 		return check.solver(ids, check.messages)
 		.then(function(data) {
-			that._app.showAlert((data && data.message) ? data.message : 'Solving finished.', 'S');
+			that._app.view.message((data && data.message) ? data.message : 'Solving finished.', 'S');
 			if (data.dontRunCheck) return Promise.resolve();
 			return that.runCheck(check);
 		})
@@ -529,7 +529,8 @@ class CheckPage extends Page {
 			return that._app.actions.nav.requestTree();
 		})
 		.catch(function(err) {
-			that._app.showAlert((err && err.message) ? err.message : 'Error solving problems.', 'E');
+			that._app.errorHandler.handle(err);
+			
 			if (err.dontRunCheck) return Promise.resolve();
 			return that.runCheck(check);
 		});

@@ -34,7 +34,7 @@ class GeneratePage extends Page {
 		this._tab.setStatusText("Generate Random Documents"); 
 		
 		// Parent selector
-		var targetSelector = this._app.getMoveTargetSelector();
+		var targetSelector = this._app.view.getDocumentSelector();
 		
 		// Build page
 		var that = this;
@@ -293,11 +293,11 @@ class GeneratePage extends Page {
 		var data = new Generator().createData(this.#options);
 
 		if (!confirm('Do you really want to create ' + data.length + ' random doduments under ' + (this.#options.parentId ? this.#options.parentId : 'notebook root') + '?')) {
-			this._app.showAlert('Action cancelled.', 'I', 'generateDocuments');
+			this._app.view.message('Action cancelled.', 'I', 'generateDocuments');
 			return;
 		}
 
-		this._app.showAlert('Started generating documents, please wait...', 'I', 'generateDocuments'); 
+		this._app.view.message('Started generating documents, please wait...', 'I', 'generateDocuments'); 
 		
 		var promises = [];
 		for(var i in data) {
@@ -310,14 +310,10 @@ class GeneratePage extends Page {
 			return that._app.actions.nav.requestTree();
 		})
 		.then(function() {
-			that._app.showAlert('Successfully generated ' + data.length + ' documents', 'S', 'generateDocuments'); 
+			that._app.view.message('Successfully generated ' + data.length + ' documents', 'S', 'generateDocuments'); 
 		})
 		.catch(function(err) {
-			if (err && err.message) {
-				that._app.showAlert('Error generating documents: ' + err.message, 'E', 'generateDocuments');
-			} else {
-				that._app.showAlert('Error generating documents', 'E', 'generateDocuments');
-			}
+			that._app.errorHandler.handle(err);
 		});
 	}
 }

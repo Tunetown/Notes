@@ -33,98 +33,71 @@ class BoardActions {
 	/**
 	 * Saves the note's board state to the server.
 	 */
-	saveBoardState(id, state) {
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-			messageThreadId: 'SaveBoardStateMessages' 
-		});
+	async saveBoardState(id, state) {
+		if (!id) throw new Error('No ID passed');
 			
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveBoardStateMessages' 
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 
-		var that = this;
-		return this.#app.#documentAccess.loadDocuments([doc])
-		.then(function(/*resp*/) {
-			doc.boardState = state;
+		await this.#app.#documentAccess.loadDocuments([doc]);
+
+		doc.boardState = state;
 			
-			return that.#documentAccess.saveItem(id);
-		})
-		.then(function(dataResp) {
-			if (!dataResp.abort) {
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('saveBoardState', doc);
+		var dataResp = this.#documentAccess.saveItem(id);
+		if (dataResp.abort) return;
 				
-				console.log("Successfully saved state of " + doc.name);
-				
-				return Promise.resolve({ 
-					ok: true,
-					message: "Successfully saved state of " + doc.name + ".",
-					messageThreadId: 'SaveBoardStateMessages' 
-				});
-			} else {
-				return Promise.resolve(dataResp);
-			}
-		});
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveBoardState', doc);
+		
+		console.log("Successfully saved state of " + doc.name);
+		
+		return { 
+			ok: true,
+			message: "Successfully saved state of " + doc.name + ".",
+		};
 	}
 	
 	/**
 	 * Loads and returns the board background for the passed document (which should be, but must not be a board).
 	 */
-	getBoardBackground(id) {
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-			messageThreadId: 'GetBoardBackgroundMessages'
-		});
+	async getBoardBackground(id) {
+		if (!id) throw new Error('No ID passed');
 		
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' does not exist',
-			messageThreadId: 'GetBoardBackgroundMessages'
-		});
+		if (!doc) throw new Error('Document ' + id + ' does not exist');
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.getAttachment(id, 'board_background');
-		})
-		.then(function(attBlob) {
-			return new Promise(function(resolve, reject) {
-				var reader = new FileReader();
-				reader.onload = function() {
-					resolve(reader.result);
-				}
-				
-				reader.readAsText(attBlob);
-			});
-		})
-		.then(function(imageData) {
-			return Promise.resolve(JSON.parse(imageData));
+		var db = await this.#app.db.get();
+		var attBlob = await db.getAttachment(id, 'board_background');
+
+		var imageData = await new Promise(function(resolve, reject) {
+			var reader = new FileReader();
+			reader.onload = function() {
+				resolve(reader.result);
+			}
+			
+			reader.readAsText(attBlob);
 		});
+
+		return JSON.parse(imageData);
 	}
 	
 	/**
 	 * Sets a new board background image for the given document
 	 */
-	setBoardBackgroundImage(id) {
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-			messageThreadId: 'SaveBoardBgImageMessages' 
-		});
+	async setBoardBackgroundImage(id) {
+		if (!id) throw new Error('No ID passed');
 		
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveBoardBgImageMessages' 
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 		
-		var that = this;
-		return this.getBoardBackground(doc._id)
-		.then(function(imageData) {
-			doc = that.#app.data.getById(doc._id);  // Reload doc 
-			
-			return that.#imageDialog.askForImage(
+		var backImage;
+		try {
+			var imageData = await this.getBoardBackground(doc._id);
+	
+			// Reload doc 
+			doc = this.#app.data.getById(doc._id);  
+				
+			backImage = await this.#imageDialog.askForImage(
 				doc,
 				doc.name,
 				imageData,
@@ -134,13 +107,13 @@ class BoardActions {
 				Config.BOARD_BACKGROUND_QUALITY,
 				Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
 			);
-		}) 
-		.catch(function(err) {
+			
+		} catch(err) {
 			if (err && err.abort) {
-				return Promise.reject(err);
+				throw new Error(err);
 			} 
 			
-			return that.#imageDialog.askForImage(
+			backImage = await this.#imageDialog.askForImage(
 				doc,
 				doc.name,
 				false,
@@ -150,59 +123,49 @@ class BoardActions {
 				Config.BOARD_BACKGROUND_QUALITY,
 				Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
 			);
-		})
-		.then(function(backImage) {
-			return that.saveBoardBackgroundImage(id, backImage);
-		})			        	
-		.then(function(/*data*/) {
-			return Promise.resolve({
-				ok: true,
-				message: 'Updated background image for ' + doc.name,
-				messageThreadId: 'SetBoardBgImageMessages'
-			});
-    	})
+		}
+		
+		await this.saveBoardBackgroundImage(id, backImage);
+
+		return {
+			ok: true,
+			message: 'Updated background image for ' + doc.name,
+		};
 	}
 	
 	
 	/**
 	 * Saves the passed image data to the passed document as board background.
 	 */
-	saveBoardBackgroundImage(id, imageData) {
+	async saveBoardBackgroundImage(id, imageData) {
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveBoardBgImageMessages' 
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		
+    	await this.#documentAccess.loadDocuments([doc]);
+
+		var blobData =  new Blob([JSON.stringify(imageData)], {
+		    type: 'application/json'
+		});
+		if (!doc._attachments) {
+			doc._attachments = {};
+		}
+		doc._attachments['board_background'] = {
+			content_type: 'application/json',
+			data: blobData,
+			length: blobData.size
+		};
+							    
+		// Change log entry
+		Document.addChangeLogEntry(doc, 'boardBackImageChanged', { 
+			bytes: blobData.size
 		});
 		
-		var that = this;
-    	return this.#documentAccess.loadDocuments([doc])
-    	.then(function(/*resp*/) {
-			var blobData =  new Blob([JSON.stringify(imageData)], {
-			    type: 'application/json'
-			});
-			if (!doc._attachments) {
-				doc._attachments = {};
-			}
-			doc._attachments['board_background'] = {
-				content_type: 'application/json',
-    			data: blobData,
-				length: blobData.size
-			};
-								    
-			// Change log entry
-			Document.addChangeLogEntry(doc, 'boardBackImageChanged', { 
-				bytes: blobData.size
-			});
-			
-	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return that.#documentAccess.saveItems([id]);
-		})
-    	.then(function(/*data*/) {
-    		// Execute callbacks
-    		that.#app.callbacks.executeCallbacks('setBoardBackgroundImage', doc);
+    	// Save the new tree structure by updating the metadata of all touched objects.
+    	await this.#documentAccess.saveItems([id]);
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('setBoardBackgroundImage', doc);
     		
-    		return Promise.resolve({ ok: true });
-    	});
+    	return { ok: true };
 	}
-	
 }
