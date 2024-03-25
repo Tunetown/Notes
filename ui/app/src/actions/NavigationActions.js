@@ -47,7 +47,7 @@ class NavigationActions {
 			// (Re)load tree
 			this.#app.nav.destroy();
 				
-			await that.#app.nav.init();
+			await this.#app.nav.init();
 				
 			return { ok: true };
 			

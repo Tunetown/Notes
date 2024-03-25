@@ -19,84 +19,63 @@
 class TrashActions {
 	
 	#app = null;
-	#documentAccess = null;
 	
-	constructor(app, documentAccess) {
+	constructor(app) {
 		this.#app = app;
-		this.#documentAccess = documentAccess;
 	}
 	
 	/**
 	 * Shows the trash bin window.
 	 */
-	showTrash() {
-		var db;
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.query(that.#app.views.getViewDocId() + '/deleted', {
-				include_docs: true
-			});
-		})
-		.then(function (data) {
-			if (!data.rows) {
-				return Promise.resolve({
-					ok: true,
-					message: "Trash is empty.",
-					messageThreadId: 'ShowTrashMessages'
-				});
-			}
+	async showTrash() {
+		var db = await this.#app.db.get();
 			
-			that.#app.loadPage(new TrashPage(), data.rows);
-			
-			return Promise.resolve({
-				ok: true
-			});
-		});	
+		var data = await db.query(this.#app.views.getViewDocId() + '/deleted', {
+			include_docs: true
+		});
+
+		if (!data.rows) {
+			return {
+				ok: true,
+				message: "Trash is empty.",
+			};
+		}
+		
+		this.#app.loadPage(new TrashPage(), data.rows);
+		
+		return { ok: true };
 	}
 	
 	
 	/**
 	 * Requests to empty the trash.
 	 */
-	emptyTrash() {
-		var db;
-
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.query(that.#app.views.getViewDocId() + '/deleted', {
-				include_docs: true
-			});
-		})
-		.then(function (data) {
-			if (!confirm("Permanently delete " + data.rows.length + " trashed items?")) {
-				return Promise.reject({
-					abort: true,
-					message: "Nothing changed.",
-					messageThreadId: 'EmptyTrashMessages'
-				});
-			}
-			
-			var docs = [];
-			for(var i in data.rows) {
-				data.rows[i].doc._deleted = true;
-				docs.push(data.rows[i].doc);
-			}
-			
-			return db.bulkDocs(docs);
-		})
-		.then(function (/*data*/) {
-			return that.showTrash();
-		})
-		.then(function (/*data*/) {
-			return Promise.resolve({
-				ok: true,
-				message: "Trash is now empty.",
-				messageThreadId: 'EmptyTrashMessages'
-			});
+	async emptyTrash() {
+		var db = await this.#app.db.get();
+		
+		var data = await db.query(this.#app.views.getViewDocId() + '/deleted', {
+			include_docs: true
 		});
+
+		if (!confirm("Permanently delete " + data.rows.length + " trashed items?")) {  // TODO move to UI!
+			throw {
+				abort: true,
+				message: "Nothing changed.",
+			};
+		}
+		
+		var docs = [];
+		for(var i in data.rows) {
+			data.rows[i].doc._deleted = true;
+			docs.push(data.rows[i].doc);
+		}
+			
+		await db.bulkDocs(docs);
+		await that.showTrash();
+			
+		return {
+			ok: true,
+			message: "Trash is now empty.",
+		};
 	}
 }

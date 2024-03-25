@@ -686,43 +686,35 @@ class DocumentActions {
 	/**
 	 * Rename items in general.
 	 */
-	renameItem(id) {
+	async renameItem(id) {
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Item ' + id + ' not found',
-			messageThreadId: 'RenameMessages'
-		});
+		if (!doc) throw new Error('Item ' + id + ' not found');
 		
-		var name = prompt("New name:", doc.name);
+		var name = prompt("New name:", doc.name);                   // TODO move to UI
 		if (!name || name.length == 0) {
-			return Promise.reject({
+			return {
 				abort: true,
 				message: "Nothing changed.",
-				messageThreadId: 'RenameMessages'
-			});
+			};
 		}
 
-		var that = this;
-		return this.#documentAccess.loadDocuments([doc])
-		.then(function(/*resp*/) {
-			Document.addChangeLogEntry(doc, 'renamed', {
-				from: doc.name,
-				to: name
-			});
-			doc.name = name;
-				
-			return that.#documentAccess.saveItem(id)
-		})
-		.then(function (/*data*/) {
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('rename', doc);
-			
-			return Promise.resolve({
-				ok: true,
-				message: "Successfully renamed item.",
-				messageThreadId: 'RenameMessages'
-			});
+		await this.#documentAccess.loadDocuments([doc])
+
+		Document.addChangeLogEntry(doc, 'renamed', {
+			from: doc.name,
+			to: name
 		});
+		doc.name = name;
+				
+		await that.#documentAccess.saveItem(id);
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('rename', doc);
+			
+		return {
+			ok: true,
+			message: "Successfully renamed item."
+		};
 	}
 	
 	/**
@@ -1083,35 +1075,29 @@ class DocumentActions {
 	/**
 	 * Sets the star flag of an item.
 	 */
-	setStarFlag(id, flagActive) {
+	async setStarFlag(id, flagActive) {
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Item ' + id + ' not found',
-			messageThreadId: 'StarMessages'
-		});
+		if (!doc) throw new Error('Item ' + id + ' not found');
 		
 		if (doc.star == !!flagActive) {
-			return Promise.resolve({
+			return {
 				ok: true,
 				nothingChanged: true
-			});
+			};
 		}
 		
-		var that = this;	
-		return this.#documentAccess.loadDocuments([doc])
-		.then(function(/*resp*/) {
-			doc.star = !!flagActive;
+		await this.#documentAccess.loadDocuments([doc]);
+
+		doc.star = !!flagActive;
 				
-			return that.#documentAccess.saveItem(id)
-		})
-		.then(function (data) {
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('setStar', doc);
+		await that.#documentAccess.saveItem(id)
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('setStar', doc);
 			
-			return Promise.resolve({
-				ok: true,
-			});
-		});
+		return {
+			ok: true,
+		};
 	}
 	
 	/**

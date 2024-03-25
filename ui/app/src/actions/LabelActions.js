@@ -29,88 +29,69 @@ class LabelActions {
 	/**
 	 * Shows the labels of a note
 	 */
-	requestLabelDefinitions(id) {
-		var db;
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.get(id);
-		})
-		.then(function (data) {
-			that.#app.loadPage(new LabelDefinitionsPage(), data);
+	async requestLabelDefinitions(id) {
+		var db = await this.#app.db.get();
+		var data = await db.get(id);
 			
-			return Promise.resolve({ ok: true });
-		});
+		this.#app.loadPage(new LabelDefinitionsPage(), data);
+			
+		return { ok: true };
 	}
 
 	/**
 	 * Saves the label definitions for the given document.
 	 */
-	saveLabelDefinitions(id) {
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-		});
+	async saveLabelDefinitions(id) {
+		if (!id) throw new Error('No ID passed');
 		
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		Document.addChangeLogEntry(doc, 'labelDefinitionsChanged');	
 			
-		var that = this;
-		return this.#app.saveItem(id)
-		.then(function(dataResp) {
-			if (!dataResp.abort) {
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('saveLabelDefinitions', [doc]);
-				
-				console.log("Successfully saved label definitions of " + doc.name);
-				
-				return Promise.resolve({ 
-					ok: true,
-					message: "Successfully saved label definitions of " + doc.name + ".",
-				});
-			} else {
-				return Promise.resolve(dataResp);
-			}
-		});
+		var dataResp = await this.#app.saveItem(id);
+		
+		if (dataResp.abort) {
+			return dataResp;
+		}
+		
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveLabelDefinitions', [doc]);
+		
+		console.log("Successfully saved label definitions of " + doc.name);
+		
+		return { 
+			ok: true,
+			message: "Successfully saved label definitions of " + doc.name + ".",
+		};
 	}
-	
 	
 	/**
 	 * Saves the labels for the given document.
 	 */
-	saveLabels(id) {
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-		});
+	async saveLabels(id) {
+		if (!id) throw new Error('No ID passed');
 		
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		Document.addChangeLogEntry(doc, 'labelsChanged');	
 			
-		var that = this;
-		return this.#documentAccess.saveItem(id)
-		.then(function(dataResp) {
-			if (!dataResp.abort) {
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('saveLabels', doc);
+		var dataResp = await this.#documentAccess.saveItem(id);
+
+		if (dataResp.abort) {
+			return dataResp;			
+		}
+			
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveLabels', doc);
 				
-				console.log("Successfully saved labels of " + doc.name);
+		console.log("Successfully saved labels of " + doc.name);
 				
-				return Promise.resolve({ 
-					ok: true,
-					message: "Successfully saved labels of " + doc.name + ".",
-				});
-			} else {
-				return Promise.resolve(dataResp);
-			}
-		});
+		return { 
+			ok: true,
+			message: "Successfully saved labels of " + doc.name + ".",
+		};
 	}
 	
 	/**

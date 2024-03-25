@@ -139,7 +139,7 @@ class Notes {
 			meta: new MetaActions(this),	
 			reference: new ReferenceActions(this, this.documentAccess),	
 			settings: new SettingsActions(this),	
-			trash: new TrashActions(this, this.documentAccess),	
+			trash: new TrashActions(this),	
 			nav: new NavigationActions(this),	
 		};
 		

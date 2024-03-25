@@ -56,79 +56,56 @@ class SettingsActions {
 	/**
 	 * Request the settings for the user
 	 */
-	saveSettings() {
-		var that = this;
-		
-		var db;
-		var doc;
-		
-		return this.#app.db.get()
-		.then(function(_db) {
-			db = _db;
-			return db.get(SettingsActions.settingsDocId);
-		})
-		.then(function (oldDoc) {
-			doc = that.#app.settings.settings;
-			doc._id = Settings.settingsDocId;
-			doc._rev = oldDoc._rev;
+	async saveSettings() {
+		var db = await this.#app.db.get();
+		var oldDoc = await db.get(SettingsActions.settingsDocId);
+
+		var doc = this.#app.settings.settings;
+		doc._id = Settings.settingsDocId;
+		doc._rev = oldDoc._rev;
 			
-			return db.put(doc);
-		})
-		.then(function (data) {
-			if (!data.ok) {
-				return Promise.reject({
-					message: data.message,
-					messageThreadId: 'SaveSettingsMessages'
-				});
-			}
+		var resp = await db.put(doc);
+		if (!resp.ok) throw new Error(resp.message);
 			
-			return that.requestSettings();
-		})
-		.then(function (/*data*/) {
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('saveSettings', doc);
+		await this.requestSettings();
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveSettings', doc);
     		
-			return Promise.resolve({
-				message: "Saved settings.",
-				messageThreadId: 'SaveSettingsMessages'
-			});
-		})
-		.catch(function(err) {
-			return Promise.reject(err);
-		});
+		return {
+			message: "Saved settings."
+		};
 	}
 	
 	/**
 	 * Check settings consistency
 	 */
-	checkSettings() {
-		var that = this;
+	async checkSettings() {
+		var db = await this.#app.db.get();
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.get(SettingsActions.settingsDocId);
-		})
-		.then(function (data) {
-			var errors = [];
-			var ret = that.#app.settings.checkSettings(data, errors);
-			return Promise.resolve({
-				propertiesChecked: ret.numPropsChecked,
-				errors: errors,
-				ok: ret.ok
-			});
-		})
-		.then(function(data) {
-			return that.#app.db.checkConflicts(SettingsActions.settingsDocId)
-			.then(function(data2) {
-				var resp = Tools.mergeCheckResponses([data, data2]);
-				resp.numChecked = 1;
-				return Promise.resolve(resp);
-			})
-			.catch(function(data2) {
-				var resp = Tools.mergeCheckResponses([data, data2]);
-				resp.numChecked = 1;
-				return Promise.reject(resp);
-			});
-		});
+			var settingsDoc = await db.get(SettingsActions.settingsDocId);
+
+		var errors = [];
+		var ret = this.#app.settings.checkSettings(settingsDoc, errors);
+			
+		var data = {
+			propertiesChecked: ret.numPropsChecked,
+			errors: errors,
+			ok: ret.ok
+		};
+	
+		try {
+			var data2 = await this.#app.db.checkConflicts(SettingsActions.settingsDocId);
+					
+			var resp = Tools.mergeCheckResponses([data, data2]);
+			resp.numChecked = 1;
+			
+			return resp;
+			
+		} catch(data2) {
+			var resp = Tools.mergeCheckResponses([data, data2]);
+			resp.numChecked = 1;
+			throw resp;
+		}
 	}
 }
