@@ -1016,70 +1016,45 @@ class DocumentActions {
 	 * For a given document, this loads the background image data (isolated, using a specific DB view) from the database.
 	 * Returns a promise with the backImage data for the document.
 	 */
-	loadItemBackgroundImage(id) {
+	async loadItemBackgroundImage(id) {
 		var doc = this.#app.data.getById(id);
-		if (!doc) {
-			return Promise.reject({
-				message: 'Document ' + id + ' not found',
-				messageThreadId: 'LoadBgImageMessages'
-			});
-		}
-		if (!Document.hasBackImage(doc)) {
-			return Promise.reject({
-				message: 'Document ' + id + ' has no background image',
-				messageThreadId: 'LoadBgImageMessages'
-			});
-		}
+		if (!doc) throw new Error('Document ' + id + ' not found');
+
+		if (!Document.hasBackImage(doc)) throw new Error('Document ' + id + ' has no background image');
 		
 		// Check if we already have the image data
 		if ((!doc.stub) && (!jQuery.isEmptyObject(doc.backImage)) && (!doc.backImage.stub)) {
-			return Promise.resolve(doc.backImage);
+			return doc.backImage;
 		}
 
-		var db;
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.query(that.#app.views.getViewDocId() + '/bgimage', {
-				key: id
-			});
-		})
-		.then(function (data) {
-			if (!data.rows || (data.rows.length == 0)) {
-				return Promise.reject({
-    				message: 'Document ' + id + ' not found',
-					messageThreadId: 'LoadBgImageMessages'
-    			});
-			}
-			if (data.rows.length > 1) {
-				return Promise.reject({
-    				message: 'ID ' + id + ' is not unique: ' + data.rows.length + ' entries found.',
-					messageThreadId: 'LoadBgImageMessages'
-    			});
-			}
-			
-			var backImage = data.rows[0].value.backImage;
-			
-			//console.log(' -> Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
-			
-			// Update data model
-			if (that.#app.data) {
-				if (doc) {
-					doc.backImage = backImage;
-					
-					Document.update(doc, doc);
-				}
-			}
+		var db = await this.#app.db.get();
 
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('loadItemBackgroundImage', {
-				id: id,
-				backImage: backImage
-			});
-			
-			// Return new document
-			return Promise.resolve(backImage);
+		var data = await db.query(this.#app.views.getViewDocId() + '/bgimage', {
+			key: id
 		});
+
+		if (!data.rows || (data.rows.length == 0)) throw new Erro('Document ' + id + ' not found');
+		if (data.rows.length > 1) throw new Error('ID ' + id + ' is not unique: ' + data.rows.length + ' entries found.');
+			
+		var backImage = data.rows[0].value.backImage;
+			
+		console.log(' -> Background image data for ' + id + ' loaded (' + Tools.convertFilesize(JSON.stringify(backImage).length) + ')');
+			
+		// Update data model
+		if (this.#app.data) {
+			if (doc) {
+				doc.backImage = backImage;
+				
+				Document.update(doc, doc);
+			}
+		}
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('loadItemBackgroundImage', {
+			id: id,
+			backImage: backImage
+		});
+		
+		return backImage;
 	}
 }

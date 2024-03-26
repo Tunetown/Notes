@@ -341,8 +341,10 @@ if (typeof document !== 'undefined') {
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-window.onload = function() {
-	new Notes().run(); 
+if (window) {
+	window.onload = function() {
+		new Notes().run(); 
+	}
 }
 
 
