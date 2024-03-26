@@ -80,14 +80,6 @@ class CodeEditor extends RestorableEditor {
 	}
 	
 	/**
-	 * Hides all option menus for the editor
-	 *
-	hideOptions() {
-		this._app.hideMenu();
-		this._app.hideOptions();
-	}
-	
-	/**
 	 * Unloads the editor
 	 */
 	async unload() {
@@ -172,7 +164,7 @@ class CodeEditor extends RestorableEditor {
         	that.#startDelayedSave();
 		});
 		this.#editor.on('focus', function(/*obj*/) {
-			that._app.hideOptions();
+			that._hideOptions();
 		});
 		
 		// Build buttons
@@ -338,7 +330,7 @@ class CodeEditor extends RestorableEditor {
 					CodeEditor.getLanguageSelector(that.#getEditorLanguage(), 'userbuttonselect')
 					.on('change', function(event) {
 						event.stopPropagation();
-						that._app.hideOptions();
+						that._hideOptions();
 						
 						// Change language mode
 						that._app.actions.editor.saveEditorMode(that.getCurrentId(), that.getEditorMode(), {

@@ -289,7 +289,7 @@ class ReferenceActions {
 					for(var d in ret) {
 						if (!ret[d].ok) {
 							return Promise.reject({
-								message: 'Error: ' + ret[d].message,
+								message: ret[d].message,
 								messageThreadId: 'CreateRefMessages'
 							});
 						}

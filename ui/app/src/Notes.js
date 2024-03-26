@@ -505,7 +505,7 @@ class Notes {
 		
 		// Register message handler callbacks: User message
 		this.setServiceWorkerMessageCallback('userMessage', function(data) {
-			const msg = data.message ? data.message : 'SW Message internal Error: No message transmitted';
+			const msg = data.message ? data.message : 'SW Message internal error: No message transmitted';
 			
 			const type = data.type ? data.type : 'I';
 			

@@ -20,15 +20,21 @@ class Dialog {
 	
 	#view = null;
 	
+	#dialog = null;
+	#submitCallback = null;
+	#cancelCallback = null;
+	
+
 	constructor(view) {
 		this.#view = view;
 	}
 	
 	/**
 	 * Shows an Ok/Cancel dialog. content is optional.
-	 * Returns true or false.
+	 * Returns true or false. 
+	 * onShownCallback is an optional callback called after the dialog has been shown.
 	 */
-	async prompt(text, content) {
+	async confirm(text, content, onShownCallback) {
 		var that = this;
 		
 		return new Promise(function(resolve) {
@@ -52,15 +58,17 @@ class Dialog {
 							resolve(false);
 						}
 					}
-				]
+				],
+				onShownCallback
 			);
 		});
 	}
 
 	/**
-	 * Prompt for file(s) to upload
+	 * Prompt for file(s) to upload.
+	 * onShownCallback is an optional callback called after the dialog has been shown.
 	 */
-	async promptFiles(text) {
+	async promptFiles(text, onShownCallback) {
 		var that = this;
 		
 		var input = $('<input type="file" class="form-control" />');
@@ -103,7 +111,8 @@ class Dialog {
 							resolve(false);
 						}
 					}
-				]
+				],
+				onShownCallback
 			)
 		});
 	}
@@ -118,14 +127,10 @@ class Dialog {
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
-	#dialog = null;
-	#submitCallback = null;
-	#cancelCallback = null;
-	
 	/**
 	 * Create the dialog DOM
 	 */
-	#create(text, content, buttons) {
+	#create(text, content, buttons, onShownCallback) {
 		this.close();
 		
 		this.#dialog = $('<div class="modal fade" tabindex="-1" aria-hidden="true" />').appendTo('body');
@@ -157,6 +162,9 @@ class Dialog {
 			if (that.#cancelCallback) that.#cancelCallback();
 			that.#destroy();
 		})
+		.on('shown.bs.modal', function() {
+			if (onShownCallback) onShownCallback();
+		})
 		.modal();
 		
 		var that = this;
@@ -164,8 +172,8 @@ class Dialog {
 		    if (e.which == 13) {
 				if (that.#submitCallback) {
 					that.#submitCallback();
-					that.close();
 				}
+				that.close();
 		    }
 		});
 	}
@@ -175,7 +183,7 @@ class Dialog {
 	 */
 	#destroy() {
 		if (this.#dialog) this.#dialog.remove();
-		
+
 		this.#dialog = null;
 		this.#submitCallback = null;
 		this.#cancelCallback = null;

@@ -63,13 +63,9 @@ class ContextMenu {
 						if (that.#app.optionsIds.length != 1) return;
 						
 						that.#app.nav.block();
-						that.#app.actions.document.renameItem(that.#app.optionsIds[0])
-						.then(function(data) {
+						that.#app.view.triggerRenameItem(that.#app.optionsIds[0])
+						.then(function() {
 							that.#app.nav.unblock();
-							
-							if (data.message) {
-								that.#app.view.message(data.message, "S");
-							}
 						})
 						.catch(function(err) {
 							that.#app.nav.unblock();

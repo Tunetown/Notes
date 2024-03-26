@@ -126,7 +126,7 @@ class Views {
 		.then(function(data) {
 			if (!data.ok) {
 				return Promise.reject({
-					message: 'Error: ' + data.message,
+					message: data.message,
 					messageThreadId: 'DBUpdateViewsMessages'
 				});
 			}

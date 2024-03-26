@@ -75,6 +75,14 @@ class Page {
 	////////////////////////////////////////////////////////////////////////////////////////////
 	
 	/**
+	 * Hides all option menus for the editor TODO still needed?
+	 */
+	_hideOptions() {
+		this._app.hideMenu();
+		this._app.hideOptions();
+	}
+	
+	/**
 	 * Returns (and creates if needed) an unique page id string.
 	 */
 	_getPageId() {

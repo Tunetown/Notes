@@ -113,7 +113,7 @@ class ProfileHandler {
 		curr = this.getProfile(this.#current);
 		if (curr) return curr;
 		
-		console.log("Error: Could not load profile: " + this.#current);
+		console.error("Could not load profile: " + this.#current);
 		return null;
 	}
 	

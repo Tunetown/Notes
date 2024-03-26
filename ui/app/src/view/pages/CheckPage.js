@@ -121,9 +121,7 @@ class CheckPage extends Page {
 				description: 'Local/Remote consistency',
 				runner: function(onFinish) {
 					that.#processCheck(
-						that._app.db.syncHandler.checkConsistency(function(msg, type) {
-							console.log(msg, type);
-						}),
+						that._app.db.syncHandler.checkConsistency(),
 						onFinish
 					);
 				},

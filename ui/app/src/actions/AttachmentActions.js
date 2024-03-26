@@ -105,31 +105,9 @@ class AttachmentActions {
 		if (!doc && id.length) throw new Error('Document ' + id + ' does not exist');
 		if (id.length && (doc.type == 'reference')) throw new Error('Document ' + doc.name + ' is a reference and cannot have children');
 
-		// Get all existing references
-		var existingRefs = [];
-		this.#app.data.each(function(doc) {
-			if (doc.type == 'reference') existingRefs.push(doc._id);
-		});
-		
-		// Create target selector
-		var targetSelector = this.#app.view.getDocumentSelector(existingRefs);
-		targetSelector.val(id);
-
-		// Ask user to select the target
-		var answer = await this.#app.view.getDialog().prompt('Add ' + files.length + ' files?', [   // TODO ask in advance! Move out of here.
-			targetSelector
-		]);
-		var targetId = targetSelector.val() ? targetSelector.val() : id;
-		if (!answer) throw new InfoError('Action canceled');
-
-		// If the user chose another target than the passed one, load it and check if it exists 
-		if (targetId && (targetId != id)) {
-			doc = this.#app.data.getById(targetId);
-			if (!doc && targetId.length) throw new Error('Document ' + targetId + ' not found', 'E', 'UplAttMessages');
-		}
-
 		// Create the new documents for the selected attachments	    		
 		var docs = [];
+		
 		for(var f=0; f<files.length; ++f) {   // NOTE: No shorter form possible because of the type files has. Must be that way ;)
 			var file = files[f];
 			var strippedName = Document.stripAttachmentName(file.name);
@@ -139,7 +117,7 @@ class AttachmentActions {
 				_id: this.#app.data.generateIdFrom(file.name),
 				type: "attachment",
 				name: file.name,
-				parent: targetId,
+				parent: id,
 				order: 0,
 				timestamp: file.lastModified,
 				content_type: file.type,
@@ -166,7 +144,7 @@ class AttachmentActions {
 		// Get IDs of the created documents and check if all went ok
 		var newIds = [];
 		for(var d in data) {
-			if (!data[d].ok) throw new Error('Error: ' + data[d].message);
+			if (!data[d].ok) throw new Error(data[d].message);
 			newIds.push(data[d].id);
 		}
 		
@@ -184,9 +162,6 @@ class AttachmentActions {
 			this.#app.data.add(docc);
 		}
 		
-		// Show the target document
-		this.#app.routing.call(targetId);
-			
 		// Execute callbacks
 		this.#app.callbacks.executeCallbacks('create', newIds);
 			
@@ -200,15 +175,10 @@ class AttachmentActions {
 	/**
 	 * Replaces the passed doc (must be an attachment) from a file
 	 */
-	async updateAttachmentFromFile(id) {
+	async updateAttachmentFromFile(id, file) {
 		var doc = this.#app.data.getById(id);
 		if (!doc) throw new Error('Document ' + id + ' does not exist');
 		if (doc.type != 'attachment') throw new Error('Document ' + doc.name + ' is not an attachment');
-
-		var files = await this.#app.view.getDialog().promptFiles('Upload new content for ' + doc.name);     // TODO ask in advance! Move out of here.
-		if (!files) throw new InfoError('Action canceled');
-		
-		var file = files[0];
 
     	var maxMB = parseFloat(this.#app.settings.settings.maxUploadSizeMB);
 		if (maxMB && (file.size > (maxMB * 1024 * 1024))) {
@@ -232,7 +202,7 @@ class AttachmentActions {
 		Document.updateMeta(doc);
 			
 		var data = await this.#documentAccess.saveItem(doc._id);
-		if (!data.ok) throw new Error('Error: ' + data.message);
+		if (!data.ok) throw new Error(data.message);
 		
 		console.log("Successfully updated " + doc.name);
 		

@@ -21,13 +21,9 @@ class BoardActions {
 	#app = null;
 	#documentAccess = null;
 	
-	#imageDialog = null;
-	
 	constructor(app, documentAccess) {
 		this.#app = app;
 		this.#documentAccess = documentAccess;
-		
-		this.#imageDialog = new ImageDialog(this.#app);
 	}
 	
 	/**
@@ -69,7 +65,7 @@ class BoardActions {
 		var db = await this.#app.db.get();
 		var attBlob = await db.getAttachment(id, 'board_background');
 
-		var imageData = await new Promise(function(resolve, reject) {
+		var imageData = await new Promise(function(resolve) {
 			var reader = new FileReader();
 			reader.onload = function() {
 				resolve(reader.result);
@@ -84,47 +80,15 @@ class BoardActions {
 	/**
 	 * Sets a new board background image for the given document
 	 */
-	async setBoardBackgroundImage(id) {
+	async setBoardBackgroundImage(id, backImage) {
 		if (!id) throw new Error('No ID passed');
 		
 		var doc = this.#app.data.getById(id);
 		if (!doc) throw new Error('Document ' + id + ' not found');
 		
-		var backImage;// TODO ask in advance! Move out of here.
-		try {
-			var imageData = await this.getBoardBackground(doc._id);
-	
-			// Reload doc 
-			doc = this.#app.data.getById(doc._id);  
-				
-			backImage = await this.#imageDialog.askForImage(
-				doc,
-				doc.name,
-				imageData,
-				Config.BOARD_BACKGROUND_MAX_WIDTH, 
-				Config.BOARD_BACKGROUND_MAX_HEIGHT, 
-				Config.BOARD_BACKGROUND_MIME_TYPE,
-				Config.BOARD_BACKGROUND_QUALITY,
-				Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
-			);
+		// Reload doc 
+		doc = this.#app.data.getById(doc._id);  
 			
-		} catch(err) {
-			if (err && err.abort) {
-				throw new Error(err);
-			} 
-			
-			backImage = await this.#imageDialog.askForImage(
-				doc,
-				doc.name,
-				false,
-				Config.BOARD_BACKGROUND_MAX_WIDTH, 
-				Config.BOARD_BACKGROUND_MAX_HEIGHT, 
-				Config.BOARD_BACKGROUND_MIME_TYPE,
-				Config.BOARD_BACKGROUND_QUALITY,
-				Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
-			);
-		}
-		
 		await this.saveBoardBackgroundImage(id, backImage);
 
 		return {

@@ -45,7 +45,7 @@ class NotesExporter {
 		.then(function(data) {
 			if (!data.rows) {
 				return Promise.reject({
-					message: "Error: No data received.",
+					message: "No data received.",
 					messageThreadId: 'ExportDocsMessages'
 				})
 			}
@@ -90,7 +90,7 @@ class NotesExporter {
 		.then(function(data) {
 			if (!data.rows) {
 				return Promise.reject({
-					message: "Error: No data received.",
+					message: "No data received.",
 					messageThreadId: 'ExportDocsMessages'
 				})
 			}

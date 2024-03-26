@@ -48,13 +48,6 @@ class AttachmentPage extends Page {
 	}
 	
 	/**
-	 * Hides all option menus for the editor TODO cleanup
-	 *
-	hideOptions() {
-		this._app.hideMenu();
-	}
-	
-	/**
 	 * Returns the ID of the loaded note, if any, or false if none is loaded.
 	 */
 	getCurrentId() {
@@ -236,19 +229,9 @@ class AttachmentPage extends Page {
 				$('<div class="userbutton"><div class="fa fa-exchange-alt userbuttonIcon"></div>Update from File</div>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					that._app.hideOptions();	
+					that._hideOptions();	
 					
-					that._app.actions.attachment.updateAttachmentFromFile(that.getCurrentId())
-					.then(function(data) {
-						if (data.message) {
-							that._app.view.message(data.message, "S", data.messageThreadId);
-						}
-						
-						that._app.routing.call(that.getCurrentId());
-						
-					}).catch(function(err) {
-						that._app.errorHandler.handle(err);
-					});
+					that.#handleUpdateFromFile();
 				})
 			);
 			
@@ -260,5 +243,32 @@ class AttachmentPage extends Page {
 				})
 			);
 		});
+	}
+	
+	/**
+	 * Handler for updating from file
+	 */
+	async #handleUpdateFromFile() {
+		var id = this.getCurrentId();
+		var doc = this._app.data.getById(id);
+		
+		try {
+			if (!doc) throw new Error('Document ' + id + ' does not exist');
+		
+			var files = await this._app.view.getDialog().promptFiles('Upload new content for ' + doc.name); 
+			if (!files) throw new InfoError('Action canceled');
+		
+			var file = files[0];
+
+			var data = await this._app.actions.attachment.updateAttachmentFromFile(id, file);
+			if (data.message) {
+				this._app.view.message(data.message, "S");
+			}
+				
+			this._app.routing.call(id);
+				
+		} catch(err) {
+			this._app.errorHandler.handle(err);
+		};
 	}
 }

@@ -190,9 +190,12 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/view/pages/editors/CodeEditor.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/view/View.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/view/Dialog.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/view/ImageDialog.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/MessageHandler.js', tag: 'script', type: 'text/javascript' },
+
+    { src: './ui/app/src/view/dialog/Dialog.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/dialog/Dialogs.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/dialog/ImageDialog.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/dialog/CreateDialog.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/view/pages/ProfilesPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/ConflictPage.js', tag: 'script', type: 'text/javascript' },

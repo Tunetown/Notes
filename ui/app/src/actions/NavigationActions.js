@@ -31,7 +31,7 @@ class NavigationActions {
 		var db = await this.#app.db.get();
 		
 		try {
-			var data = db.query(this.#app.views.getViewDocId() + '/toc');
+			var data = await db.query(this.#app.views.getViewDocId() + '/toc');
 	
 			// For debugging
 			if (data.rows.length > 0) {

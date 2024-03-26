@@ -124,10 +124,11 @@ class NoteTree {
 			);
 				
 			// Register right click event to create new item on grid
+			$('#' + this.treeContainerId).off('contextmenu');
 			$('#' + this.treeContainerId).contextmenu(function(e) {
         		e.preventDefault();
         		e.stopPropagation();
-        		
+
         		that.#app.hideOptions();
         		
         		that.block();
@@ -698,10 +699,7 @@ class NoteTree {
 				callback: function(files, definition, element) {
 					console.log("Dropped " + files.length + " files into " + doc.name);
 					
-					that.#app.actions.attachment.uploadAttachments(doc._id, files)
-					.catch(function(err) {
-						that.#app.errorHandler.handle(err);
-					});
+					that.#uploadFilesHandler(files, doc._id);
 				}
 			}
 		]);
@@ -948,11 +946,7 @@ class NoteTree {
 				elements: $('#' + this.treeNavContainerId),
 				callback: function(files, definition, element) {
 					console.log("Dropped " + files.length + " files into navigation container");
-					
-					that.#app.actions.attachment.uploadAttachments(that.behaviour.getNewItemParent(), files)
-					.catch(function(err) {
-						that.#app.errorHandler.handle(err);
-					});
+					that.#uploadFilesHandler(files, that.behaviour.selectedParent); 
 				}
 			}
 		]);
@@ -1000,11 +994,6 @@ class NoteTree {
 			function(newIds) {
 				that.destroy();
 				that.init();
-				
-				// NOTE: Without the timeout, the parent is not displayed right.
-				/*setTimeout(function() {
-					that.focus(newIds[0]);
-				}, 0);*/
 			}
 		);
 		this.#app.callbacks.registerCallback(
@@ -1089,6 +1078,23 @@ class NoteTree {
 		);
 	}
 
+	/**
+	 * Handler for uploading files via drag and drop
+	 */
+	async #uploadFilesHandler(files, defaultId) {
+		try {
+			var id = await this.#app.view.dialogs.promptFileUploadTarget('Add ' + files.length + ' files?', defaultId);
+				
+			await this.#app.actions.attachment.uploadAttachments(id, files);
+			
+			// Show the target document
+			this.#app.routing.call(defaultId);
+			
+		} catch(err) {
+			this.#app.errorHandler.handle(err);
+		}
+	}
+	
 	/**
 	 * Set up the footer for mobiles.
 	 */	

@@ -18,14 +18,17 @@
  */
 class View {  
 	
-	#app = null;
+	app = null;
+	dialogs = null;
 	#messageHandler = null;
 	
 	constructor(app) {
-		this.#app = app;
+		this.app = app;
 		
 		this.#messageHandler = new MessageHandler();
 		this.#messageHandler.init();
+		
+		this.dialogs = new Dialogs(this);
 	}
 	
 	/**
@@ -33,6 +36,23 @@ class View {
 	 */
 	getDialog() {
 		return new Dialog(this);
+	}
+
+	/**
+	 * Ask the user for a new name and save the new name.
+	 *  
+	 * TODO still located right here?
+	 */	
+	async triggerRenameItem(id) {
+		var doc = this.app.data.getById(id);
+		if (!doc) throw new Error('Item ' + id + ' not found');
+
+		var newName = await this.dialogs.prompt("New name:", doc.name);
+		var data = await this.app.actions.document.renameItem(id, newName);
+
+		if (data.message) {
+			this.message(data.message, "S");
+		}
 	}
 	
 	/**
@@ -48,13 +68,13 @@ class View {
 		}];
 
 		var that = this;
-		this.#app.data.each(function(d) {
+		this.app.data.each(function(d) {
 			for(var e in excludeIds || []) {
-				if (that.#app.data.isChildOf(d._id, excludeIds[e])) return;
+				if (that.app.data.isChildOf(d._id, excludeIds[e])) return;
 			}
 			
 			ids.push({
-				text: that.#app.data.getReadablePath(d._id),
+				text: that.app.data.getReadablePath(d._id),
 				id: d._id,
 			});
 		});
@@ -79,7 +99,7 @@ class View {
 	 */
 	formatSelectOptionText(text) {
 		if (!text) return text;
-		if (this.#app.device.isLayoutMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
+		if (this.app.device.isLayoutMobile() && (text.length > Config.MOBILE_MAX_SELECTOPTION_LENGTH)) {
 			return '...' + text.substring(text.length - Config.MOBILE_MAX_SELECTOPTION_LENGTH);
 		}
 		return text;
@@ -94,11 +114,11 @@ class View {
 		var ids = [];
 
 		var that = this;
-		this.#app.data.each(function(d) {
+		this.app.data.each(function(d) {
 			if (!Document.isImage(d)) return;
 			
 			ids.push({
-				text: that.#app.data.getReadablePath(d._id),
+				text: that.app.data.getReadablePath(d._id),
 				id: d._id,
 			});
 		});

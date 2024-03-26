@@ -24,6 +24,8 @@ class BoardEditor extends Editor {
 	#columnGrids = [];           // Array of column grid instances
 	#scrollContainer = null;     // Scroll container JQuery element
 	
+	#imageDialog = null;
+	
 	/**
 	 * Tells that the editor needs tree data loaded before load() is called.
 	 */
@@ -50,14 +52,6 @@ class BoardEditor extends Editor {
 	 */
 	getEditorMode() {
 		return 'board';
-	}
-	
-	/**
-	 * Hides all option menus for the editor TODO still needed?
-	 *
-	hideOptions() {
-		this.#app.hideMenu();
-		this.#app.hideOptions();
 	}
 	
 	/**
@@ -88,6 +82,10 @@ class BoardEditor extends Editor {
 	 * Loads the given data into the editor (which also is initialized here at first time).
 	 */
 	async load(doc) {
+		if (!this.#imageDialog) {
+			this.#imageDialog = new ImageDialog(this._app);
+		}
+		
 		var that = this;
 
 		// Callbacks for color picking
@@ -529,10 +527,7 @@ class BoardEditor extends Editor {
 						
 						console.log("Dropped " + files.length + " files into " + lst.name);
 						
-						that._app.actions.attachment.uploadAttachments(id, files)
-						.catch(function(err) {
-							that._app.errorHandler.handle(err);
-						});
+						that.#uploadFilesHandler(files, id);
 					}
 				}
 			]);
@@ -614,7 +609,7 @@ class BoardEditor extends Editor {
 				item.getElement().style.width = item.getWidth() + 'px';
 				item.getElement().style.height = item.getHeight() + 'px';
 				
-				that._app.hideOptions();
+				that._hideOptions();
 			})
 			.on('dragReleaseEnd', function (item) {
 				item.getElement().style.width = item.oldWidth;
@@ -661,7 +656,7 @@ class BoardEditor extends Editor {
 			itemPlaceholderClass: 'bmuuri-item-placeholder'
 		})
 		.on('dragInit', function (item) {
-			that._app.hideOptions();
+			that._hideOptions();
 		})
 		.on('dragReleaseEnd', function (item) {
 			that.#saveOrder(); //item);
@@ -682,6 +677,22 @@ class BoardEditor extends Editor {
 		});
 	}
 	
+	/**
+	 * Handler for uploading files via drag and drop
+	 */
+	async #uploadFilesHandler(files, defaultId) {
+		try {
+			var id = await this._app.view.dialogs.promptFileUploadTarget('Add ' + files.length + ' files?', defaultId);
+				
+			this._app.actions.attachment.uploadAttachments(id, files);
+			
+			this._app.routing.call(this.getCurrentId()); // TODO this is not updating correctly after dropping files into board columns. You have to reload manually....
+			
+		} catch(err) {
+			this._app.errorHandler.handle(err);
+		}
+	}
+
 	/**
 	 * Refresh board
 	 */
@@ -896,15 +907,9 @@ class BoardEditor extends Editor {
 				$('<div class="userbutton"><div class="fa fa-image userbuttonIcon"></div>Background Image</div>')
 				.on('click', function(event) {
 					event.stopPropagation();
-					that._app.hideOptions();
+					that._hideOptions();
 					
-					that._app.actions.board.setBoardBackgroundImage(that.getCurrentId())
-					.then(function(/*data*/) {
-						that._app.routing.call(that.getCurrentId());
-					})
-					.catch(function(err) {
-						that._app.errorHandler.handle(err);
-					});
+					that.#setBoardBackgroundImage();
 				}),	
 			);
 			
@@ -912,6 +917,35 @@ class BoardEditor extends Editor {
 				new PageMenu(that._app).get(that)
 			);
 		});
+	}
+	
+	/**
+	 * Ask the user for a new background image and set it.
+	 */
+	async #setBoardBackgroundImage() {
+		if (!this.#current) throw new Error('No board loaded');
+
+		try {
+			var imageData = await this._app.actions.board.getBoardBackground(this.#current._id);
+			
+			var backImage = await this.#imageDialog.show({
+				doc: this.#current,
+				displayName: this.#current.name,
+				imageData: imageData,
+				maxWidth: Config.BOARD_BACKGROUND_MAX_WIDTH, 
+				maxHeight: Config.BOARD_BACKGROUND_MAX_HEIGHT, 
+				mimeType: Config.BOARD_BACKGROUND_MIME_TYPE,
+				quality: Config.BOARD_BACKGROUND_QUALITY,
+				maxBytes: Config.BOARD_BACKGROUND_DONT_RESCALE_BELOW_BYTES
+			});
+		
+			await this._app.actions.board.setBoardBackgroundImage(this.#current._id, backImage)
+	
+			this._app.routing.call(this.#current._id);
+			
+		} catch(err) {
+			this._app.errorHandler.handle(err);
+		}
 	}
 }
 	

@@ -34,16 +34,26 @@ class ErrorHandler {
 				something.message, 
 				something.notesDisplayType ? something.notesDisplayType : 'E'  // Custom display type (see Errors.js)
 			);
+			
+			switch(something.notesDisplayType) {
+			case 'E': console.error(something); break;
+			case 'W': console.warn(something); break;
+			case 'I': console.info(something); break;
+			default: console.log(something); break;
+			}
+			
 		} else if (typeof something == "string") {
 			// Simple text message error
 			this.#app.view.message(
 				something, 
 				'E'
-			);			
+			);
+			
+			console.error(something);			
+			
+		} else {
+			console.error(something);
 		}
-		
-		// Always output on console as-is
-		console.error(something);
 	}
 }
 	

@@ -122,14 +122,6 @@ class RichtextEditor extends RestorableEditor {
 	}
 	
 	/**
-	 * Hides all option menus for the editor TODO cleanup
-	 *
-	hideOptions() {
-		this._app.hideMenu();
-		this._app.hideOptions();
-	}
-	
-	/**
 	 * Unloads the editor
 	 */
 	async unload() {
@@ -206,7 +198,7 @@ class RichtextEditor extends RestorableEditor {
 	                });
 					
 					editor.on('focus', function(e) {
-			            that._app.hideOptions();
+			            that._hideOptions();
 						that._app.setFocus(Notes.FOCUS_ID_EDITOR);
 			        });
 					
@@ -318,7 +310,7 @@ class RichtextEditor extends RestorableEditor {
 						.on('focus', function(event) {
 							event.stopPropagation();
 							that.#getEditor().execCommand('SearchReplace');
-							that._app.hideOptions();
+							that._hideOptions();
 						})
 					)
 				),

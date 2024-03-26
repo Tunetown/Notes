@@ -131,11 +131,8 @@ class PageMenu {
 				event.stopPropagation();
 				that.#app.hideOptions();	
 				
-				that.#app.actions.document.renameItem(page.getCurrentId())
-				.then(function(data) {
-					if (data.message) {
-						that.#app.view.message(data.message, "S");
-					}
+				that.#app.view.triggerRenameItem(page.getCurrentId())
+				.then(function() {
 					that.#app.routing.call(page.getCurrentId());
 				})
 				.catch(function(err) {

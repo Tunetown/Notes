@@ -228,7 +228,7 @@ class Database {
 							if (err) {
 								that.notifyOfflineState();
 								
-								console.log("Connection error: " + err.message);
+								console.error(err);
 								
 								reject({
 									ok: false,
@@ -537,7 +537,7 @@ class Database {
 		})
 		.then(function(data) {
 			if (!data.ok) {
-				console.log("Error: " + data.message, 'E');
+				console.error(data.message);
 				that.notifyOfflineState();
 				
 				return Promise.reject(data);
@@ -574,7 +574,7 @@ class Database {
 					
 				})
 				.on('error', function (err) {
-					console.log(" -> Error: " + err.message, 'E');
+					console.error(err);
 					reject({
 						ok: false,
 						message: err.message,

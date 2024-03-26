@@ -1930,7 +1930,7 @@ class Document {
 				
 			} else if (imageDataP.ref) {
 				// Reference background
-				return Document.app.actions.attachmanet.getAttachmentUrl(imageDataP.ref)
+				return Document.app.actions.attachment.getAttachmentUrl(imageDataP.ref)
 				.then(function(data) {
 					if (data.url) {
 						$(element).css('background-image', gradient + 'url("' + data.url + '")');

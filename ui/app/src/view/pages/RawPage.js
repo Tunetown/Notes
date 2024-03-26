@@ -61,7 +61,7 @@ class RawPage extends Page {
 		
 		var that = this;
 		this.#editor.on('focus', function(/*obj*/) {
-			that._app.hideOptions();
+			that._hideOptions();
 		});
 		
 		// Buttons

@@ -125,8 +125,7 @@ class DatabaseSync {
 			if (!dataLogin.ok) {
 				that.setSyncState("unknown");
 				
-				console.log('DB Login error:');
-				console.log(dataLogin);
+				console.error(dataLogin);
 				
 				return Promise.reject({
 					message: 'Sync login error: ' + dataLogin.message,
@@ -141,7 +140,7 @@ class DatabaseSync {
 			});
 			
 			if (!that.syncHandler) {
-				console.log("Error: Could not start live sync.");
+				console.error("Could not start live sync.");
 				
 				that.setSyncState("unknown");
 				that.dbHandler.notifyOfflineState();
@@ -149,7 +148,7 @@ class DatabaseSync {
 				that.restartLiveSync(syncedUrl, "Restarting live sync after failed initialization");
 				
 				return Promise.reject({
-					message: "Error: Could not start live sync.",
+					message: "Could not start live sync.",
 					messageThreadId: 'DBSyncMessages'
 				});
 			}
@@ -207,7 +206,7 @@ class DatabaseSync {
 			})
 			.on('error', function (err) {
 				if (err.status == 401) {					
-					console.log('DB Sync error: ' + err.message);
+					console.error(err);
 				} else {
 					that.options.handle(err);	
 				}
@@ -224,7 +223,7 @@ class DatabaseSync {
 					});
 				}
 				
-				that.restartLiveSync(syncedUrl, "Restarting live sync after sync error: " + err.status);
+				that.restartLiveSync(syncedUrl, "Restarting live sync after sync error " + err.status);
 
 			})
 			.on('complete', function (info) {
@@ -327,14 +326,14 @@ class DatabaseSync {
 					that.dbHandler.notifyOfflineState();
 					that.options.alert('Pull error: ' + data.pull.message, 'E');
 					that.blocked = false;
-					console.log(data);
+					console.error(data);
 					return;
 				}
 				if (!data.push || !data.push.ok) {
 					that.dbHandler.notifyOfflineState();
 					that.options.alert('Push error: ' + data.push.message, 'E');
 					that.blocked = false;
-					console.log(data);
+					console.error(data);
 					return;
 				}
 	
@@ -422,14 +421,12 @@ class DatabaseSync {
 	 * Starts a consistency check, reported on the console view which is focused. Makes deep comparison between 
 	 * the local and remote databases if in cloned/offline mode.
 	 */
-	checkConsistency(logCallback) {
-		if (!logCallback) logCallback = console.log;
-		
+	checkConsistency() {
 		var dbLocal = this.dbHandler.dbLocal;
 		var dbRemote = this.dbHandler.dbRemote;
 		
 		if (!dbLocal || !dbRemote) {
-			logCallback('This check is only possible in clone mode.', 'E');
+			console.error('This check is only possible in clone mode.');
 			return Promise.reject({
 				message: 'This check is only possible in clone mode.',
 				messageThreadId: 'CheckConsMessages'
@@ -439,14 +436,14 @@ class DatabaseSync {
 		var ph = this.dbHandler.profileHandler;
 
 		if (!ph.getCurrentProfile().clone || !dbLocal || !dbRemote) {
-			logCallback('This check is only possible in clone mode.', 'E');
+			console.error('This check is only possible in clone mode.');
 			return Promise.reject({
 				message: 'This check is only possible in clone mode.',
 				messageThreadId: 'CheckConsMessages'
 			});
 		}
 		
-		logCallback("Starting consistency check between local and " + ph.getCurrentProfile().url);
+		console.log("Starting consistency check between local and " + ph.getCurrentProfile().url);
 
 		// Load all docs from both databases and compare them one by one (incl. attachments!)
 		var dataLocal;
@@ -473,13 +470,11 @@ class DatabaseSync {
 				
 			// Compare docs
 			var numType = (dataLocal.rows.length == dataRemote.rows.length) ? "I" : "E";
-			logCallback();
-			logCallback("Number of local documents: " + dataLocal.rows.length, numType);
-			logCallback("Number of remote documents: " + dataRemote.rows.length, numType);
-			logCallback();
+			console.log("Number of local documents: " + dataLocal.rows.length, numType);
+			console.log("Number of remote documents: " + dataRemote.rows.length, numType);
 			
 			for(var l in dataLocal.rows) {
-				logCallback("Checking " + dataLocal.rows[l].id + (dataLocal.rows[l].doc.name ? (" (" + dataLocal.rows[l].doc.name + ")") : ""));
+				console.log("Checking " + dataLocal.rows[l].id + (dataLocal.rows[l].doc.name ? (" (" + dataLocal.rows[l].doc.name + ")") : ""));
 				
 				// Search remote counterpart
 				var found = false;
@@ -496,7 +491,7 @@ class DatabaseSync {
 						id: dataLocal.rows[l].id,
 						type: 'E'
 					});
-					logCallback(" -> Error: Not found on remote", "E");
+					console.error(" -> Not found on remote");
 					continue;
 				}
 				
@@ -514,7 +509,7 @@ class DatabaseSync {
 						type: 'E'
 					});
 					for(var i in resultList) {
-						logCallback("    " + resultList[i], 'E');
+						console.error("    " + resultList[i]);
 						errors.push({
 							message: resultList[i],
 							id: dataLocal.rows[l].id,
@@ -522,7 +517,7 @@ class DatabaseSync {
 						});
 					}
 
-					logCallback(" -> Error: Documents not identical!", "E");
+					console.error(" -> Documents not identical!");
 					continue;
 				}*/
 				
@@ -534,20 +529,20 @@ class DatabaseSync {
 						type: 'E'
 					});
 					for(var i in resultList) {
-						logCallback("    " + resultList[i], 'E');
+						console.error("    " + resultList[i]);
 						errors.push(resultList[i]);
 					}
 
-					logCallback(" -> Error: Documents not identical!", "E");
+					console.error("Documents not identical!");
 					continue;
 				}
 				
 			}
 			
-			logCallback();
-			logCallback("Finished consistency check.");
-			logCallback();
-			logCallback("Number of documents in error: " + errors.length, (errors.length > 0) ? "E" : "I");
+			console.log();
+			console.log("Finished consistency check.");
+			console.log();
+			console.log("Number of documents in error: " + errors.length);
 			
 			var ok = errors.length == 0;
 			if (ok) {
@@ -566,7 +561,7 @@ class DatabaseSync {
 			that.options.handle(err);
 			that.dbHandler.notifyOfflineState();
 			
-			logCallback(err);
+			console.error(err);
 			
 			return Promise.reject(err);
 		});

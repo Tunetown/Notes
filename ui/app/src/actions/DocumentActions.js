@@ -22,12 +22,14 @@ class DocumentActions {
 	#documentAccess = null;
 	
 	#imageDialog = null;
+	#createDialog = null;
 	
 	constructor(app, documentAccess) {
 		this.#app = app;
 		this.#documentAccess = documentAccess;
 		
 		this.#imageDialog = new ImageDialog(this.#app);
+		this.#createDialog = new CreateDialog(this.#app); // TODO
 	}
 	
 	/**
@@ -147,312 +149,115 @@ class DocumentActions {
 	/**
 	 * Creates one or more documents (in case of attachments multiple selection) in the passed parent ID.
 	 */
-	create(id) {
+	async create(id) {
 		var doc = this.#app.data.getById(id);
-		if (!doc && (id.length > 0)) return Promise.reject({
-			message: 'Item ' + id + ' does not exist',
-			messageThreadId: 'CreateMessages'
-		});  
-		
-		if ((id.length > 0) && (doc.type == 'reference')) return Promise.reject({
-			message: 'Document ' + doc.name + ' is a reference and cannot have children.',
-			messageThreadId: 'CreateMessages'
-		});
+		if (!doc && (id.length > 0)) throw new Error('Item ' + id + ' does not exist');
+		if ((id.length > 0) && (doc.type == 'reference')) throw new Error('Document ' + doc.name + ' is a reference and cannot have children.');
 
-		var existingRefs = [];
-		this.#app.data.each(function(doc) {
-			if (doc.type == 'reference') existingRefs.push(doc._id);
-		});
-		
-		var refSelector = this.#app.view.getDocumentSelector(existingRefs, true);
+// TODO move out of here
+		var answer = await this.#createDialog.show('New document under ' + (doc ? doc.name : Config.ROOT_NAME) + ':');
+		if (!answer) throw new InfoError('Action canceled');
 
-		refSelector.val('');
-		
-		var typeSelector = Document.getAvailableTypeSelect('createTypeInput');
-
-		this.#app.data.resetChildrenBuffers();
-
-		var type;
-		var name;
-		var refTarget;
-		var files;
-		var newIds = [];
+		var db = await this.#app.db.get();
+			
 		var docs = [];
-		var db;
-		var that = this;
-		return new Promise(function(resolve, reject) {
-			$('#selectTypeContainer').empty();
-			$('#selectTypeContainer').append(
-				typeSelector
-				.on('change', function(/*event*/) {
-					$('#uploadLabel').css('display', (this.value == "attachment") ? 'inherit' : 'none');
-					$('#customFile').css('display', (this.value == "attachment") ? 'inherit' : 'none');
-					$('#createNameInput').prop('disabled', (this.value == "attachment"));
-					
-					$('#refLabel').css('display', (this.value == 'reference') ? 'inherit' : 'none');
-					$('#refCell').css('display', (this.value == 'reference') ? 'block' : 'none');
-					
-					const cdoc = that.#app.paging.getCurrentlyShownDoc();
-					if (cdoc && (this.value == 'reference')) {
-						$('#createNameInput').val(cdoc.name);
-					}
-					
-					if (this.value == 'attachment') {
-						$('#createNameInput').val('');
-					}
-					
-					$('#createNameInput').triggerHandler('input');
-				})
-			);
 
-			$('#uploadLabel').css('display', 'none');
-			$('#customFile').css('display', 'none');
-			$('#createNameInput').prop('disabled', false);
-
-			$('#refLabel').css('display', 'none');
-			$('#refCell').css('display', 'none');
-			$('#refCell').empty();
-			$('#refCell').append(
-				//$('<span class="deprecated"></span>').html('References are deprecated, use in-document links instead'),
-				refSelector
-				.on('change', function(/*event*/) {
-					if ($('#createTypeInput').val() == 'reference') {
-						var tdoc = that.#app.data.getById(this.value);
-						if (tdoc) {
-							$('#createNameInput').val(tdoc.name);
-						}
-					}
-				})
-			);
-
-			// Enable searching by text entry
-			refSelector.selectize({
-				sortField: 'text'
-			});
-			
-			$('#customFile').val('');
-			$('#createNameInput').val('');
-
-			$('#createWarnIcon').css('display', 'none');
-			$('#createWarnText').css('display', 'none');
-			$('#createWarnText').html('This Name already exists in the notebook. This is totally supported, however it but can be confusing when searching documents.');
-			
-			$('#createNameInput').off('input');
-			$('#createNameInput').on('input', function(/*e*/) {
-				// Warning disabled as we can have identical names since long time.
-				var val = $(this).val();
+		if (answer.type == 'attachment') {
+			for(var f=0; f<answer.files.length; ++f) {   // NOTE: No shorter form possible because of the type files has. Must be that way ;)
+				var file = answer.files[f];
+				var strippedName = Document.stripAttachmentName(file.name);
 				
-				if ((typeSelector.val() == 'reference') || !val || !val.length) {
-					$('#createWarnIcon').css('display', 'none');
-					$('#createWarnText').css('display', 'none');
-					return;
-				}
-
-				if (that.createTimeoutHandler) clearTimeout(that.createTimeoutHandler);
-				that.createTimeoutHandler = setTimeout(function() {
-					var ex = that.#app.data.documentNameExists(val);
-					$('#createWarnIcon').css('display', ex ? 'inline-block' : 'none');
-					$('#createWarnText').css('display', ex ? 'inline-block' : 'none');
-				}, 300);
-			});
-			
-			$('#newRootText').html(doc ? doc.name : Config.ROOT_NAME);
-			
-			function createKeyPressed(e) {
-			    if(e.which == 13) {
-			    	$('#createSubmitButton').click();
-			    }
-			}
-			
-			$('#createDialog').off('shown.bs.modal');
-			$('#createDialog').on('shown.bs.modal', function (/*e*/) {
-				$('#createNameInput').focus();
-				$(document).keypress(createKeyPressed);
-			});
-			$('#createDialog').off('hidden.bs.modal');
-			$('#createDialog').on('hidden.bs.modal', function (/*e*/) {
-				$(document).unbind('keypress', createKeyPressed);
-				reject({
-					abort: true,
-					message: 'Action canceled.',
-					messageThreadId: 'CreateMessages'
-				 });
-			});
-			$('#createDialog').modal();
-			
-			// Set up submit button
-			$('#createSubmitButton').off('click');
-			$('#createSubmitButton').on('click', function(e) {
-				e.stopPropagation();
-
-				name = $('#createNameInput').val();
-				type = $('#createTypeInput').val();
-			    
-				if (!type) {
-					that.#app.view.message('Please specify a type for the new document.', 'E');
-					return;
-				}
-				
-		    	if (type == 'attachment') {
-		    		files = $('#customFile')[0].files;
-		    		
-		    		if (!files || !files.length) {
-		    			that.#app.view.message('Please select a file to upload.', 'E');
-						return;
-				    }
-		    		
-		    		var maxMB = parseFloat(that.#app.settings.settings.maxUploadSizeMB);
-		    		if (maxMB) {
-			    		for(var f in files) {
-				    		if (files[f].size > (maxMB * 1024 * 1024)) {
-				    			that.#app.view.message('The file ' + files[f].name + 'is too large: ' + Tools.convertFilesize(files[f].size) + '. You can change this in the settings.', 'E');
-								return;
-				    		}
-			    		}
-		    		}
-		    		
-		    		if (files && (files.length >= 5)) {
-		    			if (!confirm('You are about to upload ' + files.length + ' documents, do you want to proceed?')) {
-		    				return;
-		    			}
-				    }
-		    		
-		    	} else if (type == 'reference') {
-		    		if (!name) {
-		    			that.#app.view.message('Please specify a name for the new document.', 'E');
-						return;
-				    }
-		    		
-		    		refTarget = refSelector.val();
-		    		
-		    		if (!refTarget) {
-		    			that.#app.view.message('Please specify target for the reference document.', 'E');
-						return;
-		    		}
-		    	} else {
-		    		if (!name) {
-		    			that.#app.view.message('Please specify a name for the new document.', 'E');
-						return;
-				    }
-		    	}
-				
-		    	$(document).unbind('keypress', createKeyPressed);
-		    	$('#createDialog').off('hidden.bs.modal');
-		    	$('#createDialog').modal('hide');
-			    
-		    	resolve({
-		    		ok: true
-		    	});
-			});
-		})
-		.then(function(/*data*/) {
-			return that.#app.db.get();
-		})
-		.then(function(dbRef) {
-			db = dbRef;
-			
-			if (type == 'attachment') {
-				for(var f=0; f<files.length; ++f) {   // NOTE: No shorter form possible because of the type files has. Must be that way ;)
-					var file = files[f];
-					var strippedName = Document.stripAttachmentName(file.name);
-					
-				    var data = {
-						_id: that.#app.data.generateIdFrom(file.name),
-						type: "attachment",
-						name: file.name,
-						parent: id,
-						order: 0,
-						timestamp: file.lastModified,
-						content_type: file.type,
-						attachment_filename: strippedName,
-						attachmentSize: file.size,          // Set here because the attachment has no length attribute yet.
-						_attachments: {}
-					};
-				    
-				    data._attachments['attachment_data'] = {
-						content_type: file.type,
-		    			data: file,
-						length: file.size
-					};
-				    
-					Document.updateMeta(data);
-					
-					docs.push(data);
-				}
-				
-			} else {
-				var data = {
-					_id: that.#app.data.generateIdFrom(name),
-					type: type,
-					name: name,
+			    var data = {
+					_id: this.#app.data.generateIdFrom(file.name),
+					type: "attachment",
+					name: file.name,
 					parent: id,
 					order: 0,
-					timestamp: Date.now(),
+					timestamp: file.lastModified,
+					content_type: file.type,
+					attachment_filename: strippedName,
+					attachmentSize: file.size,          // Set here because the attachment has no length attribute yet.
+					_attachments: {}
 				};
-				
-				if (type == 'reference') {
-					data.ref = refTarget;
-				} else {
-					data.editor = that.#app.settings.settings.defaultNoteEditor;
-					data.content = "";
-					
-					if ((data.editor == 'code') && that.#app.settings.settings.defaultCodeLanguage) {
-						data.editorParams = {
-							language: that.#app.settings.settings.defaultCodeLanguage
-						}
-					}
-				}
-			
-				Document.addChangeLogEntry(data, 'created', {
-					parent: id
-				});
-				
+			    
+			    data._attachments['attachment_data'] = {
+					content_type: file.type,
+	    			data: file,
+					length: file.size
+				};
+			    
 				Document.updateMeta(data);
 				
 				docs.push(data);
 			}
 			
-			 return db.bulkDocs(docs);
-		})
-		.then(function (data) {
-			for(var d in data) {
-				if (!data[d].ok) {
-					return Promise.reject({
-						message: 'Error: ' + data[d].message,
-					});
+		} else {
+			var data = {
+				_id: this.#app.data.generateIdFrom(answer.name),
+				type: answer.type,
+				name: answer.name,
+				parent: id,
+				order: 0,
+				timestamp: Date.now(),
+			};
+			
+			if (answer.type == 'reference') {
+				data.ref = answer.refTarget;
+			} else {
+				data.editor = this.#app.settings.settings.defaultNoteEditor;
+				data.content = "";
+				
+				if ((data.editor == 'code') && this.#app.settings.settings.defaultCodeLanguage) {
+					data.editorParams = {
+						language: this.#app.settings.settings.defaultCodeLanguage
+					}
 				}
-				
-				newIds.push(data[d].id);
 			}
-			
-			return db.allDocs({
-				conflicts: true,
-				include_docs: true,
-				keys: newIds
+		
+			Document.addChangeLogEntry(data, 'created', {
+				parent: id
 			});
-		})
-		.then(function(data) {
-			// Asynchronously request the document, if the parent is not part of a kanban board
-			if (data.rows.length == 1) {
-				var doc = data.rows[0].doc;
-			}
 			
-			for(var d in data.rows) {
-				var doc = data.rows[d].doc;
-				
-				// Update data model
-				that.#app.data.add(doc);
-			}
+			Document.updateMeta(data);
 			
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('create', newIds);
+			docs.push(data);
+		}
 			
-			return Promise.resolve({
-				ok: true,
-				message: 'Successfully created ' + newIds.length + ' document(s)',
-				newIds: newIds
-			});
-		}); 
+		var data = await db.bulkDocs(docs);
+
+		var newIds = [];
+		for(var d in data) {
+			if (!data[d].ok) throw new Error(data[d].message);
+			
+			newIds.push(data[d].id);
+		}
+		
+		var dataAll = await db.allDocs({
+			conflicts: true,
+			include_docs: true,
+			keys: newIds
+		});
+		
+		// Asynchronously request the document, if the parent is not part of a kanban board
+		if (dataAll.rows.length == 1) {
+			var doc = dataAll.rows[0].doc;
+		}
+			
+		for(var d in dataAll.rows) {
+			var doc = dataAll.rows[d].doc;
+			
+			// Update data model
+			this.#app.data.add(doc);
+		}
+		
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('create', newIds);
+		
+		return {
+			ok: true,
+			message: 'Successfully created ' + newIds.length + ' document(s)',
+			newIds: newIds
+		};
 	}
 	
 	/**
@@ -686,27 +491,20 @@ class DocumentActions {
 	/**
 	 * Rename items in general.
 	 */
-	async renameItem(id) {
+	async renameItem(id, newName) {
 		var doc = this.#app.data.getById(id);
 		if (!doc) throw new Error('Item ' + id + ' not found');
-		
-		var name = prompt("New name:", doc.name);                   // TODO move to UI
-		if (!name || name.length == 0) {
-			return {
-				abort: true,
-				message: "Nothing changed.",
-			};
-		}
+		if (!newName || newName.length == 0 || newName == doc.name) throw new InfoError("Nothing changed.");
 
 		await this.#documentAccess.loadDocuments([doc])
 
 		Document.addChangeLogEntry(doc, 'renamed', {
 			from: doc.name,
-			to: name
+			to: newName
 		});
-		doc.name = name;
+		doc.name = newName;
 				
-		await that.#documentAccess.saveItem(id);
+		await this.#documentAccess.saveItem(id);
 
 		// Execute callbacks
 		this.#app.callbacks.executeCallbacks('rename', doc);
@@ -1336,16 +1134,16 @@ class DocumentActions {
 		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
 		
 		var that = this;
-		return this.#imageDialog.askForImage(
-			docs[0],
-			displayName,
-			docs[0].backImage,
-			Config.ITEM_BACKGROUND_MAX_WIDTH, 
-			Config.ITEM_BACKGROUND_MAX_HEIGHT, 
-			Config.ITEM_BACKGROUND_MIME_TYPE,
-			Config.ITEM_BACKGROUND_QUALITY,
-			Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES
-		)
+		return this.#imageDialog.show({  // TODO move out
+			doc: docs[0],
+			displayName: displayName,
+			imageData: docs[0].backImage,
+			maxWidth: Config.ITEM_BACKGROUND_MAX_WIDTH, 
+			maxHeight: Config.ITEM_BACKGROUND_MAX_HEIGHT, 
+			mimeType: Config.ITEM_BACKGROUND_MIME_TYPE,
+			quality: Config.ITEM_BACKGROUND_QUALITY,
+			maxBytes: Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES
+		})
 		.then(function(backImage) {
 			return that.saveItemBackgroundImage(ids, backImage);
 		})			        	
