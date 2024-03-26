@@ -143,17 +143,12 @@ class ContextMenu {
 						
 						that.#app.view.message("Preparing to delete items...", 'I');
 						
-						that.#app.actions.document.deleteItems(that.#app.optionsIds)
+						that.#app.view.triggerDeleteItem(that.#app.optionsIds)
 						.then(function(data) {
 							that.#app.nav.unblock();
-							
-							if (data.message) {
-								that.#app.view.message(data.message, "S");
-							}
-							
-						}).catch(function(err) {
+						})
+						.catch(function(err) {
 							that.#app.nav.unblock();
-							
 							that.#app.errorHandler.handle(err);
 						});
 					}),

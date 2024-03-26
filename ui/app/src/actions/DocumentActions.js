@@ -257,140 +257,111 @@ class DocumentActions {
 	/**
 	 * Saves the current note content to the server, creating a new version of it.
 	 */
-	save(id, content) { 
-		if (!id) return Promise.reject({ 
-			message: 'No ID passed',
-		});
+	async save(id, content) { 
+		if (!id) throw new Error('No ID passed');
 			
 		var data = this.#app.data.getById(id);
-		if (!data) {
-			return Promise.reject({
-				message: 'Document ' + id + ' not found',
-			});
+		if (!data) throw new Error('Document ' + id + ' not found');
+		
+		await this.#documentAccess.loadDocuments([data]);
+
+		if (Document.getContent(data) == content) {
+			this.#app.paging.resetEditorDirtyState();
+				
+			throw new InfoError("Nothing changed.");
 		}
 		
-		var reloadTree = false;
+		// Create version
+		var versionName = false;
+		if (Document.getContent(data)) {
+			if (!data.timestamp) data.timestamp = 0;
+			if (!Document.getAttachments(data)) data._attachments = {};
 
-		var that = this;
-		return this.#documentAccess.loadDocuments([data])
-		.then(function(/*resp*/) {
-			if (Document.getContent(data) == content) {
-				that.#app.paging.resetEditorDirtyState();
-				
-				return Promise.reject({ 
-					abort: true,
-					message: "Nothing changed.",
-				});
-			}
-			
-			// Create version
-			var versionName = false;
-			if (Document.getContent(data)) {
-				if (!data.timestamp) data.timestamp = 0;
-				if (!Document.getAttachments(data)) data._attachments = {};
+			versionName = "version_" + data.timestamp;
+			data._attachments[versionName] = {
+				content_type: "text/html",
+				data: new Blob([Document.getContent(data)], {
+				    type: 'text/html'
+				})
+			};
+			data._attachments[versionName].length = data._attachments[versionName].data.size;
+		}
+		
+		// Reduce old versions
+		var deletedVersions = [];
+		if (this.#app.settings.settings.reduceHistory) {
+			deletedVersions = Document.reduceVersions(data);
+		} else {
+			console.warn(" -> Versioning: History Reduction is disabled. This could bloat the database quickly.");
+		}
+		
+		// Set new content
+		data.content = content;
+		data.timestamp = Date.now();
 
-				versionName = "version_" + data.timestamp;
-				data._attachments[versionName] = {
-					content_type: "text/html",
-					data: new Blob([Document.getContent(data)], {
-					    type: 'text/html'
-					})
-				};
-				data._attachments[versionName].length = data._attachments[versionName].data.size;
-			}
-			
-			// Reduce old versions
-			var deletedVersions = [];
-			if (that.#app.settings.settings.reduceHistory) {
-				deletedVersions = Document.reduceVersions(data);
-			} else {
-				console.log(" -> Versioning: WARNING: History Reduction is disabled");
-			}
-			
-			// Set new content
-			data.content = content;
-			data.timestamp = Date.now();
+		// Change log entry
+		var chgData = {};
+		if (versionName) chgData.versionCreated = versionName;
+		if (deletedVersions.length) chgData.deletedVersions = deletedVersions;
+		Document.addChangeLogEntry(data, 'edited', chgData);
 
-			// Change log entry
-			var chgData = {};
-			if (versionName) chgData.versionCreated = versionName;
-			if (deletedVersions.length) chgData.deletedVersions = deletedVersions;
-			Document.addChangeLogEntry(data, 'edited', chgData);
-
-			// Check if we have to reload the tree because of metadata changes
-			var brokenLinkErrors = [];
-			Document.checkLinkages(data, null, brokenLinkErrors, true);
-			Document.checkTags(data, null, brokenLinkErrors);
-			reloadTree = (brokenLinkErrors.length > 0);
+		// Check if we have to reload the tree because of metadata changes
+		var brokenLinkErrors = [];
+		Document.checkLinkages(data, null, brokenLinkErrors, true);
+		Document.checkTags(data, null, brokenLinkErrors);
+		var reloadTree = (brokenLinkErrors.length > 0);
+		
+		var dataResp = await this.#documentAccess.saveItem(id, true);
+		if (dataResp.abort) {
+			this.#app.paging.resetEditorDirtyState();
 			
-			return that.#documentAccess.saveItem(id, true);
-		})
-		.then(function (dataResp) {
-			if (!dataResp.abort) {
-				// Update editor state / changed marker
-				/*if (e) {
-					e.loadDocument(data);				
-				}*/
-				that.#app.paging.setPageData(data);
-				that.#app.update();
-				
-				// Execute callbacks
-				that.#app.callbacks.executeCallbacks('save', data);
-				
-				console.log("Successfully saved " + data.name);
-				
-				if (reloadTree) {
-					console.log("Save: -> Re-requesting tree, document " + (data.name ? data.name : data._id) + " had relevant changes");
-					
-					return that.#app.actions.nav.requestTree()
-					.then(function() {
-						return Promise.resolve({ 
-							ok: true,
-							message: "Successfully saved " + data.name + ".",
-							messageThreadId: "SaveMessages",
-							treeReloaded: true
-						});
-					});
-				} else {
-					// Update sorting
-					that.#app.nav.updateSort();
-				}
-				
-				return Promise.resolve({ 
-					ok: true,
-					message: "Successfully saved " + data.name + ".",
-				});
-			} else {
-				that.#app.paging.resetEditorDirtyState();
-				
-				return Promise.resolve(dataResp);
-			}
-		});
+			return dataResp;
+		}
+
+		this.#app.paging.setPageData(data);
+		this.#app.update();
+		
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('save', data);
+			
+		console.log("Successfully saved " + data.name);
+			
+		if (reloadTree) {
+			console.log("Save: -> Re-requesting tree, document " + (data.name ? data.name : data._id) + " had relevant changes");
+			
+			await this.#app.actions.nav.requestTree();
+
+			return { 
+				ok: true,
+				message: "Successfully saved " + data.name + ".",
+				messageThreadId: "SaveMessages",
+				treeReloaded: true
+			};
+		} else {
+			// Update sorting
+			this.#app.nav.updateSort();
+		}
+		
+		return { 
+			ok: true,
+			message: "Successfully saved " + data.name + ".",
+		};
 	}
 		
 	/**
-	 * Delete notes by IDs. This does not delete but just set a deleted flag. 
+	 * Delete notes. This does not delete but just set a deleted flag. 
 	 * You have to call deleteItemPermanently to fully delete a note.
 	 */
-	deleteItems(ids, noConfirm) {
+	async deleteItems(docs) {
 		// Collect docs and children
-		var docs = [];
-		var children = [];
-		for(var i in ids) {
-			var doc = this.#app.data.getById(ids[i]);
-			if (!doc) return Promise.reject({ 
-				message: 'Document ' + ids[i] + ' not found',
-			});
-			docs.push(doc);
-
-			// Unload editor if the item is opened somewhere
-			if (this.#app.paging.getCurrentlyShownId() == ids[i]) {
-				this.#app.paging.unload();
-			}
+		for(var i in docs) {
+			var doc = docs[i];
 			
-			var docChildren = this.#app.data.getChildren(ids[i], true);
+			var docChildren = this.#app.data.getChildren(doc._id, true);
 			for(var c in docChildren) {
-				children.push(docChildren[c]);
+				if (!docs.find(function(item) {
+					return item._id == docChildren[c]._id;
+				})) throw new Error('Document ' + doc.name + ' still contains child items. Please delete them first.');
 			}
 		}
 		
@@ -400,11 +371,6 @@ class DocumentActions {
 		function addContainedRef(refDoc) {
 			for(var i in docs) {
 				if (docs[i]._id == refDoc._id) {
-					return;
-				}
-			}
-			for(var i in children) {
-				if (children[i]._id == refDoc._id) {
 					return;
 				}
 			}
@@ -419,67 +385,37 @@ class DocumentActions {
 			}
 		}
 
-		for(var c in children) {
-			var crefs = this.#app.data.getReferencesTo(children[c]._id);
-			for(var o in crefs || []) {
-				addContainedRef(crefs[o]);
-			}
-		}
-
 		if (containedRefs.length) { 
 			var str = '';
 			for(var o in containedRefs) {
 				str += this.#app.data.getReadablePath(containedRefs[o]._id) + '\n';
 			}
 			
-			return Promise.reject({
-				message: 'The following references still point to the item(s) to be deleted, please delete them first: <br><br>' + str,
-				messageThreadId: 'DeleteMessages'
-			});
+			throw new Error('The following references still point to the item(s) to be deleted, please delete them first: ' + "\n\n" + str);  // TODO test this!
 		}
 		
-		var addstr = children.length ? (' including ' + children.length + ' contained items') : '';
-		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
-		
-		if (!noConfirm) {
-			if (!confirm("Really delete " + displayName + addstr + "?")) {
-				return Promise.reject({
-					abort: true,
-					message: "Action canceled.",
-					messageThreadId: 'DeleteMessages'
-				});
-			}
-		}
-		
-		// Merge all documents into docs
-		for (var l in children) {
-			docs.push(children[l]);
-		}
-		
-		var that = this;
-		return this.#documentAccess.loadDocuments(docs)
-		.then(function(/*resp*/) {
-			var ids = [];
-			for(var d in docs) {
-				var doc = docs[d];
-				doc.deleted = true;
-				Document.addChangeLogEntry(doc, 'deleted');
-				console.log('Deleting ' + that.#app.data.getReadablePath(doc._id));
-				ids.push(doc._id);
-			}
-			
-			return that.#documentAccess.saveItems(ids);
-		})
-		.then(function (/*data*/) {
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('delete', docs);
+		await this.#documentAccess.loadDocuments(docs);
 
-			return Promise.resolve({
-				ok: true,
-				message: "Successfully trashed " + displayName + ".",
-				messageThreadId: 'DeleteMessages'
-			});
-		});
+		var ids = [];
+		for(var d in docs) {
+			var doc = docs[d];
+			doc.deleted = true;
+			Document.addChangeLogEntry(doc, 'deleted');
+			console.log('Deleting ' + this.#app.data.getReadablePath(doc._id));
+			ids.push(doc._id);
+		}
+		
+		await this.#documentAccess.saveItems(ids);
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('delete', docs);
+
+		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
+
+		return {
+			ok: true,
+			message: "Successfully trashed " + displayName + "."
+		};
 	}
 		
 	/**

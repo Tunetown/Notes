@@ -157,7 +157,7 @@ class Notes {
 		var that = this;
 		window.onerror = function errorHandler(msg, url, line, columnNo, error) {
 			if (that.device.isTouchAware()) {
-				alert('Exception: ' + msg + ' in ' + url + ' line ' + line);
+				alert('Error: ' + msg + ' in ' + url + ' line ' + line);
 			}
 			
 			if (error && error.stack) {

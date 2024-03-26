@@ -29,7 +29,7 @@ class ErrorHandler {
 	 */
 	handle(something) {
 		if (something instanceof Error) {
-			// Exception object: Show message to user
+			// Error object: Show message to user
 			this.#app.view.message(
 				something.message, 
 				something.notesDisplayType ? something.notesDisplayType : 'E'  // Custom display type (see Errors.js)

@@ -78,9 +78,8 @@ class RefsPage extends Page {
 					.on('click', function(e) {
 						var rid = $(this).data().id;
 						
-						that._app.documentActions.deleteItems([rid])
-						.then(function(data) {
-							if (data.message) that._app.view.message(data.message, 'S', data.messageThreadId);
+						that._app.view.triggerDeleteItem([rid])
+						.then(function() {
 							that._app.routing.call('refs/' + id);
 						})
 						.catch(function(err) {

@@ -172,12 +172,8 @@ class PageMenu {
 	        	
 	        	var delId = page.getCurrentId();
 	        	
-	        	that.#app.view.message("Preparing to delete item...", 'I');
-	        	that.#app.actions.document.deleteItems([delId])
-				.then(function(data) {
-	        		if (data.message) {
-	        			that.#app.view.message(data.message, "S");
-	        		}
+	        	that.#app.view.triggerDeleteItem([delId])
+				.then(function() {
 	        		that.#app.routing.call();
 	        	})
 				.catch(function(err) {

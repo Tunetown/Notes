@@ -41,6 +41,52 @@ class View {
 	}
 
 	/**
+	 * Triggers deletion of items, with confirmation.
+	 * 
+	 * TODO still located right here?
+	 */
+	async triggerDeleteItem(ids) {
+		var numChildren = 0;
+		var numDocs = 0;
+		
+		var docs = [];
+
+		for(var i in ids) {
+			var doc = this.app.data.getById(ids[i]);
+			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
+			
+			// Unload editor if the item is opened somewhere
+			if (this.app.paging.getCurrentlyShownId() == ids[i]) {
+				this.app.paging.unload();
+			}
+			
+			docs.push(doc);
+			++numDocs;
+
+			var docChildren = this.app.data.getChildren(ids[i], true);
+			for(var c in docChildren) {
+				docs.push(docChildren[c]);
+				++numChildren;
+			}
+		}
+		
+		var addstr = numChildren ? (' including ' + numChildren + ' contained items') : '';
+		var displayName = (numDocs == 1) ? docs[0].name : (numDocs + ' documents');
+
+		if (!confirm("Really delete " + displayName + addstr + "?")) {
+			throw new InfoError("Action canceled.");
+		}
+
+		var data = await this.app.actions.document.deleteItems(docs);
+
+		if (data.message) {
+			this.message(data.message, "S");
+		}
+		
+		return data;
+	}
+
+	/**
 	 * Show the create item dialog and process afterwards.
 	 *  
 	 * TODO still located right here?
@@ -71,6 +117,8 @@ class View {
 		if (data.message) {
 			this.message(data.message, "S");
 		}
+		
+		return data;
 	}
 	
 	/**
