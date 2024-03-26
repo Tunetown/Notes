@@ -33,7 +33,7 @@ class ContextMenu {
 		var that = this;
 		$('#' + elementId).append(
 			$('<div class="treebuttons" id="treebuttons"/>').append([
-				// Create note
+				// Create document
 				$('<div id="contextOptionCreate" data-toggle="tooltip" title="Create Document" class="contextOptionSingle fa fa-plus treebutton roundedButton contextOptionCreate"></div>')
 					.on('click', function(event) {
 						event.stopPropagation();
@@ -41,7 +41,7 @@ class ContextMenu {
 						if (that.#app.optionsIds.length != 1) return;
 						
 						that.#app.nav.block();
-						that.#app.actions.document.create(that.#app.optionsIds[0])
+						that.#app.view.triggerCreateItem(that.#app.optionsIds[0])
 						.then(function(data) {
 							that.#app.nav.unblock();
 							

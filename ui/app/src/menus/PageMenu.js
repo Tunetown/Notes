@@ -114,7 +114,7 @@ class PageMenu {
 				event.stopPropagation();
 				that.#app.hideOptions();	
 				
-				that.#app.actions.document.create(page.getCurrentId())
+				that.#app.view.triggerCreateItem(page.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
 						that.#app.view.message(data.message, "S");

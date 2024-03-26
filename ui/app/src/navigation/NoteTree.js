@@ -132,7 +132,7 @@ class NoteTree {
         		that.#app.hideOptions();
         		
         		that.block();
-				that.#app.actions.document.create(that.behaviour.getNewItemParent())
+				that.#app.view.triggerCreateItem(that.behaviour.getNewItemParent())
 				.then(function(data) {
 					that.unblock();
 					if (data.message) {
@@ -806,7 +806,7 @@ class NoteTree {
 		this.commonButtonHandler(event);
 		
 		var that = this;
-		this.#app.actions.document.create(this.behaviour.getNewItemParent())
+		this.#app.view.triggerCreateItem(this.behaviour.getNewItemParent())
 		.then(function(data) {
 			if (data.message) {
 				that.#app.view.message(data.message, "S");

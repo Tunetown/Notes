@@ -21,6 +21,7 @@ class View {
 	app = null;
 	dialogs = null;
 	#messageHandler = null;
+	#createDialog = null;
 	
 	constructor(app) {
 		this.app = app;
@@ -29,6 +30,7 @@ class View {
 		this.#messageHandler.init();
 		
 		this.dialogs = new Dialogs(this);
+		this.#createDialog = new CreateDialog(this.app);
 	}
 	
 	/**
@@ -38,6 +40,22 @@ class View {
 		return new Dialog(this);
 	}
 
+	/**
+	 * Show the create item dialog and process afterwards.
+	 *  
+	 * TODO still located right here?
+	 */	
+	async triggerCreateItem(id) {
+		var doc = this.app.data.getById(id);
+		if (!doc && (id.length > 0)) throw new Error('Item ' + id + ' does not exist');
+		if ((id.length > 0) && (doc.type == 'reference')) throw new Error('Document ' + doc.name + ' is a reference and cannot have children.');
+
+		var props = await this.#createDialog.show('New document under ' + (doc ? doc.name : Config.ROOT_NAME) + ':');
+		if (!props) throw new InfoError('Action canceled');
+		
+		return await this.app.actions.document.create(id, props); 
+	}
+	
 	/**
 	 * Ask the user for a new name and save the new name.
 	 *  

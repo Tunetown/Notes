@@ -22,14 +22,12 @@ class DocumentActions {
 	#documentAccess = null;
 	
 	#imageDialog = null;
-	#createDialog = null;
 	
 	constructor(app, documentAccess) {
 		this.#app = app;
 		this.#documentAccess = documentAccess;
 		
 		this.#imageDialog = new ImageDialog(this.#app);
-		this.#createDialog = new CreateDialog(this.#app); // TODO
 	}
 	
 	/**
@@ -149,22 +147,18 @@ class DocumentActions {
 	/**
 	 * Creates one or more documents (in case of attachments multiple selection) in the passed parent ID.
 	 */
-	async create(id) {
+	async create(id, props) {
 		var doc = this.#app.data.getById(id);
 		if (!doc && (id.length > 0)) throw new Error('Item ' + id + ' does not exist');
 		if ((id.length > 0) && (doc.type == 'reference')) throw new Error('Document ' + doc.name + ' is a reference and cannot have children.');
-
-// TODO move out of here
-		var answer = await this.#createDialog.show('New document under ' + (doc ? doc.name : Config.ROOT_NAME) + ':');
-		if (!answer) throw new InfoError('Action canceled');
 
 		var db = await this.#app.db.get();
 			
 		var docs = [];
 
-		if (answer.type == 'attachment') {
-			for(var f=0; f<answer.files.length; ++f) {   // NOTE: No shorter form possible because of the type files has. Must be that way ;)
-				var file = answer.files[f];
+		if (props.type == 'attachment') {
+			for(var f=0; f<props.files.length; ++f) {   // NOTE: No shorter form possible because of the type files has. Must be that way ;)
+				var file = props.files[f];
 				var strippedName = Document.stripAttachmentName(file.name);
 				
 			    var data = {
@@ -193,16 +187,16 @@ class DocumentActions {
 			
 		} else {
 			var data = {
-				_id: this.#app.data.generateIdFrom(answer.name),
-				type: answer.type,
-				name: answer.name,
+				_id: this.#app.data.generateIdFrom(props.name),
+				type: props.type,
+				name: props.name,
 				parent: id,
 				order: 0,
 				timestamp: Date.now(),
 			};
 			
-			if (answer.type == 'reference') {
-				data.ref = answer.refTarget;
+			if (props.type == 'reference') {
+				data.ref = props.refTarget;
 			} else {
 				data.editor = this.#app.settings.settings.defaultNoteEditor;
 				data.content = "";

@@ -819,7 +819,7 @@ class Notes {
 		e.stopPropagation();
 		
 		var that = this;
-		this.actions.document.create(this.nav.behaviour.getNewItemParent())
+		this.view.triggerCreateItem(this.nav.behaviour.getNewItemParent())
 		.then(function(data) {
 			//t.unblock();
 			if (data.message) {
