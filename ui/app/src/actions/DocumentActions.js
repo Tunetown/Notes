@@ -448,50 +448,28 @@ class DocumentActions {
 	/**
 	 * Copy the given document.
 	 */
-	copyItem(id) {
-		if (!id) return Promise.reject({
-			message: 'No id passed',
-			messageThreadId: 'CopyMessages'
-		});
-		
-		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'CopyMessages'
-		});
-		
-		this.#app.data.resetBacklinks();
-		this.#app.data.resetChildrenBuffers();
-		
-		var db;
-		var newDoc;
-		var that = this;
-		return this.#documentAccess.loadDocuments([doc])
-		.then(function(/*resp*/) {
-			return that.#app.db.get();
-		})
-		.then(function(dbRef) {
-			db = dbRef;
-
-			if (doc.type == "attachment") {
-				return Promise.reject({
-					message: 'Attachments cannot be copied.',
-				});
-			}
+	async copyItem(id, newName) {
+		try {
+			if (!id) throw new Error('No id passed');
+			if (!newName) throw new Error('No new name passed');
 			
-			var name = prompt("New name:", doc.name);
-			if (!name || name.length == 0) {
-				return Promise.reject({
-					abort: true,
-					message: "Nothing changed.",
-				});
-			}
+			var doc = this.#app.data.getById(id);
+			if (!doc) throw new Erro('Document ' + id + ' not found');
 			
+			this.#app.data.resetBacklinks();
+			this.#app.data.resetChildrenBuffers();
+			
+			await this.#documentAccess.loadDocuments([doc]);
+				
+			var db = await this.#app.db.get();
+	
+			if (doc.type == "attachment") throw new Error('Attachments cannot be copied. Please use a reference instead.');
+				
 			// Create a new note with the content of the original.
-			newDoc = {
-				_id: that.#app.data.generateIdFrom(name),
+			var newDoc = {
+				_id: this.#app.data.generateIdFrom(newName),
 				type: doc.type,
-				name: name,
+				name: newName,
 				parent: doc.parent,
 				order: doc.order,
 				navRelations: doc.navRelations,
@@ -499,29 +477,29 @@ class DocumentActions {
 				timestamp: Date.now(),
 				content: Document.getContent(doc)
 			};
-			
+				
 			Document.addChangeLogEntry(newDoc, 'created', {
 				original: doc._id,
 				parent: doc.parent
 			});
-			
+				
 			Document.updateMeta(newDoc);
-			
-			return db.put(newDoc);
-		})
-		.then(function(data) {
+				
+			var data = await db.put(newDoc);
+	
 			newDoc._rev = data.rev;
-			that.#app.data.add(newDoc);
-			
+			this.#app.data.add(newDoc);
+				
 			// Execute callbacks
-    		that.#app.callbacks.executeCallbacks('copy', newDoc);
-    		
-			return that.request(newDoc._id);
-		})
-		.catch(function(err) {
+			this.#app.callbacks.executeCallbacks('copy', newDoc);
+	    		
+			return await this.request(newDoc._id);
+			
+		} catch(err) {
 			Document.unlock(id);
-			return Promise.reject(err);
-		});
+			
+			throw err;
+		}
 	}
 
 	/**
@@ -743,7 +721,7 @@ class DocumentActions {
     		return Promise.resolve({ ok: true });
     	})
     	.then(function(/*data*/) {
-    		t.unblock();
+    		that.#app.nav.unblock();
 
     		return Promise.resolve({ ok: true });
     	});
@@ -752,52 +730,42 @@ class DocumentActions {
 	/**
 	 * Saves the order of items for the passed parent as visible in navigation, without changing anything else
 	 */
-	saveChildOrders(id) {
+	async saveChildOrders(id) {
 		var doc = this.#app.data.getById(id);
 
 		var docsInvolved = [doc];
 		var siblings = this.#app.nav.reorderVisibleSiblings(doc, true);
 		for(var i in siblings) {
 			var sibling = this.#app.data.getById(siblings[i]);
-    		if (!sibling) {
-    			return Promise.reject({
-    				message: 'Document ' + siblings[i] + ' not found',
-					messageThreadId: 'MoveMessages'
-    			});
-    		}
+    		if (!sibling) throw new Error('Document ' + siblings[i] + ' not found');
+
 			docsInvolved.push(sibling);
 		}
 
     	var updateIds = [];
     	
-    	var that = this;
-    	return this.#documentAccess.loadDocuments(docsInvolved)
-    	.then(function(/*resp*/) {
-    		var ouIds = that.#app.nav.reorderVisibleSiblings(doc);
-    		for(var i in ouIds) {
-    			updateIds.push(ouIds[i]);
-	    	}
-			
-			that.#app.callbacks.executeCallbacks('reorderDocumentsBeforeSave', {
-				updateIds: updateIds
-			});
-			
-	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return that.#documentAccess.saveItems(updateIds);
-    	})
-    	.then(function(/*data*/) {
-    		// Execute callbacks
-    		that.#app.callbacks.executeCallbacks('reorderDocumentsAfterSave', {
-    			updateIds: updateIds
-    		});
-    		
-    		return Promise.resolve({ ok: true });
-    	})
-    	.then(function(/*data*/) {
-    		t.unblock();
+    	await this.#documentAccess.loadDocuments(docsInvolved);
 
-    		return Promise.resolve({ ok: true });
-    	});
+   		var ouIds = this.#app.nav.reorderVisibleSiblings(doc);
+		for(var i in ouIds) {
+			updateIds.push(ouIds[i]);
+    	}
+			
+		this.#app.callbacks.executeCallbacks('reorderDocumentsBeforeSave', {
+			updateIds: updateIds
+		});
+			
+	    // Save the new tree structure by updating the metadata of all touched objects.
+	    await this.#documentAccess.saveItems(updateIds);
+
+    		// Execute callbacks
+    	this.#app.callbacks.executeCallbacks('reorderDocumentsAfterSave', {
+			updateIds: updateIds
+		});
+    		
+    	this.#app.nav.unblock();
+    	
+    	return { ok: true };
 	}
 	
 	/**
@@ -818,7 +786,7 @@ class DocumentActions {
 
 		doc.star = !!flagActive;
 				
-		await that.#documentAccess.saveItem(id)
+		await this.#documentAccess.saveItem(id)
 
 		// Execute callbacks
 		this.#app.callbacks.executeCallbacks('setStar', doc);
@@ -831,212 +799,121 @@ class DocumentActions {
 	/**
 	 * Delete whole change log of a note
 	 */
-	deleteChangeLog(id) {
-		var db;
-		
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			Document.lock(id);
+	async deleteChangeLog(id) {
+		try {
+			var db = await this.#app.db.get();
 			
-			return db.get(id);
-		})
-		.then(function (data) {
+			Document.lock(id);
+				
+			var data = await db.get(id);
+	
 			var oldLen = data.changeLog.length;
 			data.changeLog = [];
-
+	
 			Document.addChangeLogEntry(data, 'deletedChangeLog', {
 				numDeleted: oldLen
 			});
-
+	
 			Document.updateMeta(data);
-			
-			return db.put(data);
-		})
-		.then(function (data) {
-			if (!data.ok) {
-				Document.unlock(id);
 				
-				return Promise.reject({
-					message: data.message,
-					messageThreadId: 'DeleteChangeLogMessages'
-				});
+			var resp = await db.put(data);
+			if (!resp.ok) {
+				Document.unlock(id);
+				throw new Error(data.message);
 			}
-
+	
 			Document.unlock(id);
 			
-			return Promise.resolve({
-				ok: true
-			});
-		})
-		.catch(function(err) {
+			return { ok: true };
+			
+		} catch(err) {
 			Document.unlock(id);
 			
-			return Promise.reject(err);
-		});
+			throw err;
+		}
 	}
 
 	/**
-	 * Restore the ghost version (id) with the new ID newId.
+	 * Restore the deleted documents passed.
 	 */
-	undeleteItem(id) {
-		var db;
-		
+	async undeleteItems(docs) {
 		this.#app.data.resetBacklinks();
 		this.#app.data.resetChildrenBuffers();
 		
-		var doc = null;
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.query(that.#app.views.getViewDocId() + '/deleted', {
-				include_docs: true
-			});
-		})
-		.then(function (data) {
-			if (!data.rows) return Promise.reject({
-				message: 'No documents to undelete',
-				messageThreadId: 'UndeleteMessages'
-			});
-			
-			var undeleteDocs = [];
-			that.filterChildrenOf(id, data.rows, undeleteDocs);
-			
-			if (undeleteDocs.length > 0) {
-				if (!confirm('Also restore the ' + undeleteDocs.length + ' children?')) {
-					undeleteDocs = [];
-				}
-			}
-			
-			for(var i in data.rows) {
-				if (!data.rows[i].doc.deleted) continue;
-				
-				if (data.rows[i].doc._id == id) {
-					doc = data.rows[i].doc;
-					break;
-				}
-			}
-			if (!doc) return Promise.reject({
-				message: 'Document ' + id + ' seems not to be deleted.',
-				messageThreadId: 'UndeleteMessages'
-			});
-			
+		for(var i in docs) {
+			var doc = docs[i];
+
 			// Reset parent if not existing anymore
-			if (doc.parent && !that.#app.data.getById(doc.parent)) {
+			if (doc.parent && !this.#app.data.getById(doc.parent)) {
 				doc.parent = "";
 			}
 			
-			undeleteDocs.push(doc);
+			doc.deleted = false;
 			
-			for(var i in undeleteDocs) {
-				undeleteDocs[i].deleted = false;
-				
-				Document.addChangeLogEntry(undeleteDocs[i], 'undeleted', {
-					parent: undeleteDocs[i].parent,
-					causedBy: id
-				});
-				
-				Document.updateMeta(undeleteDocs[i]);
-				
-				console.log('Undeleting ' + that.#app.data.getReadablePath(undeleteDocs[i]._id));
-			}
-
-			return db.bulkDocs(undeleteDocs);
-		})
-		.then(function (/*data*/) {
-			return that.#app.actions.nav.requestTree();
-		})
-		.then(function (/*data*/) {
-			return Promise.resolve({
-				ok: true,
-				message: "Restored " + doc.name,
-				messageThreadId: 'UndeleteMessages'
+			Document.addChangeLogEntry(doc, 'undeleted', {
+				parent: doc.parent
 			});
-		});
-	}
-	
-	/**
-	 * Helper for undeleteItem(). Gets all deep children if id out of the docs 
-	 * array and adds them to the ret array.
-	 */
-	filterChildrenOf(id, docs, ret) {
-		for(var i in docs) {
-			if (docs[i].doc.parent == id) {
-				ret.push(docs[i].doc);
-				
-				this.filterChildrenOf(docs[i].doc._id, docs, ret);
-			}
+			
+			Document.updateMeta(doc);
+			
+			console.log('Undeleting ' + doc.name + ' (' + doc._id + ')');
 		}
-	} 
+
+		var db = await this.#app.db.get();
+		
+		await db.bulkDocs(docs);
+
+		await this.#app.actions.nav.requestTree();
+
+		return {
+			ok: true,
+			message: "Restored " + doc.name
+		};
+	}
 	
 	/**
 	 * Delete trashed item
 	 */
-	deleteItemPermanently(id, rev) {
-		var db;
-		var doc;
-		
+	async deleteItemPermanently(id, rev) {
 		this.#app.data.resetBacklinks();
 		this.#app.data.resetChildrenBuffers();
 		
-		var that = this;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
+		var db = await this.#app.db.get();
 			
-			var options = {};
-			if (rev) options.rev = rev;
+		var options = {};
+		if (rev) options.rev = rev;
 			
-			return db.get(id, options);
-		})
-		.then(function (data) {
-			var revText = "";
-			if (rev) revText = " Revision " + rev;
-			if (!confirm("Really delete " + data.name + revText + "?")) {
-				return Promise.reject({
-					abort: true,
-					message: "Nothing changed.",
-					messageThreadId: 'DeletePermMessages'
-				});
-			}
-			doc = data;
+		var doc = await db.get(id, options);
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		
+		var dataResp = await db.remove(doc);
+
+		if (!dataResp.ok) {
+			Document.unlock(id);
+
+			throw new Error(dataResp.message);
+		}			
+		
+		if (rev) {
+			this.#app.routing.call(id);
 			
-			return db.remove(data);
-		})
-		.then(function (dataResp) {
-			if (!dataResp.ok) {
-				Document.unlock(id);
-				return Promise.reject({
-					message: dataResp.message,
-					messageThreadId: 'DeletePermMessages'
-				});
-			}
+			await this.#app.actions.nav.requestTree();
+
+			return {
+				ok: true,
+				message: "Deleted revision " + rev + "."
+			};
 			
-			if (rev) {
-				that.#app.routing.call(id);
-				
-				return that.#app.actions.nav.requestTree();
-			} else {
-				that.#app.resetPage();
-				return that.#app.actions.trash.showTrash();
-			}
-		})
-		.then(function (/*dataResp*/) {
-			if (rev) {
-				return Promise.resolve({
-					ok: true,
-					message: "Deleted revision " + rev + ".",
-					messageThreadId: 'DeletePermMessages'
-				});
-			} else {
-				return Promise.resolve({
-					ok: true,
-					message: "Permanently deleted " + doc.name + ".",
-					messageThreadId: 'DeletePermMessages'
-				});
-			}
-		});
+		} 
+		
+		this.#app.resetPage();
+			
+		await this.#app.actions.trash.showTrash();
+
+		return {
+			ok: true,
+			message: "Permanently deleted " + doc.name + "."
+		};
 	}
 	
 	/**
@@ -1075,7 +952,7 @@ class DocumentActions {
 			maxBytes: Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES
 		})
 		.then(function(backImage) {
-			return that.saveItemBackgroundImage(ids, backImage);
+			return that.#saveItemBackgroundImage(ids, backImage);
 		})			        	
 		.then(function(/*data*/) {
 			return Promise.resolve({
@@ -1089,62 +966,50 @@ class DocumentActions {
 	/**
 	 * Saves the passed image data to the passed documents.
 	 */
-	saveItemBackgroundImage(ids, backImage) {
+	async #saveItemBackgroundImage(ids, backImage) {
 		ids = Tools.removeDuplicates(ids);
 
 		var docsSrc = [];
     	for(var i in ids) {
     		var doc = this.#app.data.getById(ids[i]);
-    		if (!doc) {
-    			return Promise.reject({
-    				message: 'Document ' + ids[i] + ' not found',
-					messageThreadId: 'SetItemBgImageMessages'
-    			});
-    		}
+    		if (!doc) throw new Error('Document ' + ids[i] + ' not found');
+
     		docsSrc.push(doc);
     	}
     	
-    	var that = this;
-    	return this.#documentAccess.loadDocuments(docsSrc)
-    	.then(function(resp) {
-	    	for(var s in docsSrc) {
-	    		docsSrc[s].backImage = backImage;
+    	await this.#documentAccess.loadDocuments(docsSrc);
+    	
+    	for(var s in docsSrc) {
+    		docsSrc[s].backImage = backImage;
 	
-				// Change log entry
-				Document.addChangeLogEntry(docsSrc[s], 'backImageChanged', { 
-					bytes: JSON.stringify(backImage).length
-				});
-	    	}
-			
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('saveItemBackgroundImageeBeforeSave', {
-				docsSrc: docsSrc,
-				backImage: backImage
+			// Change log entry
+			Document.addChangeLogEntry(docsSrc[s], 'backImageChanged', { 
+				bytes: JSON.stringify(backImage).length
 			});
+    	}
+			
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveItemBackgroundImageeBeforeSave', {
+			docsSrc: docsSrc,
+			backImage: backImage
+		});
 		
-	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return that.#documentAccess.saveItems(ids);
-    	})
-    	.then(function(/*data*/) {
-			return that.#app.actions.nav.requestTree();
-		})
-    	.then(function(/*data*/) {
-    		// Execute callbacks
-    		that.#app.callbacks.executeCallbacks('saveItemBackgroundImageAfterSave', {
-    			docsSrc: docsSrc,
-    			backImage: backImage
-    		});
-    		
-    		return Promise.resolve({ ok: true });
-    	})
-    	/*.then(function() {
-			return that.#app.paging.reloadCurrentPage();  TODO?
-		})*/
-    	.then(function(/*data*/) {
-    		t.unblock();
+	    // Save the new tree structure by updating the metadata of all touched objects.
+	    await this.#documentAccess.saveItems(ids);
 
-    		return Promise.resolve({ ok: true });
-    	});
+		await this.#app.actions.nav.requestTree();
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('saveItemBackgroundImageAfterSave', {
+			docsSrc: docsSrc,
+			backImage: backImage
+		});
+
+		//await this.#app.paging.reloadCurrentPage();  TODO?
+
+    	this.#app.nav.unblock();
+    		
+    	return { ok: true };
 	}
 	
 	/**

@@ -41,6 +41,99 @@ class View {
 	}
 
 	/**
+	 * Ask the user if he wants to undelete also the children, and triggers
+	 * undeletion.
+	 * 
+	 * TODO still located right here?
+	 */
+	async triggerUndeleteItem(id) {
+		var doc = await this.app.actions.trash.getTrashedDocument(id);
+		if (!doc) throw new Error('Document not found in trash bin');
+		
+		var all = await this.app.actions.trash.getTrash();
+		
+		var undeleteDocs = [];
+		this.#filterChildrenOf(id, all.rows, undeleteDocs);
+			
+		if (undeleteDocs.length > 0) {
+			if (!confirm('Also restore the ' + undeleteDocs.length + ' children?')) {
+				undeleteDocs = [];
+			}
+		}
+		
+		undeleteDocs.push(doc);
+		
+		var ret = await this.app.actions.document.undeleteItems(undeleteDocs);
+		
+		if (ret.message) {
+			this.message(ret.message, 'S');
+		}
+		
+		return ret;
+	}
+	
+	/**
+	 * Ask the user if he wants to delete the passed document permanently,
+	 * and triggers the action.
+	 * 
+	 * rev can be used optionally to delete a conflict.
+	 * 
+	 * TODO still located right here?
+	 */
+	async triggerDeletePermanently(id, rev) {
+		var doc = await this.app.actions.trash.getTrashedDocument(id);
+		if (!doc) {
+			doc = await this.app.data.getById(id);
+			if (!doc) throw new Error('Document not found');
+		}
+		
+		var revText = "";
+		if (rev) revText = " Revision " + rev;
+		if (!confirm("Really delete document " + doc.name + revText + " permanently?")) {
+			throw new InfoError("Nothing changed.");
+		}
+
+		var data = await this.app.actions.document.deleteItemPermanently(id, rev);
+									
+		if (data.message) {
+			this.message(data.message, "S");
+		}
+		
+		return data;
+	}
+	
+	/**
+	 * Helper for triggerUndeleteItem(). Gets all deep children of id out of the docs 
+	 * array and adds them to the ret array.
+	 */
+	#filterChildrenOf(id, docs, ret) {
+		for(var i in docs) {
+			if (docs[i].doc.parent == id) {
+				ret.push(docs[i].doc);
+				
+				this.#filterChildrenOf(docs[i].doc._id, docs, ret);
+			}
+		}
+	} 
+
+	/**
+	 * Ask the user for a new name and copy the document using this name.
+	 * 
+	 * TODO still located right here?
+	 */
+	async triggerCopyItem(id) {
+		var doc = this.app.data.getById(id);
+		if (!doc) throw new Erro('Document ' + id + ' not found');
+		
+		var name = prompt("New name:", doc.name);
+		if (!name || name.length == 0) {
+			throw new InfoError("Nothing changed.");
+		}
+		
+		return await this.app.actions.document.copyItem(id, name);
+	}
+
+	/**
 	 * Triggers deletion of items, with confirmation.
 	 * 
 	 * TODO still located right here?
@@ -69,7 +162,7 @@ class View {
 				++numChildren;
 			}
 		}
-		
+		debugger;
 		var addstr = numChildren ? (' including ' + numChildren + ' contained items') : '';
 		var displayName = (numDocs == 1) ? docs[0].name : (numDocs + ' documents');
 

@@ -158,7 +158,10 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	that.#app.hideOptions();
 	        	
-	        	that.#app.actions.document.copyItem(page.getCurrentId())
+	        	that.#app.view.triggerCopyItem(page.getCurrentId())
+	        	.then(function() {
+					that.#app.view.message('Successfully copied item', 'S');
+				})
 	        	.catch(function(err) {
 					that.#app.errorHandler.handle(err);
 				});

@@ -58,10 +58,7 @@ class TrashActions {
 		});
 
 		if (!confirm("Permanently delete " + data.rows.length + " trashed items?")) {  // TODO move to UI!
-			throw {
-				abort: true,
-				message: "Nothing changed.",
-			};
+			throw new InfoError("Nothing changed.");
 		}
 		
 		var docs = [];
@@ -71,11 +68,40 @@ class TrashActions {
 		}
 			
 		await db.bulkDocs(docs);
-		await that.showTrash();
+		await this.showTrash();
 			
 		return {
 			ok: true,
 			message: "Trash is now empty.",
 		};
+	}
+	
+	/**
+	 * Returns all trashed documents
+	 */
+	async getTrash() {
+		var db = await this.#app.db.get();
+		return await db.query(this.#app.views.getViewDocId() + '/deleted', {
+			include_docs: true
+		});
+	}
+	
+	/**
+	 * Returns a trashed document, or null if not found.
+	 */
+	async getTrashedDocument(id) {
+		var data = await this.getTrash();
+
+		if (!data.rows) return null;
+			
+		for(var i in data.rows) {
+			if (!data.rows[i].doc.deleted) continue;
+			
+			if (data.rows[i].doc._id == id) {
+				return data.rows[i].doc;
+			}
+		}
+		
+		return null;
 	}
 }

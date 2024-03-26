@@ -36,9 +36,8 @@ class TrashPage extends Page {
 					.on('click', function(/*e*/) {
 						var id = $(this).data().id;
 						
-						that._app.actions.document.undeleteItem(id)
-						.then(function(data) {
-							if (data.message) that._app.view.message(data.message, 'S', data.messageThreadId);
+						that._app.view.triggerUndeleteItem(id)
+						.then(function() {
 							that._app.routing.call('trash');
 						})
 						.catch(function(err) {
@@ -49,12 +48,7 @@ class TrashPage extends Page {
 					.on('click', function(/*e*/) {
 						var id = $(this).data().id;
 						
-						that._app.actions.document.deleteItemPermanently(id)
-						.then(function(data) {
-							if (data.message) {
-								that._app.view.message(data.message, "S", data.messageThreadId);
-							}
-						})
+						that._app.view.triggerDeletePermanently(id)
 						.catch(function(err) {
 							that._app.errorHandler.handle(err);
 						});

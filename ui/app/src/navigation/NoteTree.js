@@ -479,13 +479,14 @@ class NoteTree {
 				$('<div class="selectedFavorite"></div>')
 			)
 			
+		var that = this;
 		function handleFavContext(event) {
 			event.stopPropagation();
 			event.preventDefault();
 			
 			var data = $(event.currentTarget).data();
 			
-			this.#app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event), {
+			that.#app.callOptions([data.id], Tools.extractX(event), Tools.extractY(event), {
 				showInNavigation: false,      // Show in Navigation (default: hidden)
 				noMove: true,                // Hide move option
 				noCopy: true,                // Hide copy option
@@ -502,7 +503,6 @@ class NoteTree {
 			$(event.currentTarget).find('.selectedFavorite').css('display', 'inherit');
 		}
 			
-		var that = this;
 		el.contextmenu(handleFavContext);
 		el.mainEvent = new TouchClickHandler(el, {
 			onGestureFinishCallback: function(event) {

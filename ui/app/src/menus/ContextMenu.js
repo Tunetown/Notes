@@ -123,8 +123,8 @@ class ContextMenu {
 						that.#app.hideOptions();
 						if (that.#app.optionsIds.length != 1) return;
 						
-						that.#app.actions.document.copyItem(that.#app.optionsIds[0])
-						.then(function(/*data*/) {
+						that.#app.view.triggerCopyItem(that.#app.optionsIds[0])
+						.then(function() {
 							that.#app.view.message('Successfully copied item', 'S');
 						})
 						.catch(function(err) {
