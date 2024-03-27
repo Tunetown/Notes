@@ -150,13 +150,13 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/actions/NavigationActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/MetaActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/HashtagActions.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/actions/DataActions.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/database/Database.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/database/DatabaseSync.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/database/ProfileHandler.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/data/Data.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/data/Graph.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/data/Linkage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/data/Hashtag.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/data/Document.js', tag: 'script', type: 'text/javascript' },
@@ -189,11 +189,15 @@ const APP_SOURCE_DEFINITIONS = [
     
     { src: './ui/app/src/view/View.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/MessageHandler.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/ImportOptions.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/Triggers.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/Graph.js', tag: 'script', type: 'text/javascript' },
 
     { src: './ui/app/src/view/dialog/Dialog.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/dialog/Dialogs.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/dialog/ImageDialog.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/dialog/CreateDialog.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/view/dialog/DownloadDialog.js', tag: 'script', type: 'text/javascript' },
     
     { src: './ui/app/src/view/pages/ProfilesPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/ConflictPage.js', tag: 'script', type: 'text/javascript' },
@@ -215,12 +219,12 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/view/pages/GeneratePage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/VerifyBackupPage.js', tag: 'script', type: 'text/javascript' },
     
-    { src: './ui/app/src/import/Import.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/import/NotesImporter.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/import/TrelloImporter.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/importers/Importer.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/importers/NotesImporter.js', tag: 'script', type: 'text/javascript' },
 
-    { src: './ui/app/src/export/NotesExporter.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/export/ObsidianExporter.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/exporters/Exporter.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/exporters/NotesExporter.js', tag: 'script', type: 'text/javascript' },
+    { src: './ui/app/src/exporters/ObsidianExporter.js', tag: 'script', type: 'text/javascript' },
 
     { src: './ui/app/src/tools/Tools.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/tools/TouchClickHandler.js', tag: 'script', type: 'text/javascript' },

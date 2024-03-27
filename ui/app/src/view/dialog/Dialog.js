@@ -31,6 +31,7 @@ class Dialog {
 	
 	/**
 	 * Shows an Ok/Cancel dialog. content is optional.
+	 * 
 	 * Returns true or false. 
 	 * onShownCallback is an optional callback called after the dialog has been shown.
 	 */
@@ -38,7 +39,7 @@ class Dialog {
 		var that = this;
 		
 		return new Promise(function(resolve) {
-			that.#create(
+			that.show(
 				text, 
 				content, 
 				[
@@ -46,16 +47,16 @@ class Dialog {
 						text: 'Ok',
 						type: 'submit',
 						callback: function() {
-							that.close();
 			    			resolve(true);
+			    			return true;
 						}
 					},
 					{
 						text: 'Cancel',
 						type: 'cancel',
 						callback: function() {
-			    			that.close();
 							resolve(false);
+							return true;
 						}
 					}
 				],
@@ -67,14 +68,20 @@ class Dialog {
 	/**
 	 * Prompt for file(s) to upload.
 	 * onShownCallback is an optional callback called after the dialog has been shown.
+	 * 
+	 * options: {
+	 *     onShownCallback: function()
+	 *     content: Optional DOM content to be shown under the file input
+	 * }
 	 */
-	async promptFiles(text, onShownCallback) {
-		var that = this;
+	async promptFiles(text, options) {
+		if (!options) options = {};
 		
 		var input = $('<input type="file" class="form-control" />');
 		
+		var that = this;
 		return new Promise(function(resolve) {
-			that.#create(
+			that.show(
 				text,
 				$('<table />').append(
           			$('<tr />').append(
@@ -86,6 +93,17 @@ class Dialog {
           				$('<td />').append(
           					input
 						)
+					),
+					
+					!options.content ? null : $('<tr />').append(
+						$('<td />').append(
+							  $('<span />')
+							  .text('Options')
+						),
+          				
+          				$('<td />').append(
+          					options.content
+						)
 					)
 				),
 				[
@@ -93,45 +111,56 @@ class Dialog {
 						text: 'Ok',
 						type: 'submit',
 						callback: function() {
-							that.close();
-							
-							if (!input[0].files) {
+							if (!input[0].files || !input[0].files.length) {
 	    						that.#view.message('Please select a file to upload.', 'E');
-								return;
+								return false;
 			    			}
 			    
 			    			resolve(input[0].files);
+			    			return true;
 						}
 					},
 					{
 						text: 'Cancel',
 						type: 'cancel',
 						callback: function() {
-			    			that.close();
 							resolve(false);
+							return true;
 						}
 					}
 				],
-				onShownCallback
+				options.onShownCallback ? options.onShownCallback : null
 			)
 		});
 	}
 	
 	/**
-	 * Remove the dialog from outside
+	 * Cancel the dialog
 	 */
-	close() {
-		$(document).unbind('keypress.dialog');
-		if (this.#dialog) this.#dialog.modal('hide');
+	cancel() {
+		if (this.#cancelCallback) {
+			this.#cancelCallback();
+			this.#cancelCallback = null;
+		}
+	}
+	
+	/**
+	 * Submit the dialog
+	 */
+	submit() {
+		if (this.#submitCallback) {
+			this.#submitCallback();
+			this.#submitCallback = null;
+		}
 	}
 	
 	//////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 	/**
-	 * Create the dialog DOM
+	 * Shows a dialog and returns.
 	 */
-	#create(text, content, buttons, onShownCallback) {
-		this.close();
+	show(text, content, buttons, onShownCallback) {
+		this.#close();
 		
 		this.#dialog = $('<div class="modal fade" tabindex="-1" aria-hidden="true" />').appendTo('body');
 		
@@ -159,7 +188,7 @@ class Dialog {
 			)
 		)
 		.on('hidden.bs.modal', function() {
-			if (that.#cancelCallback) that.#cancelCallback();
+			that.cancel();
 			that.#destroy();
 		})
 		.on('shown.bs.modal', function() {
@@ -170,12 +199,22 @@ class Dialog {
 		var that = this;
 		$(document).on('keypress.dialog', function(e) {
 		    if (e.which == 13) {
-				if (that.#submitCallback) {
-					that.#submitCallback();
-				}
-				that.close();
+				that.submit();
 		    }
 		});
+	}
+	
+	///////////////////////////////////////////////////////////////////////////
+	
+	/**
+	 * Remove the dialog from outside (cancel)
+	 */
+	#close() {
+		$(document).unbind('keypress.dialog');
+		if (this.#dialog) this.#dialog.modal('hide');
+		
+		this.#submitCallback = null;
+		this.#cancelCallback = null;
 	}
 	
 	/**
@@ -194,6 +233,7 @@ class Dialog {
 	 */
 	#createButtons(definitions) {
 		var ret = [];
+		var that = this;
 		
 		for(var d in definitions) {
 			const def = definitions[d];
@@ -203,10 +243,17 @@ class Dialog {
 			
 			if (def.type == "cancel") {
 				attrs += 'data-dismiss="modal"';
-				this.#cancelCallback = def.callback;
+				this.#cancelCallback = function() {
+					if (!def.callback()) return;
+					that.#close();
+				}
 			}
+			
 			if (def.type == "submit") {
-				this.#submitCallback = def.callback;
+				this.#submitCallback = function() {
+					if (!def.callback()) return;
+					that.#close();
+				}
 			}
 			
 			if (def.text) {
@@ -220,7 +267,8 @@ class Dialog {
 					e.stopPropagation();
 
 					if (def.callback) {
-						def.callback(e);
+						if (!def.callback(e)) return;
+						that.#close();
 					}
 				})
 			);

@@ -813,4 +813,114 @@ class DocumentActions {
 		
 		return backImage;
 	}
+	
+	/**
+	 * Download a document
+	 */
+	async downloadDocument(id, options) {
+		var d = this.#app.data;
+		var doc = d.getById(id);
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		if (doc.type == 'reference') throw new Error('Cannot download a reference Document. Please download the original.');
+
+		// Options
+		if (!options) options = {};
+		
+		if (!options.format) options.format = 'txt';
+		if (!options.depth) options.depth = 0;
+		if (!options.listStyle) options.listStyle = 'none';
+		if (!options.listSeparator) options.listSeparator = '\t';
+		if (!options.contentSelection) options.contentSelection = 'all';
+		if (!options.lineFeed) options.lineFeed = '\n';
+		if (!options.timestamps) options.timestamps = 'all';
+		options.depth = (options.depth == 'all') ? 99999999 : parseInt(options.depth);
+
+		var fileName = doc.name;
+		
+		switch(options.format) {
+		case 'txt':
+			fileName += '.txt';
+			break;
+			
+		case 'html':
+			fileName += '.html';
+			options.lineFeed = '<br>';
+			break;
+			
+		default:
+			throw new Error('Invalid format: ' + options.format);
+		}
+		
+		if (!options.fileName) options.fileName = fileName;
+	    
+	    // Load all involved documents
+		var docs = d.getChildren(doc._id, true);
+		docs.push(doc);
+		await this.#documentAccess.loadDocuments(docs);
+		
+		// Get content to save
+		var content = this.#collectContents(doc, 0, options);
+
+		// Save (until now only text based file types are implemented)
+		var dataBlob = new Blob([content], {type: 'text/plain'});
+		var url = URL.createObjectURL(dataBlob);
+		
+		window.saveAs(url, options.fileName);
+
+		return { ok: true };
+	}
+	
+	/**
+	 * Helper for downloadDocument(). Collects contents recursively.
+	 */
+	#collectContents(doc, depth, options, prefix) {
+		var d = this.#app.data;
+		if (!prefix) prefix = '';
+		
+		var includeTimestamps = false;
+		if ((options.timestamps == 'main') && (depth == 0)) includeTimestamps = true;
+		if ((options.timestamps == 'current') && (depth == 0)) includeTimestamps = true;
+		if (options.timestamps == 'all') includeTimestamps = true;
+		
+		var ts = '';
+		if (includeTimestamps) {
+			ts = ' (' + ((options.timestamps == 'current') ? new Date() : new Date(doc.timestamp)).toLocaleString() + ')';
+		}
+
+		var ret = prefix + doc.name + ts + options.lineFeed;
+		
+		var includeContent = false;
+		if ((options.contentSelection == 'main') && (depth == 0)) includeContent = true;
+		if (options.contentSelection == 'all') includeContent = true;
+		
+		if (includeContent) {
+			ret += Document.getContent(doc);
+			ret += options.lineFeed;
+		}
+		
+		if (depth < options.depth) {
+			var ch = d.getChildren(doc._id);
+			Document.sortHierarchically(ch);
+			
+			var num = 1;
+			for(var c in ch) {
+				var prefix = '';
+				for(var dd=0; dd<depth; ++dd) {
+					prefix += options.listSeparator;
+				}
+				if (options.listStyle == 'numbers') {
+					prefix += num + options.listSeparator;
+				}
+				if (options.listStyle == 'dashes') {
+					prefix += '- ';
+				}
+				
+				ret += this.#collectContents(ch[c], depth + 1, options, prefix);
+				
+				++num;
+			}
+		}
+
+		return ret;
+	}
 }

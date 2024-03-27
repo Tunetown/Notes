@@ -306,7 +306,7 @@ class SettingsContent {
 
 					$('<button class="btn btn-secondary settings-button">Open Notebook from CouchDB URL...</button>')
 					.on('click', function() {
-						var url = prompt('CouchDB Address:', SettingsContent.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
+						var url = prompt('CouchDB Address:', that.#app.db.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
 						if (!url) return;
 						
 						d.reset();
@@ -963,17 +963,30 @@ class SettingsContent {
 					.on('click', function(event) {
 						event.stopPropagation();
 
-						that.#exportAll('json');									
+						that.#app.view.triggers.triggerExport(
+							new NotesExporter(
+								this.#app 
+							)
+						)
+						.catch(function(err) {
+							that.#app.errorHandler.handle(err);
+						});							
 					}),
 					
 					$('<button class="btn btn-secondary settings-button">Import Raw Data (JSON)</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						new Import(new NotesImporter(that.#app, {
-							importInternal: true,
-							createIds: true,
-							useRootItem: false,
-						})).startFileImport();
+					
+						that.#app.view.triggers.triggerImport(
+							new NotesImporter(
+								that.#app, 
+								{
+									importInternal: true,
+									createIds: true,
+									useRootItem: false,
+								}
+							)
+						);
 					}),
 					
 					$('<button class="btn btn-secondary settings-button">Verify Raw Data (JSON)</button>')
@@ -1199,84 +1212,21 @@ class SettingsContent {
 				)
 			),
 			
-			/*$('<tr/>').append(
-				$('<td class="w-auto">Import from Trello</td>'),
-				$('<td colspan="2"/>').append([
-					$('<button class="btn btn-secondary settings-button">Import Board from Trello (JSON)</button>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						new Import(new TrelloImporter(that.#app)).startFileImport();
-					}),
-				])
-			),*/
-				
 			$('<tr/>').append(
 				$('<td colspan="3"/>').append([
 					$('<button class="btn btn-secondary settings-button">Export as ZIP of MD files (Obsidian)</button>')
 					.on('click', function(event) {
 						event.stopPropagation();
-						that.#exportAll('files');
+						
+						that.#app.view.triggers.triggerExport(new ObsidianExporter(that.#app))
+						.catch(function(err) {
+							that.#app.errorHandler.handle(err);
+						});
 					}),
 				])
 			),	
 		];
 		
 		return ret;
-	}
-	
-	////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-	
-	/**
-	 * Removes the database name from an url.
-	 */
-	static getDatabaseUrlProposal(url) {    // #IGNORE static
-		if (url == 'local') return '';
-		
-		return url.split('/').slice(0, -1).join('/') + '/';
-	}
-	
-	/**
-	 * Export all documents as JSON
-	 */
-	#exportAll(format) {
-		var that = this;
-		
-		if (!format) {
-			this.#app.view.message("No format specified", "E");
-			return;
-		}
-		
-		// Raw json export
-		if (format == 'json') {
-			if (!confirm('Export all documents including settings and metadata?')) return;
-
-			(new NotesExporter(this.#app)).exportDatabase()
-			.then(function(data) {
-				that.#app.view.message('Exported ' + ((data && data.docs) ? data.docs.length : "[unknown]") + ' documents.', 'S');
-			})
-			.catch(function(err) {
-				that.#app.errorHandler.handle(err);
-			});
-		}
-		
-		// Obsidian export
-		if (format == 'files') {
-			var children = this.#app.data.getChildren("", true);
-			
-			if (!confirm('Export all ' + children.length + ' documents?')) return;
-			
-			var ids = [];
-			for(var d in children) {
-				ids.push(children[d]._id);
-			}
-
-			new ObsidianExporter(this.#app).export(ids)
-			.then(function(/*data*/) {
-				that.#app.view.message('Exported ' + children.length + ' documents.', 'S');
-			})
-			.catch(function(err) {
-				that.#app.errorHandler.handle(err);
-			});
-		}
 	}
 }

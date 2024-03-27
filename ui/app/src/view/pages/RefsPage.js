@@ -78,7 +78,7 @@ class RefsPage extends Page {
 					.on('click', function(e) {
 						var rid = $(this).data().id;
 						
-						that._app.view.triggerDeleteItem([rid])
+						that._app.view.triggers.triggerDeleteItem([rid])
 						.then(function() {
 							that._app.routing.call('refs/' + id);
 						})

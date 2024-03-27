@@ -52,7 +52,7 @@ class ConflictsPage extends Page {
 						var id = $(this).data().id;
 						var rev = $(this).data().rev;
 						
-						that._app.view.triggerDeletePermanently(id, rev)
+						that._app.view.triggers.triggerDeletePermanently(id, rev)
 						.catch(function(err) {
 							that._app.errorHandler.handle(err);
 						});

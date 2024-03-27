@@ -188,7 +188,7 @@ class Hashtag {
 	/**
 	 * Returns a dynamic CSS class name for the given tag, to be used in lists.
 	 */
-	getListStyleClass(tag) {
+	getListStyleClass(tag) {  // TODO move to view
 		const col = this.getColor(tag);
 		const styleStr = 'background-color: ' + col + ' !important; color: rgba(0,0,0,0) !important; margin-right: 4px;  border-radius: 10px; content: "__";';
 		return this.#app.styles.getStyleClass(Hashtag.#stylePrefix + tag, ':before', styleStr);

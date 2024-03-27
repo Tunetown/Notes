@@ -114,7 +114,7 @@ class PageMenu {
 				event.stopPropagation();
 				that.#app.hideOptions();	
 				
-				that.#app.view.triggerCreateItem(page.getCurrentId())
+				that.#app.view.triggers.triggerCreateItem(page.getCurrentId())
 				.then(function(data) {
 					if (data.message) {
 						that.#app.view.message(data.message, "S");
@@ -131,7 +131,7 @@ class PageMenu {
 				event.stopPropagation();
 				that.#app.hideOptions();	
 				
-				that.#app.view.triggerRenameItem(page.getCurrentId())
+				that.#app.view.triggers.triggerRenameItem(page.getCurrentId())
 				.then(function() {
 					that.#app.routing.call(page.getCurrentId());
 				})
@@ -146,7 +146,7 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	that.#app.hideOptions();
 	        	
-	        	that.#app.view.triggerMoveItems([page.getCurrentId()])
+	        	that.#app.view.triggers.triggerMoveItems([page.getCurrentId()])
 	        	.catch(function(err) {
 					that.#app.errorHandler.handle(err);
 				});
@@ -158,7 +158,7 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	that.#app.hideOptions();
 	        	
-	        	that.#app.view.triggerCopyItem(page.getCurrentId())
+	        	that.#app.view.triggers.triggerCopyItem(page.getCurrentId())
 	        	.then(function() {
 					that.#app.view.message('Successfully copied item', 'S');
 				})
@@ -175,7 +175,7 @@ class PageMenu {
 	        	
 	        	var delId = page.getCurrentId();
 	        	
-	        	that.#app.view.triggerDeleteItem([delId])
+	        	that.#app.view.triggers.triggerDeleteItem([delId])
 				.then(function() {
 	        		that.#app.routing.call();
 	        	})
@@ -204,11 +204,8 @@ class PageMenu {
 				
 				var id = page.getCurrentId();
 				
-				that.#app.actions.reference.createReference(id)
+				that.#app.view.triggers.triggerCreateReference(id)
 				.then(function(data) {
-	        		if (data.message) {
-	        			that.#app.view.message(data.message, "S");
-	        		}
 					if (data.newIds && (data.newIds.length > 0)) {
 						that.#app.nav.focus(data.newIds[0]);
 					}	        		
@@ -242,7 +239,7 @@ class PageMenu {
 				event.stopPropagation();
 				that.#app.hideOptions();	
 				
-				Document.downloadDocumentDialog(page.getCurrentId())
+				that.#app.view.triggers.triggerDownloadDocument(page.getCurrentId())
 				.catch(function(err) {
 					that.#app.errorHandler.handle(err);
 				});

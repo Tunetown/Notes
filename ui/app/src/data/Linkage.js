@@ -70,7 +70,7 @@ class Linkage {
 	 *
 	 * If ignoreSurroundedBy is given, all occurrences which are surrounded by this character will be ignored.
 	 */
-	static parse(content/*, ignoreSurroundedBy*/) {
+	static parse(content) {
 		var capturing = false;
 		var start = -1;
 		var end = -1;
@@ -79,29 +79,14 @@ class Linkage {
 		for(var i=0; i<content.length-1; ++i) {
 			const cc = content[i] + content[i+1];
 			
-			if (/*(!capturing) && */(cc == Linkage.startTag)) {
+			if (cc == Linkage.startTag) {
 				capturing = true;
 				start = i+2;
-				
-				/*if (ignoreSurroundedBy) {
-					if ((i > 0) && (content[i-1] == ignoreSurroundedBy)) {
-						hadQuote = true;
-					} else {
-						hadQuote = false;
-					}
-				}*/
 			}
 
 			if (capturing && (cc == Linkage.endTag)) {
 				capturing = false;
 				end = i;
-
-				/*if (ignoreSurroundedBy) {
-					if (hadQuote && (i < (content.length-2)) && (content[i+2] == ignoreSurroundedBy)) {
-						// Already converted link (this is determined by the surrounding quotes)
-						continue;
-					}
-				}*/
 				
 				coll.push({
 					start: start,

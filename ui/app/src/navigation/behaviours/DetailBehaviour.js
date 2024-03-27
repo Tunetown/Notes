@@ -964,7 +964,7 @@ class DetailBehaviour {
 						$('<div class="doc-label doc-label-detail-star fa fa-star"></div>'),
 						
 						// Hashtags
-						Document.getTagElements(doc, 'doc-hashtag-detail')
+						this.#app.view.getTagElements(doc, 'doc-hashtag-detail')
 					),
 				]),
 				

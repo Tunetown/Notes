@@ -30,309 +30,96 @@ class ReferenceActions {
 	/**
 	 * Sets (retargets) a new reference target. id must be a reference.
 	 */
-	setReference(id) {
+	async setReference(id, target) {
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SetRefMessages'
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		if (doc.type != 'reference') throw new Error('Document ' + id + ' is no reference');
 		
-		if (doc.type != 'reference') return Promise.reject({
-			message: 'Document ' + id + ' is no reference',
-			messageThreadId: 'SetRefMessages'
-		});
+		var tdoc = this.#app.data.getById(target);
+    	if (!tdoc) throw new Error('Target not found: ' + target);
 		
-		var existingRefs = [id];
-		this.#app.data.each(function(doc) {
-			if (doc.type == 'reference') existingRefs.push(doc._id);
-		});
-		
-		var selector = this.#app.view.getDocumentSelector(existingRefs, true);
-		selector.val(doc.ref);
-		
-		var refDoc = this.#app.data.getById(doc.ref);
-		var parentDoc = this.#app.data.getById(doc.parent);
-		
-		var that = this;
-		$('#moveTargetSelectorList').empty();
-		$('#moveTargetSelectorList').append(
-			selector,
-			/*!parentDoc ? null : $('<button></button>').text('Convert to link...')  TODO cleanup
-			.on('click', function(event) {
-				that.convertRefToLink(doc, refDoc, parentDoc)
-				.then(function(ret) {
-					$('#moveTargetSelector').off('hidden.bs.modal');
-		        	$('#moveTargetSelector').modal('hide');
+    	await this.#documentAccess.loadDocuments([doc])
 
-					if (ret && ret.message) {
-						that.#app.view.message(ret.message, 'S');
-					}
-				})
-				.catch(function(err) {
-					that.#app.errorHandler.handle(err);
-				});
-			})*/
-		);
-
-		// Enable searching by text entry
-		selector.selectize({
-			sortField: 'text'
+		Document.addChangeLogEntry(doc, 'referenceChanged', {
+			oldRev: doc.ref,
+			newRef: target
 		});
-
-		$('#moveSubmitButton').html('Save');
 		
-		return new Promise(function(resolve, reject) {
-			$('#moveSubmitButton').off('click');
-			$('#moveSubmitButton').on('click', function(/*event*/) {
-				$('#moveTargetSelector').off('hidden.bs.modal');
-	        	$('#moveTargetSelector').modal('hide');
-	        	var target = selector.val();
-	        	if (target == "_cancel") {
-	        		reject({
-	        			abort: true,
-						message: "Action cancelled.",
-						messageThreadId: 'SetRefMessages'
-					});
-	        		return;
-	        	}
-	        	
-				var tdoc = that.#app.data.getById(target);
-	        	if (!tdoc) {
-					that.#app.view.message('Target not found: ' + target, 'E');
-					return;
-				}
-				
-	        	that.#documentAccess.loadDocuments([doc])
-	        	.then(function(/*data*/) {
-					Document.addChangeLogEntry(doc, 'referenceChanged', {
-						oldRev: doc.ref,
-						newRef: target
-					});
-					
-					doc.ref = target;
-					
-					return that.#documentAccess.saveItem(id)
-				})
-				.then(function(/*data*/) {
-					resolve({
-						ok: true,
-						message: 'Saved new target for ' + doc.name + ' to ' + tdoc.name,
-						messageThreadId: 'SetRefMessages'
-					});
-	        	})
-	        	.catch(function(err) {
-	        		reject({
-						message: "Error saving target: " + err.message,
-						messageThreadId: 'SetRefMessages'
-					});
-	        	});
-			});
-			
-			$('#moveTargetSelector').off('hidden.bs.modal');
-			$('#moveTargetSelector').on('hidden.bs.modal', function () {
-				reject({
-					abort: true,
-					message: 'Action cancelled.',
-					messageThreadId: 'SetRefMessages'
-				});
-			});
-			
-			$('#moveTargetSelectorText').text('Point ' + doc.name + ' to:');
-			$('#moveTargetSelector').modal();
-		});
+		doc.ref = target;
+		
+		await this.#documentAccess.saveItem(id);
+		
+		return {
+			ok: true,
+			message: 'Saved new target for ' + doc.name + ' to ' + tdoc.name
+		};
 	}
 	
 	/**
-	 * Convert reference to link. Returns if successful. TODO cleanup
-	 *
-	convertRefToLink(referenceDoc, referencedDoc, parentDoc) {
-		if (!referencedDoc) {
-			return Promise.reject({
-				message: 'The referenced document (ID: ' + + referenceDoc.ref + ') does not exist.',
-			});
-		}
-
-		if (!confirm('Do you want to convert ' + referenceDoc.name + ' to a link?\n\n- The reference ' + referenceDoc.name + ' will be deleted\n- A link to ' + referencedDoc.name + ' will be inserted at the beginning of ' + parentDoc.name)) {
-			return Promise.reject();
-		}
-		
-		if (parentDoc.type != 'note') {
-			return Promise.reject({
-				message: 'The parent document of this reference (ID: ' + parentDoc.name + ') must be a textual note, but is of type ' + parentDoc.type + '. Conversion not possible.',
-			});
-		}
-		
-		if ((parentDoc.editor != 'code') && (parentDoc.editor != 'richtext')) {
-			return Promise.reject({
-				message: 'The parent document of this reference (ID: ' + parentDoc.name + ') has an invalid editor mode: ' + parentDoc.editor + '. Conversion not possible.',
-			});
-		}
-
-		/**
-		 * Returns the content added to the parent at top.
-		 *
-		function getLinkText() {
-			if (parentDoc.editor == 'code') {
-				return Document.composeLinkToDoc(referencedDoc) + '\n\n';
-			}
-			if (parentDoc.editor == 'richtext') {
-				return '<p>' + Document.composeLinkToDoc(referencedDoc) + '</p>';
-			}
-			return '';
-		}
-		
-		var that = this;
-		return this.#documentAccess.loadDocuments([referenceDoc, parentDoc])
-    	.then(function(/*data*) {
-			return that.#app.actions.document.save(parentDoc._id, getLinkText() + parentDoc.content);
-		})
-		.then(function(/*data*) {
-			return that.#app.view.triggerDeleteItem([referenceDoc._id], true);
-		})
-		.then(function(/*data*) {
-			if (that.#app.paging.getCurrentlyShownId() == parentDoc._id) {
-				// Refresh Editor as well
-				that.#app.routing.call(parentDoc._id);
-			}
-			
-			return that.#app.actions.nav.requestTree();
-		})
-		.then(function(/*data*) {
-			return Promise.resolve({
-				ok: true,
-				message: 'Successfully converted reference' + referenceDoc.name,
-			});
-    	});
-	}
-
-	/**
 	 * Creates a new reference for ID.
 	 */
-	createReference(id) {
+	async createReference(id, target) {
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'CreateRefMessages'
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 		
-		var existingRefs = [id];
-		this.#app.data.each(function(doc) {
-			if (doc.type == 'reference') existingRefs.push(doc._id);
-		});
-		
-		var selector = this.#app.view.getDocumentSelector(existingRefs, false);
-		
-		$('#createReferenceDialogContent').empty();
-		$('#createReferenceDialogContent').append(selector);
-
-		// Enable searching by text entry
-		selector.selectize({
-			sortField: 'text'
-		});
-
-		var that = this;
-		return new Promise(function(resolve, reject) {
-			$('#createReferenceDialogSubmitButton').off('click');
-			$('#createReferenceDialogSubmitButton').on('click', function(/*event*/) {
-				$('#createReferenceDialog').off('hidden.bs.modal');
-	        	$('#createReferenceDialog').modal('hide');
-	        	
-	        	var target = selector.val();
-	        	if (target == "_cancel") {
-	        		reject({
-	        			abort: true,
-						message: "Action cancelled.",
-					});
-	        		return;
-	        	}
-	        	
-				// Here, target can be empty for a ref at root level.
-				if (target.length > 0) {
-					// If there is a target, it has to really exist
-					var tdoc = that.#app.data.getById(target);
-		        	if (!tdoc) {
-						reject({
-							message: 'Target not found: ' + target,
-						});
-						return;
-					}
-				}
-				
-				// Create new document
-				var data = {
-					_id: that.#app.data.generateIdFrom(doc.name),
-					type: 'reference',
-					name: doc.name,
-					parent: target,
-					order: 0,
-					timestamp: Date.now(),
-					ref: id
-				};
-				
-				Document.addChangeLogEntry(data, 'created', {
-					parent: id
-				});
-				
-				Document.updateMeta(data);
-				
-				var db;
-				var newIds = [];
-				
-				return that.#app.db.get()
-				.then(function(dbRef) {
-					db = dbRef;
-					return db.bulkDocs([data]);
-				})
-				.then(function(ret) {
-					for(var d in ret) {
-						if (!ret[d].ok) {
-							return Promise.reject({
-								message: ret[d].message,
-								messageThreadId: 'CreateRefMessages'
-							});
-						}
-						
-						newIds.push(ret[d].id);
-					}
-					
-					return db.allDocs({
-						conflicts: true,
-						include_docs: true,
-						keys: newIds
-					});
-				})
-				.then(function(/*data*/) {
-					// Execute callbacks and reload data
-					that.#app.callbacks.executeCallbacks('createReference', newIds);
-					
-					return that.#app.actions.nav.requestTree();
-				})
-				.then(function(/*data*/) {
-					// Everything went fine
-					resolve({
-						ok: true,
-						message: 'Successfully created ' + newIds.length + ' references.',
-						newIds: newIds
-					});
-				})
-	        	.catch(function(err) {
-					// Error handling
-	        		reject({
-						message: "Error saving target: " + err.message,
-					});
-	        	});
+    	if (target == "_cancel") {
+    		reject({
+    			abort: true,
+				message: "Action canceled.",
 			});
-			
-			$('#createReferenceDialog').off('hidden.bs.modal');
-			$('#createReferenceDialog').on('hidden.bs.modal', function () {
-				reject({
-					abort: true,
-					message: 'Action cancelled.',
-				});
-			});
-			
-			$('#createReferenceDialogText').html('Create reference to ' + doc.name + ' in: ');
-			$('#createReferenceDialog').modal();
+    		return;
+    	}
+    	
+		// Here, target can be empty for a ref at root level.
+		if (target.length > 0) {
+			// If there is a target, it has to really exist
+			var tdoc = this.#app.data.getById(target);
+        	if (!tdoc) throw new Error('Target not found: ' + target);
+		}
+		
+		// Create new document
+		var data = {
+			_id: this.#app.data.generateIdFrom(doc.name),
+			type: 'reference',
+			name: doc.name,
+			parent: target,
+			order: 0,
+			timestamp: Date.now(),
+			ref: id
+		};
+		
+		Document.addChangeLogEntry(data, 'created', {
+			parent: id
 		});
+		
+		Document.updateMeta(data);
+		
+		var db = await this.#app.db.get();
+		var ret = await db.bulkDocs([data]);
+
+		var newIds = [];
+		for(var d in ret) {
+			if (!ret[d].ok) throw new Error(ret[d].message);
+			
+			newIds.push(ret[d].id);
+		}
+		
+		await db.allDocs({
+			conflicts: true,
+			include_docs: true,
+			keys: newIds
+		});
+
+		// Execute callbacks and reload data
+		this.#app.callbacks.executeCallbacks('createReference', newIds);
+			
+		await this.#app.actions.nav.requestTree();
+
+		// Everything went fine
+		return {
+			ok: true,
+			message: 'Successfully created ' + newIds.length + ' references.',
+			newIds: newIds
+		};
 	}	
 }

@@ -139,7 +139,8 @@ class Notes {
 			reference: new ReferenceActions(this, this.documentAccess),	
 			settings: new SettingsActions(this),	
 			trash: new TrashActions(this),	
-			nav: new NavigationActions(this),	
+			nav: new NavigationActions(this),
+			data: new DataActions(this)	
 		};
 		
 		this.view = new View(this);
@@ -517,7 +518,7 @@ class Notes {
 			console.log("Service worker triggers unregistering...");
 
 			if (!confirm("Reinstall now? No notebook data will get lost.")) {
-				that.view.message("Action cancelled", 'I');
+				that.view.message("Action canceled", 'I');
 				return;
 			}
 
@@ -818,7 +819,7 @@ class Notes {
 		e.stopPropagation();
 		
 		var that = this;
-		this.view.triggerCreateItem(this.nav.behaviour.getNewItemParent())
+		this.view.triggers.triggerCreateItem(this.nav.behaviour.getNewItemParent())
 		.then(function(data) {
 			//t.unblock();
 			if (data.message) {
@@ -831,45 +832,6 @@ class Notes {
 		});
 	}
 	
-	editorFavoritesButtonHandler(e) {
-		e.stopPropagation();
-		
-		var selector = this.getFavoritesSelector('footerFavoritesSelector');
-		selector.val('');
-		
-		var that = this;
-		this.showGenericDialog(
-			// Init
-			function(dialog, e, resolve, reject) {
-				dialog.find('.modal-content').append(
-					$('<div class="modal-header"><h5 class="modal-title">Open Document from Favorites List:</h5></div>'),
-					$('<div class="modal-body"></div>').append(
-						selector
-						.on('change', function(/*event*/) {
-				        	var target = this.value;
-					        
-							dialog.modal('hide');
-							that.routing.call(target);
-						})
-					)
-				);
-				
-				setTimeout(function() {
-					selector.selectize({
-						sortField: 'text'
-					});
-				}, 0);
-				
-				// TODO Open selector immediately (seems to be difficult)
-			},
-			
-			// Hide
-			function(dialog, e, resolve, reject) {
-				resolve();
-			},
-		);
-	}
-		
 	/**
 	 * Delivers a select element containing the favorites and pinned (starred) documents.
 	 */
@@ -897,28 +859,6 @@ class Notes {
 		return selector;
 	}
 	
-	/**
-	 * Generic popup dialog. All callbacks get the same parameters: (dialogElement, event, resolve, reject).
-	 */
-	showGenericDialog(initCallback, hideCallback) {
-		return new Promise(function(resolve, reject) {
-			const dialog = $('#genericDialog');
-			
-			dialog.find('.modal-content').empty();
-			
-			dialog.off('shown.bs.modal');
-			dialog.on('shown.bs.modal', function (event) {
-				initCallback(dialog, event, resolve, reject);
-			});
-			dialog.off('hidden.bs.modal');
-			dialog.on('hidden.bs.modal', function (event) {
-				hideCallback(dialog, event, resolve, reject);
-			});
-			
-			dialog.modal();
-		});
-	}
-				
 	/**
 	 * Set up the page DOM tree.
 	 */
@@ -1808,7 +1748,12 @@ class Notes {
 		} else {
 			var that = this;
 			function headerSelectDocumentHandler(e) {
-				return that.#headerSelectDocument(e);
+				e.stopPropagation();
+				
+				that.view.triggers.triggerSelectDocument()
+				.catch(function(err) {
+					that.errorHandler.handle(err);
+				});
 			}
 			
 			$('#loadedNote').on('click', headerSelectDocumentHandler);
@@ -1818,49 +1763,6 @@ class Notes {
 		$('#loadedNote').css('cursor', 'pointer');
 	}
 	
-	/**
-	 * Event handler which lets the user select another document to open.
-	 */
-	#headerSelectDocument(e) {
-		e.stopPropagation();
-		
-		var selector = this.view.getDocumentSelector(false, true);
-		selector.val('');
-		
-		var that = this;
-		this.showGenericDialog(
-			// Init
-			function(dialog, e, resolve, reject) {
-				dialog.find('.modal-content').append(
-					$('<div class="modal-header"><h5 class="modal-title">Open Document:</h5></div>'),
-					$('<div class="modal-body"></div>').append(
-						selector
-						.on('change', function(/*event*/) {
-				        	var target = this.value;
-					        
-							dialog.modal('hide');
-							that.routing.call(target);
-						})
-					)
-				);
-				
-				setTimeout(function() {
-					selector.selectize({
-						sortField: 'text'
-					});
-					selector.val('');
-				}, 50);
-				
-				// TODO Open selector immediately (seems to be difficult)
-			},
-			
-			// Hide
-			function(dialog, e, resolve, reject) {
-				resolve();
-			},
-		);
-	}
-
 	/**
 	 * Shows the header target selector for the given ID, or hides it if id is falsy.
 	 */
@@ -2049,7 +1951,7 @@ class Notes {
 	 */
 	clearFavorites() {
 		if (!confirm('Clear favorites for this notebook?')) {
-			this.view.message('Action cancelled.', 'I');
+			this.view.message('Action canceled.', 'I');
 			return;
 		}
 		

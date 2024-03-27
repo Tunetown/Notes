@@ -377,7 +377,7 @@ class RichtextEditor extends RestorableEditor {
 		
 		if (removeButton) this.#discardButton.css("display", "none");
 		
-		this._app.view.message("Action cancelled.", "I");
+		this._app.view.message("Action canceled.", "I");
 
 		this._app.routing.call("history/" + this.getCurrentId());
 	}

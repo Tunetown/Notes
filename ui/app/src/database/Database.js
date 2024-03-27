@@ -170,6 +170,15 @@ class Database {
 	}
 	
 	/**
+	 * Removes the database name from an url.
+	 */
+	getDatabaseUrlProposal(url) {
+		if (url == 'local') return '';
+		
+		return url.split('/').slice(0, -1).join('/') + '/';
+	}
+
+	/**
 	 * Logs the current user in to a database. Returns a promise.
 	 * promtUser set to true will ask for a user name in any case.
 	 */
@@ -295,7 +304,7 @@ class Database {
 						
 						reject({
 							ok: false,
-							message: 'Login cancelled.',
+							message: 'Login canceled.',
 							messageThreadId: 'DBLoginMessages'
 						});
 					}

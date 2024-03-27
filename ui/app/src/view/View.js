@@ -20,9 +20,9 @@ class View {
 	
 	app = null;
 	dialogs = null;
+	triggers = null;
+	
 	#messageHandler = null;
-	#createDialog = null;
-	#imageDialog = null;
 		
 	constructor(app) {
 		this.app = app;
@@ -31,262 +31,49 @@ class View {
 		this.#messageHandler.init();
 		
 		this.dialogs = new Dialogs(this);
-		
-		this.#createDialog = new CreateDialog(this.app);
-		this.#imageDialog = new ImageDialog(this.app);
+		this.triggers = new Triggers(this.app);
 	}
 	
+	/**
+	 * Returns HTML elements for the hashtags of the document.
+	 */
+	getTagElements(doc, cssClass) {
+		var tags = this.app.data.getTags([doc]);
+		var ret = [];
+		
+		var that = this;
+		for(var i in tags || []) {
+			var col = this.app.hashtag.getColor(tags[i]);
+
+			var el = $('<div data-id="' + (doc ? doc._id : '') + '" data-tag="' + tags[i] + '" data-toggle="tooltip" title="' + Hashtag.startChar + tags[i] + '" class="doc-hashtag ' + (cssClass ? cssClass : '') + '" />')
+			.css('background-color', col)
+			.on('touchstart mousedown', function(event) {
+				event.stopPropagation();
+			})
+			.on('click', function(event) {
+				event.stopPropagation();
+				
+				const data = $(this).data();
+				if (!data || !data.tag) return;
+				
+				if (event.ctrlKey || event.metaKey) {
+					that.app.routing.callHashtags(data.id);
+				} else {
+					that.app.hashtag.showTag(data.tag);
+				}
+			})
+			
+			ret.push(el);
+		}
+		
+		return ret;
+	}
+
 	/**
 	 * Get a dialog instance.
 	 */
 	getDialog() {
 		return new Dialog(this);
-	}
-
-	/**
-	 * Ask the user for a background image and sets it on an item.
-	 */
-	async triggerSetItemBackgroundImage(ids) {
-		ids = Tools.removeDuplicates(ids);
-		if (ids.length == 0) throw new WarningError('No documents passed');
-		
-		var docs = [];
-		for(var i in ids) {
-			var doc = this.app.data.getById(ids[i]);
-			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
-			
-			docs.push(doc);
-		}
-
-		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
-		
-		var backImage = await this.#imageDialog.show({ 
-			doc: docs[0],
-			displayName: displayName,
-			imageData: docs[0].backImage,
-			maxWidth: Config.ITEM_BACKGROUND_MAX_WIDTH, 
-			maxHeight: Config.ITEM_BACKGROUND_MAX_HEIGHT, 
-			mimeType: Config.ITEM_BACKGROUND_MIME_TYPE,
-			quality: Config.ITEM_BACKGROUND_QUALITY,
-			maxBytes: Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES
-		});
-
-		await this.app.actions.document.saveItemBackgroundImage(ids, backImage);
-		
-		this.message('Updated background image for ' + displayName, 'S');
-		
-		return { ok: true };
-	}
-
-	/**
-	 * Ask the user where to move the passed documents (array of ids),
-	 * and triggers the action.
-	 * 
-	 * TODO still located right here?
-	 */
-	async triggerMoveItems(ids) {
-		ids = Tools.removeDuplicates(ids);
-		if (ids.length == 0) throw new WarningError('Nothing to move');
-
-		var doc = null;
-		for(var i in ids) {
-			doc = this.app.data.getById(ids[i]);
-			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
-		}
-
-		var displayName = (ids.length == 1) ? doc.name : (ids.length + ' documents');
-
-		var target = await this.dialogs.promptSelectDocument('Move ' + displayName + ' to:', {
-			excludeIds: ids,
-			excludeTypes: ['reference']
-		})
-		
-    	if (target == "_cancel") throw new InfoError("Action cancelled.")
-    	
-    	await this.app.actions.document.moveDocuments(ids, target, true);
-
-   		var tdoc = this.app.data.getById(target);
-    	this.message('Moved ' + displayName + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME), 'S');
-    		
-		return {
-			ok: true
-		};
-	}
-
-	/**
-	 * Ask the user if he wants to undelete also the children, and triggers
-	 * undeletion.
-	 * 
-	 * TODO still located right here?
-	 */
-	async triggerUndeleteItem(id) {
-		var doc = await this.app.actions.trash.getTrashedDocument(id);
-		if (!doc) throw new Error('Document not found in trash bin');
-		
-		var all = await this.app.actions.trash.getTrash();
-		
-		var undeleteDocs = [];
-		this.#filterChildrenOf(id, all.rows, undeleteDocs);
-			
-		if (undeleteDocs.length > 0) {
-			if (!confirm('Also restore the ' + undeleteDocs.length + ' children?')) {
-				undeleteDocs = [];
-			}
-		}
-		
-		undeleteDocs.push(doc);
-		
-		var ret = await this.app.actions.trash.undeleteItems(undeleteDocs);
-		
-		if (ret.message) {
-			this.message(ret.message, 'S');
-		}
-		
-		return ret;
-	}
-	
-	/**
-	 * Ask the user if he wants to delete the passed document permanently,
-	 * and triggers the action.
-	 * 
-	 * rev can be used optionally to delete a conflict.
-	 * 
-	 * TODO still located right here?
-	 */
-	async triggerDeletePermanently(id, rev) {
-		var doc = await this.app.actions.trash.getTrashedDocument(id);
-		if (!doc) {
-			doc = await this.app.data.getById(id);
-			if (!doc) throw new Error('Document not found');
-		}
-		
-		var revText = "";
-		if (rev) revText = " Revision " + rev;
-		if (!confirm("Really delete document " + doc.name + revText + " permanently?")) {
-			throw new InfoError("Nothing changed.");
-		}
-
-		var data = await this.app.actions.trash.deleteItemPermanently(id, rev);
-									
-		if (data.message) {
-			this.message(data.message, "S");
-		}
-		
-		return data;
-	}
-	
-	/**
-	 * Helper for triggerUndeleteItem(). Gets all deep children of id out of the docs 
-	 * array and adds them to the ret array.
-	 */
-	#filterChildrenOf(id, docs, ret) {
-		for(var i in docs) {
-			if (docs[i].doc.parent == id) {
-				ret.push(docs[i].doc);
-				
-				this.#filterChildrenOf(docs[i].doc._id, docs, ret);
-			}
-		}
-	} 
-
-	/**
-	 * Ask the user for a new name and copy the document using this name.
-	 * 
-	 * TODO still located right here?
-	 */
-	async triggerCopyItem(id) {
-		var doc = this.app.data.getById(id);
-		if (!doc) throw new Erro('Document ' + id + ' not found');
-		
-		var name = prompt("New name:", doc.name);
-		if (!name || name.length == 0) {
-			throw new InfoError("Nothing changed.");
-		}
-		
-		return await this.app.actions.document.copyItem(id, name);
-	}
-
-	/**
-	 * Triggers deletion of items, with confirmation.
-	 * 
-	 * TODO still located right here?
-	 */
-	async triggerDeleteItem(ids) {
-		ids = Tools.removeDuplicates(ids);
-		
-		var numChildren = 0;
-		var numDocs = 0;
-		
-		var docs = [];
-
-		for(var i in ids) {
-			var doc = this.app.data.getById(ids[i]);
-			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
-			
-			// Unload editor if the item is opened somewhere
-			if (this.app.paging.getCurrentlyShownId() == ids[i]) {
-				this.app.paging.unload();
-			}
-			
-			docs.push(doc);
-			++numDocs;
-
-			var docChildren = this.app.data.getChildren(ids[i], true);
-			for(var c in docChildren) {
-				docs.push(docChildren[c]);
-				++numChildren;
-			}
-		}
-
-		var addstr = numChildren ? (' including ' + numChildren + ' contained items') : '';
-		var displayName = (numDocs == 1) ? docs[0].name : (numDocs + ' documents');
-
-		if (!confirm("Really delete " + displayName + addstr + "?")) {
-			throw new InfoError("Action canceled.");
-		}
-
-		var data = await this.app.actions.document.deleteItems(docs);
-
-		if (data.message) {
-			this.message(data.message, "S");
-		}
-		
-		return data;
-	}
-
-	/**
-	 * Show the create item dialog and process afterwards.
-	 *  
-	 * TODO still located right here?
-	 */	
-	async triggerCreateItem(id) {
-		var doc = this.app.data.getById(id);
-		if (!doc && (id.length > 0)) throw new Error('Item ' + id + ' does not exist');
-		if ((id.length > 0) && (doc.type == 'reference')) throw new Error('Document ' + doc.name + ' is a reference and cannot have children.');
-
-		var props = await this.#createDialog.show('New document under ' + (doc ? doc.name : Config.ROOT_NAME) + ':');
-		if (!props) throw new InfoError('Action canceled');
-		
-		return await this.app.actions.document.create(id, props); 
-	}
-	
-	/**
-	 * Ask the user for a new name and save the new name.
-	 *  
-	 * TODO still located right here?
-	 */	
-	async triggerRenameItem(id) {
-		var doc = this.app.data.getById(id);
-		if (!doc) throw new Error('Item ' + id + ' not found');
-
-		var newName = await this.dialogs.prompt("New name:", doc.name);
-		var data = await this.app.actions.document.renameItem(id, newName);
-
-		if (data.message) {
-			this.message(data.message, "S");
-		}
-		
-		return data;
 	}
 	
 	/**

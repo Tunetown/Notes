@@ -308,7 +308,7 @@ class ImageDialog {
 				
 				var val = this.#attrs.imageData ? (this.#attrs.imageData.data ? this.#attrs.imageData.data : '') : '';
 				
-				this.#b64dataInput = $('<textarea />')
+				this.#b64dataInput = $('<textarea class="setBgImageDialogB64DataInput" />')
 				.on('focus change keyup paste', function() {
 					that.#updatePreviewRescaled($(this).val());
 				})

@@ -41,7 +41,7 @@ class ContextMenu {
 						if (that.#app.optionsIds.length != 1) return;
 						
 						that.#app.nav.block();
-						that.#app.view.triggerCreateItem(that.#app.optionsIds[0])
+						that.#app.view.triggers.triggerCreateItem(that.#app.optionsIds[0])
 						.then(function(data) {
 							that.#app.nav.unblock();
 							
@@ -63,7 +63,7 @@ class ContextMenu {
 						if (that.#app.optionsIds.length != 1) return;
 						
 						that.#app.nav.block();
-						that.#app.view.triggerRenameItem(that.#app.optionsIds[0])
+						that.#app.view.triggers.triggerRenameItem(that.#app.optionsIds[0])
 						.then(function() {
 							that.#app.nav.unblock();
 						})
@@ -91,10 +91,7 @@ class ContextMenu {
 			        	that.#app.hideOptions();
 			        	if (that.#app.optionsIds.length != 1) return;
 			        	
-			        	that.#app.actions.reference.setReference(that.#app.optionsIds[0])
-			        	.then(function(data) {
-							that.#app.view.message(data.message ? data.message : 'Successfully moved items', 'S');
-						})
+			        	that.#app.view.triggers.triggerSetReference(that.#app.optionsIds[0])
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
 						});
@@ -107,7 +104,7 @@ class ContextMenu {
 			        	that.#app.hideOptions();
 			        	if (!that.#app.optionsIds.length) return;
 			        	
-			        	that.#app.view.triggerMoveItems(that.#app.optionsIds)
+			        	that.#app.view.triggers.triggerMoveItems(that.#app.optionsIds)
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
 						});
@@ -120,7 +117,7 @@ class ContextMenu {
 						that.#app.hideOptions();
 						if (that.#app.optionsIds.length != 1) return;
 						
-						that.#app.view.triggerCopyItem(that.#app.optionsIds[0])
+						that.#app.view.triggers.triggerCopyItem(that.#app.optionsIds[0])
 						.then(function() {
 							that.#app.view.message('Successfully copied item', 'S');
 						})
@@ -140,7 +137,7 @@ class ContextMenu {
 						
 						that.#app.view.message("Preparing to delete items...", 'I');
 						
-						that.#app.view.triggerDeleteItem(that.#app.optionsIds)
+						that.#app.view.triggers.triggerDeleteItem(that.#app.optionsIds)
 						.then(function() {
 							that.#app.nav.unblock();
 						})
@@ -214,7 +211,7 @@ class ContextMenu {
 						that.#app.hideOptions();
 						if (!that.#app.optionsIds.length) return;
 						
-						that.#app.view.triggerSetItemBackgroundImage(that.#app.optionsIds)
+						that.#app.view.triggers.triggerSetItemBackgroundImage(that.#app.optionsIds)
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
 						});

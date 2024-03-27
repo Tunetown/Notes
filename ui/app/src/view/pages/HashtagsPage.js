@@ -185,7 +185,7 @@ class HashtagsPage extends Page {
 		
 		var newTag = prompt('Enter the new tag name. The following documents will be updated: \n' + doclist, tag);
 		if (!newTag) {
-			this._app.view.message('Action cancelled.', 'I', 'RenameTagMessages');
+			this._app.view.message('Action canceled.', 'I', 'RenameTagMessages');
 			return;
 		}
 		

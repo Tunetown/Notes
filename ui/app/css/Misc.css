@@ -47,10 +47,6 @@
 	border-radius: 4px !important;
 }
 
-#uploadDialog {
-	z-index: 99999;
-}
-
 /**
  * Editor
  */
@@ -232,7 +228,7 @@ div.tox-tinymce {
 	width: 100%;
 }
 
-#loginText {
+.loginText {
 	margin-bottom: 10px;
 }
 
@@ -527,7 +523,7 @@ div.tox-tinymce {
 /**
  * Dialog stuff
  */
-#setBgImageDialogB64DataInput {
+.setBgImageDialogB64DataInput {
 	width: 100%;
 }
 

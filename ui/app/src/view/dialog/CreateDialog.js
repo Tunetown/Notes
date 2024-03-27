@@ -186,7 +186,7 @@ class CreateDialog {
 		
 		this.#refSelector.val('');
 		
-		this.#typeSelector = Document.getAvailableTypeSelect('createTypeInput')
+		this.#typeSelector = Document.getAvailableTypeSelect()
 		.on('change', function() {
 			that.#setType(this.value);
 		})
@@ -230,7 +230,6 @@ class CreateDialog {
 		this.#refCell = $('<div />').append(
 			this.#refSelector
 		);
-		
 		
 		return $('<table class="dialogTable" />').append(
 			$('<colgroup />').append(

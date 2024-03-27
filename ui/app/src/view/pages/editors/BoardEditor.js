@@ -301,28 +301,28 @@ class BoardEditor extends Editor {
 							itemHdr.append(
 								!itemIconClass ? null : $('<div class="board-item-content-header-icon fa ' + itemIconClass + '"></div>'),
 								$('<div class="board-item-content-header-text"></div>')
-									.html(subList[i].name)
-									
-									// Right click on header of item
-									.contextmenu(function(e) { 
-										e.preventDefault();
-							    		e.stopPropagation();
-							    		
-							    		that.#saveScrollPosition();
-							    		
-							    		var data = $(e.currentTarget).parent().parent().data();
+								.html(subList[i].name)
+								
+								// Right click on header of item
+								.contextmenu(function(e) { 
+									e.preventDefault();
+						    		e.stopPropagation();
+						    		
+						    		that.#saveScrollPosition();
+						    		
+						    		var data = $(e.currentTarget).parent().parent().data();
 
-										that._app.callOptions(
-											[data.id], 
-											Tools.extractX(e), 
-											Tools.extractY(e),
-											{
-												showInNavigation: true
-											}
-										);
-									}),
+									that._app.callOptions(
+										[data.id], 
+										Tools.extractX(e), 
+										Tools.extractY(e),
+										{
+											showInNavigation: true
+										}
+									);
+								}),
 									
-								Document.getTagElements(subList[i], 'doc-hashtag-board')
+								this._app.view.getTagElements(subList[i], 'doc-hashtag-board')
 							),
 							
 							$('<div class="board-item-content-preview">' + preview + '</div>')

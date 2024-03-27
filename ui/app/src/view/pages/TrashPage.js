@@ -36,7 +36,7 @@ class TrashPage extends Page {
 					.on('click', function(/*e*/) {
 						var id = $(this).data().id;
 						
-						that._app.view.triggerUndeleteItem(id)
+						that._app.view.triggers.triggerUndeleteItem(id)
 						.then(function() {
 							that._app.routing.call('trash');
 						})
@@ -48,7 +48,7 @@ class TrashPage extends Page {
 					.on('click', function(/*e*/) {
 						var id = $(this).data().id;
 						
-						that._app.view.triggerDeletePermanently(id)
+						that._app.view.triggers.triggerDeletePermanently(id)
 						.catch(function(err) {
 							that._app.errorHandler.handle(err);
 						});

@@ -109,7 +109,7 @@ class VersionsPage extends Page {
 						const cid = that.#current._id;
 						
 						if (!confirm("Do you really want to delete " + id + "?")) {
-							that._app.view.message("Action cancelled.", "I");
+							that._app.view.message("Action canceled.", "I");
 							return;
 						}
 						
@@ -248,7 +248,7 @@ class VersionsPage extends Page {
 		if (!doc) return;
 		
 		if (!confirm("Do you really want to delete the whole version history of " + doc.name + '?')) {
-			this._app.view.message("Action cancelled.", "I");
+			this._app.view.message("Action canceled.", "I");
 			return;
 		}
 
@@ -272,7 +272,7 @@ class VersionsPage extends Page {
 		if (!doc) return;
 		
 		if (!confirm("Do you really want to delete the whole change log of " + doc.name + '?')) {
-			this._app.view.message("Action cancelled.", "I");
+			this._app.view.message("Action canceled.", "I");
 			return;
 		}
 		

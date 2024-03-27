@@ -39,7 +39,8 @@ class Dialogs {
 	 *      defaultTargetId: - pre-select this document
 	 *      excludeTypes: array - exclude all documents with the given types
 	 *      excludeIds: array - exclude the ids
-	 *      excludeRoot: bool
+	 *      excludeRoot: bool - exclude notebook root
+	 *      submitOnChange: bool - submit automatically when a doc is selected
 	 * }
 	 */
 	async promptSelectDocument(question, options) {
@@ -63,8 +64,16 @@ class Dialogs {
 		var targetSelector = this.#view.getDocumentSelector(exclude, options.excludeRoot);
 		targetSelector.val(options.defaultTargetId);
 		targetSelector.css('max-width', '100%');
+
+		var dialog = this.#view.getDialog();
+
+		if (options.submitOnChange) {
+			targetSelector.on('change', function() {
+				dialog.submit();
+			});
+		}
 		
-		var answer = await this.#view.getDialog().confirm(question, [ 
+		var answer = await dialog.confirm(question, [ 
 			targetSelector 
 		]);
 		

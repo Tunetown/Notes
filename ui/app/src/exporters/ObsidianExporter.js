@@ -16,132 +16,122 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
-class ObsidianExporter {
+class ObsidianExporter extends Exporter {
 	
-	#app = null;
+	static #rootIndexBasename = 'Index';                                                      ///< Name of the root index file.
+	static #rootIndexExtension = 'md';                                                        ///< Name of the root index file.
+	static #includeTimestampInOutputFileName = false;                                         ///< Include the current time stamp in the downloaded ZIP file?
+	static #generateBasicVaultSettings = true;                                                ///< Generate a basic .obsidian folder
 	
-	constructor(app) {
-		this.#app = app;
-	}
+	static #addAdditionalSettings = true;                                                     ///< Add additional settings like colors, images etc. at the end of the documents?
+	static #additionalSettingsFilename = 'additionalNotebookSettings';                        ///< Settings of all notes are being stored in this file in the root.
 	
-	/**
-	 * Export Constants
-	 */
-	static rootIndexBasename = 'Index';                                                      ///< Name of the root index file.
-	static rootIndexExtension = 'md';                                                        ///< Name of the root index file.
-	static includeTimestampInOutputFileName = false;                                         ///< Include the current time stamp in the downloaded ZIP file?
-	static generateBasicVaultSettings = true;                                                ///< Generate a basic .obsidian folder
-	
-	static addAdditionalSettings = true;                                                     ///< Add additional settings like colors, images etc. at the end of the documents?
-	static additionalSettingsFilename = 'additionalNotebookSettings';                        ///< Settings of all notes are being stored in this file in the root.
-	
-	static exportBoardsAsKanban = true;                                                      ///< Create a kanban board instead of the standard index file, if doc is a board
-	static kanbanIncludePreview = false;                                                     ///< Include some text preview in the kanban items
-	static kanbanMaxPreviewLength = 100;                                                     ///< Maximum preview length for item preview
+	static #exportBoardsAsKanban = true;                                                      ///< Create a kanban board instead of the standard index file, if doc is a board
+	static #kanbanIncludePreview = false;                                                     ///< Include some text preview in the kanban items
+	static #kanbanMaxPreviewLength = 100;                                                     ///< Maximum preview length for item preview
 	
 	/**
 	 * Internal Constants
 	 */
-	static folderSeparator = '/';                                                            ///< Separator for creating the ZIP file.
-	static rootDocId = 'obsidian-exporter-root-index-file-0d6143005ce4a443f48a898b1858d657'; ///< Internal temporary ID for the root index file. Will most likely not exist anywhere else ;)
+	static #folderSeparator = '/';                                                            ///< Separator for creating the ZIP file.
+	static #rootDocId = 'obsidian-exporter-root-index-file-0d6143005ce4a443f48a898b1858d657'; ///< Internal temporary ID for the root index file. Will most likely not exist anywhere else ;)
 	
 	/**
 	 * Export (download) documents as ZIP file. Expects an array of IDs.
 	 */
-	export(ids) {
-		var that = this;
-		
+	async process(ids) {
+/* TODO cleanup		
+					var children = this.#app.data.getChildren("", true);
+			
+			var ids = [];
+			for(var d in children) {
+				ids.push(children[d]._id);
+			}
+*/
+
+
 		// Array of prepared documents. This contains objects with all necessary, structured 
 		// data (doc, valid export path, links as array etc.).
 		var docsPrepped = [];      
 		
-		return this.#app.db.get()
-		.then(function(db) {
+		var db = await this._app.db.get();
+		
 			// Load documents
-			return db.allDocs({
-				conflicts: true,
-				include_docs: true,
-				attachments: true,
-				keys: ids
-			});
-		})
-		.then(function(data) {
-			if (!data.rows) {
-				return Promise.reject({
-					message: "No data received.",
-					messageThreadId: 'ExportDocsMessages'
-				})
-			}
-			
-			console.log('ObsidianExporter: Starting to export ' + data.rows.length + ' documents');
-			
-			// Prepare for export: This fills docsPrepped from the incoming data. This 
-			// defines the whole structure of the export data.
-			return that.prepareDocuments(data.rows, docsPrepped);
-		})
-		.then(function(/*attPromises*/) {
-			var files = [];
-			
-			// Create file definitions for the ZIP library, 1:1 from the prepped documents. We only use the path, content 
-			// and lastModified fields, everything else in docsPrepped is just used during preparation.
-			for(var i=0; i<docsPrepped.length; ++i) {
-				var dp = docsPrepped[i];
+		var data = await db.allDocs({
+			conflicts: true,
+			include_docs: true,
+			attachments: true,
+			keys: ids
+		});
 
-				files.push({
-					name: dp.path,
-					lastModified: dp.lastModified,
-					input: dp.content
-				});
-			}
+		if (!data.rows) throw new Error("No data received.");
 			
-			// On demand, create some basic valut settings.
-			if (ObsidianExporter.generateBasicVaultSettings) {
-				var numObsFiles = that.createBasicVaultSettings(files);
-				
-				console.log(' -> Added ' + numObsFiles + ' Obsidian settings files');
-			}
+		console.log('ObsidianExporter: Starting to export ' + data.rows.length + ' documents');
 			
-			// On demand, add some further settings from the doc to the file to be parsed later by future Obsidian plugins.
-			if (ObsidianExporter.addAdditionalSettings) {
-				var settingsFile = that.addAdditionalSettingsToPreppedFiles(docsPrepped);
-				files.push(settingsFile);
-				
-				console.log(' -> Added additional notebook settings file: ' + settingsFile.name);
-			}
+		// Prepare for export: This fills docsPrepped from the incoming data. This 
+		// defines the whole structure of the export data.
+		await this.#prepareDocuments(data.rows, docsPrepped);
 
-			console.log(' -> Finished converting. Creating ZIP containing  ' + files.length + ' documents');
+		var files = [];
 			
-			// Get the ZIP stream in a Blob (this function comes from the client-zip module)
-			return downloadZip(files).blob();
-		})
-		.then(function(blob) {
-			// Create an URL for the data blob
-			var url = URL.createObjectURL(blob);
-			
-			// Compose the output ZIP file name
-			var zipname = that.#app.settings.settings.dbAccountName + (ObsidianExporter.includeTimestampInOutputFileName ? (' ' + new Date().toLocaleString()) : '') + '.zip';
-			
-			// Save the ZIP file on the client computer
-			window.saveAs(url, zipname);
-			
-			return Promise.resolve({
-				ok: true,
-				filename: zipname,
-				docs: docsPrepped
+		// Create file definitions for the ZIP library, 1:1 from the prepped documents. We only use the path, content 
+		// and lastModified fields, everything else in docsPrepped is just used during preparation.
+		for(var i=0; i<docsPrepped.length; ++i) {
+			var dp = docsPrepped[i];
+
+			files.push({
+				name: dp.path,
+				lastModified: dp.lastModified,
+				input: dp.content
 			});
-		}); 
+		}
+		
+		// On demand, create some basic valut settings.
+		if (ObsidianExporter.#generateBasicVaultSettings) {
+			var numObsFiles = this.#createBasicVaultSettings(files);
+			
+			console.log(' -> Added ' + numObsFiles + ' Obsidian settings files');
+		}
+		
+		// On demand, add some further settings from the doc to the file to be parsed later by future Obsidian plugins.
+		if (ObsidianExporter.#addAdditionalSettings) {
+			var settingsFile = this.#addAdditionalSettingsToPreppedFiles(docsPrepped);
+			files.push(settingsFile);
+			
+			console.log(' -> Added additional notebook settings file: ' + settingsFile.name);
+		}
+
+		console.log(' -> Finished converting. Creating ZIP containing  ' + files.length + ' documents');
+		
+		// Get the ZIP stream in a Blob (this function comes from the client-zip module)
+		var blob = await downloadZip(files).blob();
+
+		// Create an URL for the data blob
+		var url = URL.createObjectURL(blob);
+		
+		// Compose the output ZIP file name
+		var zipname = that._app.settings.settings.dbAccountName + (ObsidianExporter.#includeTimestampInOutputFileName ? (' ' + new Date().toLocaleString()) : '') + '.zip';
+		
+		// Save the ZIP file on the client computer
+		window.saveAs(url, zipname);
+		
+		return {
+			ok: true,
+			filename: zipname,
+			docs: docsPrepped
+		};
 	}
 	
 	/**
 	 * From the docs array coming from the app, this prepared the documents filling them
 	 * into docsPrepped.
 	 */
-	prepareDocuments(docs, docsPrepped) {
+	async #prepareDocuments(docs, docsPrepped) {
 		var attRefs = [];
-		var d = this.#app.data;
+		var d = this._app.data;
 
 		// Add the root index file
-		var rootDoc = this.createRootIndexDoc();
+		var rootDoc = this.#createRootIndexDoc();
 		docsPrepped.push(rootDoc);
 		
 		// Pre-sort the raw doc data that folders come first. This is important for the file name
@@ -155,26 +145,25 @@ class ObsidianExporter {
 		// Prepare files to be exported. This collects the files in docsPrepped[].
 		// At the same time, promises will be collected to load all attachment data. These will be 
 		// resolved before the files can actually be zipped.
-		var promises = [];
 		for(var i in docs) {
 			var doc = docs[i].doc;
 			
 			// Add the document
-			this.prepareDocument(docsPrepped, attRefs, promises, doc);
+			await this.#prepareDocument(docsPrepped, attRefs, doc);
 		}
 		
 		// If enabled, create obsidian kanban board contents for all boards
-		if (ObsidianExporter.exportBoardsAsKanban) {
-			this.createObsidianBoards(docsPrepped);
+		if (ObsidianExporter.#exportBoardsAsKanban) {
+			this.#createObsidianBoards(docsPrepped);
 		}
 		
 		// Here, all docs are present, so we can care about the linkages between them:
 		// This does all linkage (parents, references and attachments) and store the linkages in the 
 		// link arrays of each prepped document.
-		var linkagesMeta = this.prepareDocumentLinkages(docs, docsPrepped, attRefs, rootDoc);
+		var linkagesMeta = this.#prepareDocumentLinkages(docs, docsPrepped, attRefs, rootDoc);
 		
 		// This finally will evaluate the links composed above and add them to the file contents, if any.					
-		this.addLinksToContents(docsPrepped);
+		this.#addLinksToContents(docsPrepped);
 		
 		// Log some stats and we are finished here.
 		var errCnt = 
@@ -189,25 +178,22 @@ class ObsidianExporter {
 		console.log('   -> ' + (docs.length - docsPrepped.length - linkagesMeta.refs.linksAdded + 1) + ' unexported documents left (see warnings/errors since export start)');
 		console.log('   -> Detailed statistics: See next line');
 		console.log(linkagesMeta);
-		
-		return Promise.all(promises);
 	}
 	
 	/**
 	 * Fills the docsPrepped, attRefs and promises arrays by the passed doc. Returns nothing.
 	 */
-	prepareDocument(docsPrepped, attRefs, promises, doc) {
-		var d = this.#app.data;
-		var that = this;
+	async #prepareDocument(docsPrepped, attRefs, doc) {
+		var d = this._app.data;
 		
 		// Get file path. This removes illegal characters.
-		var meta = d.getExportFileMeta(doc._id, ObsidianExporter.folderSeparator);
+		var meta = d.getExportFileMeta(doc._id, ObsidianExporter.#folderSeparator);
 
 		// The rest depends on the document type.
 		switch (doc.type) {
 			// Simple note: These are just added 1:1
 			case 'note': {
-				var addedMeta = this.addFile(
+				var addedMeta = this.#addFile(
 					docsPrepped,
 					meta.folder, 
 					meta.filename,
@@ -229,7 +215,7 @@ class ObsidianExporter {
 			// Attachments: We add these without content here, and store reference to it in a separate
 			// array. This is later used by linkDocuments() to reference the file in the corr. index note.
 			case 'attachment': {
-				var addedMeta = this.addFile(
+				var addedMeta = this.#addFile(
 					docsPrepped,
 					meta.folder, 
 					Tools.escapeFilename(doc.attachment_filename),
@@ -238,7 +224,7 @@ class ObsidianExporter {
 					''
 				);
 				if (!addedMeta) {
-					console.log(' ==>> ERROR: Error prepping attachment note: ' + doc._id);
+					console.error(' ==>> ERROR: Error prepping attachment note: ' + doc._id);
 					return;
 				}
 				
@@ -251,28 +237,23 @@ class ObsidianExporter {
 
 				// Late loading for content	of attachments. The callback sets the content attribute.
 				// The promise will be resolved before the next steps.
-				promises.push(
-					this.#app.actions.attachment.getAttachmentUrl(doc._id)
-					.then(function(ret) {
-						// Find the attachment's prepped doc by the passed ID
-						var adoc = that.getPreppedDocById(docsPrepped, ret.id);
-						if (!adoc) {
-							console.log(" ==>> ERROR: Attachment " + ret.id + " failed to load");
-							return;
-						}
+				var ret = await this._app.actions.attachment.getAttachmentUrl(doc._id);
 
-						// Set the blob as content for the file.
-						adoc.content = ret.blob;
-						
-						return Promise.resolve(adoc);
-					})
-				);
+				// Find the attachment's prepped doc by the passed ID
+				var adoc = this.#getPreppedDocById(docsPrepped, ret.id);
+				if (!adoc) {
+					console.error(" ==>> ERROR: Attachment " + ret.id + " failed to load");
+					return;
+				}
+
+				// Set the blob as content for the file.
+				adoc.content = ret.blob;
 				
 				break;
 			}
 			
 			default: {
-				console.log('ERROR: Invalid document type ' + doc.type);
+				throw new Error('Invalid document type ' + doc.type);
 			}
 		}
 	}
@@ -283,11 +264,11 @@ class ObsidianExporter {
 	 *
 	 * Returns a meta object holding some stats.
 	 */
-	prepareDocumentLinkages(docsInternal, docsPrepped, attRefs, rootDoc) {
-		var parentsStats = this.createParentLinkages(docsPrepped, rootDoc);
-		var refsStats = this.createReferenceLinkages(docsPrepped, rootDoc, docsInternal);
-		var attsStats = this.createAttachmentLinkages(docsPrepped, rootDoc, attRefs);
-		var boardStats = this.createBoardLinkages(docsPrepped, rootDoc, docsInternal);
+	#prepareDocumentLinkages(docsInternal, docsPrepped, attRefs, rootDoc) {
+		var parentsStats = this.#createParentLinkages(docsPrepped, rootDoc);
+		var refsStats = this.#createParentLinkages(docsPrepped, rootDoc, docsInternal);
+		var attsStats = this.#createParentLinkages(docsPrepped, rootDoc, attRefs);
+		var boardStats = this.#createParentLinkages(docsPrepped, rootDoc, docsInternal);
 		
 		// Return statistics meta object.
 		return {
@@ -301,7 +282,7 @@ class ObsidianExporter {
 	/**
 	 * Generates linkages to parents for all documents. Returns the amount of links generated.
 	 */
-	createParentLinkages(docsPrepped, rootDoc) {
+	#createParentLinkages(docsPrepped, rootDoc) {
 		var cnt = 0;
 		var errors = 0;
 		
@@ -311,9 +292,9 @@ class ObsidianExporter {
 			
 			var par;
 			if (dp.doc.parent) {
-				par = this.getPreppedDocById(docsPrepped, dp.doc.parent);
+				par = this.#getPreppedDocById(docsPrepped, dp.doc.parent);
 				if (!par) {
-					console.log(' ==>> ERROR: Parent does not exist for ' + dp.id);
+					console.error(' ==>> ERROR: Parent does not exist for ' + dp.id);
 					++errors;
 					continue;
 				}
@@ -321,7 +302,7 @@ class ObsidianExporter {
 				par = rootDoc;		
 			}
 			
-			if ((dp.doc.type == 'attachment') || (ObsidianExporter.exportBoardsAsKanban && (dp.doc.type == 'note') && (dp.doc.editor == 'board'))) {
+			if ((dp.doc.type == 'attachment') || (ObsidianExporter.#exportBoardsAsKanban && (dp.doc.type == 'note') && (dp.doc.editor == 'board'))) {
 				// This is normal: Attachments and boards cannot store links themselves, so 
 				// we reference them in the index file of the parent (this is done 
 				// in createAttachmentLinkages() and createBoardLinkages())			
@@ -345,8 +326,8 @@ class ObsidianExporter {
 	
 	/**
 	 * Generates linkages to references for all documents. Returns the amount of links generated.
-	 */
-	createReferenceLinkages(docsPrepped, rootDoc, docsInternal) {
+	 *
+	#createReferenceLinkages(docsPrepped, rootDoc, docsInternal) {
 		var cnt = 0;
 		var linksIgnored = 0;
 		
@@ -355,18 +336,18 @@ class ObsidianExporter {
 			var doc = docsInternal[i].doc;
 			if (doc.type != 'reference') continue;
 			
-			var ref = this.getPreppedDocById(docsPrepped, doc.ref);
+			var ref = this.#getPreppedDocById(docsPrepped, doc.ref);
 			if (!ref) {
-				console.log(' ==>> ERROR: Reference target does not exist for ' + doc._id);
+				console.error(' ==>> ERROR: Reference target does not exist for ' + doc._id);
 				++linksIgnored;
 				continue;
 			}
 
 			var par;
 			if (doc.parent) {
-				par = this.getPreppedDocById(docsPrepped, doc.parent);
+				par = this.#getPreppedDocById(docsPrepped, doc.parent);
 				if (!par) {
-					console.log(' ==>> ERROR: Reference parent does not exist for ' + doc._id);
+					console.error(' ==>> ERROR: Reference parent does not exist for ' + doc._id);
 					++linksIgnored;
 					continue;
 				}
@@ -377,13 +358,13 @@ class ObsidianExporter {
 			if ((ref.doc.type == 'note') && (ref.doc.editor == 'board')) {
 				// If the referenced document is a board itself, it is linked in its parent instead (just the opposite way).
 				if (par.doc.type == 'attachment') {
-					console.log(' ==>> ERROR: Reference between attachments and boards is not possible: ' + par.path + ' -> ' + ref.path);
+					console.error(' ==>> ERROR: Reference between attachments and boards is not possible: ' + par.path + ' -> ' + ref.path);
 					++linksIgnored;
 					continue;
 				}
 				
 				if ((par.doc.type == 'note') && (par.doc.editor == 'board')) {
-					console.log(' ==>> ERROR: Reference between two boards is not possible: ' + par.path + ' -> ' + ref.path);
+					console.error(' ==>> ERROR: Reference between two boards is not possible: ' + par.path + ' -> ' + ref.path);
 					++linksIgnored;
 					continue;
 				}
@@ -397,13 +378,13 @@ class ObsidianExporter {
 			} else if (ref.doc.type == 'attachment') {
 				// If the referenced document is an attachment itself, it is linked in its parent instead (just the opposite way).
 				if (par.doc.type == 'attachment') {
-					console.log(' ==>> ERROR: Reference between two attachments is not possible: ' + par.path + ' -> ' + ref.path);
+					console.error(' ==>> ERROR: Reference between two attachments is not possible: ' + par.path + ' -> ' + ref.path);
 					++linksIgnored;
 					continue;
 				}
 				
 				if ((par.doc.type == 'note') && (par.doc.editor == 'board')) {
-					console.log(' ==>> ERROR: Reference between boards and attachments is not possible: ' + par.path + ' -> ' + ref.path);
+					console.error(' ==>> ERROR: Reference between boards and attachments is not possible: ' + par.path + ' -> ' + ref.path);
 					++linksIgnored;
 					continue;
 				}
@@ -434,8 +415,8 @@ class ObsidianExporter {
 	
 	/**
 	 * Generates linkages to attachments for all documents. Returns the amount of links generated.
-	 */
-	createAttachmentLinkages(docsPrepped, rootDoc, attRefs) {
+	 *
+	#createAttachmentLinkages(docsPrepped, rootDoc, attRefs) {
 		var cnt = 0;
 		var linksIgnored = 0;
 		
@@ -445,9 +426,9 @@ class ObsidianExporter {
 			
 			var par;
 			if (ar.doc.parent) {
-				par = this.getPreppedDocById(docsPrepped, ar.doc.parent);
+				par = this.#getPreppedDocById(docsPrepped, ar.doc.parent);
 				if (!par) {
-					console.log(' ==>> ERROR: Attachment parent does not exist for ' + ar.doc._id);
+					console.error(' ==>> ERROR: Attachment parent does not exist for ' + ar.doc._id);
 					++linksIgnored;
 					continue;
 				}
@@ -456,7 +437,7 @@ class ObsidianExporter {
 			}
 			
 			if (par.doc.type == 'attachment') {
-				console.log(' -> (Att) Link ignored from attachment file ' + par.path + ' to: ' + ar.name);
+				console.warn(' -> (Att) Link ignored from attachment file ' + par.path + ' to: ' + ar.name);
 				++linksIgnored;
 				continue;
 			}
@@ -478,8 +459,8 @@ class ObsidianExporter {
 	
 	/**
 	 * Create linkages for boards
-	 */
-	createBoardLinkages(docsPrepped, rootDoc, docsInternal) {
+	 *
+	#createBoardLinkages(docsPrepped, rootDoc, docsInternal) {
 		var cnt = 0;
 		var linksIgnored = 0;
 		
@@ -489,18 +470,18 @@ class ObsidianExporter {
 			if (doc.type != 'note') continue;
 			if (doc.editor != 'board') continue;
 			
-			var dp = this.getPreppedDocById(docsPrepped, doc._id);
+			var dp = this.#getPreppedDocById(docsPrepped, doc._id);
 			if (!dp) {
-				console.log(' ==>> ERROR: Board file not prepared: ' + doc._id);
+				console.error(' ==>> ERROR: Board file not prepared: ' + doc._id);
 				++linksIgnored;
 				continue;
 			}
 			
 			var par;
 			if (doc.parent) {
-				par = this.getPreppedDocById(docsPrepped, doc.parent);
+				par = this.#getPreppedDocById(docsPrepped, doc.parent);
 				if (!par) {
-					console.log(' ==>> ERROR: Board parent does not exist for ' + doc._id);
+					console.error(' ==>> ERROR: Board parent does not exist for ' + doc._id);
 					++linksIgnored;
 					continue;
 				}
@@ -509,7 +490,7 @@ class ObsidianExporter {
 			}
 			
 			if (par.doc.type == 'attachment') {
-				console.log(' -> (Board) Link ignored from attachment file ' + par.path + ' to: ' + doc.name);
+				console.warn(' -> (Board) Link ignored from attachment file ' + par.path + ' to: ' + doc.name);
 				++linksIgnored;
 				continue;
 			}
@@ -533,8 +514,8 @@ class ObsidianExporter {
 	 * Adds the passed document as file to the docsPrepped array. Returns a metadata object 
 	 * about the path actually exported.
 	 */
-	addFile(docsPrepped, folder, basename, extension, doc, content) {
-		var d = this.#app.data;
+	#addFile(docsPrepped, folder, basename, extension, doc, content) {
+		var d = this._app.data;
 		
 		/**
 		 * Compose the file base name (no escaping!) using the (optional) iteration number passed.
@@ -550,32 +531,30 @@ class ObsidianExporter {
 			return composeBasename(num) + (extension ? ('.' + extension) : '');
 		}
 		
-		//console.log('Add ' + folder + ' / ' + composeFilename());
-
 		///////////////////////////////////////////////////////////////////////////////////////////////////
 
 		// Get the first proposed file name, and the folder listing of the path to it.
 		var filenameOut = composeFilename();
-		var parentDp = this.getPreppedDocById(docsPrepped, doc.parent);
+		var parentDp = this.#getPreppedDocById(docsPrepped, doc.parent);
 		var parentPath = parentDp ? parentDp.folderpath : '';
-		var listing = this.getChildrenOfPath(docsPrepped, parentPath);
+		var listing = this.#getChildrenOfPath(docsPrepped, parentPath);
 		var basenameOut = composeBasename();
 		var hasChildren = d.hasChildren(doc._id);
 		
 		// Check for duplicate file names across the other documents in the same folder.
 		// NOTE: If there are duplicate folder names, this will lead to them being merged.
 		var dupi = 0;
-		while(this.listingContains(listing, hasChildren ? basenameOut : filenameOut)) {
+		while(this.#listingContains(listing, hasChildren ? basenameOut : filenameOut)) {
 			filenameOut = composeFilename(++dupi);
 			basenameOut = composeBasename(dupi);
 		}
 
 		if (dupi > 0) {
-			console.log(' -> Name collision prevented: ' + filenameOut);
+			console.warn(' -> Name collision prevented: ' + filenameOut);
 		}
 
-		var path = (folder ? (folder + ObsidianExporter.folderSeparator) : '') + filenameOut;
-		var folderpath = (folder ? (folder + ObsidianExporter.folderSeparator) : '') + basename;
+		var path = (folder ? (folder + ObsidianExporter.#folderSeparator) : '') + filenameOut;
+		var folderpath = (folder ? (folder + ObsidianExporter.#folderSeparator) : '') + basename;
 
 		// Add the prepped document
 		docsPrepped.push({
@@ -603,7 +582,7 @@ class ObsidianExporter {
 	/**
 	 * Adds all links to the file content.
 	 */
-	addLinksToContents(docsPrepped) {
+	#addLinksToContents(docsPrepped) {
 		// Add all links to the top of the note content, if any
 		for(var i=0; i<docsPrepped.length; ++i) {
 			var dp = docsPrepped[i];
@@ -619,13 +598,13 @@ class ObsidianExporter {
 			var lines = [];
 
 			// Header with links: Get two lines: First the parents and references, second the attachments
-			var line = this.getLinksString(uniquelinks, 'parent', 'reference');
+			var line = this.#getLinksString(uniquelinks, 'parent', 'reference');
 			if (line) lines.push('Topics: ' + line);
 
-			line = this.getLinksString(uniquelinks, 'attachment');
+			line = this.#getLinksString(uniquelinks, 'attachment');
 			if (line) lines.push('Attachments: ' + line);
 
-			line = this.getLinksString(uniquelinks, 'board');
+			line = this.#getLinksString(uniquelinks, 'board');
 			if (line) lines.push('Boards: ' + line);
 
 			if (lines.length == 0) continue;
@@ -658,7 +637,7 @@ class ObsidianExporter {
 	/**
 	 * Returns if the passed folder listing contains the passed file or folder name.
 	 */
-	listingContains(listing, filename) {
+	#listingContains(listing, filename) {
 		if (!filename) return false;
 		
 		for(var i=0; i<listing.length; ++i) {
@@ -675,8 +654,8 @@ class ObsidianExporter {
 	 * Returns an array containing the contents of the given folder,
 	 * derived from the already prepped docs. Returns an array of objects.
 	 */
-	getChildrenOfPath(docsPrepped, parentPath) {
-		var d = this.#app.data;
+	#getChildrenOfPath(docsPrepped, parentPath) {
+		var d = this._app.data;
 		var ret = [];
 		
 		/**
@@ -734,7 +713,7 @@ class ObsidianExporter {
 	/**
 	 * Searches a file from docsPrepped and returns it, or null if not found.
 	 */
-	getPreppedDocById(docsPrepped, id) {
+	#getPreppedDocById(docsPrepped, id) {
 		if (!id) return null;
 		
 		for(var k=0; k<docsPrepped.length; ++k) {
@@ -748,7 +727,7 @@ class ObsidianExporter {
 	/**
 	 * Composes the links of the passed types into a link header. Returns one line (string).
 	 */
-	getLinksString(links, type1, type2) {
+	#getLinksString(links, type1, type2) {
 		var ltext = "\n";
 		var cnt = 0;
 		
@@ -759,7 +738,7 @@ class ObsidianExporter {
 			}
 			
 			++cnt;
-			ltext += "- " + this.formtLink(links[l].link, links[l].name)  + "\n";
+			ltext += "- " + this.#formatLink(links[l].link, links[l].name)  + "\n";
 		}
 		return (cnt > 0) ? ltext : null;
 	}
@@ -767,14 +746,14 @@ class ObsidianExporter {
 	/**
 	 * Link formatting with optional visible name.
 	 */
-	formtLink(link, visibleName) {
+	#formatLink(link, visibleName) {
 		return '[[' + link + (visibleName ? ('|' + visibleName) : '') + ']]';
 	}
 	
 	/**
 	 * Composes the hashtags of the passed type into a line. Returns one line (string).
-	 */
-	getHashtagsString(links, type1) {
+	 *
+	#getHashtagsString(links, type1) {
 		var ltext = "\n";
 		var cnt = 0;
 		
@@ -784,7 +763,7 @@ class ObsidianExporter {
 			}
 
 			++cnt;
-			ltext += "#" + this.escapeHastag(links[l].link) + " ";
+			ltext += "#" + this.#escapeHastag(links[l].link) + " ";
 		}
 
 		ltext += '\n';
@@ -794,19 +773,19 @@ class ObsidianExporter {
 	
 	/** 
 	 * Escapes hash tag names
-	 */
-	escapeHastag(name) {
+	 *
+	#escapeHastag(name) {
 		return name.replace(/[^a-zA-Z0-9._\-]/g, '').trim();
 	}
 	
 	/**
 	 * Creates the (empty) root index document (prepped object format).
 	 */
-	createRootIndexDoc() {
-		var filename = ObsidianExporter.rootIndexBasename + (ObsidianExporter.rootIndexExtension ? ('.' + ObsidianExporter.rootIndexExtension) : '');
+	#createRootIndexDoc() {
+		var filename = ObsidianExporter.#rootIndexBasename + (ObsidianExporter.#rootIndexExtension ? ('.' + ObsidianExporter.#rootIndexExtension) : '');
 		
 		return {
-			id: ObsidianExporter.rootDocId,    
+			id: ObsidianExporter.#rootDocId,    
 			path: filename,
 			filename: filename,
 			foldername: '',
@@ -822,24 +801,24 @@ class ObsidianExporter {
 	 * Adds some settings of the docs to their contents (at the end) and 
 	 * returns a ZIP compatible file descriptor containing all of them.
 	 */
-	addAdditionalSettingsToPreppedFiles(docsPrepped) {
+	#addAdditionalSettingsToPreppedFiles(docsPrepped) {
 		return { 
-			name: ObsidianExporter.additionalSettingsFilename + '.json', 
+			name: ObsidianExporter.#additionalSettingsFilename + '.json', 
 			lastModified: new Date(),
-			input: JSON.stringify(this.getAdditionalSettings(docsPrepped), null, 2),
+			input: JSON.stringify(this.#getAdditionalSettings(docsPrepped), null, 2),
 		};
 	}
 		
 	/**
 	 * Gets an array holding additional settings for all items.
 	 */
-	getAdditionalSettings(docsPrepped) {
+	#getAdditionalSettings(docsPrepped) {
 		var ret = [];
 		
 		for(var i=0; i<docsPrepped.length; ++i) {
 			var dp = docsPrepped[i];
 			
-			var settings = this.getDocAdditionalSettings(dp);
+			var settings = this.#getDocAdditionalSettings(dp);
 			
 			ret.push({
 				path: dp.path,
@@ -853,7 +832,7 @@ class ObsidianExporter {
 	/**
 	 * Take over additional settings from the document to be stored in the additional settings file
 	 */
-	getDocAdditionalSettings(dp) {
+	#getDocAdditionalSettings(dp) {
 		return {
 			color: dp.doc.color,
 			backColor: dp.doc.backColor,
@@ -870,20 +849,20 @@ class ObsidianExporter {
 	 * Overwrites the contents of all board documents and generates 
 	 * obsidian compatible board code in the same file.
 	 */
-	createObsidianBoards(docsPrepped) {
+	#createObsidianBoards(docsPrepped) {
 		for(var i=0; i<docsPrepped.length; ++i) {
 			var dp = docsPrepped[i];
 			if (dp.doc.editor != 'board') continue;
 
-			dp.content = this.createKanbanFileContent(docsPrepped, dp);
+			dp.content = this.#createKanbanFileContent(docsPrepped, dp);
 		}
 	}
 	
 	/**
 	 * Returns the content for a obsidian kanban board file.
 	 */
-	createKanbanFileContent(docsPrepped, dp) {
-		var d = this.#app.data;
+	#createKanbanFileContent(docsPrepped, dp) {
+		var d = this._app.data;
 		
 		// Start building the content string with the frontmatter
 		var ret = "---\n\nkanban-plugin: basic\n\n---\n\n";
@@ -899,7 +878,7 @@ class ObsidianExporter {
 				}
 			}
 			
-			var ret = that.getPreppedDocById(docsPrepped, doc._id);
+			var ret = that.#getPreppedDocById(docsPrepped, doc._id);
 			if (!ret) {
 				console.warn(' ==>> WARNING: Board Export for ' + dp.path + ': ' + errorMsg);
 			}
@@ -916,7 +895,7 @@ class ObsidianExporter {
 			if (!listDp) {
 				lname = list.name;
 			} else {
-				lname = this.formtLink(listDp.path, list.name);				
+				lname = this.#formatLink(listDp.path, list.name);				
 			}
 			
 			ret += '## ' + lname + '\n\n';
@@ -931,11 +910,11 @@ class ObsidianExporter {
 				if (!itemDp) {
 					iname = item.name;
 				} else {
-					iname = this.formtLink(itemDp.path, item.name);				
+					iname = this.#formatLink(itemDp.path, item.name);				
 				}
 				
-				if (ObsidianExporter.kanbanIncludePreview && item.preview) {
-					iname += '<br>' + this.formatBoardItemPreview(item.preview);
+				if (ObsidianExporter.#kanbanIncludePreview && item.preview) {
+					iname += '<br>' + this.#formatBoardItemPreview(item.preview);
 				}
 				
 				ret += '- [ ] ' + iname + '\n';
@@ -954,27 +933,28 @@ class ObsidianExporter {
 	/**
 	 * Format preview of documents (for kanban items).
 	 */
-	formatBoardItemPreview(preview) {
+	#formatBoardItemPreview(preview) {
 		var ret = preview.replace(/[\n]/g, ' ');
-		ret = ret.slice(0, ObsidianExporter.kanbanMaxPreviewLength);
+		ret = ret.slice(0, ObsidianExporter.#kanbanMaxPreviewLength);
 		return ret.trim();
 	}
 	
 	/**
 	 * Adds basic obsidian settings to the files. Returns the number of files added.
 	 */
-	createBasicVaultSettings(files) {
-		var accentColor = this.#app.settings.settings.mainColor;
+	#createBasicVaultSettings(files) {
+		var accentColor = this._app.settings.settings.mainColor;
 		
-		files.push({ name: '.obsidian/app.json', lastModified: new Date(), input: '{ "defaultViewMode": "preview", "readableLineLength": false, "newFileLocation": "folder", "newFileFolderPath": "Unsorted" }' });
-		files.push({ name: '.obsidian/appearance.json', lastModified: new Date(), input: '{ "accentColor": "' + accentColor + '" }' });
-		files.push({ name: '.obsidian/backlink.json', lastModified: new Date(), input: '{ "backlinkInDocument": true }' });
+		var cnt = 0;
+		++cnt; files.push({ name: '.obsidian/app.json', lastModified: new Date(), input: '{ "defaultViewMode": "preview", "readableLineLength": false, "newFileLocation": "folder", "newFileFolderPath": "Unsorted" }' });
+		++cnt; files.push({ name: '.obsidian/appearance.json', lastModified: new Date(), input: '{ "accentColor": "' + accentColor + '" }' });
+		++cnt; files.push({ name: '.obsidian/backlink.json', lastModified: new Date(), input: '{ "backlinkInDocument": true }' });
 
-		if (ObsidianExporter.exportBoardsAsKanban) {
+		if (ObsidianExporter.#exportBoardsAsKanban) {
 			// NOTE: You have to install the kanban plugin manually. However it is already enabled here.
-			files.push({ name: '.obsidian/community-plugins.json', lastModified: new Date(), input: '[ "obsidian-kanban" ]' });
+			++cnt; files.push({ name: '.obsidian/community-plugins.json', lastModified: new Date(), input: '[ "obsidian-kanban" ]' });
 		}
 		
-		return 3;
+		return cnt;
 	}
 }

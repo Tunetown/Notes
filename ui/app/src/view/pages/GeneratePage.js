@@ -293,7 +293,7 @@ class GeneratePage extends Page {
 		var data = new Generator().createData(this.#options);
 
 		if (!confirm('Do you really want to create ' + data.length + ' random doduments under ' + (this.#options.parentId ? this.#options.parentId : 'notebook root') + '?')) {
-			this._app.view.message('Action cancelled.', 'I', 'generateDocuments');
+			this._app.view.message('Action canceled.', 'I', 'generateDocuments');
 			return;
 		}
 

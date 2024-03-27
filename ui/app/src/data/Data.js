@@ -21,6 +21,9 @@ class Data {
 	
 	#app = null;
 	
+	#linkedPathElementClass = "linkedPathElement";
+	#linkedPathElementSeparatorClass = "linkedPathElementSeparator";
+	
 	/**
 	 * Create instance with a bulk data array (as received from a 
 	 * getAll request to PouchDB as the rows array).
@@ -28,17 +31,15 @@ class Data {
 	constructor(app, bulkData, nestedDocPropName) {
 		this.#app = app;
 		
-		this.prepareData(bulkData, nestedDocPropName);
+		this.#prepareData(bulkData, nestedDocPropName);
 		
-		this.linkedPathElementClass = "linkedPathElement";
-		this.linkedPathElementSeparatorClass = "linkedPathElementSeparator";
 	}
 	
 	/**
 	 * Adds missing values to all documents, and create a keyed map from them
 	 * for fast access.
 	 */
-	prepareData(bulkData, nestedDocPropName) {
+	#prepareData(bulkData, nestedDocPropName) {
 		this.data = new Map();
 		
 		for (var i in bulkData) {
@@ -80,8 +81,7 @@ class Data {
 		var checkRootConflicts = true;
 		var that = this;
 		if (this.data.size > Config.dontCheckConflictsGloballyBeyondNumRecords) {
-			console.log('WARNING: No global conflict checks, too much data!');
-			
+			//console.warn('No global conflict checks, too much data!');
 			that.#app.view.message('The notebook has become very large (' + this.data.size + ' documents). Consider splitting the notebook soon! <br>Some functionality will be disabled.', 'W');
 			
 			checkRootConflicts = false;
@@ -582,7 +582,7 @@ class Data {
 		var doc = this.data.get(id);
 		if (!doc) return null;
 		
-		var path = this.getReadablePathRec(doc);
+		var path = this.#getReadablePathRec(doc);
 
 		var pathFull = "";
 		var pathFolder = "";
@@ -627,9 +627,9 @@ class Data {
 		if (!separator) separator = " / ";
 		
 		var doc = this.data.get(id);
-		if (!doc) return $('<span class="' + this.linkedPathElementClass + '" />').text('InvalidID');
+		if (!doc) return $('<span class="' + this.#linkedPathElementClass + '" />').text('InvalidID');
 		
-		var path = this.getLinkedPathRec(doc);
+		var path = this.#getLinkedPathRec(doc);
 
 		var that = this;
 		var ret = [];
@@ -651,12 +651,12 @@ class Data {
 			if (dontAppendSeparatorAfterName) {
 				ret.push(el);
 				if ((i > 0) && separator) {
-					ret.push($('<span class="' + this.linkedPathElementSeparatorClass + '" />').text(separator));
+					ret.push($('<span class="' + this.#linkedPathElementSeparatorClass + '" />').text(separator));
 				}				
 			} else {
 				ret.push(el);  
 				if (separator) { 
-					ret.push($('<span class="' + this.linkedPathElementSeparatorClass + '" />').text(separator));
+					ret.push($('<span class="' + this.#linkedPathElementSeparatorClass + '" />').text(separator));
 				}
 			}
 		}
@@ -667,10 +667,10 @@ class Data {
 	/**
 	 * Recursive Helper for getLinkedPath().
 	 */
-	getLinkedPathRec(doc, ret) {
+	#getLinkedPathRec(doc, ret) {
 		if (!ret) ret = [];
 		
-		var el = $('<span class="' + this.linkedPathElementClass + '" />');
+		var el = $('<span class="' + this.#linkedPathElementClass + '" />');
 		el.html(doc.name ? doc.name : doc._id);
 		el.data('id', doc._id);
 		ret.push(el);
@@ -679,7 +679,7 @@ class Data {
 			ret.push(null);  
 			return ret;
 		} else {
-			return this.getLinkedPathRec(doc.parentDoc, ret);
+			return this.#getLinkedPathRec(doc.parentDoc, ret);
 		}
 	}
 
@@ -691,7 +691,7 @@ class Data {
 		var doc = this.data.get(id);
 		if (!doc) return 'InvalidID';
 		
-		var path = this.getReadablePathRec(doc);
+		var path = this.#getReadablePathRec(doc);
 
 		var ret = "";
 		for(var i=path.length-1; i>=0; --i) {
@@ -710,7 +710,7 @@ class Data {
 	/**
 	 * Recursive Helper for getReadablePath().
 	 */
-	getReadablePathRec(doc, ret) {
+	#getReadablePathRec(doc, ret) {
 		if (!ret) ret = [];
 		
 		ret.push(doc.name ? doc.name : doc._id);
@@ -719,7 +719,7 @@ class Data {
 			ret.push('');  
 			return ret;
 		} else {
-			return this.getReadablePathRec(doc.parentDoc, ret);
+			return this.#getReadablePathRec(doc.parentDoc, ret);
 		}
 	}
 	

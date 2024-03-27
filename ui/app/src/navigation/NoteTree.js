@@ -132,7 +132,7 @@ class NoteTree {
         		that.#app.hideOptions();
         		
         		that.block();
-				that.#app.view.triggerCreateItem(that.behaviour.getNewItemParent())
+				that.#app.view.triggers.triggerCreateItem(that.behaviour.getNewItemParent())
 				.then(function(data) {
 					that.unblock();
 					if (data.message) {
@@ -805,7 +805,7 @@ class NoteTree {
 		this.commonButtonHandler(event);
 		
 		var that = this;
-		this.#app.view.triggerCreateItem(this.behaviour.getNewItemParent())
+		this.#app.view.triggers.triggerCreateItem(this.behaviour.getNewItemParent())
 		.then(function(data) {
 			if (data.message) {
 				that.#app.view.message(data.message, "S");
@@ -821,12 +821,6 @@ class NoteTree {
 
 		this.resetScrollPosition(this.getFocusedId());
 		$('#treeSearch').focus();
-	}
-	
-	favoritesHandler(event) {
-		this.commonButtonHandler(event);
-		
-		this.#app.editorFavoritesButtonHandler(event);
 	}
 	
 	settingsHandler(event) {
@@ -1108,7 +1102,6 @@ class NoteTree {
 			// Search
 			$('<div class="fa fa-search footerButton" data-toggle="tooltip" title="Search notebook"></div>')
 			.on('click', function(e) { return that.searchNotebookHandler(e); }) 
-			//.on('click', this.favoritesHandler) 
 			
 			// Link navigation to editor Button
 			/*$('<div data-toggle="tooltip" title="" class="fa fa-link footerButton" id="treeLinkButton"></div>')
@@ -1886,7 +1879,7 @@ class NoteTree {
     	
     	var doAsk = srcCanBeMoved && this.#app.settings.settings.askBeforeMoving;
     	if (doAsk && !confirm("Move " + srcName + " to " + tarName + "?")) {
-			this.#app.view.message("Moving cancelled.", "I");
+			this.#app.view.message("Moving canceled.", "I");
 			return;
 		}
     	

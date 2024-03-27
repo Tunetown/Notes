@@ -29,41 +29,28 @@ class DocumentAccess {
 	 * Wrapper for loadDocuments() which loads the documents from the data handler itself, 
 	 * and is driven by an ID array instead of an array of doc instances.
 	 */
-	loadDocumentsById(ids) {
+	async loadDocumentsById(ids) {
 		var d = this.#app.data;
-		if (!d) {
-			return Promise.reject({
-				message: 'Data handler still uninitialized',
-				messageThreadId: 'LoadDocumentMessages'
-			});
-		}
+		if (!d) throw new Error('Data handler still uninitialized');
 		
 		var docs = [];
 		for(var i in ids) {
 			if (!ids[i]) continue;
 			
 			var doc = d.getById(ids[i]);
-			if (!doc) {
-				return Promise.reject({
-					message: 'Document ' + ids[i] + ' not found',
-					messageThreadId: 'LoadDocumentMessages'
-				})
-			}
+			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
 			
 			docs.push(doc);
 		}
 		
-		return this.loadDocuments(docs);
+		return await this.loadDocuments(docs);
 	}
 		
 	/**
 	 * After this, the documents are loaded fully into the data instance.
 	 */
-	loadDocuments(docs) {
-		if (!docs) return Promise.reject({ 
-			message: 'No docs passed',
-			messageThreadId: 'LoadDocumentMessages' 
-		});
+	async loadDocuments(docs) {
+		if (!docs) throw new Error('No docs passed');
 			
 		var ids = [];
 		for(var i in docs) {
@@ -84,131 +71,109 @@ class DocumentAccess {
 			});
 		}
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.allDocs({
-				conflicts: true,
-				include_docs: true,
-				keys: ids
-			});
-		})
-		.then(function (data) {
-			if (!data.rows) {
-				return Promise.reject({
-					message: 'No documents received',
-					messageThreadId: 'LoadDocumentMessages'
-				});
-			}
-				
-			// Update data
-			for(var i in ids) {
-				var docInput = null;
-				for(var l in docs) {
-					if (!docs[l]) continue;
-					if (docs[l]._id == ids[i]) {
-						docInput = docs[l];
-						break;
-					}
-				}
-				if (!docInput) {
-					return Promise.reject({
-						message: 'Document ' + ids[i] + ' not found in source data',
-						messageThreadId: 'LoadDocumentMessages'
-					});
-				}
-				
-				var docLoaded = null;
-				for(var l in data.rows) {
-					if (data.rows[l].doc._id == ids[i]) {
-						docLoaded = data.rows[l].doc;
-						break;
-					}
-				}
-				if (!docLoaded) {
-					return Promise.reject({
-						message: 'Document ' + ids[i] + ' not found in loaded data',
-						messageThreadId: 'LoadDocumentMessages'
-					});
-				}
+		var db = await this.#app.db.get();
+		var data = await db.allDocs({
+			conflicts: true,
+			include_docs: true,
+			keys: ids
+		});
 
-				Document.update(docInput, docLoaded);
-				Document.setLoaded(docInput);
-				
-				Document.invalidMetaWarning(docInput);
+		if (!data.rows) throw new Error('No documents received');
+			
+		// Update data
+		for(var i in ids) {
+			var docInput = null;
+			for(var l in docs) {
+				if (!docs[l]) continue;
+				if (docs[l]._id == ids[i]) {
+					docInput = docs[l];
+					break;
+				}
 			}
+			if (!docInput) throw new Error('Document ' + ids[i] + ' not found in source data');
 			
-			// For debugging
-			console.log(" -> Loaded " + Tools.convertFilesize(JSON.stringify(data).length) + " (" + ids.length + " documents)");
+			var docLoaded = null;
+			for(var l in data.rows) {
+				if (data.rows[l].doc._id == ids[i]) {
+					docLoaded = data.rows[l].doc;
+					break;
+				}
+			}
+			if (!docLoaded) throw new Error('Document ' + ids[i] + ' not found in loaded data');
+
+			Document.update(docInput, docLoaded);
+			Document.setLoaded(docInput);
 			
-			return Promise.resolve({
-				ok: true,
-				updatedIds: ids
-			});
-		}); 
+			Document.invalidMetaWarning(docInput);
+		}
+		
+		// For debugging
+		console.log(" -> Loaded " + Tools.convertFilesize(JSON.stringify(data).length) + " (" + ids.length + " documents)");
+		
+		return {
+			ok: true,
+			updatedIds: ids
+		};
 	}
 	
 	/**
 	 * Load all documents
 	 */
-	loadAllDocuments() {
+	async loadAllDocuments() {
 		var all = [];
 		this.#app.data.each(function(doc) {
 			all.push(doc);
 		});
 		
-		return this.loadDocuments(all);
+		return await this.loadDocuments(all);
 	}
 	
 	/**
 	 * Returns a promise holding allDocs data including documents and conflicts (not attachments!), used for checks.
 	 */
-	getAllDocs() {
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.allDocs({
-				conflicts: true,
-				include_docs: true,
-			});
-		})
+	async getAllDocs() {
+		var db = await this.#app.db.get();
+
+		return await db.allDocs({
+			conflicts: true,
+			include_docs: true,
+		});
 	}
 	
 	/**
 	 * Get document statistics
 	 */
-	getStats(allDocs) {
-		var that = this;
-		return new Promise(function(resolve, reject) {
-			var errors = [];
+	async getStats(allDocs) {
+		var errors = [];
 
-			for(var i in allDocs.rows) {
-				var doc = allDocs.rows[i].doc;
-				
-				errors.push({
-					message: '',
-					id: doc._id,
-					size: that.getDocSize(doc),
-					type: 'I'
-				});	
-			}
+		for(var i in allDocs.rows) {
+			var doc = allDocs.rows[i].doc;
+			
+			errors.push({
+				message: '',
+				id: doc._id,
+				size: this.#getDocSize(doc),
+				type: 'I'
+			});	
+		}
 
-			errors.sort(function(a, b) { return b.size - a.size });
-			
-			for(var i in errors) {
-				var error = errors[i];
-				error.message = Tools.convertFilesize(error.size)
-			}
-			
-			resolve({
-				numChecked: allDocs.rows.length,
-				errors: errors,
-			});
-		});
+		errors.sort(function(a, b) { return b.size - a.size });
+		
+		for(var i in errors) {
+			var error = errors[i];
+			error.message = Tools.convertFilesize(error.size)
+		}
+		
+		return {
+			numChecked: allDocs.rows.length,
+			errors: errors,
+		};
 	}
 	
 	/**
 	 * Get DB document size
 	 */
-	getDocSize(doc) {
+	#getDocSize(doc) {
 		var ret = 0;
 		
 		// Content size
@@ -232,54 +197,38 @@ class DocumentAccess {
 	/**
 	 * Deletion of raw documents (for check solvers)
 	 */
-	deleteDbDocument(id) {
+	async deleteDbDocument(id) {
 		this.#app.data.resetBacklinks();
 		this.#app.data.resetChildrenBuffers();
 		
-		var db;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.get(id);
-		})
-		.then(function(doc) {
-			if(!doc) {
-				return Promise.reject({
-					message: 'Document ' + id + ' not found',
-					messageThreadId: 'DeleteDbDocMessages'
-				});
-			}
-			return db.remove(doc);
-		})
-		.then(function(data) {
-			return Promise.resolve({
-				ok: data.ok,
-				message: 'Deleted ' + id,
-				messageThreadId: 'DeleteDbDocMessages'
-			});
-		});
+		var db = await this.#app.db.get();
+
+		var doc = db.get(id);
+
+		if(!doc) throw new Error('Document ' + id + ' not found');
+
+		var data = await db.remove(doc);
+
+		return {
+			ok: data.ok,
+			message: 'Deleted ' + id
+		};
 	}
 	
 	/**
 	 * Save raw document (for check solvers)
 	 */
-	saveDbDocument(doc) {
+	async saveDbDocument(doc) {
 		this.#app.data.resetBacklinks();
 		this.#app.data.resetChildrenBuffers();
 		
-		var db;
-		return this.#app.db.get()
-		.then(function(dbRef) {
-			db = dbRef;
-			return db.put(doc);
-		})
-		.then(function(data) {
-			return Promise.resolve({
-				ok: data.ok,
-				message: 'Saved ' + doc._id,
-				messageThreadId: 'SaveDbDocMessages'
-			});
-		});
+		var db = await this.#app.db.get();
+		var data = await db.put(doc);
+
+		return {
+			ok: data.ok,
+			message: 'Saved ' + doc._id
+		};
 	}
 	
 	/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -288,57 +237,48 @@ class DocumentAccess {
 	/**
 	 * Generic function to save an existing document on DB.
 	 */
-	saveItem(id, dontResetChildrenBuffers) {
-		if (!id) return Promise.reject({
-			message: 'No ID passed',
-			messageThreadId: 'SaveItemMessages'
-		});
+	async saveItem(id, dontResetChildrenBuffers) {
+		if (!id) throw new Error('No ID passed');
 			
 		var doc = this.#app.data.getById(id);
-		if (!doc) return Promise.reject({
-			message: 'Document ' + id + ' not found',
-			messageThreadId: 'SaveItemMessages'
-		});
+		if (!doc) throw new Error('Document ' + id + ' not found');
 		
 		this.#app.data.resetBacklinks();
 		if (!dontResetChildrenBuffers) this.#app.data.resetChildrenBuffers();
 		
-		return this.#app.db.get()
-		.then(function(db) {
-			Document.lock(id);
+		var db = await this.#app.db.get();
 
+		try {
+			Document.lock(id);
+	
 			Document.updateMeta(doc);
-			
-			// Save note
-			return db.put(Document.clone(doc));
-		})
-		.then(function (dataResp) {
+				
+				// Save note
+			var dataResp = await db.put(Document.clone(doc));
+	
 			Document.unlock(id);
+			
 			if (!dataResp.ok) {
-				return Promise.reject(dataResp);
+				throw new Error(dataResp);
 			}
 			
 			doc._rev = dataResp.rev;
 			Document.update(doc, doc);
 			
-			return Promise.resolve({
-				ok: true
-			});
-		})
-		.catch(function(err) {
+			return { ok: true };
+			
+		} catch(err) {
 			Document.unlock(id);
-			return Promise.reject(err);
-		}); 
+			
+			throw err;
+		} 
 	}
 	
 	/**
 	 * Generic function to save multiple existing documents to DB. Expects an array of IDs.
 	 */
-	saveItems(ids) {
-		if (!ids) return Promise.reject({ 
-			message: 'No docs passed',
-			messageThreadId: 'SaveItemsMessages'
-		});
+	async saveItems(ids) {
+		if (!ids) throw new Error('No docs passed');
 			
 		this.#app.data.resetBacklinks();
 		this.#app.data.resetChildrenBuffers();
@@ -346,46 +286,30 @@ class DocumentAccess {
 		// Remove duplicates
 		ids = Tools.removeDuplicates(ids);
 
-		// Collect and lock documents
-		var docs = [];
-		for (var l in ids) {
-			if (!ids[l]) {
-				return Promise.reject({
-					message: 'Empty ID passed',
-					messageThreadId: 'SaveItemsMessages'
-				});
-			}
-			Document.lock(ids[l]);
-			
-			var doc = this.#app.data.getById(ids[l]);
-			if (!doc) {
-				return Promise.reject({
-					message: 'Document ' + ids[l] + ' not found',
-					messageThreadId: 'SaveItemsMessages'
-				});
+		try {
+			// Collect and lock documents
+			var docs = [];
+			for (var l in ids) {
+				if (!ids[l]) throw new Error('Empty ID passed');
+	
+				Document.lock(ids[l]);
+				
+				var doc = this.#app.data.getById(ids[l]);
+				if (!doc) throw new Error('Document ' + ids[l] + ' not found');
+				
+				Document.updateMeta(doc);
+				docs.push(Document.clone(doc));
 			}
 			
-			Document.updateMeta(doc);
-			docs.push(Document.clone(doc));
-		}
-		
-		// Save them
-		var that = this;
-		return this.#app.db.get()
-		.then(function(db) {
-			return db.bulkDocs(docs);
-		})
-		.then(function (data) {
+			// Save them
+			var db = await this.#app.db.get();
+			var data = await db.bulkDocs(docs);
+	
 			// Update revisions
-			var d = that.#app.data;
+			var d = this.#app.data;
 			for(var i in data || []) {
 				var dd = d.getById(data[i].id);
-				if (!dd) {
-					return Promise.reject({
-						message: 'Document ' + data[i].id + ' not found in loaded data',
-						messageThreadId: 'SaveItemsMessages'
-					});
-				}
+				if (!dd) throw new Error('Document ' + data[i].id + ' not found in loaded data');
 				
 				dd._rev = data[i].rev;
 				Document.update(dd, dd);
@@ -395,17 +319,16 @@ class DocumentAccess {
 			for(var i in ids) {
 				Document.unlock(ids[i]);
 			}
-
-			return Promise.resolve({
-				ok: true
-			});
-		})
-		.catch(function(err) {
+	
+			return { ok: true };
+			
+		} catch(err) {
 			// Unlock
 			for(var i in ids) {
 				Document.unlock(ids[i]);
 			}
-			return Promise.reject(err);
-		}); 
+			
+			throw err;
+		} 
 	}
 }

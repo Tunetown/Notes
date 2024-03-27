@@ -97,7 +97,7 @@ class ProfilesPage extends Page {
 				$('<td class="profileSelectElementContainer"></td>').append(
 					$('<button class="btn btn-secondary profileSelectBtnFixed">Open Notebook from CouchDB URL...</button>')
 					.on('click', function() {
-						var url = prompt('CouchDB Address:', SettingsContent.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
+						var url = prompt('CouchDB Address:', that._app.db.getDatabaseUrlProposal(d.profileHandler.getCurrentProfile().url));
 						if (!url) return;
 						
 						d.reset();
