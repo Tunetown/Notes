@@ -23,7 +23,7 @@ self.importScripts('bootstrap.js');
 /**
  * Service Worker version (should match the Seton.js version)
  */ 
-const SW_VERSION = '1.0.0';
+const SW_VERSION = '1.0.5';
 
 /**
  * Get list of files to cache from the bootstrapper
@@ -46,6 +46,8 @@ self.addEventListener('install', event => {
 		.then(cache => cache.addAll(PRECACHE_URLS))
 		.then(self.skipWaiting())
 	);
+	
+	console.log('Service worker installed');
 });
 
 /**
@@ -58,7 +60,9 @@ self.addEventListener('activate', event => {
 		tabs.forEach((tab) => {
 			tab.navigate(tab.url)
 		});
-	})
+	});
+	
+	console.log('Service worker activated');
 });
 
 /**

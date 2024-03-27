@@ -146,7 +146,7 @@ class PageMenu {
 	        	event.stopPropagation();
 	        	that.#app.hideOptions();
 	        	
-	        	that.#app.actions.document.moveItems([page.getCurrentId()])
+	        	that.#app.view.triggerMoveItems([page.getCurrentId()])
 	        	.catch(function(err) {
 					that.#app.errorHandler.handle(err);
 				});
@@ -194,18 +194,6 @@ class PageMenu {
 	        	that.#app.hideOptions();
 	        	
 	        	that.#app.routing.callHashtags(page.getCurrentId());
-	        }),
-
-	        // Labels
-	        options.noLabelDefinitions ? null : $('<div class="userbutton"><div class="fa fa-tags userbuttonIcon"></div>Labels</div>')
-	        .append(
-	        	!openedDoc ? null : Document.getLabelElements(openedDoc, 'doc-label-menuoption')
-	        )
-	        .on('click', function(event) {
-	        	event.stopPropagation();
-	        	that.#app.hideOptions();
-	        	
-	        	that.#app.routing.callLabelDefinitions(page.getCurrentId());
 	        }),
 
 			// Create Reference

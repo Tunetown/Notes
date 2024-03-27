@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 class Data {
 	
 	#app = null;
@@ -77,6 +78,7 @@ class Data {
 		
 		// Disable root conflict checks for large notebooks.
 		var checkRootConflicts = true;
+		var that = this;
 		if (this.data.size > Config.dontCheckConflictsGloballyBeyondNumRecords) {
 			console.log('WARNING: No global conflict checks, too much data!');
 			
@@ -245,10 +247,6 @@ class Data {
 			ret += JSON.stringify(doc.backImage).length;
 		}
 		
-		if (doc.labels) {
-			ret += JSON.stringify(doc.labels).length;
-		}
-		
 		// Recurse if requested
 		if (includeChildren) {
 			var ch = this.getChildren(doc._id);
@@ -259,119 +257,6 @@ class Data {
 		}
 		
 		return ret;
-	}
-	
-	/**
-	 * Returns all active labels (definitions) for the document.
-	 */
-	getActiveLabelDefinitions(id) {
-		var doc = this.getById(id);
-		if (!doc) return [];
-
-		var ret = [];
-		for (var i in doc.labels || []) {
-			var def = this.getLabelDefinition(doc._id, doc.labels[i]);
-			if (!def) continue;
-		
-			ret.push(def);
-		}
-
-		return ret;
-	}
-	
-	/**
-	 * Searches for a label definition and returns it, or null if not found.
-	 */
-	getLabelDefinition(id, labelId) {
-		var doc = this.getById(id);
-		if (!doc) return null;
-		
-		for (var l in doc.labelDefinitions || []) {
-			if (doc.labelDefinitions[l].id == labelId) {
-				return {
-					id: doc.labelDefinitions[l].id,
-					color: doc.labelDefinitions[l].color,
-					name: doc.labelDefinitions[l].name,
-					owner: doc._id
-				};
-			}
-		}
-		
-		if (doc.parent) {
-			return this.getLabelDefinition(doc.parent, labelId);
-		}
-		
-		return null;
-	}
-	
-	/**
-	 * Returns a list of available label definitions for the document (also containing inherited ones).
-	 */
-	getLabelDefinitions(id) {
-		var ret = [];
-
-		var doc = this.getById(id);
-		if (!doc) return ret;
-
-		this.getLabelDefinitionsRec(doc, ret);
-		return ret;
-	}
-	
-	/**
-	 * Recursive helper for getLabelDefinitions().
-	 */
-	getLabelDefinitionsRec(doc, ret) {
-		for (var l in doc.labelDefinitions || []) {
-			var ld = doc.labelDefinitions[l];
-			
-			ret.push({
-				id: ld.id,
-				color: ld.color,
-				name: ld.name,
-				owner: doc._id
-			});
-		}
-		
-		if (doc.parentDoc) {
-			this.getLabelDefinitionsRec(doc.parentDoc, ret);
-		}
-	}
-	
-	/**
-	 * Returns all labels definitions
-	 */
-	getAllLabelDefinitions() {
-		var ret = [];
-
-		var ch = this.getChildren('');
-		for(var c in ch) {
-			var doc = this.getById(ch[c]._id);
-			if (!doc) continue;
-			
-			this.getAllLabelDefinitionsRec(doc, ret);
-		}
-		return ret;
-	}
-	
-	/**
-	 * Recursive helper for getAllLabelDefinitions().
-	 */
-	getAllLabelDefinitionsRec(doc, ret) {
-		for (var l in doc.labelDefinitions || []) {
-			var ld = doc.labelDefinitions[l];
-			
-			ret.push({
-				id: ld.id,
-				color: ld.color,
-				name: ld.name,
-				owner: doc._id
-			});
-		}
-		
-		var ch = this.getChildren(doc._id);
-		for (var c in ch) {
-			this.getAllLabelDefinitionsRec(ch[c], ret);
-		}
 	}
 	
 	/**
@@ -631,19 +516,6 @@ class Data {
 		
 		var tokenLowercase = token.toLowerCase().trim();
 		
-		// Label only search
-		if (token.startsWith('label:')) {
-			tokenLowercase = tokenLowercase.substring('label:'.length);
-			var labels = this.getActiveLabelDefinitions(doc._id);
-			
-			for (var l in labels) {
-				if (labels[l].name.toLowerCase().indexOf(tokenLowercase) != -1) {
-					return true;
-				}
-			}
-			return false;
-		}
-		
 		// Hashtag only search
 		if (token.startsWith('tag:')) {
 			tokenLowercase = tokenLowercase.substring('tag:'.length);
@@ -698,15 +570,6 @@ class Data {
 		if (!doc.content) return false;
 		if (doc.content.toLowerCase().indexOf(tokenLowercase) != -1) {
 			return true;
-		}
-		
-		// Labels
-		var labels = this.getActiveLabelDefinitions(doc._id);
-		
-		for (var l in labels) {
-			if (labels[l].name.toLowerCase().indexOf(tokenLowercase) != -1) {
-				return true;
-			}
 		}
 		
 		return false;

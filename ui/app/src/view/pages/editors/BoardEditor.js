@@ -140,20 +140,6 @@ class BoardEditor extends Editor {
 				that.#refresh();
 			}
 		);
-		this._app.callbacks.registerCallback(
-			this.getEditorMode(),
-			'saveLabels',
-			function(id) {
-				that.#refresh();
-			}
-		);
-		this._app.callbacks.registerCallback(
-			this.getEditorMode(),
-			'saveLabelDefinitions',
-			function(id) {
-				that.#refresh();
-			}
-		);
 		
 		// Build buttons
 		this._app.setButtons([ 
@@ -336,7 +322,6 @@ class BoardEditor extends Editor {
 										);
 									}),
 									
-								Document.getLabelElements(subList[i], 'doc-label-board'),
 								Document.getTagElements(subList[i], 'doc-hashtag-board')
 							),
 							
@@ -538,13 +523,6 @@ class BoardEditor extends Editor {
 		// Set container size so that only horizontal layouting takes place (the horizontal option of Muuri seems not to work properly)
 		$('.board-container').css('min-width', (boardWidth + 10) + "px");
 
-		// Labels size
-		var labels = $('.doc-label');
-		labels.css('min-width', "16px");
-		labels.css('max-width', "16px");
-		labels.css('min-height', "16px");
-		labels.css('max-height', "16px");
-		
 		var tags = $('.doc-hashtag');
 		tags.css('min-width', "16px");
 		tags.css('max-width', "16px");
@@ -682,7 +660,10 @@ class BoardEditor extends Editor {
 	 */
 	async #uploadFilesHandler(files, defaultId) {
 		try {
-			var id = await this._app.view.dialogs.promptFileUploadTarget('Add ' + files.length + ' files?', defaultId);
+			var id = await this._app.view.dialogs.promptSelectDocument('Add ' + files.length + ' files?', {
+				defaultTargetId: defaultId,
+				excludeTypes: ['reference']
+			});
 				
 			this._app.actions.attachment.uploadAttachments(id, files);
 			

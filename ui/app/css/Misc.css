@@ -42,26 +42,9 @@
 	font-style: italic;
 }
 
-.doc-label {
-	text-align: center;	
-	border-radius: 100px;
-}
-
 .doc-hashtag {
 	text-align: center;	
 	border-radius: 4px !important;
-}
-
-.doc-label-menuoption {
-	width: 16px;
-	height: 16px;
-	float: right;
-	margin-left: 2px;
-}
-
-.doc-label-labellist {
-	width: 18px;
-	height: 18px;
 }
 
 #uploadDialog {

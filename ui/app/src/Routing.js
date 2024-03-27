@@ -144,10 +144,6 @@ class Routing {
 				that.#loadPage(new HashtagsPage(), this.params['profile'], this.params['noteId']);
 			});
 			
-			this.get('#/:profile/labels', function() {
-				that.#loadPage(new LabelDefinitionsPage(), this.params['profile']);
-			});
-
 			/**
 			 * Pages related to a note //////////////////////////////////////////////////////////////////////////////////
 			 */
@@ -180,14 +176,6 @@ class Routing {
 				that.#triggerAction(function() {
 					return that.#app.actions.document.requestConflict(noteId, revId);
 				}, this.params['profile']);
-			});
-			
-			// Label definitions of an item
-			this.get('#/:profile/ld/:noteId', function() {
-				const noteId = this.params['noteId'];
-				that.#triggerAction(function() {
-					return that.#app.actions.label.requestLabelDefinitions(noteId);
-				}, this.params['profile'], true);
 			});
 			
 			// Raw JSON view for an item
@@ -498,17 +486,6 @@ class Routing {
 	 */
 	callRawView(id) {
 		this.call('raw/' + id);
-	}
-	
-	/**
-	 * Call labels list of an item
-	 */
-	callLabelDefinitions(id) {
-		if (!id) {
-			this.call('labels');
-		} else {
-			this.call('ld/' + id);
-		}
 	}
 	
 	/**

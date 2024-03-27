@@ -16,18 +16,15 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 class DocumentActions {
 	
 	#app = null;
 	#documentAccess = null;
 	
-	#imageDialog = null;
-	
 	constructor(app, documentAccess) {
 		this.#app = app;
 		this.#documentAccess = documentAccess;
-		
-		this.#imageDialog = new ImageDialog(this.#app);
 	}
 	
 	/**
@@ -503,112 +500,14 @@ class DocumentActions {
 	}
 
 	/**
-	 * Move an item, showing a popup to select the target ID. Calls moveDocument when 
-	 * all data is gathered.
-	 */
-	moveItems(ids) {
-		var docs = [];
-		
-		ids = Tools.removeDuplicates(ids);
-		
-		for(var i in ids) {
-			var doc = this.#app.data.getById(ids[i]);
-			if (!doc) return Promise.reject({
-				message: 'Document ' + ids[i] + ' not found',
-				messageThreadId: 'MoveMessages'
-			});
-			
-			docs.push(doc);
-		}
-
-		if (ids.length == 0) return Promise.reject({
-			message: 'Nothing to move',
-			messageThreadId: 'MoveMessages'
-		});
-		
-		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
-
-		var existingRefs = [];
-		for(var i in ids) {
-			existingRefs.push(ids[i]);
-		}
-		this.#app.data.each(function(doc) {
-			if (doc.type == 'reference') existingRefs.push(doc._id);
-		});
-		
-		var selector = this.#app.view.getDocumentSelector(existingRefs);
-		selector.val(docs[0].parent);
-		selector.css('max-width', '100%');
-		
-		$('#moveTargetSelectorList').empty();
-		$('#moveTargetSelectorList').append(selector);
-
-		// Enable searching by text entry
-		selector.selectize({
-			sortField: 'text'
-		});
-		
-		$('#moveSubmitButton').html('Move');
-		
-		var that = this;
-		return new Promise(function(resolve, reject) {
-			$('#moveSubmitButton').off('click');
-			$('#moveSubmitButton').on('click', function(/*event*/) {
-				$('#moveTargetSelector').off('hidden.bs.modal');
-	        	$('#moveTargetSelector').modal('hide');
-	        	var target = selector.val();
-	        	if (target == "_cancel") {
-	        		reject({
-	        			abort: true,
-						message: "Action cancelled.",
-						messageThreadId: 'MoveMessages'
-					});
-	        		return;
-	        	}
-	        	
-	        	that.moveDocuments(ids, target, true)
-	        	.then(function(/*data*/) {
-	        		var tdoc = this.#app.data.getById(target);
-	        		
-					resolve({
-						ok: true,
-						message: 'Moved ' + displayName + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME),
-						messageThreadId: 'MoveMessages'
-					});
-	        	})
-	        	.catch(function(err) {
-	        		reject({
-						message: "Error moving document(s): " + err.message,
-						messageThreadId: 'MoveMessages'
-					});
-	        	});
-			});
-			
-			$('#moveTargetSelector').off('hidden.bs.modal');
-			$('#moveTargetSelector').on('hidden.bs.modal', function () {
-				reject({
-					abort: true,
-					message: 'Action cancelled.',
-					messageThreadId: 'MoveMessages'
-				});
-			});
-			
-			$('#moveTargetSelectorText').text('Move ' + displayName + ' to:');
-			$('#moveTargetSelector').modal();
-		});
-	}
-	
-	/**
 	 * Move a document in the place of another node in the tree. 
 	 * With moveToSubOfTarget you control if the note shall be moved as a subnode of target (true) or beneath the target (false).
 	 */
-	moveDocuments(ids, targetId, moveToSubOfTarget) {
+	async moveDocuments(ids, targetId, moveToSubOfTarget) {
 		var docTarget = this.#app.data.getById(targetId);
-		if (docTarget.type == 'reference') {
-			return Promise.reject({
-				message: 'Cannot move into references.',
-				messageThreadId: 'MoveMessages'
-			});
+		if (targetId) {
+			if (!docTarget) throw new Error('Target document not found: ' + targetId);
+			if (docTarget.type == 'reference') throw new Error('Cannot move into references.');
 		}
 		
 		var docsInvolved = [docTarget];
@@ -616,12 +515,8 @@ class DocumentActions {
 		var docsSrc = [];
     	for(var i in ids) {
     		var doc = this.#app.data.getById(ids[i]);
-    		if (!doc) {
-    			return Promise.reject({
-    				message: 'Document ' + ids[i] + ' not found',
-					messageThreadId: 'MoveMessages'
-    			});
-    		}
+    		if (!doc) throw new Error('Document ' + ids[i] + ' not found');
+
     		docsSrc.push(doc);
     		docsInvolved.push(doc);
     	}
@@ -643,88 +538,79 @@ class DocumentActions {
 	    		
 	    		for(var i in siblings) {
 					var sibling = this.#app.data.getById(siblings[i]);
-		    		if (!sibling) {
-		    			return Promise.reject({
-		    				message: 'Document ' + siblings[i] + ' not found',
-							messageThreadId: 'MoveMessages'
-		    			});
-		    		}
+		    		if (!sibling) throw new Error('Document ' + siblings[i] + ' not found');
+
 	    			docsInvolved.push(sibling);
 	    		}
 	    	}
     	}
 
-    	var updateIds = [];
-    	var that = this;
-    	return this.#documentAccess.loadDocuments(docsInvolved)
-    	.then(function(/*resp*/) {
-	    	if (!targetId || moveToSubOfTarget) {
-	    		for(var s in docsSrc) {
-	    			if (docsSrc[s].parent != targetId) {
-	    				Document.addChangeLogEntry(docsSrc[s], 'parentChanged', {
-	    					from: docsSrc[s].parent,
-	    					to: targetId
-	    				});
-	    				
-	    				that.#app.data.setParent(docsSrc[s]._id, targetId);
-	    				updateIds.push(docsSrc[s]._id);
-	    			}
-	    		}
-	    	} else {
-	    		for(var s in docsSrc) {
-		    		if (docsSrc[s].parent != docTarget.parent) {
-		    			Document.addChangeLogEntry(docsSrc[s], 'parentChanged', {
-		    				from: docsSrc[s].parent,
-		    				to: docTarget.parent
-		    			});
-		    			
-		    			that.#app.data.setParent(docsSrc[s]._id, docTarget.parent);
-		    			updateIds.push(docsSrc[s]._id);
-		    		}
-	    		}
-	    	}
-	
-	    	for(var s in docsSrc) {
-	    		console.log("Moving item " + docsSrc[s].name + (moveToSubOfTarget ? " into " : " beneath ") + (docTarget ? docTarget.name : "Root"));
-	    	
-		    	// In case of staying in the same parent, re-oder the children of the new parent accordingly. 
-		    	// We just take the order of items the grid gives us, and even when the items might not all be there, this makes sense as it
-		    	// always resembles the order the user sees (if he sees any).
-		    	if (!moveToSubOfTarget) {
-		    		var ouIds = that.#app.nav.reorderVisibleSiblings(docsSrc[s]);
-		    		for(var i in ouIds) {
-		    			updateIds.push(ouIds[i]);
-		    		}
-		    	}
-	    	}
-			
-			// Execute callbacks
-			that.#app.callbacks.executeCallbacks('moveDocumentBeforeSave', {
-				docsSrc: docsSrc,
-				docTarget: docTarget,
-				moveToSubOfTarget: moveToSubOfTarget,
-				updateIds: updateIds
-			});
-			
-	    	// Save the new tree structure by updating the metadata of all touched objects.
-	    	return that.#documentAccess.saveItems(updateIds);
-    	})
-    	.then(function(/*data*/) {
-    		// Execute callbacks
-    		that.#app.callbacks.executeCallbacks('moveDocumentAfterSave', {
-    			docsSrc: docsSrc,
-    			docTarget: docTarget,
-    			moveToSubOfTarget: moveToSubOfTarget,
-    			updateIds: updateIds
-    		});
-    		
-    		return Promise.resolve({ ok: true });
-    	})
-    	.then(function(/*data*/) {
-    		that.#app.nav.unblock();
+    	await this.#documentAccess.loadDocuments(docsInvolved);
 
-    		return Promise.resolve({ ok: true });
-    	});
+		var updateIds = [];
+
+    	if (!targetId || moveToSubOfTarget) {
+    		for(var s in docsSrc) {
+    			if (docsSrc[s].parent != targetId) {
+    				Document.addChangeLogEntry(docsSrc[s], 'parentChanged', {
+    					from: docsSrc[s].parent,
+    					to: targetId
+    				});
+    				
+    				this.#app.data.setParent(docsSrc[s]._id, targetId);
+    				updateIds.push(docsSrc[s]._id);
+    			}
+    		}
+    	} else {
+    		for(var s in docsSrc) {
+	    		if (docsSrc[s].parent != docTarget.parent) {
+	    			Document.addChangeLogEntry(docsSrc[s], 'parentChanged', {
+	    				from: docsSrc[s].parent,
+	    				to: docTarget.parent
+	    			});
+	    			
+	    			this.#app.data.setParent(docsSrc[s]._id, docTarget.parent);
+	    			updateIds.push(docsSrc[s]._id);
+	    		}
+    		}
+    	}
+
+    	for(var s in docsSrc) {
+    		console.log("Moving item " + docsSrc[s].name + (moveToSubOfTarget ? " into " : " beneath ") + (docTarget ? docTarget.name : "Root"));
+    	
+	    	// In case of staying in the same parent, re-oder the children of the new parent accordingly. 
+	    	// We just take the order of items the grid gives us, and even when the items might not all be there, this makes sense as it
+	    	// always resembles the order the user sees (if he sees any).
+	    	if (!moveToSubOfTarget) {
+	    		var ouIds = this.#app.nav.reorderVisibleSiblings(docsSrc[s]);
+	    		for(var i in ouIds) {
+	    			updateIds.push(ouIds[i]);
+	    		}
+	    	}
+    	}
+		
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('moveDocumentBeforeSave', {
+			docsSrc: docsSrc,
+			docTarget: docTarget,
+			moveToSubOfTarget: moveToSubOfTarget,
+			updateIds: updateIds
+		});
+		
+    	// Save the new tree structure by updating the metadata of all touched objects.
+    	await this.#documentAccess.saveItems(updateIds);
+
+		// Execute callbacks
+		this.#app.callbacks.executeCallbacks('moveDocumentAfterSave', {
+			docsSrc: docsSrc,
+			docTarget: docTarget,
+			moveToSubOfTarget: moveToSubOfTarget,
+			updateIds: updateIds
+		});
+    		
+   		this.#app.nav.unblock();
+
+    	return { ok: true };
 	}
 	
 	/**
@@ -834,139 +720,9 @@ class DocumentActions {
 	}
 
 	/**
-	 * Restore the deleted documents passed.
-	 */
-	async undeleteItems(docs) {
-		this.#app.data.resetBacklinks();
-		this.#app.data.resetChildrenBuffers();
-		
-		for(var i in docs) {
-			var doc = docs[i];
-
-			// Reset parent if not existing anymore
-			if (doc.parent && !this.#app.data.getById(doc.parent)) {
-				doc.parent = "";
-			}
-			
-			doc.deleted = false;
-			
-			Document.addChangeLogEntry(doc, 'undeleted', {
-				parent: doc.parent
-			});
-			
-			Document.updateMeta(doc);
-			
-			console.log('Undeleting ' + doc.name + ' (' + doc._id + ')');
-		}
-
-		var db = await this.#app.db.get();
-		
-		await db.bulkDocs(docs);
-
-		await this.#app.actions.nav.requestTree();
-
-		return {
-			ok: true,
-			message: "Restored " + doc.name
-		};
-	}
-	
-	/**
-	 * Delete trashed item
-	 */
-	async deleteItemPermanently(id, rev) {
-		this.#app.data.resetBacklinks();
-		this.#app.data.resetChildrenBuffers();
-		
-		var db = await this.#app.db.get();
-			
-		var options = {};
-		if (rev) options.rev = rev;
-			
-		var doc = await db.get(id, options);
-		if (!doc) throw new Error('Document ' + id + ' not found');
-		
-		var dataResp = await db.remove(doc);
-
-		if (!dataResp.ok) {
-			Document.unlock(id);
-
-			throw new Error(dataResp.message);
-		}			
-		
-		if (rev) {
-			this.#app.routing.call(id);
-			
-			await this.#app.actions.nav.requestTree();
-
-			return {
-				ok: true,
-				message: "Deleted revision " + rev + "."
-			};
-			
-		} 
-		
-		this.#app.resetPage();
-			
-		await this.#app.actions.trash.showTrash();
-
-		return {
-			ok: true,
-			message: "Permanently deleted " + doc.name + "."
-		};
-	}
-	
-	/**
-	 * Lets the user choose a background image for the passed documents.
-	 */
-	setItemBackgroundImage(ids) {
-		ids = Tools.removeDuplicates(ids);
-		
-		var docs = [];
-		for(var i in ids) {
-			var doc = this.#app.data.getById(ids[i]);
-			if (!doc) return Promise.reject({
-				message: 'Document ' + ids[i] + ' not found',
-				messageThreadId: 'SetItemBgImageMessages'
-			});
-			
-			docs.push(doc);
-		}
-
-		if (ids.length == 0) return Promise.reject({
-			message: 'Nothing selected',
-			messageThreadId: 'SetItemBgImageMessages'
-		});
-		
-		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
-		
-		var that = this;
-		return this.#imageDialog.show({  // TODO move out
-			doc: docs[0],
-			displayName: displayName,
-			imageData: docs[0].backImage,
-			maxWidth: Config.ITEM_BACKGROUND_MAX_WIDTH, 
-			maxHeight: Config.ITEM_BACKGROUND_MAX_HEIGHT, 
-			mimeType: Config.ITEM_BACKGROUND_MIME_TYPE,
-			quality: Config.ITEM_BACKGROUND_QUALITY,
-			maxBytes: Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES
-		})
-		.then(function(backImage) {
-			return that.#saveItemBackgroundImage(ids, backImage);
-		})			        	
-		.then(function(/*data*/) {
-			return Promise.resolve({
-				ok: true,
-				message: 'Updated background image for ' + displayName,
-				messageThreadId: 'SetItemBgImageMessages'
-			});
-    	})
-	}
-	
-	/**
 	 * Saves the passed image data to the passed documents.
 	 */
-	async #saveItemBackgroundImage(ids, backImage) {
+	async saveItemBackgroundImage(ids, backImage) {
 		ids = Tools.removeDuplicates(ids);
 
 		var docsSrc = [];

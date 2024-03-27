@@ -299,11 +299,7 @@ class TreeBehaviour {
 				
 				// Text
 				$('<div class="' + this.getItemTextClass() + '">' + additionalTextBefore + doc.name + additionalTextAfter + '</div>'),
-			]).append(
-				// Labels
-				Document.getLabelElements(doc, 'doc-label-tree'),
-				Document.getTagElements(doc, 'doc-hashtag-tree')
-			),
+			]),
 			
 			// Drag handle (dynamically blended in)
 			$('<div class="' + this.getDragHandleClass() + '"></div>')
@@ -316,12 +312,6 @@ class TreeBehaviour {
 	 * the node is passed, containing the meta information of the item, along with the muuri item instance itself.
 	 */
 	setItemStyles(muuriItem, doc, itemContainer, itemContent, searchText) {
-		var labels = itemContent.find('.doc-label');
-		labels.css('min-width', this.treeFontSize + 'px');
-		labels.css('max-width', this.treeFontSize + 'px');
-		labels.css('min-height', this.treeFontSize + 'px');
-		labels.css('max-height', this.treeFontSize + 'px');
-		
 		var tags = itemContent.find('.doc-hashtag');
 		tags.css('min-width', this.treeFontSize + 'px');
 		tags.css('max-width', this.treeFontSize + 'px');

@@ -48,12 +48,6 @@ class TrelloImporter {
 						$('<td></td>').append(
 							$('<input type="checkbox" id="importComments" checked />')	
 						)
-					),
-					$('<tr></tr>').append(
-						$('<td>Import Labels</td>'),
-						$('<td></td>').append(
-							$('<input type="checkbox" id="importLabels" checked />')	
-						)
 					)
 				)
 			)
@@ -68,7 +62,6 @@ class TrelloImporter {
 			importBackgroundImage: !!$('#importBackground').is(':checked'),
 			importAttachments: !!$('#importAttachments').is(':checked'),
 			importComments: !!$('#importComments').is(':checked'),
-			importLabels: !!$('#importLabels').is(':checked'),
 		};
 	}
 	
@@ -136,21 +129,6 @@ class TrelloImporter {
 		
 		if (bgDoc) docs.push(bgDoc);
 		
-		// Labels
-		if (options.importLabels) {
-			for(var l in data.labels || []) {
-				var label = data.labels[l];
-				if (!label.id) continue;
-				
-				Document.addLabelDefinition(
-					root, 
-					label.name ? label.name : (label.color ? label.color : 'Unnamed label'), 
-					label.color ? label.color : '#555555', 
-					label.id,
-				);
-			}
-		}
-		
 		docs.push(root);
 		
 		// Lists / Cards
@@ -206,8 +184,7 @@ class TrelloImporter {
 					parent: columnDoc._id,
 					content: cardContent,
 					timestamp: Date.now(),
-					order: order++,
-					labels: options.importLabels ? card.idLabels : false,
+					order: order++
 				};
 				docs.push(cardDoc);
 				

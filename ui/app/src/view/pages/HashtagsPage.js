@@ -66,7 +66,7 @@ class HashtagsPage extends Page {
 			const numDocs = this._app.data.getDocumentsWithTag(tag);
 			const tagColor = this._app.hashtag.getColor(tag);
 			
-			// Action buttons (only for current document's labels)
+			// Action buttons (only for current document's tags)
 			var butts = $('<span class="listOptionContainer" />').append(
 				[
 					$('<div data-toggle="tooltip" title="Search for documents with the tag" class="fa fa-search versionButton" data-tag="' + tag + '"/>')

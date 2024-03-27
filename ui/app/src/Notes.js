@@ -21,7 +21,7 @@ class Notes {
 	#updatedViews = false;
 	
 	constructor() { 
-		this.appVersion = '1.0.4';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
+		this.appVersion = '1.0.5';      // Note: Also update the Cache ID in the Service Worker to get the updates through to the clients!
 
 		this.optionsMasterContainer = "treeoptions_mastercontainer";
 		this.outOfDateFiles = [];
@@ -135,7 +135,6 @@ class Notes {
 			editor: new EditorActions(this, this.documentAccess),	
 			hashtag: new HashtagActions(this, this.documentAccess),	
 			history: new HistoryActions(this),	
-			label: new LabelActions(this, this.documentAccess),	
 			meta: new MetaActions(this),	
 			reference: new ReferenceActions(this, this.documentAccess),	
 			settings: new SettingsActions(this),	
@@ -515,7 +514,7 @@ class Notes {
 		
 		// Register message handler callbacks: Unregister service worker message
 		this.setServiceWorkerMessageCallback('unregisterServiceWorker', function(/*data*/) {
-			console.log("Service Worker triggers unregistering...");
+			console.log("Service worker triggers unregistering...");
 
 			if (!confirm("Reinstall now? No notebook data will get lost.")) {
 				that.view.message("Action cancelled", 'I');
@@ -548,13 +547,13 @@ class Notes {
 		    navigator.serviceWorker
 				.register('ServiceWorker.js')
 				.then(function(registration) {
-					console.log('ServiceWorker registration successful with scope ' + registration.scope);
+					console.log('Service worker registration successful with scope ' + registration.scope);
 					
 					// Messages from the service worker
 					that.setupServiceWorkerMessageReceiver();
 				}, function(err) {
-					console.log('ServiceWorker registration failed: ', err);
-					that.view.message('ServiceWorker registration failed: ' + err, "E");
+					console.log('Service worker registration failed: ', err);
+					that.view.message('Service worker registration failed: ' + err, "E");
 			    });
 		}
 	}
@@ -1443,13 +1442,6 @@ class Notes {
 					that.routing.callHashtags();
 				}),
 				
-				// All labels
-				$('<div class="userbutton"><div class="fa fa-tags userbuttonIcon"></div>All Labels</div>')
-				.on('click', function(e) {
-					e.stopPropagation();
-					that.routing.callLabelDefinitions();
-				}),
-				
 				// Console
 				$('<div class="userbutton"><div class="fa fa-terminal userbuttonIcon"></div>Console</div>')
 				.on('click', function(e) {
@@ -2179,7 +2171,6 @@ class Notes {
 				noDelete: false,              // Hide delete option
 				noBgColor: false,
 				noColor: false,
-				noLabels: false,
 				noBgImage: false,
 				showDeleteFavorite: false,
 				showClearFavorites: false
@@ -2233,7 +2224,6 @@ class Notes {
 			$('.contextOptionMove').css('display', options.noMove ? 'none' : 'inline-block');
 			$('.contextOptionCopy').css('display', options.noCopy ? 'none' : 'inline-block');
 			$('.contextOptionDelete').css('display', options.noDelete ? 'none' : 'inline-block');
-			$('.contextOptionLabels').css('display', options.noLabels ? 'none' : 'inline-block');
 			$('.contextOptionColor').css('display', options.noColor ? 'none' : 'inline-block');
 			$('.contextOptionBgColor').css('display', options.noBgColor ? 'none' : 'inline-block');
 			$('.contextOptionDeleteFavorite').css('display', options.showDeleteFavorite ? 'inline-block' : 'none');

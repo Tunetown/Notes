@@ -29,8 +29,8 @@ const APP_SOURCE_DEFINITIONS = [
 	 */
 	{ src: './' },
   	{ src: './index.html' },
-	{ src: './manifest.json' },
 	
+	{ src: './manifest.json' },
 	{ src: './bootstrap.js' },
 	
 	{ src: './ui/app/images/favicon.ico' },
@@ -48,7 +48,6 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/lib/client-zip.js' },
     
     { src: './ui/lib/codemirror/mode/markdown/markdown.js' },
-	{ src: './ui/lib/codemirror/mode/javascript/javascript.js' },
 	{ src: './ui/lib/codemirror/mode/clike/clike.js' },
 	{ src: './ui/lib/codemirror/mode/css/css.js' },
 	{ src: './ui/lib/codemirror/mode/xml/xml.js' },
@@ -145,7 +144,6 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/actions/DocumentActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/EditorActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/HistoryActions.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/actions/LabelActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/ReferenceActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/SettingsActions.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/actions/TrashActions.js', tag: 'script', type: 'text/javascript' },
@@ -200,7 +198,6 @@ const APP_SOURCE_DEFINITIONS = [
     { src: './ui/app/src/view/pages/ProfilesPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/ConflictPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/ConflictsPage.js', tag: 'script', type: 'text/javascript' },
-    { src: './ui/app/src/view/pages/LabelDefinitionsPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/HashtagsPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/VersionsPage.js', tag: 'script', type: 'text/javascript' },
     { src: './ui/app/src/view/pages/VersionPage.js', tag: 'script', type: 'text/javascript' },
@@ -263,6 +260,8 @@ class SourceLoader {
 	 * @param {array} definitions
 	 */
 	load(definitions) {
+		this.#checkDefinitions(definitions);
+		
 		const that = this;
 		definitions.forEach(function(entry) {
 			if (!entry.hasOwnProperty('tag')) return;
@@ -324,6 +323,21 @@ class SourceLoader {
 		
 		document.head.append(linkTag);
 	}
+	
+	/**
+	 * Check correctness of definitions
+	 */
+	#checkDefinitions(definitions) {
+		definitions.forEach(function(entry) {
+			// Check each source only exists once
+			var cnt = 0;
+			definitions.forEach(function(entryDbl) {
+				if (entry.src == entryDbl.src) ++cnt;
+			});
+			
+			if (cnt != 1) throw new Error('Duplicate source: ' + entry.src + ' appears ' + cnt + ' times');
+		});
+	}
 }
 
 ///////////////////////////////////////////////////////////////////////////////////
@@ -341,7 +355,7 @@ if (typeof document !== 'undefined') {
 
 ///////////////////////////////////////////////////////////////////////////////////
 
-if (window) {
+if (typeof window !== 'undefined') {
 	window.onload = function() {
 		new Notes().run(); 
 	}

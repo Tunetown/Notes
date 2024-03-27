@@ -22,7 +22,8 @@ class View {
 	dialogs = null;
 	#messageHandler = null;
 	#createDialog = null;
-	
+	#imageDialog = null;
+		
 	constructor(app) {
 		this.app = app;
 		
@@ -30,7 +31,9 @@ class View {
 		this.#messageHandler.init();
 		
 		this.dialogs = new Dialogs(this);
+		
 		this.#createDialog = new CreateDialog(this.app);
+		this.#imageDialog = new ImageDialog(this.app);
 	}
 	
 	/**
@@ -38,6 +41,76 @@ class View {
 	 */
 	getDialog() {
 		return new Dialog(this);
+	}
+
+	/**
+	 * Ask the user for a background image and sets it on an item.
+	 */
+	async triggerSetItemBackgroundImage(ids) {
+		ids = Tools.removeDuplicates(ids);
+		if (ids.length == 0) throw new WarningError('No documents passed');
+		
+		var docs = [];
+		for(var i in ids) {
+			var doc = this.app.data.getById(ids[i]);
+			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
+			
+			docs.push(doc);
+		}
+
+		var displayName = (docs.length == 1) ? docs[0].name : (docs.length + ' documents');
+		
+		var backImage = await this.#imageDialog.show({ 
+			doc: docs[0],
+			displayName: displayName,
+			imageData: docs[0].backImage,
+			maxWidth: Config.ITEM_BACKGROUND_MAX_WIDTH, 
+			maxHeight: Config.ITEM_BACKGROUND_MAX_HEIGHT, 
+			mimeType: Config.ITEM_BACKGROUND_MIME_TYPE,
+			quality: Config.ITEM_BACKGROUND_QUALITY,
+			maxBytes: Config.ITEM_BACKGROUND_DONT_RESCALE_BELOW_BYTES
+		});
+
+		await this.app.actions.document.saveItemBackgroundImage(ids, backImage);
+		
+		this.message('Updated background image for ' + displayName, 'S');
+		
+		return { ok: true };
+	}
+
+	/**
+	 * Ask the user where to move the passed documents (array of ids),
+	 * and triggers the action.
+	 * 
+	 * TODO still located right here?
+	 */
+	async triggerMoveItems(ids) {
+		ids = Tools.removeDuplicates(ids);
+		if (ids.length == 0) throw new WarningError('Nothing to move');
+
+		var doc = null;
+		for(var i in ids) {
+			doc = this.app.data.getById(ids[i]);
+			if (!doc) throw new Error('Document ' + ids[i] + ' not found');
+		}
+
+		var displayName = (ids.length == 1) ? doc.name : (ids.length + ' documents');
+
+		var target = await this.dialogs.promptSelectDocument('Move ' + displayName + ' to:', {
+			excludeIds: ids,
+			excludeTypes: ['reference']
+		})
+		
+    	if (target == "_cancel") throw new InfoError("Action cancelled.")
+    	
+    	await this.app.actions.document.moveDocuments(ids, target, true);
+
+   		var tdoc = this.app.data.getById(target);
+    	this.message('Moved ' + displayName + ' to ' + (tdoc ? tdoc.name : Config.ROOT_NAME), 'S');
+    		
+		return {
+			ok: true
+		};
 	}
 
 	/**
@@ -63,7 +136,7 @@ class View {
 		
 		undeleteDocs.push(doc);
 		
-		var ret = await this.app.actions.document.undeleteItems(undeleteDocs);
+		var ret = await this.app.actions.trash.undeleteItems(undeleteDocs);
 		
 		if (ret.message) {
 			this.message(ret.message, 'S');
@@ -93,7 +166,7 @@ class View {
 			throw new InfoError("Nothing changed.");
 		}
 
-		var data = await this.app.actions.document.deleteItemPermanently(id, rev);
+		var data = await this.app.actions.trash.deleteItemPermanently(id, rev);
 									
 		if (data.message) {
 			this.message(data.message, "S");
@@ -139,6 +212,8 @@ class View {
 	 * TODO still located right here?
 	 */
 	async triggerDeleteItem(ids) {
+		ids = Tools.removeDuplicates(ids);
+		
 		var numChildren = 0;
 		var numDocs = 0;
 		
@@ -162,7 +237,7 @@ class View {
 				++numChildren;
 			}
 		}
-		debugger;
+
 		var addstr = numChildren ? (' including ' + numChildren + ' contained items') : '';
 		var displayName = (numDocs == 1) ? docs[0].name : (numDocs + ' documents');
 

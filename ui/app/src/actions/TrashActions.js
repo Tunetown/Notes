@@ -16,6 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 class TrashActions {
 	
 	#app = null;
@@ -73,6 +74,89 @@ class TrashActions {
 		return {
 			ok: true,
 			message: "Trash is now empty.",
+		};
+	}
+	
+	/**
+	 * Restore the deleted documents passed.
+	 */
+	async undeleteItems(docs) {
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
+		
+		for(var i in docs) {
+			var doc = docs[i];
+
+			// Reset parent if not existing anymore
+			if (doc.parent && !this.#app.data.getById(doc.parent)) {
+				doc.parent = "";
+			}
+			
+			doc.deleted = false;
+			
+			Document.addChangeLogEntry(doc, 'undeleted', {
+				parent: doc.parent
+			});
+			
+			Document.updateMeta(doc);
+			
+			console.log('Undeleting ' + doc.name + ' (' + doc._id + ')');
+		}
+
+		var db = await this.#app.db.get();
+		
+		await db.bulkDocs(docs);
+
+		await this.#app.actions.nav.requestTree();
+
+		return {
+			ok: true,
+			message: "Restored " + doc.name
+		};
+	}
+	
+	/**
+	 * Delete trashed item
+	 */
+	async deleteItemPermanently(id, rev) {
+		this.#app.data.resetBacklinks();
+		this.#app.data.resetChildrenBuffers();
+		
+		var db = await this.#app.db.get();
+			
+		var options = {};
+		if (rev) options.rev = rev;
+			
+		var doc = await db.get(id, options);
+		if (!doc) throw new Error('Document ' + id + ' not found');
+		
+		var dataResp = await db.remove(doc);
+
+		if (!dataResp.ok) {
+			Document.unlock(id);
+
+			throw new Error(dataResp.message);
+		}			
+		
+		if (rev) {
+			this.#app.routing.call(id);
+			
+			await this.#app.actions.nav.requestTree();
+
+			return {
+				ok: true,
+				message: "Deleted revision " + rev + "."
+			};
+			
+		} 
+		
+		this.#app.resetPage();
+			
+		await this.#app.actions.trash.showTrash();
+
+		return {
+			ok: true,
+			message: "Permanently deleted " + doc.name + "."
 		};
 	}
 	

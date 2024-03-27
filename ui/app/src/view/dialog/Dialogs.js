@@ -32,8 +32,50 @@ class Dialogs {
 	}
 	
 	/**
-	 * Dialog for uploading files to a target parent doc.
+	 * Dialog for asking the user to select a document.
+	 * 
+	 * options:
+	 * {
+	 *      defaultTargetId: - pre-select this document
+	 *      excludeTypes: array - exclude all documents with the given types
+	 *      excludeIds: array - exclude the ids
+	 *      excludeRoot: bool
+	 * }
 	 */
+	async promptSelectDocument(question, options) {
+		if (!options) options = {};
+		
+		var exclude = [];
+
+		this.#view.app.data.each(function(doc) {
+			if (typeof options.excludeTypes == 'array') {
+				if (options.excludeTypes.findIndex(doc.type)) {
+					exclude.push(doc._id);
+					return;
+				}
+				if (options.excludeIds.findIndex(doc._id)) {
+					exclude.push(doc._id);
+					return;
+				}
+			}
+		});
+		
+		var targetSelector = this.#view.getDocumentSelector(exclude, options.excludeRoot);
+		targetSelector.val(options.defaultTargetId);
+		targetSelector.css('max-width', '100%');
+		
+		var answer = await this.#view.getDialog().confirm(question, [ 
+			targetSelector 
+		]);
+		
+		if (!answer) throw new InfoError('Action canceled');
+
+		return targetSelector.val();
+	}
+
+	/**
+	 * Dialog for uploading files to a target parent doc. TODO cleanup
+	 *
 	async promptFileUploadTarget(question, defaultTargetId) {
 		// Get all existing references
 		var existingRefs = [];
@@ -51,5 +93,5 @@ class Dialogs {
 		if (!answer) throw new InfoError('Action canceled');
 
 		return targetSelector.val();
-	}
+	}*/
 }

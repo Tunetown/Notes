@@ -682,24 +682,6 @@ class DetailBehaviour {
 			const docB = that.getById(dataB.id);
 				
 			return that.compareDocuments(docA, docB);
-			/*const docAmeta = that.getItemRefTypeDescriptor(docA);
-			const docBmeta = that.getItemRefTypeDescriptor(docB);
-
-			//console.log('==================');
-			
-			// Flexible sorting
-			const sortWeight = that.getSortComparisonValue(docA, docB, docAmeta, docBmeta); 
-			const groupWeightA = that.getSortWeight(docA, docAmeta);
-			const groupWeightB = that.getSortWeight(docB, docBmeta);
-			
-			//console.log(docA.name + ' vs ' + docB.name + ': ' + sortWeight + '   ' + groupWeightA + '    ' + groupWeightB);
-			//console.log(docAmeta);
-			//console.log(docBmeta);
-			
-			//if (sortWeight > 1) console.log("Sort weight out of range: " + sortWeight); 
-			//if (sortWeight < -1) console.log("Sort weight out of range: " + sortWeight); 
-			
-			return sortWeight + groupWeightA - groupWeightB;*/
 		});
 		
 		// Align the labels to the left for the selected parent item which is always first after sorting
@@ -981,8 +963,7 @@ class DetailBehaviour {
 						// Star label						
 						$('<div class="doc-label doc-label-detail-star fa fa-star"></div>'),
 						
-						// Labels and Hashtags
-						Document.getLabelElements(doc, 'doc-label-detail'),
+						// Hashtags
 						Document.getTagElements(doc, 'doc-hashtag-detail')
 					),
 				]),
@@ -1286,12 +1267,6 @@ class DetailBehaviour {
 		
 		this.updateItemMeta(doc, itemContent);
 
-		const labels = itemContent.find('.doc-label');
-		labels.css('min-width', this.treeFontSize + 'px');
-		labels.css('max-width', this.treeFontSize + 'px');
-		labels.css('min-height', this.treeFontSize + 'px');
-		labels.css('max-height', this.treeFontSize + 'px');
-		
 		const tags = itemContent.find('.doc-hashtag');
 		tags.css('min-width', this.treeFontSize + 'px');
 		tags.css('max-width', this.treeFontSize + 'px');

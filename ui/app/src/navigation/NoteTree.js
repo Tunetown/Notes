@@ -491,7 +491,6 @@ class NoteTree {
 				noMove: true,                // Hide move option
 				noCopy: true,                // Hide copy option
 				noDelete: true,              // Hide delete option
-				noLabels: true,
 				noBgColor: true,
 				noColor: true,
 				noCreate: true,
@@ -1054,22 +1053,6 @@ class NoteTree {
 		);
 		this.#app.callbacks.registerCallback(
 			'tree',
-			'saveLabels',
-			function(data) {
-				that.destroy();
-				that.init(true);
-			}
-		);
-		this.#app.callbacks.registerCallback(
-			'tree',
-			'saveLabelDefinitions',
-			function(data) {
-				that.destroy();
-				that.init(true);
-			}
-		);
-		this.#app.callbacks.registerCallback(
-			'tree',
 			'importFinished',
 			function(data) {
 				that.destroy();
@@ -1083,7 +1066,10 @@ class NoteTree {
 	 */
 	async #uploadFilesHandler(files, defaultId) {
 		try {
-			var id = await this.#app.view.dialogs.promptFileUploadTarget('Add ' + files.length + ' files?', defaultId);
+			var id = await this.#app.view.dialogs.promptSelectDocument('Add ' + files.length + ' files?', {
+				defaultTargetId: defaultId,
+				excludeTypes: ['reference']
+			});
 				
 			await this.#app.actions.attachment.uploadAttachments(id, files);
 			
@@ -1684,7 +1670,7 @@ class NoteTree {
 		if (doShow) {
 			// Build DOM for search proposals
 			const helpText =  
-				'<span class="serachhelptext">Type a text to search for it in all contents, document names and labels. Use the follong prefixes optionally:</span>' + 
+				'<span class="serachhelptext">Type a text to search for it in all contents and document names. Use the follong prefixes optionally:</span>' + 
 				'<br>' + 
 				'<ul>' + 
 					'<li>' +
@@ -1695,9 +1681,6 @@ class NoteTree {
 					'</li>' + 
 					'<li>' +
 						'<b>tag:[...]</b> only shows documents containing the specified hash tag' +  
-					'</li>' + 
-					'<li>' +
-						'<b>label:[...]</b> only searches for documents with a label whose name contains the search text' +  
 					'</li>' + 
 					'<li>' +
 						'<b>type:[...]</b> only shows documents with the specified type (possible types are: note, attachment, reference)' +  

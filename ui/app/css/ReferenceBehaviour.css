@@ -162,12 +162,6 @@
 	cursor: pointer;
 }
 
-.doc-label-ref {
-	margin-top: 2px;
-	margin-left: 2px;
-	flex: 0 0 auto;
-}
-
 .ref-behaviour-selector {
 	padding: 0px;
 	margin-right: 10px;

@@ -107,10 +107,7 @@ class ContextMenu {
 			        	that.#app.hideOptions();
 			        	if (!that.#app.optionsIds.length) return;
 			        	
-			        	that.#app.actions.document.moveItems(that.#app.optionsIds)
-			        	.then(function(data) {
-							that.#app.view.message(data.message ? data.message : 'Successfully moved items', 'S');
-						})
+			        	that.#app.view.triggerMoveItems(that.#app.optionsIds)
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
 						});
@@ -144,7 +141,7 @@ class ContextMenu {
 						that.#app.view.message("Preparing to delete items...", 'I');
 						
 						that.#app.view.triggerDeleteItem(that.#app.optionsIds)
-						.then(function(data) {
+						.then(function() {
 							that.#app.nav.unblock();
 						})
 						.catch(function(err) {
@@ -153,18 +150,6 @@ class ContextMenu {
 						});
 					}),
 					
-				// Labels
-				$('<div id="contextOptionLabels" data-toggle="tooltip" title="Labels..." class="contextOptionSingle fa fa-tags treebutton roundedButton contextOptionLabels"></div>')
-					.on('click', function(event) {
-						event.stopPropagation();
-						that.#app.hideOptions();
-						if (that.#app.optionsIds.length != 1) return;
-
-						var doc = that.#app.data.getById(that.#app.optionsIds[0]);
-						if (!doc) return;
-						
-						that.#app.routing.callLabelDefinitions(that.#app.optionsIds[0]);
-					}),
 					
 				// Text Color
 		        $('<label id="contextOptionColor" data-toggle="tooltip" title="Set Text Color" class="fa fa-palette treebutton roundedButton contextOptionColor"></div>')
@@ -188,7 +173,7 @@ class ContextMenu {
 				            	if (!that.#app.optionsIds.length) return;
 				            	that.#app.setColor(that.#app.optionsIds, this, false)
 				            })
-				            .on('input', function(event) {
+				            .on('input', function() {
 				            	if (!that.#app.optionsIds.length) return;
 				            	that.#app.setColorPreview(that.#app.optionsIds, this, false)
 				            })
@@ -216,7 +201,7 @@ class ContextMenu {
 					        	if (!that.#app.optionsIds.length) return;
 					        	that.#app.setColor(that.#app.optionsIds, this, true)
 					        })
-					        .on('input', function(event) {
+					        .on('input', function() {
 					        	if (!that.#app.optionsIds.length) return;
 					        	that.#app.setColorPreview(that.#app.optionsIds, this, true)
 					        })
@@ -229,10 +214,7 @@ class ContextMenu {
 						that.#app.hideOptions();
 						if (!that.#app.optionsIds.length) return;
 						
-						that.#app.actions.document.setItemBackgroundImage(that.#app.optionsIds)
-						.then(function(data) {
-							if (data.message) that.#app.view.message(data.message, 'S');
-						})
+						that.#app.view.triggerSetItemBackgroundImage(that.#app.optionsIds)
 						.catch(function(err) {
 							that.#app.errorHandler.handle(err);
 						});
@@ -268,7 +250,7 @@ class ContextMenu {
 						if (!doc) return;
 						
 						that.#app.actions.document.setStarFlag(doc._id, !doc.star)
-						.then(function(data) {
+						.then(function() {
 							that.#app.updateOptionStyles();
 						})
 						.catch(function(err) {

@@ -181,8 +181,7 @@ class ObsidianExporter {
 			linkagesMeta.parents.errors + 
 			linkagesMeta.refs.linksIgnored + 
 			linkagesMeta.atts.linksIgnored + 
-			linkagesMeta.boards.linksIgnored + 
-			linkagesMeta.labels.labelsIgnored;
+			linkagesMeta.boards.linksIgnored 
 			
 		console.log('Result: ' + docsPrepped.length + ' file documents (incl. root index)');
 		console.log('Statistics: ');
@@ -288,7 +287,6 @@ class ObsidianExporter {
 		var parentsStats = this.createParentLinkages(docsPrepped, rootDoc);
 		var refsStats = this.createReferenceLinkages(docsPrepped, rootDoc, docsInternal);
 		var attsStats = this.createAttachmentLinkages(docsPrepped, rootDoc, attRefs);
-		var labelStats = this.createLabelLinkages(docsPrepped, rootDoc);
 		var boardStats = this.createBoardLinkages(docsPrepped, rootDoc, docsInternal);
 		
 		// Return statistics meta object.
@@ -296,7 +294,6 @@ class ObsidianExporter {
 			refs: refsStats,
 			atts: attsStats,
 			parents: parentsStats,
-			labels: labelStats,
 			boards: boardStats,
 		}
 	}
@@ -533,64 +530,6 @@ class ObsidianExporter {
 	}
 	
 	/**
-	 * Generates label links for all documents. Returns a stats object.
-	 */
-	createLabelLinkages(docsPrepped) {
-		var d = this.#app.data;
-		
-		var labelsAdded = 0;
-		var labelsIgnored = 0;
-		
-		// Labels: These will become hashtags later.
-		for(var i=0; i<docsPrepped.length; ++i) {
-			var dp = docsPrepped[i];
-			if (!dp.doc.labels) continue;
-			
-			var labels = [];
-			for (var l=0; l<dp.doc.labels.length; ++l) {
-				var labelId = dp.doc.labels[l];
-				
-				var def = d.getLabelDefinition(dp.doc._id, labelId);
-				if (!def) {
-					console.log(' -> Label definition ' + labelId + ' not found for file: ' + dp.path);
-					++labelsIgnored;
-					continue;	
-				}
-				
-				labels.push({
-					link: def.name,
-					type: 'label'
-				});	
-			}
-
-			if (labels.length == 0) continue;
-
-			if (dp.doc.type == 'attachment') {
-				console.log(' -> ' + labels.length + ' labels ignored for attachment file: ' + dp.path);
-				labelsIgnored += labels.length;
-				continue;
-			}
-			
-			if ((dp.doc.type == 'note') && (dp.doc.editor == 'board')) {
-				console.log(' -> ' + labels.length + ' labels ignored for board file: ' + dp.path);
-				labelsIgnored += labels.length;
-				continue;
-			}
-			
-			// Add labels to links list
-			for(var k=0; k<labels.length; ++k) {
-				dp.links.push(labels[k]);
-				++labelsAdded;	
-			}
-		}
-		
-		return {
-			labelsAdded: labelsAdded,
-			labelsIgnored: labelsIgnored,
-		};
-	}
-	
-	/**
 	 * Adds the passed document as file to the docsPrepped array. Returns a metadata object 
 	 * about the path actually exported.
 	 */
@@ -688,10 +627,6 @@ class ObsidianExporter {
 
 			line = this.getLinksString(uniquelinks, 'board');
 			if (line) lines.push('Boards: ' + line);
-
-			// Labels: These become hashtags in the front matter			
-			line = this.getHashtagsString(uniquelinks, 'label');			
-			if (line) lines.push(line);
 
 			if (lines.length == 0) continue;
 
@@ -927,9 +862,7 @@ class ObsidianExporter {
 			changeLog: dp.doc.changeLog,
 			editor: dp.doc.editor,
 			editorParams: dp.doc.editorParams,
-			boardState: dp.doc.boardState,
-			labelDefinitions: dp.doc.labelDefinitions,
-			labels: dp.doc.labels,
+			boardState: dp.doc.boardState
 		};
 	}
 	

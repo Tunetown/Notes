@@ -1,7 +1,4 @@
 /**
- * Document class. Currently this just has some static stuff defining the doc types.
- * TODO: Use as data model class.
- * 
  * (C) Thomas Weber 2021 tom-vibrant@gmx.de
  * 
  * This program is free software: you can redistribute it and/or modify
@@ -17,6 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
+
 class Document {
 
 	static app = null;
@@ -225,9 +223,6 @@ class Document {
 		AttachmentPage.checkBasicProps(doc, errors);
 		CodeEditor.checkBasicProps(doc, errors);
 		BoardEditor.checkBasicProps(doc, errors);
-		
-		// Check label definitions and labels.
-		LabelDefinitionsPage.check(doc, errors, allDocs);
 	}
 	
 	/**
@@ -693,8 +688,6 @@ class Document {
 		doc.color = src.color;
 		doc.content = src.content;
 		doc.timestamp = src.timestamp;
-		doc.labelDefinitions = src.labelDefinitions;
-		doc.labels = src.labels;
 		doc._attachments = src._attachments;
 		doc._conflicts = src._conflicts;
 		doc.content_type = src.content_type;
@@ -727,6 +720,8 @@ class Document {
 		delete doc.children;
 		delete doc.childrenDeep;
 		delete doc.navItemElement;
+		delete doc.labelDefinitions;  // #IGNORE labelDefinitions (For migration)
+		delete doc.labels;  // #IGNORE labels (For migration)
 		//Document.strip(doc);
 				
 		var d = Document.app.data;
@@ -779,8 +774,6 @@ class Document {
 		doc.color = src.color;
 		doc.content = src.content;
 		doc.timestamp = src.timestamp;
-		doc.labelDefinitions = src.labelDefinitions;
-		doc.labels = src.labels;
 		doc._attachments = src._attachments;
 		doc.parent = src.parent;
 		doc.content_type = src.content_type;
@@ -856,9 +849,6 @@ class Document {
 						star: doc.star,
 						
 						boardState: doc.boardState,
-
-						labelDefinitions: doc.labelDefinitions,
-						labels: doc.labels,
 
 						content_type: doc.content_type,
 						attachment_filename: doc.attachment_filename,
@@ -1133,147 +1123,6 @@ class Document {
 	}
 	
 	/**
-	 * Returns the given label definition if exists
-	 */
-	static getLabelDefinition(doc, labelId) {
-		for(var l in doc.labelDefinitions || []) {
-			if (doc.labelDefinitions[l].id == labelId) {
-				return doc.labelDefinitions[l];
-			}
-		}
-		return null;
-	}
-	
-	/**
-	 * Removes a label definition. Returns if anything has been removed.
-	 */
-	static removeLabelDefinition(doc, labelId) {
-		var nlabels = [];
-		var found = false;
-		for(var l in doc.labelDefinitions || []) {
-			if (doc.labelDefinitions[l].id == labelId) {
-				found = true;
-				continue;
-			}
-			nlabels.push(doc.labelDefinitions[l]);
-		}
-		if (found) {
-			doc.labelDefinitions = nlabels;
-			return true;
-		} else {
-			return false;
-		}
-	}
-	
-	/**
-	 * Adds a new label definition.
-	 */
-	static addLabelDefinition(doc, def) {
-		if (!def) throw new Error('No definition passed');
-		
-		var name = def.name ? def.name : ('Label-' + doc.name);
-		var color = def.color ? def.color : '#06feab';
-		var id = def.id ? def.id : Document.app.data.generateIdFrom(name);
-		
-		if (!doc.labelDefinitions) doc.labelDefinitions = [];
-		doc.labelDefinitions.push({
-			id: id,
-			color: color,
-			name: name
-		});
-	}
-	
-	/**
-	 * Returns if the document has the given label ID set.
-	 */
-	static hasLabel(doc, labelId) {
-		for(var i in doc.labels || []) {
-			if (doc.labels[i] == labelId) {
-				return true;
-			}
-		}
-		return false;
-	}
-	
-	/**
-	 * Set or remove a label from the document. Returns if anything has been changed
-	 */
-	static toggleLabel(doc, labelId, shouldBeSet) {
-		if (!doc.labels) doc.labels = [];
-		
-		Document.removeInvalidLabels(doc);
-		
-		if (this.hasLabel(doc, labelId)) {
-			if (shouldBeSet) {
-				// Already set
-				return false;
-			} else {
-				// Remove
-				var nl = [];
-				for(var i in doc.labels) {
-					if (doc.labels[i] == labelId) continue;
-					nl.push(doc.labels[i]);
-				}
-				doc.labels = nl;
-				return true;
-			}
-		} else {
-			if (shouldBeSet) {
-				doc.labels.push(labelId);
-				return true;
-			} else {
-				// Already removed
-				return false;
-			}
-		}
-	}
-	
-	/**
-	 * Removes all labels from the document which do not exist anymore.
-	 */
-	static removeInvalidLabels(doc) {
-		var d = Document.app.data;
-
-		var nl = [];
-		for(var i in doc.labels) {
-			var def = d.getLabelDefinition(doc._id, doc.labels[i]);
-			if (!def) {
-				continue;
-			}
-			
-			nl.push(doc.labels[i]);
-		}
-		if (nl.length != doc.labels.length) {
-			doc.labels = nl;
-		}
-	}
-	
-	/**
-	 * Returns HTML elements for the labels of the document.
-	 */
-	static getLabelElements(doc, cssClass) {
-		var labels = Document.app.data.getActiveLabelDefinitions(doc._id);
-		var ret = [];
-		
-		for(var i in labels || []) {
-			var el = $('<div class="doc-label ' + (cssClass ? cssClass : '') + '"></div>');
-		
-			el.css('background-color', labels[i].color);
-			el.on('touchstart mousedown', function(event) {
-				event.stopPropagation();
-			});
-			el.on('click', function(event) {
-				event.stopPropagation();
-				
-				Document.app.routing.callLabelDefinitions(doc._id);
-			})
-			
-			ret.push(el);
-		}
-		return ret;
-	}
-	
-	/**
 	 * Returns HTML elements for the hashtags of the document.
 	 */
 	static getTagElements(doc, cssClass) {
@@ -1349,24 +1198,6 @@ class Document {
 		}
 		
 		// Node exists in the tree: Perhaps something relevant for the tree has been changed.
-		if ((doc.labelDefinitions && !current.labelDefinitions) || (!doc.labelDefinitions && current.labelDefinitions)) {
-			console.log("   -> Label definitions changed");
-			return true;
-		}
-		if (doc.labelDefinitions && current.labelDefinitions && (doc.labelDefinitions.length != current.labelDefinitions.length)) {
-			console.log("   -> Label definitions changed");
-			return true;
-		}
-		
-		if ((doc.labels && !current.labels) || (!doc.labels && current.labels)) {
-			console.log("   -> Labels changed");
-			return true;
-		}
-		if (doc.labels && current.labels && (doc.labels.length != current.labels.length)) {
-			console.log("   -> Labels changed");
-			return true;
-		}
-		
 		if (doc.links) {
 			if (!current.links) {
 				console.log("   -> Links have been added");
